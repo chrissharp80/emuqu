@@ -1,0 +1,194 @@
+{
+ "file": "scripts/lib/localization_extract.py",
+ "hash": "c3a4f3254a7476f9",
+ "role": "Shared localized-literal extractor imported by check_localization_resolution.sh and check_localization_orphans.sh, so both gates agree on which Swift literals are catalogue lookups and what key each resolves to.",
+ "types": [],
+ "state": [
+  "INTERP: placeholder for an interpolation",
+  "QUOTE",
+  "SPECIFIER: regex for format specifiers (%@ %lld %ld %d %u %.Nf %f %s, optional positional N$)",
+  "UNICODE_ESCAPE",
+  "SWIFTUI_IMPLICIT / SWIFTUI_MODIFIERS: call names that take a LocalizedStringKey",
+  "CALL: regex matching the start of every localizing call"
+ ],
+ "toplevel": "Module docstring, `import re`, and the constants above. No code runs on import.",
+ "flags": [],
+ "units": [
+  {
+   "key": "def scan_multiline_literal",
+   "hash": "18aa60016e85a47e",
+   "does": "Reads a Swift triple-quoted literal starting at i: body from after the newline following the opening delimiter, closing-line indentation stripped from each line, backslash-newline joins removed, then scanned as a one-line literal (interpolations become INTERP). Returns (body, index after the closing delimiter); an unterminated literal returns (\"\", len(text)).",
+   "entry": null,
+   "calls": [
+    "scripts/lib/localization_extract.py::def scan_literal"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "no closing delimiter",
+     "effect": "(\"\", len(text))"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "scripts/lib/localization_extract.py::def scan_literal": "1fb992cca5170935"
+   }
+  },
+  {
+   "key": "def scan_literal",
+   "hash": "38551d745546b27f",
+   "does": "Returns (body, index after closing quote) for the literal opening at text[i]; delegates triple quotes to scan_multiline_literal. Walks escapes, replaces each \\( ... ) interpolation (tracking nested parens and nested literals) with INTERP, keeps other escapes verbatim. An unterminated literal returns what was read and len(text).",
+   "entry": null,
+   "calls": [
+    "scripts/lib/localization_extract.py::def scan_multiline_literal"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "triple-quoted",
+     "effect": "multiline scanner"
+    },
+    {
+     "at": "+16",
+     "cond": "interpolation",
+     "effect": "skipped to its matching paren, INTERP appended"
+    },
+    {
+     "at": "+33",
+     "cond": "closing quote",
+     "effect": "return body"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "scripts/lib/localization_extract.py::def scan_multiline_literal": "13cd87ce76182f9b"
+   }
+  },
+  {
+   "key": "def unescape",
+   "hash": "d5bf0ce8f9382119",
+   "does": "Turns Swift escapes (\\u{...}, \\\", \\n, \\t, \\', \\\\) in a literal body into the characters they stand for.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def candidate_keys",
+   "hash": "22486b04dfd522e7",
+   "does": "Both keys one literal can resolve to: with literal % doubled (as Xcode writes keys) and without (hand-authored format templates); interpolations become %@ in both.",
+   "entry": null,
+   "calls": [
+    "scripts/lib/localization_extract.py::def unescape"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/lib/localization_extract.py::def unescape": "67d6bccd054d5ced"
+   }
+  },
+  {
+   "key": "def key_pattern",
+   "hash": "192d3a722f2f3f3b",
+   "does": "Compiles an anchored regex matching catalogue keys equal to the candidate with each %@ accepting any SPECIFIER spelling.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def skip_literal_at",
+   "hash": "def022bd3289e8e3",
+   "does": "True when the literal at start is not a LocalizedStringKey: it follows `[` (a subscript key) or `??` (the Text(String) overload of nil-coalescing, which does not localize), judged by the nearest non-whitespace characters before it.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+19",
+     "cond": "preceded by [",
+     "effect": "True"
+    },
+    {
+     "at": "+21",
+     "cond": "preceded by ??",
+     "effect": "True; otherwise False"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def first_argument_literals",
+   "hash": "764e4acf05c0292a",
+   "does": "Literals at paren depth 1 in the first argument of a call whose opening paren is already consumed, stopping at the first top-level comma or the closing paren; skips literals skip_literal_at rejects and literals nested in inner calls.",
+   "entry": null,
+   "calls": [
+    "scripts/lib/localization_extract.py::def scan_literal",
+    "scripts/lib/localization_extract.py::def skip_literal_at"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+22",
+     "cond": "top-level literal that is a key",
+     "effect": "collected"
+    },
+    {
+     "at": "+25",
+     "cond": "end of the first argument",
+     "effect": "stop"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "scripts/lib/localization_extract.py::def scan_literal": "1fb992cca5170935",
+    "scripts/lib/localization_extract.py::def skip_literal_at": "598e1286a8e14a59"
+   }
+  },
+  {
+   "key": "def localized_literals",
+   "hash": "e565847d0c91af0f",
+   "does": "Yields (line, body) for every literal a localizing call in the text looks up: String/AttributedString(localized:), LocalizedStringKey(, NSLocalizedString(, SwiftUI Text/Button/Label/Toggle/TextField/Picker/Section, and the .navigationTitle/.alert/.confirmationDialog/.accessibilityLabel/.accessibilityHint/.value modifiers. A literal right after the paren is taken directly; otherwise the first argument is scanned. Text(verbatim:) is skipped.",
+   "entry": "Imported by scripts/check_localization_resolution.sh and scripts/check_localization_orphans.sh",
+   "calls": [
+    "scripts/lib/localization_extract.py::def scan_literal",
+    "scripts/lib/localization_extract.py::def first_argument_literals"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "Text(verbatim:)",
+     "effect": "skipped"
+    },
+    {
+     "at": "+8",
+     "cond": "literal directly after the paren",
+     "effect": "that literal; else first-argument scan"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "scripts/lib/localization_extract.py::def first_argument_literals": "273955eabaefdbdc",
+    "scripts/lib/localization_extract.py::def scan_literal": "1fb992cca5170935"
+   }
+  }
+ ],
+ "deps": {}
+}

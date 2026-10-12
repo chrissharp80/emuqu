@@ -1,0 +1,1303 @@
+{
+ "file": "EmuquTests/RRDataImporterTests.swift",
+ "hash": "1b6b25e3b324469a",
+ "role": "XCTest suite for RRDataImporter parsing: Elite HRV / Emuqu multi-session detection, seconds→ms conversion, JSON/CSV/plain-text parsers including the CSV range-check asymmetries, Elite HRV summary parsing, crafted-timestamp rejection in multi-session exports, validate's one-week span limit, error text, date parsing, createSession and quoted CSV lines.",
+ "types": [
+  "RRDataImporterTests: class — XCTestCase for RRDataImporter"
+ ],
+ "state": [
+  "savedDefaultTimeZone: static OSAllocatedUnfairLock<TimeZone?> holding the process time zone during the class",
+  "importer: RRDataImporter() per test instance",
+  "mem:NSTimeZone.default (set to UTC for the class, restored in class tearDown)"
+ ],
+ "toplevel": "Class-level setUp/tearDown pin NSTimeZone.default to UTC and restore it; a fresh RRDataImporter is a stored property per test.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func RRDataImporterTests.setUp()",
+   "hash": "aaf67210658fbccf",
+   "does": "Class setUp: saves NSTimeZone.default into the lock and sets the process default time zone to UTC.",
+   "entry": "XCTest runner: class setUp once before the suite",
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:NSTimeZone.default"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/MaxHeartRateTests.swift::var MaxHeartRateTests.utc": "62821ebd21fe11e7"
+   }
+  },
+  {
+   "key": "func RRDataImporterTests.tearDown()",
+   "hash": "8eabd0f83edd2a18",
+   "does": "Class tearDown: restores the saved NSTimeZone.default if any and clears the saved value.",
+   "entry": "XCTest runner: class tearDown after the suite",
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:NSTimeZone.default"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "a saved time zone exists",
+     "effect": "restores NSTimeZone.default to it; otherwise leaves the process time zone as UTC"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RRDataImporterTests.testIsEliteHRVSummary_oldFormat()",
+   "hash": "82d4696ee405b915",
+   "does": "Asserts isEliteHRVSummary is true for the old 'datetime,rmssd_clean_ms,...' header.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.isEliteHRVSummary(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.isEliteHRVSummary(_:)": "567b3df2fdee4565"
+   }
+  },
+  {
+   "key": "func RRDataImporterTests.testIsEliteHRVSummary_newFormat()",
+   "hash": "fd76bc0de4e043c6",
+   "does": "Asserts isEliteHRVSummary is true for the new 'Member,...,HRV,HR,Rmssd' header.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.isEliteHRVSummary(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.isEliteHRVSummary(_:)": "567b3df2fdee4565"
+   }
+  },
+  {
+   "key": "func RRDataImporterTests.testIsEliteHRVSummary_nonEliteContent()",
+   "hash": "c7bca658d2bba256",
+   "does": "Asserts isEliteHRVSummary is false for 'timestamp,rr_ms'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.isEliteHRVSummary(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.isEliteHRVSummary(_:)": "567b3df2fdee4565"
+   }
+  },
+  {
+   "key": "func RRDataImporterTests.testIsFlowHRVMultiSession_validFormat()",
+   "hash": "c4b8a3786208f9ca",
+   "does": "Asserts isFlowHRVMultiSession true for 'session_date,timestamp_ms,rr_ms'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.isFlowHRVMultiSession(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.isFlowHRVMultiSession(_:)": "96ca398e8619f984"
+   }
+  },
+  {
+   "key": "func RRDataImporterTests.testIsFlowHRVMultiSession_missingColumns()",
+   "hash": "f20be4923f746d1b",
+   "does": "Asserts isFlowHRVMultiSession false without session_date.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.isFlowHRVMultiSession(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.isFlowHRVMultiSession(_:)": "96ca398e8619f984"
+   }
+  },
+  {
+   "key": "func RRDataImporterTests.testConvertToMilliseconds_secondsValue()",
+   "hash": "4f2044d5c6f9c6e9",
+   "does": "Asserts convertToMilliseconds treats values < 10 as seconds (0.8→800, 1.0→1000, 0.5→500).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.convertToMilliseconds(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.convertToMilliseconds(_:)": "2ec956267d8ac7b2"
+   }
+  },
+  {
+   "key": "func RRDataImporterTests.testConvertToMilliseconds_alreadyMs()",
+   "hash": "1ed32bb075fae135",
+   "does": "Asserts values >= 10 are kept as milliseconds (800→800, 1000→1000).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.convertToMilliseconds(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.convertToMilliseconds(_:)": "2ec956267d8ac7b2"
+   }
+  },
+  {
+   "key": "func RRDataImporterTests.testConvertToMilliseconds_boundaryValue()",
+   "hash": "287dccb89be07d79",
+   "does": "Pins the boundary: 10.0→10 ms and 9.9→9900 ms.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.convertToMilliseconds(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.convertToMilliseconds(_:)": "2ec956267d8ac7b2"
+   }
+  },
+  {
+   "key": "func RRDataImporterTests.testParseJSON_arrayOfNumbers()",
+   "hash": "fe4f89e287ca9bca",
+   "does": "Asserts parseJSON of a numeric array returns the ms values unchanged.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+JSON.swift::func RRDataImporter.parseJSON(_:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.convertToMilliseconds(_:)",
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.storableRR(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.convertToMilliseconds(_:)": "2ec956267d8ac7b2",
+    "Emuqu/Sources/Import/RRDataImporter+JSON.swift::func RRDataImporter.parseJSON(_:)": "06595f475ba57e9c",
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.storableRR(_:)": "e0c94e632ecbf772"
+   }
+  },
+  {
+   "key": "func RRDataImporterTests.testParseJSON_arrayOfSeconds()",
+   "hash": "67a454e18da3ea2e",
+   "does": "Asserts parseJSON of a seconds array [0.8,0.75,0.81] returns [800,750,810].",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+JSON.swift::func RRDataImporter.parseJSON(_:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.convertToMilliseconds(_:)",
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.storableRR(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.convertToMilliseconds(_:)": "2ec956267d8ac7b2",
+    "Emuqu/Sources/Import/RRDataImporter+JSON.swift::func RRDataImporter.parseJSON(_:)": "06595f475ba57e9c",
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.storableRR(_:)": "e0c94e632ecbf772"
+   }
+  },
+  {
+   "key": "func RRDataImporterTests.testParseJSON_structuredWithRRKey()",
+   "hash": "4295f75f2cdd3399",
+   "does": "Asserts parseJSON of {rr:[...], device:'Polar H10'} returns the intervals and device metadata.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+JSON.swift::func RRDataImporter.parseJSON(_:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.convertToMilliseconds(_:)",
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.storableRR(_:)",
+    "Emuqu/Sources/Import/RRDataImporter+JSON.swift::func RRDataImporter.parseStructuredJSON(_:)",
+    "Emuqu/Sources/Import/RRDataImporter+JSON.swift::func RRDataImporter.structuredRRValues(_:)",
+    "Emuqu/Sources/Import/RRDataImporter+JSON.swift::func RRDataImporter.numericArray(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.convertToMilliseconds(_:)": "2ec956267d8ac7b2",
+    "Emuqu/Sources/Import/RRDataImporter+JSON.swift::func RRDataImporter.numericArray(_:)": "4007df47694bbb64",
+    "Emuqu/Sources/Import/RRDataImporter+JSON.swift::func RRDataImporter.parseJSON(_:)": "06595f475ba57e9c",
+    "Emuqu/Sources/Import/RRDataImporter+JSON.swift::func RRDataImporter.parseStructuredJSON(_:)": "cddf771210d536dd",
+    "Emuqu/Sources/Import/RRDataImporter+JSON.swift::func RRDataImporter.structuredRRValues(_:)": "0712aeea12ef8f8d",
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.storableRR(_:)": "e0c94e632ecbf772"
+   }
+  },
+  {
+   "key": "func RRDataImporterTests.testParseJSON_arrayOfDicts()",
+   "hash": "cef5738b7f5640fd",
+   "does": "Asserts parseJSON of [{rr_ms:...}] returns the intervals.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+JSON.swift::func RRDataImporter.parseJSON(_:)",
+    "Emuqu/Sources/Import/RRDataImporter+JSON.swift::func RRDataImporter.rrMilliseconds(in:)",
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.storableRR(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+JSON.swift::func RRDataImporter.parseJSON(_:)": "06595f475ba57e9c",
+    "Emuqu/Sources/Import/RRDataImporter+JSON.swift::func RRDataImporter.rrMilliseconds(in:)": "02f03c75378f2ad9",
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.storableRR(_:)": "e0c94e632ecbf772"
+   }
+  },
+  {
+   "key": "func RRDataImporterTests.testParseJSON_invalidContent()",
+   "hash": "bd80775b2d90a05c",
+   "does": "Asserts parseJSON throws on non-JSON text.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+JSON.swift::func RRDataImporter.parseJSON(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+JSON.swift::func RRDataImporter.parseJSON(_:)": "06595f475ba57e9c"
+   }
+  },
+  {
+   "key": "func RRDataImporterTests.testParseCSV_singleColumn()",
+   "hash": "71b2ab59d60e7fca",
+   "does": "Asserts parseCSV of a single unheadered column returns all values.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.parseCSV(_:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrValues(from:separator:rrColumn:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.detectSeparator(firstLine:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.looksLikeHeader(_:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrValue(fromColumns:rrColumnIndex:convert:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.convertToMilliseconds(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.convertToMilliseconds(_:)": "2ec956267d8ac7b2",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.detectSeparator(firstLine:)": "6f0e1dfe45616755",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.looksLikeHeader(_:)": "812f8866fbe54d0e",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.parseCSV(_:)": "42657bcc4a447778",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrValue(fromColumns:rrColumnIndex:convert:)": "9fcc368a80967cc6",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrValues(from:separator:rrColumn:)": "3c594bf03d246328"
+   }
+  },
+  {
+   "key": "func RRDataImporterTests.testParseCSV_withHeader()",
+   "hash": "78c8e2df4169b6f1",
+   "does": "Asserts parseCSV skips an 'rr_ms' header and returns the values.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.parseCSV(_:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrValues(from:separator:rrColumn:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.detectSeparator(firstLine:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.looksLikeHeader(_:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrValue(fromColumns:rrColumnIndex:convert:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.convertToMilliseconds(_:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrColumnIndex(inHeaderLine:separator:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.convertToMilliseconds(_:)": "2ec956267d8ac7b2",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.detectSeparator(firstLine:)": "6f0e1dfe45616755",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.looksLikeHeader(_:)": "812f8866fbe54d0e",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.parseCSV(_:)": "42657bcc4a447778",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrColumnIndex(inHeaderLine:separator:)": "d1cde97e02eb08cd",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrValue(fromColumns:rrColumnIndex:convert:)": "9fcc368a80967cc6",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrValues(from:separator:rrColumn:)": "3c594bf03d246328"
+   }
+  },
+  {
+   "key": "func RRDataImporterTests.testParseCSV_twoColumnsTimestampAndRR()",
+   "hash": "04c675db41b12f1c",
+   "does": "Asserts parseCSV with 'timestamp,rr' header reads the rr column.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.parseCSV(_:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrValues(from:separator:rrColumn:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.detectSeparator(firstLine:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.looksLikeHeader(_:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrValue(fromColumns:rrColumnIndex:convert:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.convertToMilliseconds(_:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrColumnIndex(inHeaderLine:separator:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.convertToMilliseconds(_:)": "2ec956267d8ac7b2",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.detectSeparator(firstLine:)": "6f0e1dfe45616755",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.looksLikeHeader(_:)": "812f8866fbe54d0e",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.parseCSV(_:)": "42657bcc4a447778",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrColumnIndex(inHeaderLine:separator:)": "d1cde97e02eb08cd",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrValue(fromColumns:rrColumnIndex:convert:)": "9fcc368a80967cc6",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrValues(from:separator:rrColumn:)": "3c594bf03d246328"
+   }
+  },
+  {
+   "key": "func RRDataImporterTests.testParseCSV_emptyContent()",
+   "hash": "4e38be5690f5b37c",
+   "does": "Asserts parseCSV('') throws (noRRData).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.parseCSV(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.parseCSV(_:)": "42657bcc4a447778"
+   }
+  },
+  {
+   "key": "func RRDataImporterTests.testParseCSV_semicolonSeparator()",
+   "hash": "d5a591a9441012f5",
+   "does": "Parses 'timestamp;rr\\n0;800\\n800;750\\n1550;810' and asserts exactly [800, 750, 810]: detectSeparator picks ';' (the header has no comma), the header names column 1 as RR, and a comma split would have left each row one unparseable column and imported nothing.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.parseCSV(_:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.detectSeparator(firstLine:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.looksLikeHeader(_:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrColumnIndex(inHeaderLine:separator:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.namesRRColumn(_:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrValues(from:separator:rrColumn:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrValue(fromColumns:rrColumnIndex:convert:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.convertToMilliseconds(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.convertToMilliseconds(_:)": "77db942b7880f4ff",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.detectSeparator(firstLine:)": "6f0e1dfe45616755",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.looksLikeHeader(_:)": "812f8866fbe54d0e",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.namesRRColumn(_:)": "9a0e2af575a94283",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.parseCSV(_:)": "504ff6254cf0d106",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrColumnIndex(inHeaderLine:separator:)": "2cabd9766c826325",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrValue(fromColumns:rrColumnIndex:convert:)": "9fcc368a80967cc6",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrValues(from:separator:rrColumn:)": "3c594bf03d246328"
+   }
+  },
+  {
+   "key": "func RRDataImporterTests.testParseCSV_skipsCommentLines()",
+   "hash": "d69c3d683dc3ea78",
+   "does": "Asserts parseCSV drops '#' and '//' comment lines after an 'rr' header.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.parseCSV(_:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrValues(from:separator:rrColumn:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.detectSeparator(firstLine:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.looksLikeHeader(_:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrValue(fromColumns:rrColumnIndex:convert:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.convertToMilliseconds(_:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrColumnIndex(inHeaderLine:separator:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.convertToMilliseconds(_:)": "2ec956267d8ac7b2",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.detectSeparator(firstLine:)": "6f0e1dfe45616755",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.looksLikeHeader(_:)": "812f8866fbe54d0e",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.parseCSV(_:)": "42657bcc4a447778",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrColumnIndex(inHeaderLine:separator:)": "d1cde97e02eb08cd",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrValue(fromColumns:rrColumnIndex:convert:)": "9fcc368a80967cc6",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrValues(from:separator:rrColumn:)": "3c594bf03d246328"
+   }
+  },
+  {
+   "key": "func RRDataImporterTests.testParseCSV_headerNamedColumnIsTrustedOutsideThePhysiologicalRange()",
+   "hash": "40e4492f50f391b9",
+   "does": "Asserts a header-named rr column keeps 2500 ms (outside physiological range) verbatim.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.parseCSV(_:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrValues(from:separator:rrColumn:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.detectSeparator(firstLine:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.looksLikeHeader(_:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrValue(fromColumns:rrColumnIndex:convert:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.convertToMilliseconds(_:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrColumnIndex(inHeaderLine:separator:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.convertToMilliseconds(_:)": "2ec956267d8ac7b2",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.detectSeparator(firstLine:)": "6f0e1dfe45616755",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.looksLikeHeader(_:)": "812f8866fbe54d0e",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.parseCSV(_:)": "42657bcc4a447778",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrColumnIndex(inHeaderLine:separator:)": "d1cde97e02eb08cd",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrValue(fromColumns:rrColumnIndex:convert:)": "9fcc368a80967cc6",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrValues(from:separator:rrColumn:)": "3c594bf03d246328"
+   }
+  },
+  {
+   "key": "func RRDataImporterTests.testParseCSV_singleColumnIsTrustedOutsideThePhysiologicalRange()",
+   "hash": "1294fad8a7626dee",
+   "does": "Asserts a single-column file keeps 2500 ms verbatim.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.parseCSV(_:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrValues(from:separator:rrColumn:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.detectSeparator(firstLine:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.looksLikeHeader(_:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrValue(fromColumns:rrColumnIndex:convert:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.convertToMilliseconds(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.convertToMilliseconds(_:)": "2ec956267d8ac7b2",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.detectSeparator(firstLine:)": "6f0e1dfe45616755",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.looksLikeHeader(_:)": "812f8866fbe54d0e",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.parseCSV(_:)": "42657bcc4a447778",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrValue(fromColumns:rrColumnIndex:convert:)": "9fcc368a80967cc6",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrValues(from:separator:rrColumn:)": "3c594bf03d246328"
+   }
+  },
+  {
+   "key": "func RRDataImporterTests.testParseCSV_unheaderedTwoColumnGuessIsRangeChecked()",
+   "hash": "7457b9091f598d4e",
+   "does": "Asserts the unheadered two-column guess range-checks column 1: '1,5000' dropped, '2,850' kept.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.parseCSV(_:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrValues(from:separator:rrColumn:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.detectSeparator(firstLine:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.looksLikeHeader(_:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrValue(fromColumns:rrColumnIndex:convert:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.convertToMilliseconds(_:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.validRRValue(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.convertToMilliseconds(_:)": "2ec956267d8ac7b2",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.detectSeparator(firstLine:)": "6f0e1dfe45616755",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.looksLikeHeader(_:)": "812f8866fbe54d0e",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.parseCSV(_:)": "42657bcc4a447778",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrValue(fromColumns:rrColumnIndex:convert:)": "9fcc368a80967cc6",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrValues(from:separator:rrColumn:)": "3c594bf03d246328",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.validRRValue(_:)": "9c98d9b3c9631938"
+   }
+  },
+  {
+   "key": "func RRDataImporterTests.testParseCSV_fallbackDoesNotFireOnARangeFailure()",
+   "hash": "09863fde6951a305",
+   "does": "Asserts '850,120' yields no values: column 1 parses but fails range, and the column-0 fallback does not fire.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.parseCSV(_:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrValues(from:separator:rrColumn:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.detectSeparator(firstLine:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.looksLikeHeader(_:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrValue(fromColumns:rrColumnIndex:convert:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.convertToMilliseconds(_:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.validRRValue(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.convertToMilliseconds(_:)": "2ec956267d8ac7b2",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.detectSeparator(firstLine:)": "6f0e1dfe45616755",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.looksLikeHeader(_:)": "812f8866fbe54d0e",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.parseCSV(_:)": "42657bcc4a447778",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrValue(fromColumns:rrColumnIndex:convert:)": "9fcc368a80967cc6",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrValues(from:separator:rrColumn:)": "3c594bf03d246328",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.validRRValue(_:)": "9c98d9b3c9631938"
+   }
+  },
+  {
+   "key": "func RRDataImporterTests.testParseCSV_fallbackToFirstColumnIsRangeChecked()",
+   "hash": "0647d8c41df082b2",
+   "does": "Asserts column-0 fallback (column 1 unparseable) is range-checked: '5000,xyz' empty, '850,xyz' → [850].",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.parseCSV(_:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrValues(from:separator:rrColumn:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.detectSeparator(firstLine:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.looksLikeHeader(_:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrValue(fromColumns:rrColumnIndex:convert:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.convertToMilliseconds(_:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.validRRValue(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.convertToMilliseconds(_:)": "2ec956267d8ac7b2",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.detectSeparator(firstLine:)": "6f0e1dfe45616755",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.looksLikeHeader(_:)": "812f8866fbe54d0e",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.parseCSV(_:)": "42657bcc4a447778",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrValue(fromColumns:rrColumnIndex:convert:)": "9fcc368a80967cc6",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrValues(from:separator:rrColumn:)": "3c594bf03d246328",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.validRRValue(_:)": "9c98d9b3c9631938"
+   }
+  },
+  {
+   "key": "func RRDataImporterTests.testParsePlainText_onePerLine()",
+   "hash": "b3e42feefdf4403f",
+   "does": "Asserts parsePlainText parses one value per line.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.parsePlainText(_:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.validRRValue(in:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.convertToMilliseconds(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.convertToMilliseconds(_:)": "2ec956267d8ac7b2",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.parsePlainText(_:)": "b09b77b8d266884f",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.validRRValue(in:)": "2fb43fbd18553ac5"
+   }
+  },
+  {
+   "key": "func RRDataImporterTests.testParsePlainText_spaceSeparated()",
+   "hash": "f0b2fd3773ab2662",
+   "does": "Asserts parsePlainText splits space-separated values.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.parsePlainText(_:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.validRRValue(in:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.convertToMilliseconds(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.convertToMilliseconds(_:)": "2ec956267d8ac7b2",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.parsePlainText(_:)": "b09b77b8d266884f",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.validRRValue(in:)": "2fb43fbd18553ac5"
+   }
+  },
+  {
+   "key": "func RRDataImporterTests.testParsePlainText_skipsComments()",
+   "hash": "b6adb041ec403dff",
+   "does": "Asserts parsePlainText skips '#' and '//' lines.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.parsePlainText(_:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.validRRValue(in:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.convertToMilliseconds(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.convertToMilliseconds(_:)": "2ec956267d8ac7b2",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.parsePlainText(_:)": "b09b77b8d266884f",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.validRRValue(in:)": "2fb43fbd18553ac5"
+   }
+  },
+  {
+   "key": "func RRDataImporterTests.testParsePlainText_filtersInvalidValues()",
+   "hash": "389c1e4b9885e7dc",
+   "does": "Parses '800,50,750,5000,810' lines and asserts 800, 750 and 810 are present.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.parsePlainText(_:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.validRRValue(in:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.convertToMilliseconds(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Comment says invalid values are filtered but the test never asserts 50 and 5000 are absent; a parser that kept them would pass.",
+     "evidence": [
+      "EmuquTests/RRDataImporterTests.swift:233",
+      "EmuquTests/RRDataImporterTests.swift:234"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.convertToMilliseconds(_:)": "2ec956267d8ac7b2",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.parsePlainText(_:)": "b09b77b8d266884f",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.validRRValue(in:)": "2fb43fbd18553ac5"
+   }
+  },
+  {
+   "key": "func RRDataImporterTests.testParseEliteHRVSummary_oldFormat()",
+   "hash": "96c6e0f9d330a5e6",
+   "does": "Asserts parseEliteHRVSummary of a 2-row old-format CSV yields 2 sessions with rmssd 45.2/52.1 and keeps the file name.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.parseEliteHRVSummary(_:fileName:)",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.parseEliteHRVRows(_:indices:rmssdIdx:)",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.resolveEliteHRVColumns(headers:)",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.eliteField(for:)",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.parseEliteHRVRow(columns:indices:rmssdIdx:)",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.eliteNumber(_:in:)",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.eliteRawRMSSD(columns:indices:)",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.eliteDate(columns:indices:)",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.eliteBeatCount(columns:indices:)",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.eliteRRBounds(columns:indices:)",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.eliteArtifactPercent(columns:indices:)",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.eliteFileName(columns:indices:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.parseCSVLine(_:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.parseDate(_:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::let RRDataImporter.dateFormatters"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.parseCSVLine(_:)": "888862e486b322ea",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.parseDate(_:)": "2d46efaec872b9a8",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::let RRDataImporter.dateFormatters": "aee7de1b7c582087",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.eliteArtifactPercent(columns:indices:)": "238cb93ad830f901",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.eliteBeatCount(columns:indices:)": "2afbcf88403b182d",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.eliteDate(columns:indices:)": "d76f4e5efd78f65a",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.eliteField(for:)": "732ff278ed3f004a",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.eliteFileName(columns:indices:)": "c7d1c9c8159fc2d0",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.eliteNumber(_:in:)": "e31cd7dbd8bf0c81",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.eliteRRBounds(columns:indices:)": "e772fba36e23dbec",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.eliteRawRMSSD(columns:indices:)": "dc3905e8e0220f26",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.parseEliteHRVRow(columns:indices:rmssdIdx:)": "f1853acc04a9be5b",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.parseEliteHRVRows(_:indices:rmssdIdx:)": "73094e187d787a40",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.parseEliteHRVSummary(_:fileName:)": "2eb0d3f9d4cf9d8a",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.resolveEliteHRVColumns(headers:)": "ef3f87dc6ad989d8"
+   }
+  },
+  {
+   "key": "func RRDataImporterTests.testParseEliteHRVSummary_tooFewLines()",
+   "hash": "8bffcd3ef86f376f",
+   "does": "Asserts parseEliteHRVSummary throws for a header-only file.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.parseEliteHRVSummary(_:fileName:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.parseEliteHRVSummary(_:fileName:)": "2eb0d3f9d4cf9d8a"
+   }
+  },
+  {
+   "key": "func RRDataImporterTests.testResolveEliteHRVColumns_oldFormat()",
+   "hash": "72e4b2b5c2f8b664",
+   "does": "Asserts resolveEliteHRVColumns maps old-format headers to date 0, rmssd 1, artifactPct 3, beatCount 4, rrMin 5, rrMax 6, fileName 7.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.resolveEliteHRVColumns(headers:)",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.eliteField(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.eliteField(for:)": "732ff278ed3f004a",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.resolveEliteHRVColumns(headers:)": "ef3f87dc6ad989d8"
+   }
+  },
+  {
+   "key": "func RRDataImporterTests.testParseFlowHRVMultiSession_validData()",
+   "hash": "b34f5b060e440d47",
+   "does": "Builds a 70-beat single-session export and asserts 1 session with 70 intervals and the session_date string.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.parseFlowHRVMultiSession(_:fileName:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVSessions(dataLines:columns:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.logSessionGroups(_:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVColumns(fromHeaderLine:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.sessionTypesBySession(dataLines:columns:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.isImportableType(_:sessionDateStr:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.groupBeatsBySession(dataLines:columns:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.beatTimestamp(sessionKey:fields:columns:groups:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.statedTimestamp(sessionKey:fields:columns:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVSessionDateFormatter()",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVSession(sessionDateStr:points:sessionType:formatter:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for i in 0..<70",
+     "effect": "appends 70 rows of 800 ms with timestamp i*800"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.beatTimestamp(sessionKey:fields:columns:groups:)": "6d686641c98c8997",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVColumns(fromHeaderLine:)": "ad01ee95d6d4666f",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVSession(sessionDateStr:points:sessionType:formatter:)": "e57b5b8d429df10b",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVSessionDateFormatter()": "9b0df6ebcaa2d009",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVSessions(dataLines:columns:)": "3018f564681b281a",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.groupBeatsBySession(dataLines:columns:)": "9097911eed35291e",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.isImportableType(_:sessionDateStr:)": "dd155be8ec5fb845",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.logSessionGroups(_:)": "4834b5b3e95f964f",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.parseFlowHRVMultiSession(_:fileName:)": "828b22a9aa9a4b2f",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.sessionTypesBySession(dataLines:columns:)": "edff31699c67bbba",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.statedTimestamp(sessionKey:fields:columns:)": "3c666223a68a7715",
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::var WatchStrapPairingView.rrIntervals": "b7a382e7420640bb"
+   }
+  },
+  {
+   "key": "func RRDataImporterTests.testParseFlowHRVMultiSession_skipsSmallSessions()",
+   "hash": "309ea1f35b4791b9",
+   "does": "Builds a 10-beat export and asserts parseFlowHRVMultiSession throws (session below 60-beat minimum leaves none → noRRData).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.parseFlowHRVMultiSession(_:fileName:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVSessions(dataLines:columns:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.logSessionGroups(_:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVColumns(fromHeaderLine:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.sessionTypesBySession(dataLines:columns:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.isImportableType(_:sessionDateStr:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.groupBeatsBySession(dataLines:columns:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.beatTimestamp(sessionKey:fields:columns:groups:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.statedTimestamp(sessionKey:fields:columns:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVSessionDateFormatter()",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVSession(sessionDateStr:points:sessionType:formatter:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for i in 0..<10",
+     "effect": "appends 10 rows"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.beatTimestamp(sessionKey:fields:columns:groups:)": "6d686641c98c8997",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVColumns(fromHeaderLine:)": "ad01ee95d6d4666f",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVSession(sessionDateStr:points:sessionType:formatter:)": "e57b5b8d429df10b",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVSessionDateFormatter()": "9b0df6ebcaa2d009",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVSessions(dataLines:columns:)": "3018f564681b281a",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.groupBeatsBySession(dataLines:columns:)": "9097911eed35291e",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.isImportableType(_:sessionDateStr:)": "dd155be8ec5fb845",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.logSessionGroups(_:)": "4834b5b3e95f964f",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.parseFlowHRVMultiSession(_:fileName:)": "828b22a9aa9a4b2f",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.sessionTypesBySession(dataLines:columns:)": "edff31699c67bbba",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.statedTimestamp(sessionKey:fields:columns:)": "3c666223a68a7715"
+   }
+  },
+  {
+   "key": "func RRDataImporterTests.testParseFlowHRVMultiSession_multipleSessions()",
+   "hash": "237ac62aba193c65",
+   "does": "Builds two 70-beat sessions with different session_date and asserts 2 sessions are returned.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.parseFlowHRVMultiSession(_:fileName:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVSessions(dataLines:columns:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.logSessionGroups(_:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVColumns(fromHeaderLine:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.sessionTypesBySession(dataLines:columns:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.isImportableType(_:sessionDateStr:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.groupBeatsBySession(dataLines:columns:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.beatTimestamp(sessionKey:fields:columns:groups:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.statedTimestamp(sessionKey:fields:columns:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVSessionDateFormatter()",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVSession(sessionDateStr:points:sessionType:formatter:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for i in 0..<70 (first session)",
+     "effect": "appends 70 rows for 2026-01-25_0443"
+    },
+    {
+     "at": "+5",
+     "cond": "for i in 0..<70 (second session)",
+     "effect": "appends 70 rows of 750 ms for 2026-01-26_0530"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.beatTimestamp(sessionKey:fields:columns:groups:)": "6d686641c98c8997",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVColumns(fromHeaderLine:)": "ad01ee95d6d4666f",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVSession(sessionDateStr:points:sessionType:formatter:)": "e57b5b8d429df10b",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVSessionDateFormatter()": "9b0df6ebcaa2d009",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVSessions(dataLines:columns:)": "3018f564681b281a",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.groupBeatsBySession(dataLines:columns:)": "9097911eed35291e",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.isImportableType(_:sessionDateStr:)": "dd155be8ec5fb845",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.logSessionGroups(_:)": "4834b5b3e95f964f",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.parseFlowHRVMultiSession(_:fileName:)": "828b22a9aa9a4b2f",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.sessionTypesBySession(dataLines:columns:)": "edff31699c67bbba",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.statedTimestamp(sessionKey:fields:columns:)": "3c666223a68a7715"
+   }
+  },
+  {
+   "key": "func RRDataImporterTests.flowHRVExport(count:timestamp:)",
+   "hash": "600d7dfe459ce0b2",
+   "does": "Test helper: builds an Emuqu export with `count` 800 ms beats for session 2026-01-25_0443 using the given timestamp closure.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for i in 0..<count",
+     "effect": "appends one row per beat with timestamp(i)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RRDataImporterTests.assertRejectsTimestamps(_:file:line:)",
+   "hash": "f0785b64e456ebf1",
+   "does": "Test helper: asserts parseFlowHRVMultiSession throws ImportError.invalidTimestamps naming session 2026-01-25_0443.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.parseFlowHRVMultiSession(_:fileName:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVSessions(dataLines:columns:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVColumns(fromHeaderLine:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.groupBeatsBySession(dataLines:columns:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.beatTimestamp(sessionKey:fields:columns:groups:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.statedTimestamp(sessionKey:fields:columns:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "error is ImportError.invalidTimestamps(session)",
+     "effect": "true: asserts the session name; false: XCTFail with the actual error"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.beatTimestamp(sessionKey:fields:columns:groups:)": "6d686641c98c8997",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVColumns(fromHeaderLine:)": "ad01ee95d6d4666f",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVSessions(dataLines:columns:)": "3018f564681b281a",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.groupBeatsBySession(dataLines:columns:)": "9097911eed35291e",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.parseFlowHRVMultiSession(_:fileName:)": "828b22a9aa9a4b2f",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.statedTimestamp(sessionKey:fields:columns:)": "3c666223a68a7715"
+   }
+  },
+  {
+   "key": "func RRDataImporterTests.testParseFlowHRVMultiSession_rejectsATimestampNearTheInt64Limit()",
+   "hash": "8f1428dc1aa3be5c",
+   "does": "Asserts a timestamp of 9223372036854775000 at beat 30 is rejected as invalidTimestamps.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RRDataImporterTests.swift::func RRDataImporterTests.assertRejectsTimestamps(_:file:line:)",
+    "EmuquTests/RRDataImporterTests.swift::func RRDataImporterTests.flowHRVExport(count:timestamp:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.parseFlowHRVMultiSession(_:fileName:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVSessions(dataLines:columns:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVColumns(fromHeaderLine:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.groupBeatsBySession(dataLines:columns:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.beatTimestamp(sessionKey:fields:columns:groups:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.statedTimestamp(sessionKey:fields:columns:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "i == 30 ?: ternary",
+     "effect": "beat 30 gets the near-Int64.max timestamp, others i*800"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.beatTimestamp(sessionKey:fields:columns:groups:)": "6d686641c98c8997",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVColumns(fromHeaderLine:)": "ad01ee95d6d4666f",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVSessions(dataLines:columns:)": "3018f564681b281a",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.groupBeatsBySession(dataLines:columns:)": "9097911eed35291e",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.parseFlowHRVMultiSession(_:fileName:)": "828b22a9aa9a4b2f",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.statedTimestamp(sessionKey:fields:columns:)": "3c666223a68a7715",
+    "EmuquTests/RRDataImporterTests.swift::func RRDataImporterTests.assertRejectsTimestamps(_:file:line:)": "4ce25f3ebbeda32b",
+    "EmuquTests/RRDataImporterTests.swift::func RRDataImporterTests.flowHRVExport(count:timestamp:)": "c5f9980f1820cb31"
+   }
+  },
+  {
+   "key": "func RRDataImporterTests.testParseFlowHRVMultiSession_rejectsEpochTimestampsMixedWithRelativeOnes()",
+   "hash": "be2b1093d2b38eda",
+   "does": "Asserts mixing relative timestamps (first 35) with epoch ms (rest) is rejected as invalidTimestamps.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RRDataImporterTests.swift::func RRDataImporterTests.assertRejectsTimestamps(_:file:line:)",
+    "EmuquTests/RRDataImporterTests.swift::func RRDataImporterTests.flowHRVExport(count:timestamp:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.parseFlowHRVMultiSession(_:fileName:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVSessions(dataLines:columns:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVColumns(fromHeaderLine:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.groupBeatsBySession(dataLines:columns:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.beatTimestamp(sessionKey:fields:columns:groups:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.statedTimestamp(sessionKey:fields:columns:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "i < 35 ?: ternary",
+     "effect": "first 35 beats relative, rest epoch-based"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.beatTimestamp(sessionKey:fields:columns:groups:)": "6d686641c98c8997",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVColumns(fromHeaderLine:)": "ad01ee95d6d4666f",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVSessions(dataLines:columns:)": "3018f564681b281a",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.groupBeatsBySession(dataLines:columns:)": "9097911eed35291e",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.parseFlowHRVMultiSession(_:fileName:)": "828b22a9aa9a4b2f",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.statedTimestamp(sessionKey:fields:columns:)": "3c666223a68a7715",
+    "EmuquTests/RRDataImporterTests.swift::func RRDataImporterTests.assertRejectsTimestamps(_:file:line:)": "4ce25f3ebbeda32b",
+    "EmuquTests/RRDataImporterTests.swift::func RRDataImporterTests.flowHRVExport(count:timestamp:)": "c5f9980f1820cb31"
+   }
+  },
+  {
+   "key": "func RRDataImporterTests.testParseFlowHRVMultiSession_rejectsNegativeAndNonIntegerTimestamps()",
+   "hash": "fafa797ecd194c70",
+   "does": "Asserts '-800', '1e30' and 'nan' timestamps at beat 10 are each rejected as invalidTimestamps.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RRDataImporterTests.swift::func RRDataImporterTests.assertRejectsTimestamps(_:file:line:)",
+    "EmuquTests/RRDataImporterTests.swift::func RRDataImporterTests.flowHRVExport(count:timestamp:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.parseFlowHRVMultiSession(_:fileName:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVSessions(dataLines:columns:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVColumns(fromHeaderLine:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.groupBeatsBySession(dataLines:columns:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.beatTimestamp(sessionKey:fields:columns:groups:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.statedTimestamp(sessionKey:fields:columns:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "i == 10 ? '-800'",
+     "effect": "negative timestamp at beat 10"
+    },
+    {
+     "at": "+2",
+     "cond": "i == 10 ? '1e30'",
+     "effect": "non-integer timestamp at beat 10"
+    },
+    {
+     "at": "+3",
+     "cond": "i == 10 ? 'nan'",
+     "effect": "non-numeric timestamp at beat 10"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.beatTimestamp(sessionKey:fields:columns:groups:)": "6d686641c98c8997",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVColumns(fromHeaderLine:)": "ad01ee95d6d4666f",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVSessions(dataLines:columns:)": "3018f564681b281a",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.groupBeatsBySession(dataLines:columns:)": "9097911eed35291e",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.parseFlowHRVMultiSession(_:fileName:)": "828b22a9aa9a4b2f",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.statedTimestamp(sessionKey:fields:columns:)": "3c666223a68a7715",
+    "EmuquTests/RRDataImporterTests.swift::func RRDataImporterTests.assertRejectsTimestamps(_:file:line:)": "4ce25f3ebbeda32b",
+    "EmuquTests/RRDataImporterTests.swift::func RRDataImporterTests.flowHRVExport(count:timestamp:)": "c5f9980f1820cb31"
+   }
+  },
+  {
+   "key": "func RRDataImporterTests.testParseFlowHRVMultiSession_acceptsTimestampsUpToAWeek()",
+   "hash": "fd15c74409f8a151",
+   "does": "Asserts a last timestamp equal to maximumRecordingSpanMs is accepted and preserved.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.parseFlowHRVMultiSession(_:fileName:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVSessions(dataLines:columns:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.logSessionGroups(_:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVColumns(fromHeaderLine:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.sessionTypesBySession(dataLines:columns:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.isImportableType(_:sessionDateStr:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.groupBeatsBySession(dataLines:columns:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.beatTimestamp(sessionKey:fields:columns:groups:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.statedTimestamp(sessionKey:fields:columns:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVSessionDateFormatter()",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVSession(sessionDateStr:points:sessionType:formatter:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "i == 69 ?: ternary",
+     "effect": "last beat gets maximumRecordingSpanMs, others i*800"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.beatTimestamp(sessionKey:fields:columns:groups:)": "6d686641c98c8997",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVColumns(fromHeaderLine:)": "ad01ee95d6d4666f",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVSession(sessionDateStr:points:sessionType:formatter:)": "e57b5b8d429df10b",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVSessionDateFormatter()": "9b0df6ebcaa2d009",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVSessions(dataLines:columns:)": "3018f564681b281a",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.groupBeatsBySession(dataLines:columns:)": "9097911eed35291e",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.isImportableType(_:sessionDateStr:)": "dd155be8ec5fb845",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.logSessionGroups(_:)": "4834b5b3e95f964f",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.parseFlowHRVMultiSession(_:fileName:)": "828b22a9aa9a4b2f",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.sessionTypesBySession(dataLines:columns:)": "edff31699c67bbba",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.statedTimestamp(sessionKey:fields:columns:)": "3c666223a68a7715",
+    "EmuquTests/RRDataImporterTests.swift::func RRDataImporterTests.flowHRVExport(count:timestamp:)": "c5f9980f1820cb31"
+   }
+  },
+  {
+   "key": "func RRDataImporterTests.testParseFlowHRVMultiSession_buildsTimestampsWhenTheExportHasNone()",
+   "hash": "c1de8e22ba058bf8",
+   "does": "Asserts an export without timestamp_ms synthesises timestamps from the running RR sum: [0, 800, 1600].",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.parseFlowHRVMultiSession(_:fileName:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVSessions(dataLines:columns:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.logSessionGroups(_:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVColumns(fromHeaderLine:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.sessionTypesBySession(dataLines:columns:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.isImportableType(_:sessionDateStr:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.groupBeatsBySession(dataLines:columns:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.beatTimestamp(sessionKey:fields:columns:groups:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.statedTimestamp(sessionKey:fields:columns:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVSessionDateFormatter()",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVSession(sessionDateStr:points:sessionType:formatter:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.synthesisedTimestamp(after:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.beatTimestamp(sessionKey:fields:columns:groups:)": "6d686641c98c8997",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVColumns(fromHeaderLine:)": "ad01ee95d6d4666f",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVSession(sessionDateStr:points:sessionType:formatter:)": "e57b5b8d429df10b",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVSessionDateFormatter()": "9b0df6ebcaa2d009",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVSessions(dataLines:columns:)": "3018f564681b281a",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.groupBeatsBySession(dataLines:columns:)": "9097911eed35291e",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.isImportableType(_:sessionDateStr:)": "dd155be8ec5fb845",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.logSessionGroups(_:)": "4834b5b3e95f964f",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.parseFlowHRVMultiSession(_:fileName:)": "828b22a9aa9a4b2f",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.sessionTypesBySession(dataLines:columns:)": "edff31699c67bbba",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.statedTimestamp(sessionKey:fields:columns:)": "3c666223a68a7715",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.synthesisedTimestamp(after:)": "5502b37523292e31"
+   }
+  },
+  {
+   "key": "func RRDataImporterTests.testValidate_rejectsRRIntervalsAddingUpToMoreThanAWeek()",
+   "hash": "b4d39b1f90a3ecf7",
+   "does": "Asserts validate throws recordingTooLong when 1000 ms intervals sum past one week, and accepts 3600 such intervals.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.validate(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "error is ImportError.recordingTooLong",
+     "effect": "true: passes; false: XCTFail with the actual error"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.validate(_:)": "97f77f12306fe05d"
+   }
+  },
+  {
+   "key": "func RRDataImporterTests.testTimelineErrorsReadAsSentences()",
+   "hash": "132be39b85d8d450",
+   "does": "Asserts recordingTooLong has a non-empty description and invalidTimestamps' description contains the session name.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter.swift::var RRDataImporter.ImportError.errorDescription"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "errorDescription ?? ''",
+     "effect": "empty fallback when description is nil; asserted non-empty"
+    },
+    {
+     "at": "+2",
+     "cond": "errorDescription ?? ''",
+     "effect": "empty fallback; asserted to contain the session name"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter.swift::var RRDataImporter.ImportError.errorDescription": "7713bfb4c99a22b2"
+   }
+  },
+  {
+   "key": "func RRDataImporterTests.testParseDate_iso8601()",
+   "hash": "f1c8cda7690e063e",
+   "does": "Asserts parseDate parses '2024-01-15T06:30:00Z'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.parseDate(_:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::let RRDataImporter.dateFormatters"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.parseDate(_:)": "2d46efaec872b9a8",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::let RRDataImporter.dateFormatters": "aee7de1b7c582087"
+   }
+  },
+  {
+   "key": "func RRDataImporterTests.testParseDate_dateOnly()",
+   "hash": "e1014f1446b92a17",
+   "does": "Asserts parseDate parses '2024-01-15'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.parseDate(_:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::let RRDataImporter.dateFormatters"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.parseDate(_:)": "2d46efaec872b9a8",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::let RRDataImporter.dateFormatters": "aee7de1b7c582087"
+   }
+  },
+  {
+   "key": "func RRDataImporterTests.testParseDate_invalidString()",
+   "hash": "1dcc275742c3cec6",
+   "does": "Asserts parseDate returns nil for 'not a date'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.parseDate(_:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::let RRDataImporter.dateFormatters"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.parseDate(_:)": "2d46efaec872b9a8",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::let RRDataImporter.dateFormatters": "aee7de1b7c582087"
+   }
+  },
+  {
+   "key": "func RRDataImporterTests.testCreateSession_setsCorrectFields()",
+   "hash": "da08453292120054",
+   "does": "Asserts createSession from 3 intervals builds an rrSeries with those 3 rr values and notes containing the file name. Creates the session with an explicit start date and asserts the session starts at it.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.createSession(from:startingAt:)",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.createSession(from:startingAt:)": "9c0e9f06d6a0ff99",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5"
+   }
+  },
+  {
+   "key": "func RRDataImporterTests.testCreateSession_cumulativeTimestamps()",
+   "hash": "aa7fc0bfd5f67408",
+   "does": "Asserts createSession builds cumulative t_ms 0, 800, 1550 (session created with an explicit start date).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.createSession(from:startingAt:)",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.createSession(from:startingAt:)": "9c0e9f06d6a0ff99",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5"
+   }
+  },
+  {
+   "key": "func RRDataImporterTests.testParseCSVLine_quotedValues()",
+   "hash": "2f165489cfa004f1",
+   "does": "Asserts parseCSVLine strips quotes and returns 4 columns.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.parseCSVLine(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.parseCSVLine(_:)": "888862e486b322ea"
+   }
+  },
+  {
+   "key": "func RRDataImporterTests.testParseCSVLine_commaInsideQuotes()",
+   "hash": "126467a5de434d9c",
+   "does": "Asserts parseCSVLine keeps a comma inside quotes in one column.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.parseCSVLine(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.parseCSVLine(_:)": "888862e486b322ea"
+   }
+  }
+ ],
+ "deps": {}
+}

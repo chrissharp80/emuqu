@@ -1,0 +1,90 @@
+{
+ "file": "EmuquTests/HealthDisclaimerTests.swift",
+ "hash": "ec607aee20d4f7a1",
+ "role": "XCTest suite pinning the Terms of Use / first-launch disclaimer: Apple DPLA 3.3.3 F(iii) route-guidance notice is present verbatim, precedes the closing sections, and TermsOfUseView.lastRevisedDate is not before 2026-10-05.",
+ "types": [
+  "HealthDisclaimerTests: class — @MainActor XCTestCase over HealthDisclaimer and TermsOfUseView.lastRevisedDate"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func HealthDisclaimerTests.testTermsCarryTheRouteGuidanceNoticeVerbatim()",
+   "hash": "f3ddf0ab1051ca3e",
+   "does": "Asserts HealthDisclaimer.routeGuidanceNotice equals the exact Apple English sentence and that some HealthDisclaimer.sections body contains it (navigationSections appends routeGuidanceNoticeText, which always ends with the English notice).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Views/HealthDisclaimerView.swift::var HealthDisclaimer.sections",
+    "Emuqu/Sources/Views/HealthDisclaimerView.swift::var HealthDisclaimer.legalSections",
+    "Emuqu/Sources/Views/HealthDisclaimerView.swift::var HealthDisclaimer.navigationSections",
+    "Emuqu/Sources/Views/HealthDisclaimerView.swift::var HealthDisclaimer.routeGuidanceNoticeText"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "The assertion message claims the English notice is present 'whatever the app language', but the test runs only in the host's current LanguageManager.appBundle language; the non-English branch of routeGuidanceNoticeText (HealthDisclaimerView.swift:31 append path) is never exercised.",
+     "evidence": [
+      "EmuquTests/HealthDisclaimerTests.swift:16",
+      "Emuqu/Sources/Views/HealthDisclaimerView.swift:31"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/HealthDisclaimerView.swift::var HealthDisclaimer.legalSections": "350918ed69f19dc7",
+    "Emuqu/Sources/Views/HealthDisclaimerView.swift::var HealthDisclaimer.navigationSections": "3d6b8a2adeae803d",
+    "Emuqu/Sources/Views/HealthDisclaimerView.swift::var HealthDisclaimer.routeGuidanceNoticeText": "14e74da20449bfda",
+    "Emuqu/Sources/Views/HealthDisclaimerView.swift::var HealthDisclaimer.sections": "b56cef1812263673"
+   }
+  },
+  {
+   "key": "func HealthDisclaimerTests.testRouteGuidanceNoticePrecedesTheAgreementSections()",
+   "hash": "896ebb22ea4a98a1",
+   "does": "Asserts the first section body containing the route-guidance notice has index < sections.count - 2, i.e. it comes before the last two sections (end of riskSections and ageSection).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Views/HealthDisclaimerView.swift::var HealthDisclaimer.sections",
+    "Emuqu/Sources/Views/HealthDisclaimerView.swift::var HealthDisclaimer.legalSections",
+    "Emuqu/Sources/Views/HealthDisclaimerView.swift::var HealthDisclaimer.navigationSections"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HealthDisclaimerView.swift::var HealthDisclaimer.legalSections": "350918ed69f19dc7",
+    "Emuqu/Sources/Views/HealthDisclaimerView.swift::var HealthDisclaimer.navigationSections": "3d6b8a2adeae803d",
+    "Emuqu/Sources/Views/HealthDisclaimerView.swift::var HealthDisclaimer.sections": "b56cef1812263673"
+   }
+  },
+  {
+   "key": "func HealthDisclaimerTests.testRevisionDateIsNoEarlierThanTheRouteGuidanceNotice()",
+   "hash": "ae8e16f8309100a9",
+   "does": "Asserts Calendar(gregorian).date(from: TermsOfUseView.lastRevisedDate) >= 2026-10-05.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Compares the production constant lastRevisedDate (TermsOfUseView.swift:7, 2026-10-05) against a hard-coded literal 2026-10-05 in the test; nothing ties the literal to when the notice text changed, so the test cannot detect a text change without a revision-date bump.",
+     "evidence": [
+      "EmuquTests/HealthDisclaimerTests.swift:35",
+      "Emuqu/Sources/Views/TermsOfUseView.swift:7"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

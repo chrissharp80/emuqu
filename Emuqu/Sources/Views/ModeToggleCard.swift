@@ -80,11 +80,6 @@ struct ModeToggleCard: View {
             )
     }
 
-    private var statusColor: Color {
-        switch status {
-        case .off: AppTheme.textTertiary
-        case .on: AppTheme.wongOptimal
-        case .autoDetected: AppTheme.wongGood
-        }
-    }
+    /// The badge's colour, from the one status switch in `statusBadgeStyle`.
+    private var statusColor: Color { statusBadgeStyle.color }
 }

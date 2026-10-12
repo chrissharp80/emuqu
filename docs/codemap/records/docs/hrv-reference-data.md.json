@@ -1,0 +1,129 @@
+{
+ "file": "docs/hrv-reference-data.md",
+ "hash": "e3b0c44298fc1c14",
+ "role": "Documents the nsr2db-derived HRV reference fixtures, what HRVReferenceValidationTests proves (metric computation, not sensor accuracy), how to regenerate them, and three reference-implementation mistakes.",
+ "types": [],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "§ HRV reference data",
+   "hash": "135e8e7aa783e3c1",
+   "does": "Claims the app reports RMSSD, SDNN and pNN50 and the reference set is what validates them.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeTimeDomain(_:flags:windowStart:windowEnd:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeTimeDomain(_:flags:windowStart:windowEnd:)": "b45f65e53d1a0cab"
+   }
+  },
+  {
+   "key": "§ HRV reference data > What is validated, and what is not",
+   "hash": "86ec2efcb3278ce9",
+   "does": "Claims HRVReferenceValidationTests covers metric computation: 6,000 RR intervals from 20 subjects compared against an independent Task Force (1996) implementation; sensor accuracy is out of scope. Verified: the test asserts 20 records and 6,000 intervals (HRVReferenceValidationTests.swift:98-99); fetch_hrv_reference.py uses 20 records x 300-beat windows.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.testFixtureCorpusIsPresentAndPlausible()",
+    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.testMeanRRAndSDNNMatchTheReferenceOnEveryRecord()",
+    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.testUnfilteredRMSSDMatchesTheReferenceOnEveryRecord()",
+    "scripts/fetch_hrv_reference.py::def metrics",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeTimeDomain(_:flags:windowStart:windowEnd:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeTimeDomain(_:flags:windowStart:windowEnd:)": "b45f65e53d1a0cab",
+    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.testFixtureCorpusIsPresentAndPlausible()": "ad980a2153126177",
+    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.testMeanRRAndSDNNMatchTheReferenceOnEveryRecord()": "d3768a925919f396",
+    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.testUnfilteredRMSSDMatchesTheReferenceOnEveryRecord()": "242a9f14830dbc54",
+    "scripts/fetch_hrv_reference.py::def metrics": "bb5f1954ac26fa9f"
+   }
+  },
+  {
+   "key": "§ HRV reference data > Source",
+   "hash": "ea2d248cc6a0333a",
+   "does": "Source: MIT nsr2db v1.0.0 beat annotations under ODC-By, attribution carried in the generated file header. Verified: HRVReferenceFixtures.swift:9-11 carries the attribution.",
+   "entry": null,
+   "calls": [
+    "scripts/fetch_hrv_reference.py::def fetch",
+    "scripts/fetch_hrv_reference.py::def swift_source"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/fetch_hrv_reference.py::def fetch": "b866b3c332a7783d",
+    "scripts/fetch_hrv_reference.py::def swift_source": "bef81cf5f348c2a3"
+   }
+  },
+  {
+   "key": "§ HRV reference data > Regenerating",
+   "hash": "30ff7eed1bd3c894",
+   "does": "Claims `python3 scripts/fetch_hrv_reference.py` rewrites fixtures and `--check` verifies against a fresh fetch, needs network, never run in CI; each record carries the SHA-256 of its annotation file. Verified: argparse --check flag (fetch_hrv_reference.py:220-221), records carry sourceSHA256 (fixtures JSON), test asserts 64-char hashes.",
+   "entry": null,
+   "calls": [
+    "scripts/fetch_hrv_reference.py::def main",
+    "scripts/fetch_hrv_reference.py::def build",
+    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.testFixtureCorpusIsPresentAndPlausible()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.testFixtureCorpusIsPresentAndPlausible()": "ad980a2153126177",
+    "scripts/fetch_hrv_reference.py::def build": "15b744243a1ffa4b",
+    "scripts/fetch_hrv_reference.py::def main": "be9b545a1497b588"
+   }
+  },
+  {
+   "key": "§ HRV reference data > Three things the first version of this got wrong",
+   "hash": "639fc7704b8f63a7",
+   "does": "Documents three reference mistakes: SDNN uses N-1; computeTimeDomain filters ectopics so the test compares unfiltered reference against rmssd(fromCleanRRs:) and asserts filtered RMSSD <= raw; mean HR comes from rolling 10-second windows so the test asserts agreement in scale. Verified: tests at :127, :148 and :196 (tolerance max(2.0, 5%)); computeHRStatistics uses stored sensor HR first, then rolling-window HR, then meanRR fallback (TimeDomainAnalysis.swift:339-352).",
+   "entry": null,
+   "calls": [
+    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.testUnfilteredRMSSDMatchesTheReferenceOnEveryRecord()",
+    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.testPipelineRMSSDIsNeverLargerThanTheUnfilteredValue()",
+    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.testMeanHeartRateAgreesInScaleWithMeanRR()",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rmssd(fromCleanRRs:)",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeTimeDomain(_:flags:windowStart:windowEnd:)",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeHRStatistics(series:flags:windowStart:windowEnd:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Doc says the suite 'asserts that the filtered pipeline never reports a larger RMSSD than the raw one', and the test comment justifies it as 'removing outliers can only shrink a root-mean-square of differences'. That is false in general: the gated estimator drops pairs, and the RMS of a subset of differences can exceed the RMS of all of them. The assertion holds only empirically on these 20 fixtures, so a future fixture could fail it without any app defect.",
+     "evidence": [
+      "docs/hrv-reference-data.md:73",
+      "EmuquTests/HRVReferenceValidationTests.swift:139",
+      "EmuquTests/HRVReferenceValidationTests.swift:148",
+      "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift:268"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeHRStatistics(series:flags:windowStart:windowEnd:)": "7c72c210409bd511",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeTimeDomain(_:flags:windowStart:windowEnd:)": "b45f65e53d1a0cab",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rmssd(fromCleanRRs:)": "a192569ea4412900",
+    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.testMeanHeartRateAgreesInScaleWithMeanRR()": "c10591b811563132",
+    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.testPipelineRMSSDIsNeverLargerThanTheUnfilteredValue()": "2761d9971b0b07f0",
+    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.testUnfilteredRMSSDMatchesTheReferenceOnEveryRecord()": "242a9f14830dbc54"
+   }
+  }
+ ],
+ "deps": {}
+}

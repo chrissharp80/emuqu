@@ -48,7 +48,7 @@ extension VoiceConversationController {
         permissionError = nil
         guard await ensurePermissions() else {
             debugLog("[VoiceConv] permissions failed", level: .warning)
-            state = .idle
+            returnToIdleAfterFailedStart()
             return
         }
         guard state == .starting else { return } // ended while the permission prompts were up
@@ -96,22 +96,46 @@ extension VoiceConversationController {
     ///
     /// The "mic is live" cue is a haptic + short "Tink" chime, matching the
     /// Siri-style start affordance. No TTS: the user is about to speak
-    /// themselves and a spoken prompt would collide. It fires AFTER
-    /// `beginUserTurn()` so the recognizer is already listening when the chime
-    /// decays and the user starts talking.
+    /// themselves and a spoken prompt would collide. It fires once
+    /// `beginUserTurn()` has the recognizer listening, so the user starts
+    /// talking into a live mic; a start that failed or was ended plays no
+    /// chime. Coach triggers that arrived while voice was starting were
+    /// queued (`handleTrigger`) and play once the mic is open.
+    ///
+    /// `configureAudioSessionForConversation` claims the session for voice
+    /// before activating it, so a failed activation releases that claim:
+    /// otherwise the coordinator would keep reporting voice as active and no
+    /// cue or breathing teardown would deactivate the session.
     @MainActor
     private func openMicForFirstTurn() {
         do {
             try configureAudioSessionForConversation()
             installInterruptionObserver()
-            Task { @MainActor in await beginUserTurn() }
-            VoiceAudioPipeline.announceVoiceChatStart()
-            debugLog("[VoiceConv] started OK, now listening")
+            Task { @MainActor in await openFirstTurn() }
+            debugLog("[VoiceConv] started OK, opening the mic")
         } catch {
             debugLog("[VoiceConv] start failed: \(error.localizedDescription)", level: .error)
+            AppDependencies.current.services.audioSessionCoordinator.release(.voice)
             permissionError = String(localized: "Couldn't start the mic: \(error.localizedDescription)", bundle: LanguageManager.appBundle)
-            state = .idle
+            returnToIdleAfterFailedStart()
         }
+    }
+
+    /// A start that never opened the mic: back to idle, and the triggers
+    /// queued while it was starting play now (`handleTrigger`).
+    @MainActor
+    private func returnToIdleAfterFailedStart() {
+        state = .idle
+        drainPendingTriggersIfIdle()
+    }
+
+    /// The first user turn, then the start chime (only when it is
+    /// listening), then any trigger queued while voice was starting.
+    @MainActor
+    private func openFirstTurn() async {
+        await beginUserTurn()
+        if state == .listening { VoiceAudioPipeline.announceVoiceChatStart() }
+        drainPendingTriggersIfIdle()
     }
 
     /// Fully stop the conversation: cancel any LLM stream, stop TTS, close the
@@ -124,12 +148,18 @@ extension VoiceConversationController {
     /// `stopAnyOngoingSpeech()` doesn't try to auto-restart
     /// listening mid-teardown (that crashes installTap
     /// with an AVAudio format-mismatch).
+    ///
+    /// The chat's stream is cancelled only when it is voice's own
+    /// (`cancelVoiceOwnedReply`): ending voice while a typed reply streams
+    /// leaves that reply alone. Queued coach triggers are dropped: they were
+    /// waiting on this conversation and must not play in the next one.
     @MainActor
     func stop() {
         isStoppingFully = true
         defer { isStoppingFully = false }
         cancelLLM()
-        assistantViewModel.cancel()
+        cancelVoiceOwnedReply()
+        pendingTriggers.removeAll()
         cancelAssistantObservers()
         activeAssistantIndex = nil
         spokenCharCursor = 0
@@ -142,6 +172,19 @@ extension VoiceConversationController {
         currentResponseText = ""
         textChunker.reset()
         preemptedState = nil
+    }
+
+    /// Cancel the chat stream when voice owns it: voice is speaking a reply
+    /// (`activeAssistantIndex` set) or a voice message is queued behind the
+    /// stream. Otherwise only the speech stops (`stopAnyOngoingSpeech`, as
+    /// `cancel()` would have done) and a typed reply keeps streaming.
+    @MainActor
+    private func cancelVoiceOwnedReply() {
+        if activeAssistantIndex != nil || assistantViewModel.pendingSendOnFinish?.fromVoice == true {
+            assistantViewModel.cancel()
+        } else {
+            stopAnyOngoingSpeech()
+        }
     }
 
     /// Drop any pending WhisperKit buffers so a future
@@ -165,10 +208,18 @@ extension VoiceConversationController {
     /// race that stopAnyOngoingSpeech() defends against.
     /// Bumping the generation makes any in-flight callback no-op
     /// before it can re-queue an utterance.
+    ///
+    /// `assistantViewModel.cancel()` re-enters `stopAnyOngoingSpeech()`, which
+    /// would schedule its own listening restart while the state is still
+    /// `.speaking`; the teardown flag suppresses that, so this method's
+    /// `beginUserTurn()` is the only restart and two engine restarts never
+    /// race on the same engine.
     @MainActor
     func interrupt() {
         cancelLLM()
+        isStoppingFully = true
         assistantViewModel.cancel()
+        isStoppingFully = false
         cancelAssistantObservers()
         activeAssistantIndex = nil
         spokenCharCursor = 0
@@ -195,42 +246,54 @@ extension VoiceConversationController {
     /// always finishes before a coaching interjection plays.
     @MainActor
     func speakAIResponse(toPrompt prompt: String) {
-        if isBusyWithUserResponse() {
-            pendingTriggers.append(.aiPrompt(prompt))
-            capPendingTriggers()
-            debugLog("[VoiceConv] AI interjection queued — chat mid-response (queue=\(pendingTriggers.count))")
+        if shouldQueueTrigger(.routine) {
+            queueTrigger(.aiPrompt(prompt))
             return
         }
         playAIPromptTriggerNow(prompt: prompt)
     }
 
-    /// Cap pendingTriggers to 8. If the user holds a long chat turn
-    /// while triggers fire faster than they can drain, the queue
-    /// would grow unbounded — each entry holds a full prompt
-    /// string. Drop oldest interjections when over: by the time we
-    /// drain, anything more than ~8 alerts old is stale anyway.
+    /// Queue while voice is starting (any urgency: the session's audio isn't
+    /// set up yet, and preempting `.starting` would abandon the start), or,
+    /// for a routine trigger, while the user or the AI is busy.
     @MainActor
-    func capPendingTriggers() {
-        let maxPending = 8
-        if pendingTriggers.count > maxPending {
-            let drop = pendingTriggers.count - maxPending
-            pendingTriggers.removeFirst(drop)
-            debugLog("[VoiceConv] dropped \(drop) stale pending trigger(s) — queue cap=\(maxPending)", level: .warning)
+    private func shouldQueueTrigger(_ urgency: TriggerUrgency) -> Bool {
+        state == .starting || (urgency == .routine && isBusyWithUserResponse())
+    }
+
+    /// Queue a trigger behind the current activity. With voice idle the only
+    /// thing to wait for is a typed reply streaming in the chat, and no voice
+    /// event would drain the queue, so the end of that reply drains it.
+    @MainActor
+    private func queueTrigger(_ trigger: VoiceTriggerQueue.Trigger) {
+        let dropped = pendingTriggers.enqueue(trigger)
+        if dropped > 0 {
+            debugLog("[VoiceConv] dropped \(dropped) stale pending trigger(s) — queue cap=\(VoiceTriggerQueue.capacity)", level: .warning)
         }
+        debugLog("[VoiceConv] trigger queued — voice starting or user/AI busy, will play after (queue=\(pendingTriggers.count))")
+        if state == .idle { drainWhenTypedReplyEnds() }
+    }
+
+    /// One observation of the chat's `isStreaming` while voice is idle: when
+    /// the typed reply finishes, it stops itself and plays the queue. Voice
+    /// starting meanwhile cancels it with the other assistant observers, and
+    /// its own loop drains the queue from then on.
+    @MainActor
+    private func drainWhenTypedReplyEnds() {
+        guard assistantObservers.isEmpty else { return }
+        let handle = ObservationLoop.observe(self, read: { $0.assistantViewModel.isStreaming }, onChange: { controller, streaming in
+            guard !streaming, controller.state == .idle else { return }
+            controller.cancelAssistantObservers()
+            controller.drainPendingTriggersIfIdle()
+        })
+        assistantObservers.append(handle)
     }
 
     @MainActor
     func playAIPromptTriggerNow(prompt: String) {
-        if preemptedState == nil { preemptedState = state }
-        cancelLLM()
-        _ = FRSafeStopSpeaking(synthesizer, .immediate, nil)
-        silenceTimer?.invalidate()
-        silenceTimer = nil
-        startFreshRecognitionTask()
-        partialTranscript = ""
+        preemptForTrigger()
         currentResponseText = ""
         textChunker.reset()
-        state = .triggerSpeaking
         startAIInterjectionStream(prompt: prompt)
     }
 
@@ -319,9 +382,17 @@ extension VoiceConversationController {
         if state == .triggerSpeaking, !synthesizer.isSpeaking { finishTriggerSpeech() }
     }
 
+    /// A gate-denied or failed interjection plays the next queued trigger
+    /// (keeping the pre-trigger snapshot, as `finishTriggerSpeech` does)
+    /// before restoring the prior state, so the rest of the queue doesn't
+    /// wait for an unrelated later event.
     @MainActor
     func finishInterjectionAfterError() {
         llmTask = nil
+        if !pendingTriggers.isEmpty, !isBusyWithUserResponse() {
+            drainPendingTriggersIfIdle()
+            return
+        }
         let prior = preemptedState ?? .idle
         preemptedState = nil
         if prior == .listening || prior == .speaking {
@@ -363,25 +434,20 @@ extension VoiceConversationController {
     ///     handled. The clipboard write mirrors the security
     ///     pattern used elsewhere in the app
     ///     (.localOnly + expirationDate).
+    ///
+    /// Any trigger arriving while voice is starting waits for the mic to open
+    /// (`shouldQueueTrigger`); the first turn drains it.
     @MainActor
     func handleTrigger(message: String, urgency: TriggerUrgency = .routine) {
-        switch urgency {
-        case .routine:
-            if isBusyWithUserResponse() {
-                pendingTriggers.append(.spokenLiteral(message))
-                capPendingTriggers()
-                debugLog("[VoiceConv] routine trigger queued — user/AI busy, will play after (queue=\(pendingTriggers.count))")
-                return
-            }
-            playSpokenTriggerNow(message: message)
-        case .urgent:
-            // Save the user's in-progress words BEFORE the preempt
-            // wipes `partialTranscript` (playSpokenTriggerNow clears
-            // it). User can paste them back once
-            // they've heard the alert.
-            saveInProgressWordsToClipboard(reason: "urgent alert preempting")
-            playSpokenTriggerNow(message: message)
+        if shouldQueueTrigger(urgency) {
+            queueTrigger(.spokenLiteral(message))
+            return
         }
+        // Save the user's in-progress words BEFORE the urgent preempt
+        // wipes `partialTranscript` (playSpokenTriggerNow clears it). User
+        // can paste them back once they've heard the alert.
+        if urgency == .urgent { saveInProgressWordsToClipboard(reason: "urgent alert preempting") }
+        playSpokenTriggerNow(message: message)
     }
 
     /// Copy the live `partialTranscript` to the system clipboard so
@@ -423,19 +489,41 @@ extension VoiceConversationController {
 
     @MainActor
     func playSpokenTriggerNow(message: String) {
-        // Snapshot the pre-preemption state once (don't overwrite if multiple
-        // triggers fire in quick succession).
-        if preemptedState == nil {
-            preemptedState = state
-        }
+        preemptForTrigger()
+        speak(message, voice: WorkoutVoiceCoach.appLanguageVoice(), scripted: true)
+    }
+
+    /// Everything a trigger does before its line plays. Snapshots the
+    /// pre-preemption state once (multiple triggers in quick succession keep
+    /// the first snapshot). A reply voice was speaking is detached
+    /// (`detachFromSpokenReply`), so its stream doesn't keep feeding speech
+    /// during and after the alert. The recognition task is renewed only
+    /// when the mic is live; with voice idle there is no engine to feed it.
+    @MainActor
+    private func preemptForTrigger() {
+        if preemptedState == nil { preemptedState = state }
+        if state == .speaking { detachFromSpokenReply() }
+        let micIsLive = state != .idle && state != .starting
         cancelLLM()
         _ = FRSafeStopSpeaking(synthesizer, .immediate, nil)
         silenceTimer?.invalidate()
         silenceTimer = nil
-        startFreshRecognitionTask()
+        if micIsLive { startFreshRecognitionTask() }
         partialTranscript = ""
         state = .triggerSpeaking
-        speak(message, voice: WorkoutVoiceCoach.appLanguageVoice(), scripted: true)
+    }
+
+    /// Stop speaking the chat reply in progress: in-flight observation
+    /// callbacks no-op (generation bump), the observers end, and the
+    /// chunker's buffered text is dropped. The reply itself keeps streaming
+    /// into the chat; after the alert, voice listens again.
+    @MainActor
+    private func detachFromSpokenReply() {
+        responseSpeakGeneration += 1
+        cancelAssistantObservers()
+        activeAssistantIndex = nil
+        spokenCharCursor = 0
+        textChunker.reset()
     }
 
     /// AI is "busy with the user's response" when an LLM stream is in
@@ -465,9 +553,7 @@ extension VoiceConversationController {
     /// as the in-flight response completes.
     @MainActor
     func drainPendingTriggersIfIdle() {
-        guard !pendingTriggers.isEmpty else { return }
-        guard !isBusyWithUserResponse() else { return }
-        let next = pendingTriggers.removeFirst()
+        guard !pendingTriggers.isEmpty, !isBusyWithUserResponse(), let next = pendingTriggers.popFirst() else { return }
         switch next {
         case .spokenLiteral(let msg):
             playSpokenTriggerNow(message: msg)

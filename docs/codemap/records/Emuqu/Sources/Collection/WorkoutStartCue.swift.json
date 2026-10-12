@@ -1,0 +1,329 @@
+{
+ "file": "Emuqu/Sources/Collection/WorkoutStartCue.swift",
+ "hash": "7d9901caf7bdcd90",
+ "role": "Namespace for the multi-modal 'recording started' cue (haptic, system chime, spoken '<sport> started' off the main actor with an 800 ms watchdog) and the process-wide lock-protected compact-voice cache used by every spoken cue.",
+ "types": [
+  "WorkoutStartCue: enum — start cue + compact voice cache"
+ ],
+ "state": [
+  "WorkoutStartCue.startChimeSoundID = 1013 (system 'Sent')",
+  "WorkoutStartCue.announceSynthesizer (nonisolated(unsafe) static AVSpeechSynthesizer)",
+  "WorkoutStartCue.cueReleaser (CueAudioSessionReleaser over the shared BackgroundAudioManager)",
+  "WorkoutStartCue.notificationFeedback / impactFeedback (pre-warmed generators)",
+  "mem:_voiceCache (file-scope OSAllocatedUnfairLock<[String: AVSpeechSynthesisVoice]>)",
+  "mem:_voicePrewarms (file-scope OSAllocatedUnfairLock<Set<String>>)"
+ ],
+ "toplevel": "Static lets create one AVSpeechSynthesizer, a CueAudioSessionReleaser bound to AppDependencies.current.collection.backgroundAudioManager (first access on MainActor), and UINotificationFeedbackGenerator/UIImpactFeedbackGenerator(.heavy); prepare() is called at launch by AppLaunchTasks.swift:391-392. File-scope lock-protected voice cache and in-flight prewarm set.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func WorkoutStartCue.announceStart(sport:)",
+   "hash": "9534e8727dbe6d23",
+   "does": "Fires the start cue: success haptic now, heavy impact 0.12 s later, plays system sound 1013, then schedules the spoken '<sport> started' off-main; logs per-layer ms.",
+   "entry": "Task { @MainActor } scheduled by WorkoutSessionLifecycle.queueStartAnnouncement (WorkoutRecorder+Start.swift:437) at workout start.",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutStartCue.swift::func WorkoutStartCue.speakStartAnnouncementOffMain(sportName:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.localizedName",
+    "ext:UINotificationFeedbackGenerator.notificationOccurred",
+    "ext:AudioServicesPlaySystemSound"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/EmuquApp.swift::func EmuquMain.main()": "78441ed5272f3d2d",
+    "Emuqu/Sources/Collection/WorkoutStartCue.swift::func WorkoutStartCue.speakStartAnnouncementOffMain(sportName:)": "50044495f3041373",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.localizedName": "dbe667c792d47f39",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func WorkoutStartCue.speakStartAnnouncementOffMain(sportName:)",
+   "hash": "7178e7c691edec6c",
+   "does": "Resolves app language code and the localized '<sport> started' phrase on MainActor, sets the synthesizer delegate to the cue releaser, launches a detached .userInitiated task to build and speak the utterance, and installs the 800 ms watchdog.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Collection/WorkoutStartCue.swift::func WorkoutStartCue.buildAndSpeakStartUtterance(phrase:lang:audio:releaser:)",
+    "Emuqu/Sources/Collection/WorkoutStartCue.swift::func WorkoutStartCue.installAnnounceWatchdog(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "?? — app locale has no language code",
+     "effect": "fallback 'en'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutStartCue.swift::func WorkoutStartCue.buildAndSpeakStartUtterance(phrase:lang:audio:releaser:)": "5d7f7bbdbc37dab7",
+    "Emuqu/Sources/Collection/WorkoutStartCue.swift::func WorkoutStartCue.installAnnounceWatchdog(for:)": "277c3e6d8a3ad5a7",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "3b77b2139e8273b8",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+   }
+  },
+  {
+   "key": "func WorkoutStartCue.buildAndSpeakStartUtterance(phrase:lang:audio:releaser:)",
+   "hash": "c55abb284de2dfc4",
+   "does": "Off-main: builds the utterance (makeStartUtterance — the voice lookup can block); if the task was cancelled meanwhile (the 800 ms watchdog gave up) logs and returns without speaking, so the cue is never spoken late; otherwise activates the cue audio session hold (beginCue) tracked by the releaser and speaks via the FRSafeSpeak ObjC shim; on failure releases the hold and logs.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutStartCue.swift::func WorkoutStartCue.makeStartUtterance(phrase:lang:)",
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.beginCue()",
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func CueAudioSessionReleaser.track(_:token:)",
+    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeSpeak",
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func CueAudioSessionReleaser.release(_:)",
+    "ext:AVSpeechSynthesizer.speak",
+    "ext:AVAudioSession.setActive(true)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:BackgroundAudioManager cue hold"
+   ],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "task cancelled after the voice lookup",
+     "effect": "logs 'cue skipped, not spoken late' and returns"
+    },
+    {
+     "at": "+19",
+     "cond": "speak succeeded",
+     "effect": "false: releases audio hold and logs warning; true: logs timing"
+    },
+    {
+     "at": "+21",
+     "cond": "?? — no NSError",
+     "effect": "fallback '?' in the log"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.beginCue()": "73c6ae1ce9608494",
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func CueAudioSessionReleaser.release(_:)": "e30c8b132cebf5e5",
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func CueAudioSessionReleaser.track(_:token:)": "feded6e160d987b2",
+    "Emuqu/Sources/Collection/WorkoutStartCue.swift::func WorkoutStartCue.makeStartUtterance(phrase:lang:)": "24c87640257f809c",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeSpeak": "7d8b80467768d419"
+   }
+  },
+  {
+   "key": "func WorkoutStartCue.makeStartUtterance(phrase:lang:)",
+   "hash": "6bc33345fe9999f4",
+   "does": "Builds the start AVSpeechUtterance: default rate, the cached compact voice for the language (may enumerate voices, blocking), volume 0.9.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutStartCue.swift::func WorkoutStartCue.cachedCompactVoice(forLanguage:)",
+    "ext:AVSpeechUtterance"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.voice": "fa61a702fe44b576",
+    "Emuqu/Sources/Collection/WorkoutStartCue.swift::func WorkoutStartCue.cachedCompactVoice(forLanguage:)": "254c9e6ff037df2b"
+   }
+  },
+  {
+   "key": "func WorkoutStartCue.installAnnounceWatchdog(for:)",
+   "hash": "48c3e9bf36cd1755",
+   "does": "Watchdog: one detached task marks the announce task finished when it completes; another sleeps 800 ms and, if still unfinished and not cancelled, cancels it (honoured by buildAndSpeakStartUtterance once its voice lookup returns: the cue is skipped) and logs that the spoken cue is skipped unless it was already queued.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "announce task finished or already cancelled",
+     "effect": "true: returns; false: cancel + log"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLogExternal(_:cause:file:line:)": "51fb21accda9b30b",
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "c0fa5e77e7dfe851"
+   }
+  },
+  {
+   "key": "func WorkoutStartCue.cachedCompactVoiceIfReady(forLanguage:)",
+   "hash": "75f0cfd4a636b5ce",
+   "does": "Main-actor-safe voice lookup: returns the cached compact voice for the language, else starts a background prewarm and returns nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutStartCue.swift::func WorkoutStartCue.voiceCacheKey(_:)",
+    "Emuqu/Sources/Collection/WorkoutStartCue.swift::func _voiceCacheLookup(_:)",
+    "Emuqu/Sources/Collection/WorkoutStartCue.swift::func WorkoutStartCue.prewarm(forLanguage:)"
+   ],
+   "reads": [
+    "mem:_voiceCache"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "voice cached",
+     "effect": "true: returns it; false: prewarm + nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutStartCue.swift::func WorkoutStartCue.prewarm(forLanguage:)": "c177f2494c6c0984",
+    "Emuqu/Sources/Collection/WorkoutStartCue.swift::func WorkoutStartCue.voiceCacheKey(_:)": "60589908e3a97a45",
+    "Emuqu/Sources/Collection/WorkoutStartCue.swift::func _voiceCacheLookup(_:)": "01bb4f0bb600ba16"
+   }
+  },
+  {
+   "key": "func WorkoutStartCue.cachedCompactVoice(forLanguage:)",
+   "hash": "1a5a2a783ba30b93",
+   "does": "Returns the cached compact voice for the language or enumerates speech voices (blocking), caches a non-nil result, and returns it.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutStartCue.swift::func WorkoutStartCue.voiceCacheKey(_:)",
+    "Emuqu/Sources/Collection/WorkoutStartCue.swift::func _voiceCacheLookup(_:)",
+    "Emuqu/Sources/Collection/WorkoutStartCue.swift::func WorkoutStartCue._enumerateCompactVoice(forLanguage:)",
+    "Emuqu/Sources/Collection/WorkoutStartCue.swift::func _voiceCacheStore(_:_:)"
+   ],
+   "reads": [
+    "mem:_voiceCache"
+   ],
+   "writes": [
+    "mem:_voiceCache"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "cache hit",
+     "effect": "returns cached"
+    },
+    {
+     "at": "+4",
+     "cond": "enumeration produced a voice",
+     "effect": "true: stores in cache"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutStartCue.swift::func WorkoutStartCue._enumerateCompactVoice(forLanguage:)": "190170854cd78f90",
+    "Emuqu/Sources/Collection/WorkoutStartCue.swift::func WorkoutStartCue.voiceCacheKey(_:)": "60589908e3a97a45",
+    "Emuqu/Sources/Collection/WorkoutStartCue.swift::func _voiceCacheLookup(_:)": "01bb4f0bb600ba16",
+    "Emuqu/Sources/Collection/WorkoutStartCue.swift::func _voiceCacheStore(_:_:)": "72a9c168c1ec764e"
+   }
+  },
+  {
+   "key": "func WorkoutStartCue.prewarm(forLanguage:)",
+   "hash": "135900a8d9fcb58f",
+   "does": "If the language is neither cached nor already being prewarmed, marks it in-flight and enumerates on a detached utility task, then clears the in-flight mark.",
+   "entry": "Called at launch (EmuquApp.swift:717), by VoiceConversationController.swift:494, BreathingAudioManager.swift:100, and on cache miss.",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutStartCue.swift::func WorkoutStartCue.voiceCacheKey(_:)",
+    "Emuqu/Sources/Collection/WorkoutStartCue.swift::func _voiceCacheLookup(_:)",
+    "Emuqu/Sources/Collection/WorkoutStartCue.swift::func WorkoutStartCue.cachedCompactVoice(forLanguage:)"
+   ],
+   "reads": [
+    "mem:_voiceCache",
+    "mem:_voicePrewarms"
+   ],
+   "writes": [
+    "mem:_voicePrewarms",
+    "mem:_voiceCache"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "already cached or prewarm already in flight",
+     "effect": "true: returns; false: starts prewarm"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutStartCue.swift::func WorkoutStartCue.cachedCompactVoice(forLanguage:)": "254c9e6ff037df2b",
+    "Emuqu/Sources/Collection/WorkoutStartCue.swift::func WorkoutStartCue.voiceCacheKey(_:)": "60589908e3a97a45",
+    "Emuqu/Sources/Collection/WorkoutStartCue.swift::func _voiceCacheLookup(_:)": "01bb4f0bb600ba16"
+   }
+  },
+  {
+   "key": "func WorkoutStartCue.voiceCacheKey(_:)",
+   "hash": "f32dbed1db6a306f",
+   "does": "Normalises a locale identifier to BCP-47 by replacing '_' with '-'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutStartCue._enumerateCompactVoice(forLanguage:)",
+   "hash": "a8c8612edb5a77c9",
+   "does": "Calls AVSpeechSynthesisVoice.speechVoices() (IPC, can block), logs timing, and returns the first .default-quality voice whose language starts with lang, else the first compact English voice, else AVSpeechSynthesisVoice(language: lang), else en-US.",
+   "entry": null,
+   "calls": [
+    "ext:AVSpeechSynthesisVoice.speechVoices"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "compact voice in requested language exists",
+     "effect": "returns it"
+    },
+    {
+     "at": "+10",
+     "cond": "compact English voice exists",
+     "effect": "returns it"
+    },
+    {
+     "at": "+15",
+     "cond": "?? — no system voice for lang",
+     "effect": "fallback AVSpeechSynthesisVoice(language: 'en-US')"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func _voiceCacheLookup(_:)",
+   "hash": "8a4f6d39ddd181aa",
+   "does": "Lock-protected read from the file-scope voice cache.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:_voiceCache"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func _voiceCacheStore(_:_:)",
+   "hash": "622158be11597f66",
+   "does": "Lock-protected write into the file-scope voice cache.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:_voiceCache"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

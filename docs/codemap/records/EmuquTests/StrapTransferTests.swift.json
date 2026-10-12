@@ -1,0 +1,580 @@
+{
+ "file": "EmuquTests/StrapTransferTests.swift",
+ "hash": "0095f6f0fb448888",
+ "role": "@MainActor integration tests for the single strap download path (PolarManager.fetchRecording and its callers) against FakeStrapRadio: inline stop returns the app to idle, stop records downloads on the ledger, earlier nights refused, recording start carried, running recording stopped before read, Cancel and StrapDeadline end hung transfers, pre-download cancel survives, downloads recorded, and late-armed recordings shifted onto the session clock.",
+ "types": [
+  "StrapTransferTests: class — @MainActor XCTestCase over PolarManager/StrapRecordingCoordinator transfer paths",
+  "Date (private extension): rounded() to whole seconds"
+ ],
+ "state": [
+  "deviceId: \"H10-TRANSFER\"",
+  "ud:StrapTransferTests-<UUID> suites from isolatedDefaults (one per manager; each removed by a teardown block)"
+ ],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "test-defect",
+   "sev": "low",
+   "text": "PolarManager() still builds its default StrapDownloadLedger() before linkedManager swaps in the isolated one, and that init writes strapDownloadLedgerSince to the host's standard defaults when the key is absent (only on a host that never opened a ledger).",
+   "evidence": [
+    "Emuqu/Sources/Collection/PolarManager.swift:160",
+    "Emuqu/Sources/Collection/StrapRecording.swift:65",
+    "EmuquTests/StrapTransferTests.swift:22"
+   ],
+   "found": "t2 test pass"
+  }
+ ],
+ "units": [
+  {
+   "key": "func StrapTransferTests.linkedManager(_:type:)",
+   "hash": "b2c1c51a803cd3e5",
+   "does": "Test helper: PolarManager with its download ledger on a fresh defaults suite (isolatedDefaults, not the host's standard defaults), wired to the FakeStrapRadio, connected as 'H10-TRANSFER' of the given type (default h10), readiness established and settled.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()",
+    "EmuquTests/StrapTransferTests.swift::func StrapTransferTests.isolatedDefaults()",
+    "Emuqu/Sources/Collection/StrapRecording.swift::init StrapDownloadLedger(defaults:)",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.setConnectedDeviceForTesting(id:type:)",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkEstablished()",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.settleWithoutSummary()"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:strapDownloadLedgerSince (the test suite)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.setConnectedDeviceForTesting(id:type:)": "119fb2afbb3f1150",
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "b9f281895be22d44",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkEstablished()": "f32f3e5777f67ce6",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.settleWithoutSummary()": "e36111b9f64a69b7",
+    "Emuqu/Sources/Collection/StrapRecording.swift::init StrapDownloadLedger(defaults:)": "53b6693e0e3e79d1",
+    "EmuquTests/StrapTransferTests.swift::func StrapTransferTests.isolatedDefaults()": "de6bd40873ad4c1f"
+   }
+  },
+  {
+   "key": "func StrapTransferTests.exerciseId(_:)",
+   "hash": "e24cf51f25bd086c",
+   "does": "Test helper: StrapExerciseDecoder.exerciseId(at: start).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.exerciseId(at:timeZone:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.exerciseId(at:timeZone:)": "bde2f9a59f6c5745"
+   }
+  },
+  {
+   "key": "func StrapTransferTests.armedStrap(_:start:beats:)",
+   "hash": "ba81d4326656ec15",
+   "does": "Test helper: makes the fake strap report an ongoing recording and hold an exercise of `beats` 800 ms intervals started at `start`, and returns a linked manager with recordingState .recording and isRecordingOnDevice true.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.setRecording(ongoing:entryId:)",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.addExercise(entryId:path:date:rrMs:)",
+    "EmuquTests/StrapTransferTests.swift::func StrapTransferTests.exerciseId(_:)",
+    "EmuquTests/StrapTransferTests.swift::func StrapTransferTests.linkedManager(_:type:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "80cfea9a213f0e16",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.recordingState": "34578c85458fe930",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.addExercise(entryId:path:date:rrMs:)": "922c29ced26bff57",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.setRecording(ongoing:entryId:)": "257ff9ed6a32ea4c",
+    "EmuquTests/StrapTransferTests.swift::func StrapTransferTests.exerciseId(_:)": "2bb3b7079d79d008",
+    "EmuquTests/StrapTransferTests.swift::func StrapTransferTests.linkedManager(_:type:)": "b9d37acdbced2e17"
+   }
+  },
+  {
+   "key": "func StrapTransferTests.testTheInlineStopReturnsTheAppToIdle()",
+   "hash": "d058ea4dc1f7304f",
+   "does": "dfa-strap Bug 4: after stopDeviceRecordingIfNeeded(streamHoldsIt: true) asserts the radio got stopRecording, recordingState is .idle, isRecordingOnDevice false, and a following startFreshRecording issues a startRecording call.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StrapTransferTests.swift::func StrapTransferTests.armedStrap(_:start:beats:)",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.stopDeviceRecordingIfNeeded(streamHoldsIt:)",
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.stopDeviceRecordingIfNeeded(streamHoldsIt:)",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.startFreshRecording(while:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:strapDownloadedRecordingStarts (the test's own StrapTransferTests-<UUID> suite)"
+   ],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "if case .startRecording = call",
+     "effect": "true for a startRecording call, false otherwise"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.startFreshRecording(while:)": "e2b633ac41152473",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.stopDeviceRecordingIfNeeded(streamHoldsIt:)": "1f11e7478669097b",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "80cfea9a213f0e16",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.recordingState": "34578c85458fe930",
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.stopDeviceRecordingIfNeeded(streamHoldsIt:)": "3ff1ebae6169198f",
+    "EmuquTests/FakeStrapRadio.swift::var FakeStrapRadio.calls": "f3f360684b4dcac1",
+    "EmuquTests/StrapTransferTests.swift::func StrapTransferTests.armedStrap(_:start:beats:)": "4ca8978e274f301e"
+   }
+  },
+  {
+   "key": "func StrapTransferTests.testAWorkoutCoveredByItsStreamIsNotRescuedAtTheNextStart()",
+   "hash": "2ea7ec418ab9104e",
+   "does": "Oct 6 walk: with an isolated ledger, a stream-covered stop followed by startFreshRecording does not fetch the walk's exercise again and does remove it.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StrapTransferTests.swift::func StrapTransferTests.armedStrap(_:start:beats:)",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.stopDeviceRecordingIfNeeded(streamHoldsIt:)",
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.stopDeviceRecordingIfNeeded(streamHoldsIt:)",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.startFreshRecording(while:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:strapDownloadedRecordingStarts (test suite)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.startFreshRecording(while:)": "e2b633ac41152473",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.stopDeviceRecordingIfNeeded(streamHoldsIt:)": "1f11e7478669097b",
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.stopDeviceRecordingIfNeeded(streamHoldsIt:)": "3ff1ebae6169198f",
+    "EmuquTests/FakeStrapRadio.swift::var FakeStrapRadio.calls": "f3f360684b4dcac1",
+    "EmuquTests/StrapTransferTests.swift::func StrapTransferTests.armedStrap(_:start:beats:)": "4ca8978e274f301e",
+    "EmuquTests/StrapTransferTests.swift::func StrapTransferTests.exerciseId(_:)": "2bb3b7079d79d008"
+   }
+  },
+  {
+   "key": "func StrapTransferTests.testAStopTheStreamDidNotCoverIsStillRescued()",
+   "hash": "c4cd53680a1c0e00",
+   "does": "With an isolated ledger, a stop not covered by the stream (streamHoldsIt false) leaves the recording unrecorded, so startFreshRecording rescues it: asserts the onUnrecoveredDataRescued closure receives all 3000 beats.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StrapTransferTests.swift::func StrapTransferTests.armedStrap(_:start:beats:)",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.stopDeviceRecordingIfNeeded(streamHoldsIt:)",
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.stopDeviceRecordingIfNeeded(streamHoldsIt:)",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.startFreshRecording(while:)",
+    "closure:PolarManager.onUnrecoveredDataRescued set by the test to capture rescued points"
+   ],
+   "reads": [
+    "ud:strapDownloadedRecordingStarts (test suite)"
+   ],
+   "writes": [
+    "ud:strapDownloadedRecordingStarts (test suite)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.startFreshRecording(while:)": "e2b633ac41152473",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.stopDeviceRecordingIfNeeded(streamHoldsIt:)": "1f11e7478669097b",
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.stopDeviceRecordingIfNeeded(streamHoldsIt:)": "3ff1ebae6169198f",
+    "EmuquTests/StrapTransferTests.swift::func StrapTransferTests.armedStrap(_:start:beats:)": "4ca8978e274f301e"
+   }
+  },
+  {
+   "key": "func StrapTransferTests.testAFailedDownloadAfterAStopLeavesTheAppIdle()",
+   "hash": "356f2181a117a401",
+   "does": "With fetchExercise refused 50 times, asserts fetchRecordingIfAvailable returns nil but the app is .idle, isRecordingOnDevice false, hasStoredExercise true and storedExerciseDate equals the recording start (whole seconds).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StrapTransferTests.swift::func StrapTransferTests.armedStrap(_:start:beats:)",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refuse(_:times:with:)",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.fetchRecordingIfAvailable(recordedSince:)",
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.fetchRecordingIfAvailable(recordedSince:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.fetchRecordingIfAvailable(recordedSince:)": "dfd25ec011b46b1c",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.hasStoredExercise": "dbd1bab5a9194403",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "80cfea9a213f0e16",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.recordingState": "34578c85458fe930",
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.fetchRecordingIfAvailable(recordedSince:)": "8bcbcc1e1d1c72b7",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refuse(_:times:with:)": "975d3292e9e4e597",
+    "EmuquTests/StrapTransferTests.swift::func StrapTransferTests.armedStrap(_:start:beats:)": "4ca8978e274f301e"
+   }
+  },
+  {
+   "key": "func StrapTransferTests.testAStatusReadCorrectsAStaleRecordingState()",
+   "hash": "dd1589709a8b1964",
+   "does": "Asserts checkRecordingStatus on a fake strap that is not recording corrects a stale .recording/isRecordingOnDevice to .idle/false.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StrapTransferTests.swift::func StrapTransferTests.linkedManager(_:type:)",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.checkRecordingStatus(deviceId:)",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.checkRecordingStatus(deviceId:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.checkRecordingStatus(deviceId:)": "8e73f9473236c7de",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.checkRecordingStatus(deviceId:)": "fd39083d3d003ea5",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "80cfea9a213f0e16",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.recordingState": "34578c85458fe930",
+    "EmuquTests/StrapTransferTests.swift::func StrapTransferTests.linkedManager(_:type:)": "b9d37acdbced2e17"
+   }
+  },
+  {
+   "key": "func StrapTransferTests.testAnAttendedFetchRefusesAnEarlierNight()",
+   "hash": "2c2768a21a6ec962",
+   "does": "strap-copies Bug 1: with only a 30 h old exercise on the strap, asserts an attended fetchRecording(recordedSince: 8 h ago) throws an error classified .deterministic and never fetches that exercise.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.addExercise(entryId:path:date:rrMs:)",
+    "EmuquTests/StrapTransferTests.swift::func StrapTransferTests.exerciseId(_:)",
+    "EmuquTests/StrapTransferTests.swift::func StrapTransferTests.linkedManager(_:type:)",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.fetchRecording(recordedSince:budget:)",
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.fetchRecording(recordedSince:budget:)",
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.classify(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "catch from fetchRecording",
+     "effect": "asserts classify(error) == .deterministic; a return hits XCTFail"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.fetchRecording(recordedSince:budget:)": "1a32a8d67021426e",
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.classify(_:)": "da73c450cd215f6f",
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.fetchRecording(recordedSince:budget:)": "4137f7f6f0a5ee91",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.addExercise(entryId:path:date:rrMs:)": "922c29ced26bff57",
+    "EmuquTests/FakeStrapRadio.swift::var FakeStrapRadio.calls": "f3f360684b4dcac1",
+    "EmuquTests/StrapTransferTests.swift::func StrapTransferTests.exerciseId(_:)": "2bb3b7079d79d008",
+    "EmuquTests/StrapTransferTests.swift::func StrapTransferTests.linkedManager(_:type:)": "b9d37acdbced2e17"
+   }
+  },
+  {
+   "key": "func StrapTransferTests.testTheDownloadCarriesTheRecordingsOwnStart()",
+   "hash": "2ec0d3c177c6224d",
+   "does": "Asserts a downloaded recording's startedAt equals the exercise-id start (30 h ago, whole seconds) and endedAt is start + 600 s for 600 beats of 1000 ms.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StrapTransferTests.swift::func Date.rounded()",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.addExercise(entryId:path:date:rrMs:)",
+    "EmuquTests/StrapTransferTests.swift::func StrapTransferTests.exerciseId(_:)",
+    "EmuquTests/StrapTransferTests.swift::func StrapTransferTests.linkedManager(_:type:)",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.fetchRecording(recordedSince:budget:)",
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.fetchRecording(recordedSince:budget:)",
+    "Emuqu/Sources/Collection/StrapRecording.swift::var StrapRecording.endedAt"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:strapDownloadedRecordingStarts (the test's own StrapTransferTests-<UUID> suite)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.fetchRecording(recordedSince:budget:)": "1a32a8d67021426e",
+    "Emuqu/Sources/Collection/StrapRecording.swift::var StrapRecording.endedAt": "dd2bc71250a86f61",
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.fetchRecording(recordedSince:budget:)": "4137f7f6f0a5ee91",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.addExercise(entryId:path:date:rrMs:)": "922c29ced26bff57",
+    "EmuquTests/StrapTransferTests.swift::func Date.rounded()": "c7d02648e67f1cec",
+    "EmuquTests/StrapTransferTests.swift::func StrapTransferTests.exerciseId(_:)": "2bb3b7079d79d008",
+    "EmuquTests/StrapTransferTests.swift::func StrapTransferTests.linkedManager(_:type:)": "b9d37acdbced2e17"
+   }
+  },
+  {
+   "key": "func StrapTransferTests.testARunningRecordingIsStoppedBeforeItIsRead()",
+   "hash": "1c17e28b23829a23",
+   "does": "strap-copies Bug 2: on a strap still recording, asserts fetchRecording returns all 1000 beats and the radio saw stopRecording before fetchExercise.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StrapTransferTests.swift::func StrapTransferTests.armedStrap(_:start:beats:)",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.fetchRecording(recordedSince:budget:)",
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.fetchRecording(recordedSince:budget:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:strapDownloadedRecordingStarts (the test's own StrapTransferTests-<UUID> suite)"
+   ],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "case .stopRecording",
+     "effect": "maps to \"stop\""
+    },
+    {
+     "at": "+11",
+     "cond": "case .fetchExercise",
+     "effect": "maps to \"fetch\""
+    },
+    {
+     "at": "+12",
+     "cond": "default",
+     "effect": "other calls dropped (nil)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.fetchRecording(recordedSince:budget:)": "1a32a8d67021426e",
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.fetchRecording(recordedSince:budget:)": "4137f7f6f0a5ee91",
+    "EmuquTests/FakeStrapRadio.swift::var FakeStrapRadio.calls": "f3f360684b4dcac1",
+    "EmuquTests/StrapTransferTests.swift::func StrapTransferTests.armedStrap(_:start:beats:)": "4ca8978e274f301e"
+   }
+  },
+  {
+   "key": "func StrapTransferTests.testCancelEndsADownloadTheStrapNeverAnswers()",
+   "hash": "b72d76ba35fa5d57",
+   "does": "With fetchExercise hung, starts an attended fetch, waits until fetchExercise is called, cancels via cancelFetch, and asserts the task ends within 2 s with a PolarError.fetchFailed failure, recordingState .idle and fetchProgress nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.addExercise(entryId:path:date:rrMs:)",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.hang(_:)",
+    "EmuquTests/StrapTransferTests.swift::func StrapTransferTests.exerciseId(_:)",
+    "EmuquTests/StrapTransferTests.swift::func StrapTransferTests.linkedManager(_:type:)",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.fetchRecording(recordedSince:budget:)",
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.fetchRecording(recordedSince:budget:)",
+    "EmuquTests/StrapTransferTests.swift::func StrapTransferTests.waitUntil(timeout:_:)",
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.cancelFetch()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+14",
+     "cond": "result is .failure",
+     "effect": "true: checks the error description; false (success): XCTFail and return"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Wall-clock assertion (< 2 s after cancel) can fail on a loaded CI machine although behaviour is correct.",
+     "evidence": [
+      "EmuquTests/StrapTransferTests.swift:195"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "The error check compares localizedDescription with PolarError.fetchFailed(\"\"), but errorDescription for .fetchFailed ignores its payload (PolarManager.swift:374), so any fetchFailed (a deadline timeout as well as \"Cancelled by user\", StrapRecordingCoordinator+Transfer.swift:115,139) passes; only the wall-clock < 2 s assertion distinguishes Cancel from a timeout.",
+     "evidence": [
+      "EmuquTests/StrapTransferTests.swift:197",
+      "Emuqu/Sources/Collection/PolarManager.swift:374",
+      "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift:139"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.cancelFetch()": "7744e4f6bfe88f81",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.fetchRecording(recordedSince:budget:)": "1a32a8d67021426e",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.fetchProgress": "9fbf2a3a7a28c5c5",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.recordingState": "34578c85458fe930",
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.fetchRecording(recordedSince:budget:)": "4137f7f6f0a5ee91",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.addExercise(entryId:path:date:rrMs:)": "922c29ced26bff57",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.hang(_:)": "3f9bcead88e8c372",
+    "EmuquTests/FakeStrapRadio.swift::var FakeStrapRadio.calls": "f3f360684b4dcac1",
+    "EmuquTests/StrapTransferTests.swift::func StrapTransferTests.exerciseId(_:)": "2bb3b7079d79d008",
+    "EmuquTests/StrapTransferTests.swift::func StrapTransferTests.linkedManager(_:type:)": "b9d37acdbced2e17",
+    "EmuquTests/StrapTransferTests.swift::func StrapTransferTests.waitUntil(timeout:_:)": "437cb911bbc83b5b"
+   }
+  },
+  {
+   "key": "func StrapTransferTests.testTheDeadlineReturnsWhenTheCallNeverDoes()",
+   "hash": "af772572062b20a4",
+   "does": "Asserts StrapDeadline.race(seconds: 1) over a never-resuming continuation throws within 3 s.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapDeadline.swift::func StrapDeadline.race(seconds:timeout:operation:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "catch from race",
+     "effect": "asserts elapsed < 3 s; reaching the line after race hits XCTFail"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "The never-resumed withUnsafeContinuation leaks a suspended task for the rest of the test process.",
+     "evidence": [
+      "EmuquTests/StrapTransferTests.swift:207"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapDeadline.swift::func StrapDeadline.race(seconds:timeout:operation:)": "4354517274b97049"
+   }
+  },
+  {
+   "key": "func StrapTransferTests.testACancelBeforeTheDownloadIsNotErasedByIt()",
+   "hash": "4985a050a04c2cd4",
+   "does": "strap-copies Bug 6: beginTransfer then cancelFetch before the download; asserts fetchRecordingIfAvailable returns nil and never calls fetchExercise (cancel flag not cleared on entry).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.addExercise(entryId:path:date:rrMs:)",
+    "EmuquTests/StrapTransferTests.swift::func StrapTransferTests.exerciseId(_:)",
+    "EmuquTests/StrapTransferTests.swift::func StrapTransferTests.linkedManager(_:type:)",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.beginTransfer()",
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.beginTransfer()",
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.cancelFetch()",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.fetchRecordingIfAvailable(recordedSince:)",
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.fetchRecordingIfAvailable(recordedSince:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.cancelFetch()": "7744e4f6bfe88f81",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.beginTransfer()": "bfa6d138e9e66b85",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.fetchRecordingIfAvailable(recordedSince:)": "dfd25ec011b46b1c",
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.beginTransfer()": "e9daeea8a265471e",
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.fetchRecordingIfAvailable(recordedSince:)": "8bcbcc1e1d1c72b7",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.addExercise(entryId:path:date:rrMs:)": "922c29ced26bff57",
+    "EmuquTests/FakeStrapRadio.swift::var FakeStrapRadio.calls": "f3f360684b4dcac1",
+    "EmuquTests/StrapTransferTests.swift::func StrapTransferTests.exerciseId(_:)": "2bb3b7079d79d008",
+    "EmuquTests/StrapTransferTests.swift::func StrapTransferTests.linkedManager(_:type:)": "b9d37acdbced2e17"
+   }
+  },
+  {
+   "key": "func StrapTransferTests.testADownloadedRecordingIsOnRecord()",
+   "hash": "916b40300e616c19",
+   "does": "Bug 9: with an isolated ledger, an unattended fetchRecording leaves hasStoredExercise true and the ledger reports wasDownloaded for the recording start.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StrapTransferTests.swift::func Date.rounded()",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.addExercise(entryId:path:date:rrMs:)",
+    "EmuquTests/StrapTransferTests.swift::func StrapTransferTests.exerciseId(_:)",
+    "EmuquTests/StrapTransferTests.swift::func StrapTransferTests.linkedManager(_:type:)",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.fetchRecording(recordedSince:budget:)",
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.fetchRecording(recordedSince:budget:)",
+    "Emuqu/Sources/Collection/StrapRecording.swift::func StrapDownloadLedger.wasDownloaded(recordingStartedAt:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:strapDownloadedRecordingStarts (test suite)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.fetchRecording(recordedSince:budget:)": "1a32a8d67021426e",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.hasStoredExercise": "dbd1bab5a9194403",
+    "Emuqu/Sources/Collection/StrapRecording.swift::func StrapDownloadLedger.wasDownloaded(recordingStartedAt:)": "88c9e19a84feca96",
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.fetchRecording(recordedSince:budget:)": "4137f7f6f0a5ee91",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.addExercise(entryId:path:date:rrMs:)": "922c29ced26bff57",
+    "EmuquTests/StrapTransferTests.swift::func Date.rounded()": "c7d02648e67f1cec",
+    "EmuquTests/StrapTransferTests.swift::func StrapTransferTests.exerciseId(_:)": "2bb3b7079d79d008",
+    "EmuquTests/StrapTransferTests.swift::func StrapTransferTests.linkedManager(_:type:)": "b9d37acdbced2e17"
+   }
+  },
+  {
+   "key": "func StrapTransferTests.testARecordingArmedLateIsPlacedOnTheSessionsClock()",
+   "hash": "d010000f4644e416",
+   "does": "Asserts StrapRecording.points(onClockOf:) shifts beats of a recording armed 240 s after session start to t_ms [240000, 241000], and with startedAt nil uses fallbackStart (+60 s) to give [60000, 61000].",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.rrPoints(fromIntervalsMs:)",
+    "Emuqu/Sources/Collection/StrapRecording.swift::func StrapRecording.points(onClockOf:fallbackStart:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.rrPoints(fromIntervalsMs:)": "9bc1546b53e4cb25",
+    "Emuqu/Sources/Collection/StrapRecording.swift::func StrapRecording.points(onClockOf:fallbackStart:)": "124778dc78766fbb"
+   }
+  },
+  {
+   "key": "func StrapTransferTests.isolatedDefaults()",
+   "hash": "33d0a09032e1eb96",
+   "does": "Test helper: a UserDefaults suite named StrapTransferTests-<UUID>, whose persistent domain a teardown block removes; if the suite cannot be created, fails the test and returns .standard.",
+   "entry": null,
+   "calls": [
+    "ext:XCTestCase.addTeardownBlock",
+    "ext:UserDefaults.removePersistentDomain(forName:)",
+    "ext:UserDefaults.init(suiteName:)",
+    "ext:XCTFail"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:StrapTransferTests-<UUID> (removed at teardown)"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "UserDefaults(suiteName:) returns nil",
+     "effect": "XCTFail and return .standard"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func StrapTransferTests.waitUntil(timeout:_:)",
+   "hash": "6e277e9f06d4e49c",
+   "does": "Test helper: polls `condition` every 20 ms until true; XCTFail and return after `timeout` (default 10 s).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "while !condition()",
+     "effect": "loops until the condition holds"
+    },
+    {
+     "at": "+3",
+     "cond": "Date() > deadline",
+     "effect": "true: XCTFail and return; false: sleep 20 ms and re-check"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Same polling waitUntil helper is re-declared privately in several test classes.",
+     "evidence": [
+      "EmuquTests/StrapTransferTests.swift:276",
+      "EmuquTests/StrapArmingTests.swift:204",
+      "EmuquTests/StrapNightTests.swift:276",
+      "EmuquTests/ConversationStoreTests.swift:92"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "9b0181db6472cf0d"
+   }
+  },
+  {
+   "key": "func Date.rounded()",
+   "hash": "2d4b79da6fc74361",
+   "does": "Private Date extension: truncates to whole seconds (timeIntervalSince1970 rounded down), as the H10 id stores them.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

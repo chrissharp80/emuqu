@@ -1,0 +1,24 @@
+{
+ "file": "Emuqu/Sources/Assistant/Context/AssistantContext+Types.swift",
+ "hash": "8e696cc99589f88d",
+ "role": "Declares the nested Codable value types that make up AssistantContext (profile, session, workout history, baselines, trends, analysis summary, live workout and live HRV snapshots, route topology/weather/threshold/interval sub-snapshots). Pure data, no functions.",
+ "types": [
+  "AssistantContext.UserProfileSnapshot: struct — age/sex/fitness/maxHR/units/training-break/comeback/algorithm-version/training goal",
+  "AssistantContext.WorkoutHistoryEntry: struct — per-workout compact metrics incl. power/cadence/alpha1/HRR/feeling",
+  "AssistantContext.SessionSnapshot: struct — full overnight session (score, factors, HRV domains, overnight HR, sleep, vitals, training, feeling)",
+  "AssistantContext.OvernightHRSnapshot: struct — whole-night nadir/min/max/mean HR",
+  "AssistantContext.SessionSnapshotLite: struct — one-line recent session incl. ATL/CTL/TSB/ACWR and sleep stages",
+  "AssistantContext.ScoreFactorSnapshot / TimeDomainSnapshot / FrequencyDomainSnapshot / NonlinearSnapshot / ANSMetricsSnapshot / SleepSnapshot / VitalsSnapshot / TrainingSnapshot / BaselineSnapshot: structs — metric groups",
+  "AssistantContext.TrendSnapshot (+MetricTrend): struct — period trend summary",
+  "AssistantContext.AnalysisSummarySnapshot (+ProbableCause): struct — cached analysis narrative",
+  "AssistantContext.LiveWorkoutSnapshot: struct — live workout metrics, location, route, weather, trends, readiness, zones, predictions, thresholds, interval progress",
+  "AssistantContext.LiveWorkoutSnapshot.RouteTopologySnapshot / WeatherSnapshot / ThresholdSnapshot / IntervalProgressSnapshot: structs — live sub-snapshots",
+  "AssistantContext.LiveWorkoutSnapshot.RouteTopologySnapshot.ClimbSnapshot / TurnSnapshot: structs (extension) — climb and turn rows",
+  "AssistantContext.LiveHRVSnapshot: struct — live RRCollector phase/beats/elapsed/error"
+ ],
+ "state": [],
+ "toplevel": "Only stored-property declarations with Codable synthesis. Defaulted vars on LiveWorkoutSnapshot (recognizedRouteWasAutoDetected=false, recentSplitGradeAdjustedPaces=[], historicalSportSampleCount=0, zone1..5Sec=0, activeThresholds=[], thresholdBreachSec=[:]) and RouteTopologySnapshot.turnsAhead=[] are defaults for the memberwise init only, as the comments now say: the synthesized decoder still requires their keys, and nothing decodes these snapshots today. SessionSnapshot.recoveryScore and SessionSnapshotLite.recoveryScore are documented as the stored 0–10 composite (×10 for the 0–100 display score). WorkoutHistoryEntry.durationSec is documented as active (un-paused) seconds.",
+ "flags": [],
+ "units": [],
+ "deps": {}
+}

@@ -1,0 +1,301 @@
+{
+ "file": "Emuqu/Sources/Views/SavedRoutesPage.swift",
+ "hash": "52cd7afd61cf09ec",
+ "role": "Settings → My Routes screen listing SavedRouteStore routes with swipe-to-delete, swipe-to-rename alert, OSM attribution footer, and an explanatory empty state.",
+ "types": [
+  "SavedRoutesPage: struct (View) — My Routes list; pushed from SettingsView.swift:257 and SettingsSearchIndex.swift:190"
+ ],
+ "state": [
+  "mem:SavedRoutesPage.renamingRoute (@State SavedRoute?)",
+  "mem:SavedRoutesPage.renameText (@State String)"
+ ],
+ "toplevel": "Environment dependencies; no other top-level code.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var SavedRoutesPage.store",
+   "hash": "c9abaa247414d910",
+   "does": "Returns the SavedRouteStore from AppDependencies location services.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.savedRouteStore"
+   ],
+   "reads": [
+    "mem:SavedRouteStore.shared"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.savedRouteStore": "984316b98ce9cac9"
+   }
+  },
+  {
+   "key": "var SavedRoutesPage.body",
+   "hash": "de02ee0f67a5d4d6",
+   "does": "Body: empty state or route list, nav title 'My Routes', and a 'Rename route' alert presented while renamingRoute is non-nil.",
+   "entry": "SwiftUI body",
+   "calls": [
+    "Emuqu/Sources/Views/SavedRoutesPage.swift::var SavedRoutesPage.store",
+    "Emuqu/Sources/Views/SavedRoutesPage.swift::var SavedRoutesPage.emptyState",
+    "Emuqu/Sources/Views/SavedRoutesPage.swift::var SavedRoutesPage.routeList",
+    "Emuqu/Sources/Views/SavedRoutesPage.swift::var SavedRoutesPage.renameDialogActions",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:SavedRouteStore.routes"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "store.routes.isEmpty",
+     "effect": "true: emptyState; false: routeList"
+    },
+    {
+     "at": "+12",
+     "cond": "alert binding set to false (dismissed)",
+     "effect": "clears renamingRoute; true sets nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.routes(for:)": "d183aa1e85ebbd65",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SavedRoutesPage.swift::var SavedRoutesPage.emptyState": "0a863d9598976bd0",
+    "Emuqu/Sources/Views/SavedRoutesPage.swift::var SavedRoutesPage.renameDialogActions": "00e0b4dee2de6dd5",
+    "Emuqu/Sources/Views/SavedRoutesPage.swift::var SavedRoutesPage.routeList": "19a3dedae597294c",
+    "Emuqu/Sources/Views/SavedRoutesPage.swift::var SavedRoutesPage.store": "9f5b737f2b48b752"
+   }
+  },
+  {
+   "key": "var SavedRoutesPage.renameDialogActions",
+   "hash": "0a65fb297d72b5cf",
+   "does": "Alert content: name TextField bound to renameText, Save (commitRename) and Cancel (clears renamingRoute).",
+   "entry": "Alert button actions",
+   "calls": [
+    "Emuqu/Sources/Views/SavedRoutesPage.swift::func SavedRoutesPage.commitRename()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SavedRoutesPage.swift::func SavedRoutesPage.commitRename()": "06004619e9573c03"
+   }
+  },
+  {
+   "key": "func SavedRoutesPage.commitRename()",
+   "hash": "196471cf600fe719",
+   "does": "Trims renameText; if a route is being renamed and the trimmed name is non-empty, renames it in the store (persisted to saved_routes.json); always clears renamingRoute.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SavedRoutesPage.swift::var SavedRoutesPage.store",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.rename(id:to:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:SavedRouteStore.routes",
+    "file:saved_routes.json (App Group container)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "renamingRoute non-nil",
+     "effect": "false: skip rename"
+    },
+    {
+     "at": "+3",
+     "cond": "trimmed name non-empty",
+     "effect": "false: empty name silently ignored, alert closes with no feedback"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.rename(id:to:)": "2f4b9bc9af3b0923",
+    "Emuqu/Sources/Views/SavedRoutesPage.swift::var SavedRoutesPage.store": "9f5b737f2b48b752"
+   }
+  },
+  {
+   "key": "var SavedRoutesPage.emptyState",
+   "hash": "fdd624cf5d90cbdf",
+   "does": "Empty-state VStack: map icon, 'No saved routes yet', and how-to text.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var SavedRoutesPage.routeList",
+   "hash": "af272ec6ba289a0d",
+   "does": "List with one Section of route rows and OSM attribution footer.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SavedRoutesPage.swift::var SavedRoutesPage.routeRows",
+    "Emuqu/Sources/Views/SavedRoutesPage.swift::var SavedRoutesPage.osmAttribution"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SavedRoutesPage.swift::var SavedRoutesPage.osmAttribution": "9056bbee999e9f25",
+    "Emuqu/Sources/Views/SavedRoutesPage.swift::var SavedRoutesPage.routeRows": "27f217342ea1fb48"
+   }
+  },
+  {
+   "key": "var SavedRoutesPage.routeRows",
+   "hash": "a57f0eca63819f0e",
+   "does": "ForEach over store.routes producing swipeable rows.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SavedRoutesPage.swift::var SavedRoutesPage.store",
+    "Emuqu/Sources/Views/SavedRoutesPage.swift::func SavedRoutesPage.swipeableRouteRow(_:)"
+   ],
+   "reads": [
+    "mem:SavedRouteStore.routes"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.routes(for:)": "d183aa1e85ebbd65",
+    "Emuqu/Sources/Views/SavedRoutesPage.swift::func SavedRoutesPage.swipeableRouteRow(_:)": "d4583000a0ce5928",
+    "Emuqu/Sources/Views/SavedRoutesPage.swift::var SavedRoutesPage.store": "9f5b737f2b48b752"
+   }
+  },
+  {
+   "key": "var SavedRoutesPage.osmAttribution",
+   "hash": "2bc85674be500841",
+   "does": "Footer crediting OpenStreetMap contributors for trails saved from Find new (shown regardless of route origin).",
+   "entry": null,
+   "calls": [
+    "ext:OpenStreetMapAttribution (declared outside repo Swift units per lookup)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func SavedRoutesPage.swipeableRouteRow(_:)",
+   "hash": "2704ebb3f144a367",
+   "does": "Route row with trailing swipe actions (full swipe disabled).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SavedRoutesPage.swift::func SavedRoutesPage.routeRow(_:)",
+    "Emuqu/Sources/Views/SavedRoutesPage.swift::func SavedRoutesPage.swipeActions(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SavedRoutesPage.swift::func SavedRoutesPage.routeRow(_:)": "82a865a35c841cb8",
+    "Emuqu/Sources/Views/SavedRoutesPage.swift::func SavedRoutesPage.swipeActions(for:)": "5f3916aa45573e3d"
+   }
+  },
+  {
+   "key": "func SavedRoutesPage.swipeActions(for:)",
+   "hash": "549d9adda8ae5eea",
+   "does": "Swipe actions: Delete removes the route immediately (no confirmation/undo) and persists; Rename sets renamingRoute and prefills renameText.",
+   "entry": "Swipe action button taps",
+   "calls": [
+    "Emuqu/Sources/Views/SavedRoutesPage.swift::var SavedRoutesPage.store",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.remove(id:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:SavedRouteStore.routes",
+    "file:saved_routes.json (App Group container)",
+    "mem:SavedRoutesPage.renamingRoute"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "med",
+     "text": "Delete (and Rename via commitRename) mutate SavedRouteStore.routes in memory, but SavedRouteStore.save() returns without writing when the earlier load failed (SavedRoute.swift:322-327); the row disappears/renames in the UI with no error and the deleted/renamed route comes back unchanged on next launch.",
+     "evidence": [
+      "Emuqu/Sources/Views/SavedRoutesPage.swift:104",
+      "Emuqu/Sources/Views/SavedRoutesPage.swift:50",
+      "Emuqu/Sources/Models/SavedRoute.swift:206",
+      "Emuqu/Sources/Models/SavedRoute.swift:322"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "380cb385515abafc",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.remove(id:)": "15249a884ea00680",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SavedRoutesPage.swift::var SavedRoutesPage.store": "9f5b737f2b48b752"
+   }
+  },
+  {
+   "key": "func SavedRoutesPage.routeRow(_:)",
+   "hash": "d39a7855a4bf45fb",
+   "does": "Row: header plus 'distance · ↑ascent · N climbs' formatted in the user's units.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved",
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)",
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatElevation(meters:)",
+    "Emuqu/Sources/Views/SavedRoutesPage.swift::func SavedRoutesPage.routeRowHeader(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "ud:fitness.unitsPreference (App Group suite)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.totalDistanceMeters(of:)": "ed55e0f71de4cd6c",
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)": "a36dafa82ad91f58",
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatElevation(meters:)": "e9541645225037ce",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SavedRoutesPage.swift::func SavedRoutesPage.routeRowHeader(_:)": "f0a02379e4ea82dc",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func SavedRoutesPage.routeRowHeader(_:)",
+   "hash": "9ea3acfb6ba7dbe6",
+   "does": "Row header: sport icon, route name, created date.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.icon"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.icon": "ddc62fcbe71995cf",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  }
+ ],
+ "deps": {}
+}

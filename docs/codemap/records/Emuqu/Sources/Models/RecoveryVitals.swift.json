@@ -1,0 +1,194 @@
+{
+ "file": "Emuqu/Sources/Models/RecoveryVitals.swift",
+ "hash": "5b9eaf246290e6c0",
+ "role": "Codable value type for overnight recovery vitals (resp rate + baseline, SpO2 avg/min, wrist temperature + baseline, resting/nocturnal HR) with derived deviation/elevation/status flags; stored as HRVSession.vitalsSnapshot.",
+ "types": [
+  "RecoveryVitals: struct (Codable, Sendable, Equatable) — vitals values",
+  "RecoveryVitals.VitalsStatus: enum — normal/elevated/warning"
+ ],
+ "state": [
+  "mem:RecoveryVitals.concerningSpO2Below (static let 95.0) — nightly SpO2 % below which the recovery-score SpO2 penalty applies; read by every screen and report that flags low SpO2"
+ ],
+ "toplevel": "Struct declaration; synthesized Codable; static let concerningSpO2Below = 95.0.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var RecoveryVitals.isEmpty",
+   "hash": "a59ce9910b5e6166",
+   "does": "True when all seven vitals fields are nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var RecoveryVitals.respiratoryDeviation",
+   "hash": "bbc4bfb4fc9c204d",
+   "does": "respiratoryRate − respiratoryRateBaseline, nil if either missing.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "rate or baseline nil",
+     "effect": "returns nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var RecoveryVitals.isRespiratoryElevated",
+   "hash": "a596efb52acfe37b",
+   "does": "True when respiratory deviation > 2.0 breaths/min.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.respiratoryDeviation"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no deviation",
+     "effect": "false"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.respiratoryDeviation": "a41bd06056c51819"
+   }
+  },
+  {
+   "key": "var RecoveryVitals.isSpO2Concerning",
+   "hash": "6d0eab28bc8f392a",
+   "does": "True when oxygenSaturation < concerningSpO2Below (95 %); oxygenSaturationMin is not consulted.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:RecoveryVitals.concerningSpO2Below"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "oxygenSaturation nil",
+     "effect": "false"
+    },
+    {
+     "at": "+2",
+     "cond": "oxygenSaturation < concerningSpO2Below",
+     "effect": "true; otherwise false"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var RecoveryVitals.wristTemperatureDeviation",
+   "hash": "6fa3f10cd650df47",
+   "does": "wristTemperature − wristTemperatureBaseline, nil if either missing.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "temp or baseline nil",
+     "effect": "returns nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var RecoveryVitals.isTemperatureElevated",
+   "hash": "2147fd3cedaca4b7",
+   "does": "True when wrist temperature deviation > 0.5 °C.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.wristTemperatureDeviation"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no deviation",
+     "effect": "false"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.wristTemperatureDeviation": "34436198eb68624e"
+   }
+  },
+  {
+   "key": "var RecoveryVitals.status",
+   "hash": "dd3b056e0f6f412a",
+   "does": "Overall status: warning when respiratory AND temperature elevated; elevated when either is elevated or SpO2 is concerning; else normal.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.isRespiratoryElevated",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.isTemperatureElevated",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.isSpO2Concerning"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "respiratory elevated && temperature elevated",
+     "effect": ".warning"
+    },
+    {
+     "at": "+3",
+     "cond": "respiratory elevated || temperature elevated || SpO2 concerning",
+     "effect": ".elevated; otherwise .normal"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "Low SpO2 alone yields .elevated, which RecoveryScoreDetailView+Sections explains as 'Vitals above baseline … above your usual range' — wrong wording for a below-95 % SpO2 reading.",
+     "evidence": [
+      "Emuqu/Sources/Models/RecoveryVitals.swift:86",
+      "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift:194"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.isRespiratoryElevated": "cddbe4f7df16f20a",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.isSpO2Concerning": "63f83ca65f69f1c7",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.isTemperatureElevated": "336841edea75a7be"
+   }
+  },
+  {
+   "key": "func RecoveryVitals.withStrapNocturnalRHR(_:)",
+   "hash": "19ddd1eabe513f2d",
+   "does": "Returns a copy with restingHeartRate replaced by strapHR when non-nil; otherwise self.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "strapHR nil",
+     "effect": "returns self unchanged"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

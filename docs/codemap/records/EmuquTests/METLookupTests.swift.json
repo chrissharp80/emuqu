@@ -1,0 +1,422 @@
+{
+ "file": "EmuquTests/METLookupTests.swift",
+ "hash": "59f1b417dd81493f",
+ "role": "XCTest suite for METLookup (Compendium/Concept2 MET tables used for Apple Health active energy): table invariants (terminal .infinity, ascending unique ceilings, monotonic METs, > 1 MET), lookup boundaries (crawl floor, non-finite, half-open bands), per-sport spot values, sport→table mapping, crossFit constant, and WorkoutRecorder.estimateMETs pace→speed delegation.",
+ "types": [
+  "METLookupTests: class — XCTestCase over METLookup and WorkoutRecorder.estimateMETs"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func METLookupTests.testEveryTableTerminatesAtInfinity()",
+   "hash": "9206bc2304cb5547",
+   "does": "Asserts every table in METLookup.allTables ends with upperKmh == .infinity.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each table",
+     "effect": "asserts terminal ceiling is infinity"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.bands(for:)": "7595b67c8748b5ce"
+   }
+  },
+  {
+   "key": "func METLookupTests.testBandCeilingsAreStrictlyAscending()",
+   "hash": "4266cb9c5b36e91d",
+   "does": "Asserts every table's ceilings are ascending and unique.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each table",
+     "effect": "checks ordering and duplicates"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.bands(for:)": "7595b67c8748b5ce"
+   }
+  },
+  {
+   "key": "func METLookupTests.testMETsIncreaseWithSpeed()",
+   "hash": "172b2d7bc9f088c7",
+   "does": "Asserts every table's METs are non-decreasing.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each table",
+     "effect": "asserts METs sorted ascending"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.bands(for:)": "7595b67c8748b5ce",
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.mets(sport:speedKmh:)": "99b5dc9d71b51468"
+   }
+  },
+  {
+   "key": "func METLookupTests.testEveryBandIsAboveRestingMetabolicRate()",
+   "hash": "9e3050bdd12119e2",
+   "does": "Asserts every band in every table has METs > 1.0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each table",
+     "effect": "iterates bands"
+    },
+    {
+     "at": "+2",
+     "cond": "for each band",
+     "effect": "asserts mets > 1.0"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.bands(for:)": "7595b67c8748b5ce",
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.mets(sport:speedKmh:)": "99b5dc9d71b51468"
+   }
+  },
+  {
+   "key": "func METLookupTests.testSpeedBelowWalkingCrawlReturnsNil()",
+   "hash": "595a710f09b188b7",
+   "does": "Asserts mets() is nil for walk 1.19 km/h, run 0 and bike -5.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.mets(sport:speedKmh:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.mets(sport:speedKmh:)": "99b5dc9d71b51468"
+   }
+  },
+  {
+   "key": "func METLookupTests.testSpeedAtWalkingCrawlFloorIsScored()",
+   "hash": "f00ffe088db5f450",
+   "does": "Asserts walk at exactly 1.2 km/h scores 2.0 METs.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.mets(sport:speedKmh:)",
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.bands(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.bands(for:)": "7595b67c8748b5ce",
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.mets(sport:speedKmh:)": "99b5dc9d71b51468"
+   }
+  },
+  {
+   "key": "func METLookupTests.testNonFiniteSpeedReturnsNil()",
+   "hash": "a0263f5b707bd3ef",
+   "does": "Asserts nan, +inf and -inf speeds return nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.mets(sport:speedKmh:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.mets(sport:speedKmh:)": "99b5dc9d71b51468"
+   }
+  },
+  {
+   "key": "func METLookupTests.testAbsurdlyFastSpeedLandsInTerminalBand()",
+   "hash": "15951c6852f1543a",
+   "does": "Asserts run at greatestFiniteMagnitude lands in the terminal 16.0 band.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.mets(sport:speedKmh:)",
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.bands(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.bands(for:)": "7595b67c8748b5ce",
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.mets(sport:speedKmh:)": "99b5dc9d71b51468"
+   }
+  },
+  {
+   "key": "func METLookupTests.testCeilingSpeedBelongsToTheNextBandUp()",
+   "hash": "9b10e4e9c3a0afee",
+   "does": "Asserts walk 2.99 → 2.0 and exactly 3.0 → 3.0 (half-open bands).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.mets(sport:speedKmh:)",
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.bands(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.bands(for:)": "7595b67c8748b5ce",
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.mets(sport:speedKmh:)": "99b5dc9d71b51468"
+   }
+  },
+  {
+   "key": "func METLookupTests.testWalkBandsMatchCompendium()",
+   "hash": "35199c29168ce711",
+   "does": "Asserts walk spot values 2.0→2.0, 5.0→3.5, 20.0→5.0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.mets(sport:speedKmh:)",
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.bands(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.bands(for:)": "7595b67c8748b5ce",
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.mets(sport:speedKmh:)": "99b5dc9d71b51468"
+   }
+  },
+  {
+   "key": "func METLookupTests.testRunBandsMatchCompendium()",
+   "hash": "c9553422310c316f",
+   "does": "Asserts run spot values 6.0→6.0, 6.5→6.0, 12.0→11.0, 20.0→16.0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.mets(sport:speedKmh:)",
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.bands(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.bands(for:)": "7595b67c8748b5ce",
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.mets(sport:speedKmh:)": "99b5dc9d71b51468"
+   }
+  },
+  {
+   "key": "func METLookupTests.testBikeBandsMatchCompendium()",
+   "hash": "2ab35f7a3b555bd9",
+   "does": "Asserts bike spot values 10→4.0, 25→10.0, 31→12.0, 45→15.8.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.mets(sport:speedKmh:)",
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.bands(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.bands(for:)": "7595b67c8748b5ce",
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.mets(sport:speedKmh:)": "99b5dc9d71b51468"
+   }
+  },
+  {
+   "key": "func METLookupTests.testHikeBandsMatchCompendium()",
+   "hash": "a8238b016b81d159",
+   "does": "Asserts hike spot values 3.0→4.0, 4.5→5.3, 8.0→7.0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.mets(sport:speedKmh:)",
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.bands(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.bands(for:)": "7595b67c8748b5ce",
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.mets(sport:speedKmh:)": "99b5dc9d71b51468"
+   }
+  },
+  {
+   "key": "func METLookupTests.testRowBandsMatchConcept2Table()",
+   "hash": "3d7c761992a10ad1",
+   "does": "Asserts row spot values 5.0→4.5, 11.9→8.5, 15.0→12.0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.mets(sport:speedKmh:)",
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.bands(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.bands(for:)": "7595b67c8748b5ce",
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.mets(sport:speedKmh:)": "99b5dc9d71b51468"
+   }
+  },
+  {
+   "key": "func METLookupTests.testCrossFitUsesTheConstantFallback()",
+   "hash": "1c709d84c1330333",
+   "does": "Asserts crossFit has no table, returns crossFitConstantMETs (8.0) at 5 and 25 km/h, and nil below the 1.2 km/h floor.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.mets(sport:speedKmh:)",
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.bands(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.bands(for:)": "7595b67c8748b5ce",
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.mets(sport:speedKmh:)": "99b5dc9d71b51468"
+   }
+  },
+  {
+   "key": "func METLookupTests.testEverySportResolvesToItsIntendedTable()",
+   "hash": "dbd8ddfcdfd8f35b",
+   "does": "Asserts bands(for:) maps walk/hike/row to their tables, run/trailRun/treadmill to run and bike/indoorBike/airBike to bike.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.bands(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "for run-family sports",
+     "effect": "asserts run table"
+    },
+    {
+     "at": "+7",
+     "cond": "for bike-family sports",
+     "effect": "asserts bike table"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Pins airBike to the outdoor-cycling speed table although an air bike has no road speed; the mapping is asserted rather than questioned.",
+     "evidence": [
+      "EmuquTests/METLookupTests.swift:147",
+      "Emuqu/Sources/Collection/METLookup.swift:49"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.bands(for:)": "7595b67c8748b5ce"
+   }
+  },
+  {
+   "key": "func METLookupTests.testOnlyCrossFitLacksAPaceTable()",
+   "hash": "f2ce551b5c6c6683",
+   "does": "Asserts crossFit is the only Sport case with no table.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.bands(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.bands(for:)": "7595b67c8748b5ce"
+   }
+  },
+  {
+   "key": "func METLookupTests.testRecorderConvertsPaceToSpeedBeforeLookup()",
+   "hash": "68f77971ec934c2c",
+   "does": "Asserts estimateMETs(run, 360 s/km) == 9.8 (10 km/h → 6 mph row).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.estimateMETs(sport:paceSecPerKm:heartRate:userMaxHR:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.estimateMETs(sport:paceSecPerKm:heartRate:userMaxHR:)",
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.mets(sport:speedKmh:)",
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.bands(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "estimateMETs ignores its heartRate and userMaxHR parameters (WorkoutRecorder+Metrics.swift:56 `heartRate _`, `userMaxHR _`); every test passes heartRate: nil, so nothing exposes that the HR arguments callers supply have no effect.",
+     "evidence": [
+      "EmuquTests/METLookupTests.swift:167",
+      "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift:56"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.bands(for:)": "7595b67c8748b5ce",
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.mets(sport:speedKmh:)": "99b5dc9d71b51468",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.estimateMETs(sport:paceSecPerKm:heartRate:userMaxHR:)": "d42e82470fd04b60",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.estimateMETs(sport:paceSecPerKm:heartRate:userMaxHR:)": "779e33252e61c46e"
+   }
+  },
+  {
+   "key": "func METLookupTests.testRecorderRejectsNonPositivePace()",
+   "hash": "48437283ef6dad13",
+   "does": "Asserts estimateMETs returns nil for nil, 0 and -60 s/km paces.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.estimateMETs(sport:paceSecPerKm:heartRate:userMaxHR:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.estimateMETs(sport:paceSecPerKm:heartRate:userMaxHR:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.estimateMETs(sport:paceSecPerKm:heartRate:userMaxHR:)": "d42e82470fd04b60",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.estimateMETs(sport:paceSecPerKm:heartRate:userMaxHR:)": "779e33252e61c46e"
+   }
+  },
+  {
+   "key": "func METLookupTests.testRecorderRejectsGlacialPace()",
+   "hash": "f871e62f92e1a1c3",
+   "does": "Asserts estimateMETs(walk, 100_000 s/km) is nil (0.036 km/h is below the crawl floor).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.estimateMETs(sport:paceSecPerKm:heartRate:userMaxHR:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.estimateMETs(sport:paceSecPerKm:heartRate:userMaxHR:)",
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.mets(sport:speedKmh:)",
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.bands(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.bands(for:)": "7595b67c8748b5ce",
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.mets(sport:speedKmh:)": "99b5dc9d71b51468",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.estimateMETs(sport:paceSecPerKm:heartRate:userMaxHR:)": "d42e82470fd04b60",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.estimateMETs(sport:paceSecPerKm:heartRate:userMaxHR:)": "779e33252e61c46e"
+   }
+  }
+ ],
+ "deps": {}
+}

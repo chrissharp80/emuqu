@@ -327,8 +327,10 @@ extension BiometricsSettingsPage {
     @ViewBuilder
     var maxHRFooter: some View {
         let eff = settingsManager.settings.effectiveMaxHR
+        // Same conditions as `effectiveMaxHR`: an entry under the 80 bpm
+        // minimum is ignored there, so it is not captioned as the override.
         let src: String = {
-            if settingsManager.settings.maxHR != nil {
+            if let user = settingsManager.settings.maxHR, user >= MaxHeartRate.minimumUserEntered {
                 return String(localized: "your override", bundle: LanguageManager.appBundle)
             }
             if settingsManager.settings.birthday != nil {
@@ -386,11 +388,13 @@ extension BiometricsSettingsPage {
     @ViewBuilder
     var restingHRFooter: some View {
         let eff = settingsManager.settings.effectiveRestingHR
+        // Same conditions as `effectiveRestingHR`: an override under 30 and a
+        // baseline of 30 or less are ignored there.
         let src: String = {
-            if settingsManager.settings.userRestingHR != nil {
+            if let user = settingsManager.settings.userRestingHR, user >= 30 {
                 return String(localized: "your override", bundle: LanguageManager.appBundle)
             }
-            if settingsManager.settings.baselineHR != nil {
+            if let baseline = settingsManager.settings.baselineHR, baseline > 30 {
                 return String(localized: "HRV-derived baseline", bundle: LanguageManager.appBundle)
             }
             return String(localized: "60 bpm default", bundle: LanguageManager.appBundle)
@@ -445,7 +449,9 @@ extension BiometricsSettingsPage {
     @ViewBuilder
     var lthrFooter: some View {
         let eff = settingsManager.settings.effectiveLTHR
-        let src: String = settingsManager.settings.lactateThresholdHR != nil
+        // An override under the 80 bpm minimum is ignored by `effectiveLTHR`.
+        let hasOverride = (settingsManager.settings.lactateThresholdHR ?? 0) >= MaxHeartRate.minimumUserEntered
+        let src: String = hasOverride
             ? String(localized: "your override", bundle: LanguageManager.appBundle)
             : String(localized: "0.88 × max HR", bundle: LanguageManager.appBundle)
         Text("Normalizes Banister TRIMP and heart-rate-based training load. Current effective LTHR: \(eff) bpm (\(src)). Friel test: 30-min solo time trial; mean HR over the final 20 min = LTHR. The Fitness tab also surfaces an α1-derived AeT after aerobic workouts as a rough field proxy.", bundle: LanguageManager.appBundle)

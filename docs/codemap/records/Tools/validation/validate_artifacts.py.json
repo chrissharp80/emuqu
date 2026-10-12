@@ -1,0 +1,281 @@
+{
+ "file": "Tools/validation/validate_artifacts.py",
+ "hash": "471f98499721fe4c",
+ "role": "Validation 2: scores the ported ArtifactDetector, cleanRRForDFA mask and RMSSD exclusion pipeline against MIT-BIH Arrhythmia DB beat labels (interval and beat rules, per-symbol sensitivity) and compares 5-min RMSSD (app pipeline and uncorrected) with a normal-to-normal reference; writes results/artifacts_mitdb.json.",
+ "types": [],
+ "state": [
+  "PACED = {102,104,107,217} excluded (line 44)",
+  "SEG_MS = 300000 (line 45)",
+  "file:<DATA_ROOT>=/tmp/claude-0/-home-user/62b78298-79d2-549a-9361-61e9b461286b/scratchpad/physionet/mitdb/RECORDS, <rec>.hea/.atr (read)",
+  "file:Tools/validation/results/artifacts_mitdb.json (written)"
+ ],
+ "toplevel": "Adds script dir to sys.path; runs main() as a script.",
+ "flags": [],
+ "units": [
+  {
+   "key": "def cls",
+   "hash": "1cd6d9493c8e5348",
+   "does": "Maps a beat symbol to 'N' (normal), 'E' (ectopic) or 'U' (unknown: Q, ?, paced).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "normal symbol",
+     "effect": "'N'"
+    },
+    {
+     "at": "+3",
+     "cond": "ectopic symbol",
+     "effect": "'E'; else 'U'"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def rhythm_at",
+   "hash": "4486e0e7ace82e1a",
+   "does": "Lists (sample, rhythm label) for '+' rhythm-change annotations, stripping NULs from aux notes.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def counts",
+   "hash": "67f1aa4271c6eb10",
+   "does": "Confusion counts tp/fn/fp/tn of boolean truth vs prediction.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def rates",
+   "hash": "9879f891b3377b2e",
+   "does": "Sensitivity, specificity, PPV (NaN for empty denominators) merged with the counts.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def add",
+   "hash": "6ef219cda518255b",
+   "does": "Element-wise sum of count dicts (missing keys in a count as 0).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def main",
+   "hash": "814144526c4dd57e",
+   "does": "Per non-paced mitdb record: builds strap-like RR points, runs the three detectors (ArtifactDetector flags; cleanRRForDFA mask over the whole record; pipeline = ArtifactDetector flags plus per-5-min ectopic keep-mask removals), scores interval and beat rules and per-symbol beat sensitivity, computes per-5-min-segment app RMSSD (computeTimeDomain with whole-record ArtifactDetector flags), reference NN RMSSD and raw RMSSD with midpoint rhythm; pools rates, summarises RMSSD subsets (all / no AF-AFL / with or without ectopy / >= 5 % ectopy) with Bland-Altman in ms and log-ratio; writes JSON and prints summaries.",
+   "entry": "python3 -I validate_artifacts.py",
+   "calls": [
+    "Tools/validation/validate_artifacts.py::def cls",
+    "Tools/validation/validate_artifacts.py::def rhythm_at",
+    "Tools/validation/validate_artifacts.py::def counts",
+    "Tools/validation/validate_artifacts.py::def rates",
+    "Tools/validation/validate_artifacts.py::def add",
+    "Tools/validation/validate_artifacts.py::def main.ratio_ba",
+    "Tools/validation/port_artifact_detection.py::def detect_artifacts",
+    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa",
+    "Tools/validation/port_live_dfa_clean.py::def artifact_mask",
+    "Tools/validation/port_time_domain.py::def ectopic_keep_mask",
+    "Tools/validation/port_time_domain.py::def compute_time_domain",
+    "Tools/validation/validation_common.py::def bland_altman",
+    "ext:wfdb.rdheader",
+    "ext:wfdb.rdann"
+   ],
+   "reads": [
+    "file:<DATA_ROOT>=/tmp/claude-0/-home-user/62b78298-79d2-549a-9361-61e9b461286b/scratchpad/physionet/mitdb/RECORDS",
+    "file:<DATA_ROOT>=/tmp/claude-0/-home-user/62b78298-79d2-549a-9361-61e9b461286b/scratchpad/physionet/mitdb/<rec>.hea|.atr"
+   ],
+   "writes": [
+    "file:Tools/validation/results/artifacts_mitdb.json"
+   ],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "for each record",
+     "effect": "process"
+    },
+    {
+     "at": "+31",
+     "cond": "for each 5-min segment",
+     "effect": "pipeline gate"
+    },
+    {
+     "at": "+35",
+     "cond": "for each clean beat and its keep flag",
+     "effect": "check"
+    },
+    {
+     "at": "+36",
+     "cond": "not kept by ectopic gate",
+     "effect": "pipeline flag set"
+    },
+    {
+     "at": "+41",
+     "cond": "for each interval",
+     "effect": "truth"
+    },
+    {
+     "at": "+43",
+     "cond": "an endpoint is unknown",
+     "effect": "excluded from interval scoring; else truth = any endpoint ectopic"
+    },
+    {
+     "at": "+51",
+     "cond": "for each interior beat",
+     "effect": "beat truth"
+    },
+    {
+     "at": "+53",
+     "cond": "beat ectopic",
+     "effect": "positive, scored"
+    },
+    {
+     "at": "+55",
+     "cond": "normal with normal neighbours",
+     "effect": "negative, scored; else unscored"
+    },
+    {
+     "at": "+61",
+     "cond": "for each detector",
+     "effect": "score"
+    },
+    {
+     "at": "+64",
+     "cond": "for each interior beat",
+     "effect": "per-symbol tally"
+    },
+    {
+     "at": "+65",
+     "cond": "beat ectopic",
+     "effect": "count detection by symbol"
+    },
+    {
+     "at": "+78",
+     "cond": "for each segment",
+     "effect": "RMSSD"
+    },
+    {
+     "at": "+84",
+     "cond": "for each interval in segment",
+     "effect": "reference diffs"
+    },
+    {
+     "at": "+85",
+     "cond": "three consecutive normal beats",
+     "effect": "append reference diff"
+    },
+    {
+     "at": "+91",
+     "cond": "for each rhythm change",
+     "effect": "track"
+    },
+    {
+     "at": "+92",
+     "cond": "change at or before segment midpoint",
+     "effect": "current rhythm (default '(N')"
+    },
+    {
+     "at": "+95",
+     "cond": ">= 30 reference diffs and app value exists",
+     "effect": "segment row recorded; else dropped"
+    },
+    {
+     "at": "+101",
+     "cond": "for each subset filter",
+     "effect": "summarise"
+    },
+    {
+     "at": "+131",
+     "cond": "for each detector",
+     "effect": "print"
+    },
+    {
+     "at": "+132",
+     "cond": "for each level",
+     "effect": "print"
+    },
+    {
+     "at": "+135",
+     "cond": "for each detector",
+     "effect": "print by-symbol"
+    },
+    {
+     "at": "+137",
+     "cond": "for each subset",
+     "effect": "print RMSSD"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "lc.clean_rr_for_dfa(rr) is called and both results discarded (`_, _ = ...`); the mask actually scored is recomputed with lc.artifact_mask on the next line, so the call only costs time.",
+     "evidence": [
+      "Tools/validation/validate_artifacts.py:105",
+      "Tools/validation/validate_artifacts.py:106"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Tools/validation/port_artifact_detection.py::def detect_artifacts": "ca1c3bc11407ae35",
+    "Tools/validation/port_live_dfa_clean.py::def artifact_mask": "580d6907059f0bb1",
+    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa": "af9d285354a874c1",
+    "Tools/validation/port_time_domain.py::def compute_time_domain": "6df2bb04536d9ad5",
+    "Tools/validation/port_time_domain.py::def ectopic_keep_mask": "7beda608f313d894",
+    "Tools/validation/validate_artifacts.py::def add": "8514375ba310e210",
+    "Tools/validation/validate_artifacts.py::def cls": "9cd8a2ce3c1c232d",
+    "Tools/validation/validate_artifacts.py::def counts": "309298e73b210c9c",
+    "Tools/validation/validate_artifacts.py::def main.ratio_ba": "78324ce0c3a8aa3b",
+    "Tools/validation/validate_artifacts.py::def rates": "3550c5921e4283b7",
+    "Tools/validation/validate_artifacts.py::def rhythm_at": "18db3805ff74baa7",
+    "Tools/validation/validation_common.py::def bland_altman": "428c8a855dcf6fa2"
+   }
+  },
+  {
+   "key": "def main.ratio_ba",
+   "hash": "6f87d7f3fc0ab009",
+   "does": "Nested helper: log-ratio Bland-Altman — exp(mean), exp(mean +/- 1.96 SD) of log(app/ref) values; None for < 2 values.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "fewer than 2 values",
+     "effect": "None"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {
+  "Tools/validation/validate_artifacts.py::def main": "1732b11ba39e8615",
+  "Tools/validation/validation_common.py::def bland_altman": "428c8a855dcf6fa2"
+ }
+}

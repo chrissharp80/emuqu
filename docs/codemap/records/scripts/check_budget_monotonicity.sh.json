@@ -1,0 +1,155 @@
+{
+ "file": "scripts/check_budget_monotonicity.sh",
+ "hash": "46a68ce57864f287",
+ "role": "CI gate: compares every numeric (whole or decimal) value in .ci/*.txt against a baseline git ref and fails when a ceiling rises, a min_* floor falls, or a numeric budget is deleted or stops being a number, unless a `budget-raise-ok:` commit trailer names the file.",
+ "types": [],
+ "state": [
+  "file:.ci/*.txt",
+  "env:CI_DIR",
+  "env:GITHUB_BASE_REF",
+  "env:BUDGET_BASE_REF",
+  "env:BUDGET_REQUIRE_BASELINE",
+  "git:commit trailers budget-raise-ok"
+ ],
+ "toplevel": "set -euo pipefail; no cd (relies on being run from repo root). BASE_REF=$1; CI_DIR env default .ci; no CI dir -> exit 0; not a git repo -> exit 0. Baseline resolution: $1, else origin/$GITHUB_BASE_REF, else $BUDGET_BASE_REF, else no_baseline. Null SHA or unresolvable ref -> no_baseline. allowed_changes = paths after `budget-raise-ok:` trailers in `git log BASE..HEAD`. Loop over budget_files (tree plus baseline): file absent at baseline -> skip (new budget); baseline value not a number -> collected in not_budgets (e.g. scoring_constants_hash.txt) and skipped; compared++; file deleted -> report_loosened '(deleted)'; current not a number -> report_loosened '(not a number)'; loosens -> report_loosened; tightened -> 'ratcheted'; equal -> nothing. Prints the not-compared list. Any violation -> exit 1, else 'clean. N budgets compared'. Wired: gates.yml (PR: origin/base; push: github.event.before, else HEAD~1; all with BUDGET_REQUIRE_BASELINE=1), ci.yml, Makefile budget-monotonicity (baseline HEAD).",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Header says values are compared 'against the merge base'; for PRs the baseline is `origin/$GITHUB_BASE_REF` (the target branch tip), so a budget lowered on main after the branch point reports as a raise on the PR. Header also lists three min_* floors; there are five (min_coverage_views, min_science_register_entries also exist).",
+   "evidence": [
+    "scripts/check_budget_monotonicity.sh:14",
+    "scripts/check_budget_monotonicity.sh:25",
+    "scripts/check_budget_monotonicity.sh:88",
+    ".github/workflows/gates.yml:80"
+   ],
+   "found": "second read"
+  }
+ ],
+ "units": [
+  {
+   "key": "fn no_baseline",
+   "hash": "0e5ca52ddee5d78e",
+   "does": "No usable baseline: if BUDGET_REQUIRE_BASELINE is non-empty prints the reason to stderr and exits 1; otherwise prints a skip message and exits 0.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "env:BUDGET_REQUIRE_BASELINE"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "fn is_allowed",
+   "hash": "6cb1cb7f2356931c",
+   "does": "Returns failure if no trailers were collected; otherwise succeeds when the file path exactly equals a path named in a `budget-raise-ok:` trailer (grep -Fxq).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "git:commit trailers budget-raise-ok"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "fn is_floor",
+   "hash": "ccf512e6fddccb85",
+   "does": "Succeeds when the file's basename starts with min_ (a floor that may only rise).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "fn read_number",
+   "hash": "ee76f03347377d2c",
+   "does": "Strips whitespace from the raw text; returns failure unless it matches ^[0-9]+(\\.[0-9]+)?$ (whole or decimal); prints the number.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "fn loosens",
+   "hash": "1a0889d2347d15bf",
+   "does": "Succeeds when moving budget $1 from $2 (baseline) to $3 (current) loosens it: for a min_* floor current < previous, otherwise current > previous; compared with awk so decimals work.",
+   "entry": null,
+   "calls": [
+    "scripts/check_budget_monotonicity.sh::fn is_floor",
+    "ext:awk"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "is_floor",
+     "effect": "floor: loosened when current < previous; else ceiling: loosened when current > previous"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "scripts/check_budget_monotonicity.sh::fn is_floor": "313191d94c7788a1"
+   }
+  },
+  {
+   "key": "fn report_loosened",
+   "hash": "d7bbcab001769180",
+   "does": "Records a loosening of $1 described by $2: prints 'ALLOWED ... (acknowledged)' when a budget-raise-ok trailer names the file, else appends to violations.",
+   "entry": null,
+   "calls": [
+    "scripts/check_budget_monotonicity.sh::fn is_allowed"
+   ],
+   "reads": [],
+   "writes": [
+    "var:violations"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "is_allowed",
+     "effect": "print ALLOWED; else add violation"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "scripts/check_budget_monotonicity.sh::fn is_allowed": "a002d0e35987ee73"
+   }
+  },
+  {
+   "key": "fn budget_files",
+   "hash": "a9d1c80b9a9240e4",
+   "does": "Lists every *.txt directly in CI_DIR in the working tree plus every *.txt under CI_DIR at BASE_REF (git ls-tree), leading './' stripped, sorted and de-duplicated, so a deleted budget is still visited.",
+   "entry": null,
+   "calls": [
+    "ext:git ls-tree",
+    "ext:find"
+   ],
+   "reads": [
+    "file:.ci/*.txt",
+    "git:BASE_REF tree"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {
+  "scripts/check_budget_monotonicity.sh::fn budget_files": "c70ca1ffaca60b15",
+  "scripts/check_budget_monotonicity.sh::fn loosens": "9da7cc84bf21dbde",
+  "scripts/check_budget_monotonicity.sh::fn no_baseline": "4d98f6bae9009dcc",
+  "scripts/check_budget_monotonicity.sh::fn read_number": "d8d0aa6b0f8126bc",
+  "scripts/check_budget_monotonicity.sh::fn report_loosened": "005070da3ab1465d"
+ }
+}

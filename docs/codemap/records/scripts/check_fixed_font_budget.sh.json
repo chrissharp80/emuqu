@@ -1,0 +1,56 @@
+{
+ "file": "scripts/check_fixed_font_budget.sh",
+ "hash": "7eadd5854bb496c1",
+ "role": "CI gate: counts `Font.system(size: <numeric literal>)` calls (with or without the Font prefix, inside .font() or not) in the app target and in the watch target and fails above .ci/fixed_font_budget.txt / .ci/fixed_font_watch_budget.txt.",
+ "types": [],
+ "state": [
+  "file:.ci/fixed_font_budget.txt",
+  "file:.ci/fixed_font_watch_budget.txt",
+  "env:FIXED_FONT_BUDGET_FILE",
+  "env:FIXED_FONT_WATCH_BUDGET_FILE",
+  "env:GITHUB_STEP_SUMMARY"
+ ],
+ "toplevel": "set -euo pipefail; cd to repo root. BUDGET_FILE env or .ci/fixed_font_budget.txt; missing -> 66; non-integer -> 65. SOURCE_ROOT=$1 or Emuqu; WATCH_ROOT=$2 or 'EmuquWatch Watch App'. count/watch_count = measure(...) || exit $? (missing root or no Swift files -> 66). Watch budget missing -> 66, non-integer -> 65. Fails if either exceeds; prints below-budget hints; on success appends app count (not watch) to GITHUB_STEP_SUMMARY. Wired: gates.yml, ci.yml, Makefile.",
+ "flags": [],
+ "units": [
+  {
+   "key": "fn measure",
+   "hash": "02169a68f9b5fa7f",
+   "does": "Python over $1: exits 66 if the root is not a directory or holds no .swift files; counts, on non-// lines, every `(Font).system(size: X` whose first argument X is a numeric literal; prints the count.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "dir:Emuqu",
+    "dir:EmuquWatch Watch App"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+11",
+     "cond": "root is not a directory",
+     "effect": "stderr, exit 66"
+    },
+    {
+     "at": "+32",
+     "cond": "line starts with //",
+     "effect": "skipped"
+    },
+    {
+     "at": "+35",
+     "cond": "argument is a numeric literal",
+     "effect": "count += 1"
+    },
+    {
+     "at": "+37",
+     "cond": "no Swift files walked",
+     "effect": "stderr, exit 66"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {
+  "scripts/check_fixed_font_budget.sh::fn measure": "0c6f5a6c6ace8632"
+ }
+}

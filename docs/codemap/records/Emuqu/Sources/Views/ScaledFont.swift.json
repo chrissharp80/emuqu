@@ -1,0 +1,103 @@
+{
+ "file": "Emuqu/Sources/Views/ScaledFont.swift",
+ "hash": "0bdc3063cbf1d5aa",
+ "role": "View.scaledFont(size:weight:design:monospacedDigit:relativeTo:) modifier giving fixed-point system fonts Dynamic Type scaling via @ScaledMetric, anchored to the nearest built-in text style.",
+ "types": [
+  "extension View — scaledFont",
+  "ScaledSystemFont: struct (private) ViewModifier — holds @ScaledMetric size",
+  "extension Font.TextStyle (fileprivate) — defaultPointSizes table and nearest(toPointSize:)"
+ ],
+ "state": [
+  "static Font.TextStyle.defaultPointSizes (11 styles with HIG default sizes)"
+ ],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)",
+   "hash": "a2aac959c8d6830a",
+   "does": "Applies ScaledSystemFont with the given size/weight/design/monospacedDigit and textStyle (explicit or nearest to size).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ScaledFont.swift::init ScaledSystemFont(size:weight:design:monospacedDigit:textStyle:)",
+    "Emuqu/Sources/Views/ScaledFont.swift::func Font.TextStyle.nearest(toPointSize:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+13",
+     "cond": "textStyle ?? .nearest(toPointSize: size)",
+     "effect": "nil textStyle (all callers in this chunk): uses the style whose default size is closest to size."
+    }
+   ],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "The relativeTo: parameter is never passed: none of the 249 .scaledFont( call sites in 69 files uses it (grep 'scaledFont(.*relativeTo' returns 0), so the explicit-style side of the ?? at line 62 is never taken and every caller gets .nearest(toPointSize:).",
+     "evidence": [
+      "Emuqu/Sources/Views/ScaledFont.swift:54",
+      "Emuqu/Sources/Views/ScaledFont.swift:62"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/ScaledFont.swift::func Font.TextStyle.nearest(toPointSize:)": "baa80f253d4e2c93",
+    "Emuqu/Sources/Views/ScaledFont.swift::init ScaledSystemFont(size:weight:design:monospacedDigit:textStyle:)": "f5ec8f08cd3c47fc"
+   }
+  },
+  {
+   "key": "init ScaledSystemFont(size:weight:design:monospacedDigit:textStyle:)",
+   "hash": "403cf9f2873a99c9",
+   "does": "Initialises the @ScaledMetric with wrappedValue size relative to textStyle and stores weight/design/monospacedDigit.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ScaledSystemFont.body(content:)",
+   "hash": "bfb08ddd50c9b28d",
+   "does": "Applies Font.system(size: scaled size, weight, design), with .monospacedDigit() when requested.",
+   "entry": "ViewModifier.body protocol witness called by SwiftUI.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "monospacedDigit",
+     "effect": "true: font.monospacedDigit(). false: plain font."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func Font.TextStyle.nearest(toPointSize:)",
+   "hash": "7d2b22a8f6675a44",
+   "does": "Returns the text style whose default point size has minimum absolute difference to points (first match on ties, so 17 → .body), or .body if the table were empty.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "min(...)?.style ?? .body",
+     "effect": "fallback .body only when defaultPointSizes is empty, which never happens (11 constant entries)."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ScaledFont.swift::func ScaledSystemFont.body(content:)": "cc39743dd484624c"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -1,0 +1,1340 @@
+{
+ "file": "Emuqu/Sources/Views/SettingsPages+Data.swift",
+ "hash": "2dc14d271a92a2f8",
+ "role": "Settings pages for custom reading tags and iCloud & Data (sync status/toggle, import/export links, strap RR recovery, storage summary, force sync, lost sessions, trash, settings backup/restore).",
+ "types": [
+  "CustomTagsPage: struct (View) — list/add/delete custom ReadingTags in UserSettings",
+  "DataSettingsPage: struct (View) — iCloud sync and data recovery controls"
+ ],
+ "state": [
+  "mem:CustomTagsPage.showingAddTag/newTagName/newTagColor (@State)",
+  "mem:DataSettingsPage @State: showingRecoveryAlert, recoveryMessage, isRecovering, deletedSessionCount(-1 initial), isForceSyncing, showingForceSyncAlert, forceSyncMessage, isBackingUpSettings, isRestoringSettings, showingSettingsRestoreConfirm, showingSettingsBackupAlert, settingsBackupMessage"
+ ],
+ "toplevel": "Both pages read SettingsManager/LanguageManager (and DataSettingsPage RRCollector, ArchiveSignal, CloudKitSyncManager, AppDependencies) from the SwiftUI environment; languageManager is held only to re-render on language change.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var CustomTagsPage.body",
+   "hash": "1523553c3eaba8f5",
+   "does": "Form with tagsSection, zen background, nav title \"Custom Tags\"; presents addTagSheet when showingAddTag.",
+   "entry": "SwiftUI renders View.body when the view is pushed/updated (pushed from SettingsView.swift:253 and SettingsSearchIndex.swift:181)",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenFormBackground()",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var CustomTagsPage.tagsSection",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var CustomTagsPage.addTagSheet"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var CustomTagsPage.addTagSheet": "f56db70d869a66bf",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var CustomTagsPage.tagsSection": "45bbf18abf72e20a",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenFormBackground()": "fde01388fd5e4e8c"
+   }
+  },
+  {
+   "key": "var CustomTagsPage.tagsSection",
+   "hash": "ebd1bf7a30eb6975",
+   "does": "Section listing settings.customTags rows with swipe-to-delete (onDelete → deleteTags) and the add button; footer explains tags.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::func CustomTagsPage.tagRow(_:)",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::func CustomTagsPage.deleteTags(at:)",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var CustomTagsPage.addCustomTagButton"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.customTags"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "201177101ead59c4",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::func CustomTagsPage.deleteTags(at:)": "949d34df4aab36ea",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::func CustomTagsPage.tagRow(_:)": "c97591e8a1eeb559",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var CustomTagsPage.addCustomTagButton": "9e2c01c9ab4f18d0"
+   }
+  },
+  {
+   "key": "func CustomTagsPage.tagRow(_:)",
+   "hash": "768cfd64b5547a7e",
+   "does": "HStack: tag colour dot + display name, combined accessibility label \"Tag: name\".",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Models/HRVSession.swift::var ReadingTag.color",
+    "Emuqu/Sources/Models/HRVSession.swift::var ReadingTag.displayName"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/HRVSession.swift::var ReadingTag.color": "fce753720d462aac",
+    "Emuqu/Sources/Models/HRVSession.swift::var ReadingTag.displayName": "7731151a254946c1",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "func CustomTagsPage.deleteTags(at:)",
+   "hash": "7fd07fb0a658a261",
+   "does": "Resolves every swiped index to its tag first, then removes each via SettingsManager.removeCustomTag (each removal persists the settings file and posts settings-changed), so later indexes are not shifted by earlier removals.",
+   "entry": "SwiftUI List .onDelete swipe action (via tagsSection closure)",
+   "calls": [
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.removeCustomTag(_:)",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.customTags"
+   ],
+   "writes": [
+    "file:user_settings.json (App Group, via SettingsManager.save)",
+    "notif:flowRecoverySettingsChanged",
+    "mem:SettingsManager.settings"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.removeCustomTag(_:)": "faa5ffb23f9095c4",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "201177101ead59c4"
+   }
+  },
+  {
+   "key": "var CustomTagsPage.addTagSheet",
+   "hash": "f9b562c7e916b223",
+   "does": "AddTagSheet bound to newTagName/newTagColor with onSave → saveNewTag and existingTagNames = displayName of every tag (system + custom), so Save is refused for a name already shown.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::func CustomTagsPage.saveNewTag()",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var AddTagSheet.body",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.allTags",
+    "Emuqu/Sources/Models/HRVSession.swift::var ReadingTag.displayName",
+    "closure:onSave → saveNewTag, invoked by AddTagSheet"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/HRVSession.swift::var ReadingTag.displayName": "7731151a254946c1",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.allTags": "f7e94e6fb3a9db3b",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::func CustomTagsPage.saveNewTag()": "afd2798ff0bccd16",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var AddTagSheet.body": "dae09bb072473ef2"
+   }
+  },
+  {
+   "key": "func CustomTagsPage.saveNewTag()",
+   "hash": "da8e80c73444b42b",
+   "does": "Creates ReadingTag(name: newTagName trimmed of whitespace, colorHex: newTagColor.hexString), adds it via SettingsManager.addCustomTag, resets name and colour to blue. Duplicate names are refused by AddTagSheet before this runs.",
+   "entry": "AddTagSheet onSave closure",
+   "calls": [
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.addCustomTag(_:)",
+    "Emuqu/Sources/Models/HRVSession.swift::var Color.hexString",
+    "Emuqu/Sources/Models/HRVSession.swift::init ReadingTag(id:name:colorHex:isSystem:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:user_settings.json (App Group, via SettingsManager.save)",
+    "notif:flowRecoverySettingsChanged",
+    "mem:SettingsManager.settings"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/HRVSession.swift::init ReadingTag(id:name:colorHex:isSystem:)": "66647711f045f928",
+    "Emuqu/Sources/Models/HRVSession.swift::var Color.hexString": "bc8fa474ed644c36",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.addCustomTag(_:)": "0c3431f06398e419"
+   }
+  },
+  {
+   "key": "var CustomTagsPage.addCustomTagButton",
+   "hash": "0a9cee8c09d8ed32",
+   "does": "Button that sets showingAddTag = true, labelled \"Add Custom Tag\".",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var DataSettingsPage.settingsBinding",
+   "hash": "c89d93d6bf40f369",
+   "does": "Binding<UserSettings> get/set wrapping settingsManager.settings so Toggles can write settings (setter persists file + posts settings-changed).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [
+    "file:user_settings.json (App Group, via SettingsManager.save)",
+    "notif:flowRecoverySettingsChanged",
+    "mem:SettingsManager.settings"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841"
+   }
+  },
+  {
+   "key": "func DataSettingsPage.forceCloudKitSync()",
+   "hash": "6b3bcb4310e59068",
+   "does": "Force iCloud sync: guarded against re-entry, records uploadedCount and lastSyncDate, awaits CloudKitSyncManager.performFullSync, then on main clears the spinner, builds the alert text with forceSyncOutcome and shows the alert.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.uploadedCount",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.lastSyncDate",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.performFullSync()",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::func DataSettingsPage.forceSyncOutcome(newlyUploaded:lastSyncBefore:)",
+    "ext:Task"
+   ],
+   "reads": [
+    "mem:CloudKitSyncManager.state.uploadedSessionIds"
+   ],
+   "writes": [
+    "ck:HRVSession (zone HRVSessions) via performFullSync",
+    "mem:CloudKitSyncManager.syncState",
+    "ud:cloudKitLastSyncDate (via lastSyncDate)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "isForceSyncing already true",
+     "effect": "returns immediately (double tap ignored); else proceeds"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.performFullSync()": "7c2d1af046f8a3ad",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.lastSyncDate": "286a8e7037609f5f",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.uploadedCount": "ea7edaf6d8718c1a",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::func DataSettingsPage.forceSyncOutcome(newlyUploaded:lastSyncBefore:)": "d266a9dbead223f5"
+   }
+  },
+  {
+   "key": "func DataSettingsPage.forceSyncOutcome(newlyUploaded:lastSyncBefore:)",
+   "hash": "1ef4f84bd2a87856",
+   "does": "Alert text for a force sync: \"iCloud unavailable\" when the schema is unavailable this launch; the forceSyncSummary error text when syncState is .error; \"Syncing…\" when lastSyncDate did not change (the call was skipped because another full sync is running, so nothing synced); otherwise forceSyncSummary.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::func DataSettingsPage.forceSyncSummary(newlyUploaded:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.lastSyncDate"
+   ],
+   "reads": [
+    "mem:CloudKitSyncManager.schemaUnavailable",
+    "mem:CloudKitSyncManager.syncState",
+    "mem:CloudKitSyncManager.lastSyncDate"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "schema unavailable",
+     "effect": "\"iCloud unavailable\""
+    },
+    {
+     "at": "+4",
+     "cond": "sync error",
+     "effect": "forceSyncSummary (error text)"
+    },
+    {
+     "at": "+7",
+     "cond": "no completed sync",
+     "effect": "\"Syncing…\""
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.lastSyncDate": "286a8e7037609f5f",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::func DataSettingsPage.forceSyncSummary(newlyUploaded:)": "bf4eef30e244b501"
+   }
+  },
+  {
+   "key": "func DataSettingsPage.forceSyncSummary(newlyUploaded:)",
+   "hash": "7dbdc71580f2317a",
+   "does": "Builds the force-sync alert text from syncState and uploaded delta.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.uploadedCount",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.pendingUploadCount"
+   ],
+   "reads": [
+    "mem:CloudKitSyncManager.syncState",
+    "mem:CloudKitSyncManager.state"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "syncState is .error(msg)",
+     "effect": "returns \"Sync failed: msg. Try again in a moment.\""
+    },
+    {
+     "at": "+5",
+     "cond": "delta > 0",
+     "effect": "returns \"Synced N sessions to iCloud. Total uploaded: M.\""
+    },
+    {
+     "at": "+11",
+     "cond": "pendingUploadCount > 0",
+     "effect": "returns \"N sessions still pending retry. iCloud may be unreachable.\"; otherwise \"Up to date. N sessions in iCloud.\" (also when the sync was skipped or still .syncing)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.pendingUploadCount": "bdb518106fa1fc30",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.uploadedCount": "ea7edaf6d8718c1a"
+   }
+  },
+  {
+   "key": "var DataSettingsPage.body",
+   "hash": "c9027734b9359a3f",
+   "does": "Form of status/import/storage/recovery/settings-backup sections; refreshDeletedCount on appear and on ArchiveSignal.version change; RR-recovery alert.",
+   "entry": "SwiftUI renders View.body when the view is pushed/updated (pushed from SettingsView.swift:215, SettingsSearchIndex.swift:122)",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenFormBackground()",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.statusSection",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.importSection",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.sessionStorageSection",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.icloudSyncSection",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.settingsBackupSection",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::func DataSettingsPage.refreshDeletedCount()"
+   ],
+   "reads": [
+    "mem:ArchiveSignal.version"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::func recoveryMessage(_:)": "b0d25a92354edfb2",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::func DataSettingsPage.refreshDeletedCount()": "6a2510e751796fb9",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.icloudSyncSection": "b13bedfbdffa7baa",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.importSection": "82b177ecf43360bb",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.sessionStorageSection": "0c4341d6d2e4c252",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.settingsBackupSection": "d6cc477ac379138a",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.statusSection": "088850172ae19eb3",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenFormBackground()": "fde01388fd5e4e8c"
+   }
+  },
+  {
+   "key": "var DataSettingsPage.statusSection",
+   "hash": "5a2d82c098abe82d",
+   "does": "Section with the iCloud Sync toggle bound to settings.iCloudSyncEnabled plus iCloudSyncDetail; footer on encryption/HealthKit scope.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.settingsBinding",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.iCloudSyncDetail"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.iCloudSyncEnabled"
+   ],
+   "writes": [
+    "file:user_settings.json (App Group, via SettingsManager.save)",
+    "notif:flowRecoverySettingsChanged",
+    "mem:SettingsManager.settings"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.iCloudSyncDetail": "6b5577d6b06954c5",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.settingsBinding": "6e9b6641147b9841"
+   }
+  },
+  {
+   "key": "var DataSettingsPage.iCloudSyncDetail",
+   "hash": "14eebd12e8c44232",
+   "does": "Shows sync status and last-sync rows only when iCloud sync is on.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.syncStatusRow",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.syncLastSyncRow"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.iCloudSyncEnabled"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "settings.iCloudSyncEnabled",
+     "effect": "shows syncStatusRow + syncLastSyncRow; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.syncLastSyncRow": "54d4eb22a0515bf3",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.syncStatusRow": "f62a4ddc3e3bd17b"
+   }
+  },
+  {
+   "key": "var DataSettingsPage.syncStatusRow",
+   "hash": "27b029358702852e",
+   "does": "HStack \"Status\" + syncStateLabel.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.syncStateLabel"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.syncStateLabel": "16574cc4cac63d39"
+   }
+  },
+  {
+   "key": "var DataSettingsPage.syncStateLabel",
+   "hash": "09c18973b1eae319",
+   "does": "Renders the CloudKit sync state.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:CloudKitSyncManager.syncState"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": ".idle",
+     "effect": "\"Up to date\""
+    },
+    {
+     "at": "+5",
+     "cond": ".syncing",
+     "effect": "spinner + \"Syncing…\""
+    },
+    {
+     "at": "+10",
+     "cond": ".error(message)",
+     "effect": "message in alert colour"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var DataSettingsPage.syncLastSyncRow",
+   "hash": "9c6db88e5a90ab1c",
+   "does": "Relative \"Last Sync\" row when a last sync date exists.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.lastSyncDate"
+   ],
+   "reads": [
+    "ud:cloudKitLastSyncDate (via CloudKitSyncManager.lastSyncDate)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "lastSyncDate non-nil",
+     "effect": "row shown; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.lastSyncDate": "286a8e7037609f5f",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var DataSettingsPage.importSection",
+   "hash": "5fd674ef8684077b",
+   "does": "Section \"Import & Export\" with import link, export link, recover-from-strap button.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.importDataLink",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.exportDataLink",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.recoverRRDataButton"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.exportDataLink": "c177328c5d02e066",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.importDataLink": "b0fcd6438a1200de",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.recoverRRDataButton": "114c4c865f5df9ce"
+   }
+  },
+  {
+   "key": "var DataSettingsPage.importDataLink",
+   "hash": "8676b44ae448a379",
+   "does": "NavigationLink to ImportDataView (id data.import).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.importDataLabel"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.importDataLabel": "fc005481061463f4"
+   }
+  },
+  {
+   "key": "var DataSettingsPage.importDataLabel",
+   "hash": "c4f062d9e82f0261",
+   "does": "Label \"Import RR Data\".",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var DataSettingsPage.exportDataLink",
+   "hash": "95ec19f8a53a454c",
+   "does": "NavigationLink to ExportDataView (id data.export).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.exportDataLabel"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.exportDataLabel": "baf2dc2df8a07c58"
+   }
+  },
+  {
+   "key": "var DataSettingsPage.exportDataLabel",
+   "hash": "cae521a226b45040",
+   "does": "Label \"Export Data\".",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var DataSettingsPage.recoverRRDataButton",
+   "hash": "b42bb251216c65c6",
+   "does": "Button calling recoverRRData; disabled while recovering or when the Polar strap is not connected.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.recoverRRDataLabel",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::func DataSettingsPage.recoverRRData()"
+   ],
+   "reads": [
+    "mem:PolarManager.connectionState"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::func DataSettingsPage.recoverRRData()": "f914b8faa13b7ed2",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.recoverRRDataLabel": "aa362b618bcae99d"
+   }
+  },
+  {
+   "key": "var DataSettingsPage.recoverRRDataLabel",
+   "hash": "f084a3043f05e292",
+   "does": "Label \"Recover RR from Strap\" with spinner or \"Connect strap first\" hint.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:PolarManager.connectionState"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "isRecovering",
+     "effect": "spinner"
+    },
+    {
+     "at": "+7",
+     "cond": "strap not .connected (and not recovering)",
+     "effect": "\"Connect strap first\" caption; else nothing trailing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var DataSettingsPage.sessionStorageSection",
+   "hash": "44ee003530301091",
+   "does": "Section \"Storage Summary\": archive count, uploaded count, pending row, unarchived backups row.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.archiveCountRow",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.uploadedCountRow",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.pendingUploadRow",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.unarchivedBackupRow"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.archiveCountRow": "c35efb6b182b7949",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.pendingUploadRow": "9df03e7dc5d898d9",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.unarchivedBackupRow": "04e9992e546123ff",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.uploadedCountRow": "7d8580c6f470e629"
+   }
+  },
+  {
+   "key": "var DataSettingsPage.archiveCountRow",
+   "hash": "ad145e0acc0c3412",
+   "does": "Row with collector.archive.entries.count.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:SessionArchive.entries"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var DataSettingsPage.uploadedCountRow",
+   "hash": "58a5cbf447c69e41",
+   "does": "Row with CloudKit uploaded count.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.uploadedCount"
+   ],
+   "reads": [
+    "mem:CloudKitSyncManager.state.uploadedSessionIds"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.uploadedCount": "ea7edaf6d8718c1a",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var DataSettingsPage.pendingUploadRow",
+   "hash": "e547f4e74257fb32",
+   "does": "Row with pending iCloud retry count, only when > 0.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.pendingUploadCount"
+   ],
+   "reads": [
+    "mem:CloudKitSyncManager.state.pendingUploadIds"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "pendingUploadCount > 0",
+     "effect": "row shown; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.pendingUploadCount": "bdb518106fa1fc30",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.softGoldText": "12fb8e2fb33c18ef"
+   }
+  },
+  {
+   "key": "var DataSettingsPage.unarchivedBackupRow",
+   "hash": "5d61dc9649ad7d54",
+   "does": "Row with unarchived raw-backup count, only when > 0.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::var RawRRBackup.unarchivedBackupCount"
+   ],
+   "reads": [
+    "mem:RawRRBackup.index"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "unarchivedCount > 0",
+     "effect": "row shown; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::var RawRRBackup.unarchivedBackupCount": "95bad72318306480",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.terracottaText": "6a18b5025ee3e850"
+   }
+  },
+  {
+   "key": "var DataSettingsPage.icloudSyncSection",
+   "hash": "a40483cca834ac56",
+   "does": "Section \"Recovery Actions\": force sync button, Lost Sessions link, Trash link; hosts the force-sync result alert.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.forceSyncButton",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.sessionRecoveryLink",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.trashLink"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.forceSyncButton": "56ca32191ee81253",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.sessionRecoveryLink": "5e1b325d70bb2298",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.trashLink": "ddc013fb1a6cbab7"
+   }
+  },
+  {
+   "key": "var DataSettingsPage.forceSyncButton",
+   "hash": "fa320de884044774",
+   "does": "Button → forceCloudKitSync; disabled while syncing or when iCloud Sync setting is off (isCloudKitAvailable is only the setting).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.isCloudKitAvailable",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::func DataSettingsPage.forceCloudKitSync()",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.forceSyncLabel"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.iCloudSyncEnabled"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.isCloudKitAvailable": "e1378ec97a10e33d",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::func DataSettingsPage.forceCloudKitSync()": "e8ac8249b32c8631",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.forceSyncLabel": "ae27c89cd1e3e500"
+   }
+  },
+  {
+   "key": "var DataSettingsPage.forceSyncLabel",
+   "hash": "176828dc9611398c",
+   "does": "Label \"Force iCloud Sync\" with spinner while syncing.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "isForceSyncing",
+     "effect": "spinner shown; else none"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var DataSettingsPage.sessionRecoveryLink",
+   "hash": "e4c0ba8d37fbf43d",
+   "does": "NavigationLink to LostSessionsView.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.sessionRecoveryLabel"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.sessionRecoveryLabel": "47404f8a426ae75f"
+   }
+  },
+  {
+   "key": "var DataSettingsPage.sessionRecoveryLabel",
+   "hash": "ccbf121e83e68cd5",
+   "does": "Label \"Recover Lost Sessions\" with unarchived-backup count badge.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::var RawRRBackup.unarchivedBackupCount"
+   ],
+   "reads": [
+    "mem:RawRRBackup.index"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "unarchivedBackupCount > 0",
+     "effect": "badge with count; else none"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::var RawRRBackup.unarchivedBackupCount": "95bad72318306480",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.terracottaText": "6a18b5025ee3e850"
+   }
+  },
+  {
+   "key": "var DataSettingsPage.trashLink",
+   "hash": "35dd0620d05d0007",
+   "does": "NavigationLink to TrashView.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.trashLabel"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.trashLabel": "84ddb8d9f10b6bfa"
+   }
+  },
+  {
+   "key": "var DataSettingsPage.trashLabel",
+   "hash": "7acfbe7d41d0104b",
+   "does": "Label \"Trash\" with deletedSessionCount badge.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "deletedSessionCount > 0 (initial -1 until refresh finishes)",
+     "effect": "badge shown; else none"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var DataSettingsPage.settingsBackupFooter",
+   "hash": "bda09e62961e6db8",
+   "does": "Footer text describing automatic encrypted settings backup on every change (except HealthKit-filled birthday/sex/weight).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var DataSettingsPage.settingsBackupSection",
+   "hash": "8482292a088c93c8",
+   "does": "Section \"Settings Backup\" with backup/restore buttons, restore confirmation dialog and result alert.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.settingsBackupFooter",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.okButton",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.backUpSettingsButton",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.restoreSettingsButton",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.restoreDialogActions",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.restoreDialogMessage"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::func DataSettingsPage.settingsBackupMessage(saved:status:)": "e85858f74299d654",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.backUpSettingsButton": "85fd8a5ef85f056e",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.okButton": "41d031025af27029",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.restoreDialogActions": "c804d6b290ca09e5",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.restoreDialogMessage": "93bf167094ad136a",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.restoreSettingsButton": "6a130887fd612829",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.settingsBackupFooter": "e69d94cff7c6f8bd"
+   }
+  },
+  {
+   "key": "var DataSettingsPage.okButton",
+   "hash": "0690416f2817c49e",
+   "does": "OK button (no-op) for the settings-backup alert.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var DataSettingsPage.backUpSettingsButton",
+   "hash": "ae24f2459f78b471",
+   "does": "Button → backupSettingsNow; disabled while backing up or when iCloud Sync is off.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.backUpSettingsLabel",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::func DataSettingsPage.backupSettingsNow()"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.iCloudSyncEnabled"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::func DataSettingsPage.backupSettingsNow()": "7757465d5c2a6563",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.backUpSettingsLabel": "e118a66ea79dd8e4"
+   }
+  },
+  {
+   "key": "var DataSettingsPage.backUpSettingsLabel",
+   "hash": "5ec341e2d2054faf",
+   "does": "Label \"Back Up Settings to iCloud\" with spinner.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "isBackingUpSettings",
+     "effect": "spinner; else none"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var DataSettingsPage.restoreSettingsButton",
+   "hash": "c1b5aa0866b1255b",
+   "does": "Button that shows the restore confirmation; disabled while restoring or when iCloud Sync is off.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.restoreSettingsLabel"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.iCloudSyncEnabled"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.restoreSettingsLabel": "5d71e805fd831e5c"
+   }
+  },
+  {
+   "key": "var DataSettingsPage.restoreSettingsLabel",
+   "hash": "5a630f447d607fa0",
+   "does": "Label \"Restore Settings from iCloud\" with spinner.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "isRestoringSettings",
+     "effect": "spinner; else none"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var DataSettingsPage.restoreDialogActions",
+   "hash": "49eaa00cbafdf2ec",
+   "does": "Dialog buttons: destructive \"Restore\" → restoreSettingsFromCloud, and Cancel.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::func DataSettingsPage.restoreSettingsFromCloud()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::func DataSettingsPage.restoreSettingsFromCloud()": "4e319dad2af5243e"
+   }
+  },
+  {
+   "key": "var DataSettingsPage.restoreDialogMessage",
+   "hash": "4a2bf659806a3448",
+   "does": "Dialog message: replaces current settings, archive unchanged.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func DataSettingsPage.backupSettingsNow()",
+   "hash": "dc7efd3c1d22c877",
+   "does": "Manual settings backup: re-entry guarded, awaits CloudKitSettingsSync.pushImmediately (returns false and sets status .error on skip/failure), then finishSettingsBackup on main.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.cloudKitSettingsSync",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.pushImmediately()",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::func DataSettingsPage.finishSettingsBackup(saved:)",
+    "ext:CloudKit CKDatabase.save (via pushImmediately)"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [
+    "ck:UserSettings record \"primary\" (zone UserSettings)",
+    "mem:CloudKitSettingsSync.status"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "isBackingUpSettings",
+     "effect": "returns (double tap ignored); else starts the push"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.pushImmediately()": "271ed9eedddd24d7",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies": "b0514085566dc374",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.cloudKitSettingsSync": "795829a4e1aab357",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::func DataSettingsPage.finishSettingsBackup(saved:)": "d5025aa6d1ecbb9a"
+   }
+  },
+  {
+   "key": "func DataSettingsPage.finishSettingsBackup(saved:)",
+   "hash": "2375326a94454aa8",
+   "does": "Clears the spinner, builds the alert message from the push result and current CloudKitSettingsSync.status, shows the alert.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.cloudKitSettingsSync",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::func DataSettingsPage.settingsBackupMessage(saved:status:)"
+   ],
+   "reads": [
+    "mem:CloudKitSettingsSync.status"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies": "b0514085566dc374",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.cloudKitSettingsSync": "795829a4e1aab357",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::func DataSettingsPage.settingsBackupMessage(saved:status:)": "e85858f74299d654"
+   }
+  },
+  {
+   "key": "func DataSettingsPage.settingsBackupMessage(saved:status:)",
+   "hash": "c46ceaefe1ec5ae2",
+   "does": "Static: alert text for a settings backup from (saved, status).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
+    "ext:DateFormatter"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "!saved and status is .error(msg)",
+     "effect": "\"Backup failed: msg. Check your iCloud connection…\""
+    },
+    {
+     "at": "+4",
+     "cond": "!saved (status not error)",
+     "effect": "\"Backup failed. Check your iCloud connection…\"; saved continues"
+    },
+    {
+     "at": "+8",
+     "cond": "status .lastPushed(date)",
+     "effect": "\"Settings backed up to iCloud (date)\" formatted medium/short in app locale"
+    },
+    {
+     "at": "+14",
+     "cond": "default status",
+     "effect": "\"Settings backed up to iCloud.\""
+    }
+   ],
+   "flags": [
+    {
+     "kind": "unreachable-branch",
+     "sev": "low",
+     "text": "The `guard saved` fallback (\"Backup failed. Check your iCloud connection…\") is unreachable in practice: pushImmediately sets status = .error(reason) on every path that returns false, so `!saved` always matches the first branch. Its conflict reason (\"Another device updated the backup at the same time\") is then suffixed with \"Check your iCloud connection\", which is the wrong advice.",
+     "evidence": [
+      "Emuqu/Sources/Views/SettingsPages+Data.swift:562",
+      "Emuqu/Sources/Storage/CloudKitSyncSupport.swift:137",
+      "Emuqu/Sources/Storage/CloudKitSyncSupport.swift:139",
+      "Emuqu/Sources/Storage/CloudKitSyncSupport.swift:234"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "func DataSettingsPage.restoreSettingsFromCloud()",
+   "hash": "4b3d24ff8b5df2ad",
+   "does": "Manual restore: re-entry guarded; takes CloudKitSettingsSync from the view's own dependencies (as backup does), awaits restoreSettingsMessage(from:) (which performs the restore) and finishSettingsRestore on main.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::func DataSettingsPage.restoreSettingsMessage(from:)",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::func DataSettingsPage.finishSettingsRestore(_:)"
+   ],
+   "reads": [
+    "ck:UserSettings record \"primary\""
+   ],
+   "writes": [
+    "file:user_settings.json (App Group, via SettingsManager.save)",
+    "notif:flowRecoverySettingsChanged",
+    "mem:SettingsManager.settings",
+    "mem:CloudKitSettingsSync (restoreFromCloud)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "isRestoringSettings",
+     "effect": "returns; else starts restore"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies": "4fcad23c55561141",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::func DataSettingsPage.finishSettingsRestore(_:)": "a191255839d1c7ba",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::func DataSettingsPage.restoreSettingsMessage(from:)": "b27a7dc8a9ac99b4"
+   }
+  },
+  {
+   "key": "func DataSettingsPage.restoreSettingsMessage(from:)",
+   "hash": "a727a390eb924596",
+   "does": "Performs CloudKitSettingsSync.restoreFromCloud on the given instance and returns the alert text: \"Settings restored from iCloud (last pushed <date>)\" or \"Restore failed: <reason>\".",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.restoreFromCloud()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "ck:UserSettings record \"primary\""
+   ],
+   "writes": [
+    "file:user_settings.json (App Group, via SettingsManager.save)",
+    "mem:SettingsManager.settings"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "restore succeeded",
+     "effect": "restored message; error → \"Restore failed: …\""
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.restoreFromCloud()": "5c8358ee0092082d"
+   }
+  },
+  {
+   "key": "func DataSettingsPage.finishSettingsRestore(_:)",
+   "hash": "94e2074675726f0b",
+   "does": "Clears restoring flag, puts the message into the shared settings-backup alert and shows it.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::func DataSettingsPage.settingsBackupMessage(saved:status:)": "e85858f74299d654"
+   }
+  },
+  {
+   "key": "func DataSettingsPage.refreshDeletedCount()",
+   "hash": "15ce9a0f233de4e5",
+   "does": "Counts trashed sessions via RRCollector.checkForDeletedSessions in a Task on the main actor (where RRCollector lives) and assigns deletedSessionCount.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.checkForDeletedSessions()",
+    "ext:Task"
+   ],
+   "reads": [
+    "archive:SessionArchive.deletedIds/trashedIds",
+    "file:raw RR backups index (RawRRBackup.allBackups)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.checkForDeletedSessions()": "6e8cc878b4b6bb5d"
+   }
+  },
+  {
+   "key": "func DataSettingsPage.recoverRRData()",
+   "hash": "2110c672a71ca894",
+   "does": "Sets isRecovering, awaits RRCollector.recoverFromDevice (refuses unless strap connected/not live/not already saved; downloads the strap recording, writes a raw RR backup, assembles and analyses the session, sets collector.currentSession, and archives it for review only when its id is not already in the archive), then shows \"RR points recovered: N\" or the error via finishDeviceRecovery.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.recoverFromDevice()",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::func DataSettingsPage.finishDeviceRecovery(_:)",
+    "ext:PolarBleSdk strap download (via recoverFromDevice)"
+   ],
+   "reads": [
+    "ble:Polar strap stored exercise"
+   ],
+   "writes": [
+    "file:RawRRBackup entry (backupRawData)",
+    "archive:new session via MorningProcessing.archiveForReview (only when the session id is not already archived)",
+    "mem:RRCollector.currentSession",
+    "mem:RRCollector.lastError",
+    "mem:RRCollector.sessionState.reviewArchivedSessionId"
+   ],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "session?.rrSeries?.points.count ?? 0",
+     "effect": "recoverFromDevice never returns nil (it returns the session or throws, RRCollector+Recovery.swift:58-69), so the 0 fallback applies only to a session without rrSeries"
+    },
+    {
+     "at": "+7",
+     "cond": "recoverFromDevice throws (notConnected, alreadyRecording, strapRecordingAlreadySaved, download error, or assembled session not .complete)",
+     "effect": "message \"Recovery failed: <localizedDescription>\"; error not logged here"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "When the strap recording merges into a night already in the archive, assembleDownloadedSession does not archive it (the night is replaced only on Accept), yet this page only shows \"RR points recovered: N\" with no Accept/review path or hint, so the user is told data was recovered while the archive is unchanged until they accept it elsewhere.",
+     "evidence": [
+      "Emuqu/Sources/Views/SettingsPages+Data.swift:628",
+      "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift:133",
+      "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift:135",
+      "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift:215"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.recoverFromDevice()": "004ea007882e33c0",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::func DataSettingsPage.finishDeviceRecovery(_:)": "7f9ebdc909d30e2b"
+   }
+  },
+  {
+   "key": "func DataSettingsPage.finishDeviceRecovery(_:)",
+   "hash": "fc732132095545b8",
+   "does": "Sets recoveryMessage, shows the recovery alert, clears isRecovering.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::func recoveryMessage(_:)": "b0d25a92354edfb2"
+   }
+  }
+ ],
+ "deps": {}
+}

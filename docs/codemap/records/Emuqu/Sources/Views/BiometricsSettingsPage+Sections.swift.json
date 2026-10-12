@@ -1,0 +1,863 @@
+{
+ "file": "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift",
+ "hash": "c67731c43eae6a49",
+ "role": "Extension on BiometricsSettingsPage holding the nine Form sections (Apple Health fill, VO2max, body weight, home address, HR-zone mode, max HR, resting HR, LTHR, FTP) as computed view properties, each editing UserSettings through SettingsManager.",
+ "types": [
+  "BiometricsSettingsPage: extension — biometrics form sections"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "var BiometricsSettingsPage.biometricsForm",
+   "hash": "3783291518c8c761",
+   "does": "Builds the Form of all nine sections with immediate keyboard dismissal on scroll, the zen form background and a keyboard Done toolbar. Read from BiometricsSettingsPage.body (BiometricsSettingsPage.swift:32).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.appleHealthFillSection",
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.vo2maxSection",
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.bodyWeightSection",
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.homeAddressSection",
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.hrZonesModeSection",
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.maxHRSection",
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.restingHRSection",
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.lthrSection",
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.functionalThresholdPowerSection",
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.dismissKeyboardToolbar",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenFormBackground()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.appleHealthFillSection": "65ef6f6863528e13",
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.bodyWeightSection": "fbbd71bad8e3e51f",
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.dismissKeyboardToolbar": "113c0e1a2d727f19",
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.functionalThresholdPowerSection": "701c5cfa5742b8a9",
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.homeAddressSection": "1e98c60a89cf7bad",
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.hrZonesModeSection": "cd791b79ac6c95f8",
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.lthrSection": "9364a4195e9da93d",
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.maxHRSection": "c6d7434d4a03ffc2",
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.restingHRSection": "d175c5e4368ab5e2",
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.vo2maxSection": "d20066b3145161a9",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenFormBackground()": "fde01388fd5e4e8c"
+   }
+  },
+  {
+   "key": "var BiometricsSettingsPage.dismissKeyboardToolbar",
+   "hash": "fa0cac044cbef46f",
+   "does": "Keyboard toolbar with a Done button that clears isNumericFieldFocused.",
+   "entry": "SwiftUI toolbar; Done button tap sets isNumericFieldFocused = false",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var BiometricsSettingsPage.appleHealthFillSection",
+   "hash": "d720d6ea4d3f2b4b",
+   "does": "Section with the Fill from Apple Health button, feedback text and an explanatory footer.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.fillFromAppleHealthButton",
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.fillFeedbackText",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.fillFeedbackText": "b6e5556ee4f8ebf7",
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.fillFromAppleHealthButton": "6afd0d0fae39af35"
+   }
+  },
+  {
+   "key": "var BiometricsSettingsPage.fillFromAppleHealthButton",
+   "hash": "723c990347d6e49f",
+   "does": "Button that runs fillFromAppleHealth() in a Task; disabled while a fill is running.",
+   "entry": "SwiftUI Button tap → Task { await fillFromAppleHealth() }",
+   "calls": [
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.fillFromAppleHealth()",
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.fillFromAppleHealthLabel"
+   ],
+   "reads": [
+    "hk:body mass, biological sex, date of birth (via fillFromAppleHealth)"
+   ],
+   "writes": [
+    "mem:SettingsManager.settings.bodyWeightKg/biologicalSex/birthday (via fillFromAppleHealth)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.fillFromAppleHealthLabel": "8befd35134cd639a",
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.fillFromAppleHealth()": "0c4764b1f90d4ba9"
+   }
+  },
+  {
+   "key": "var BiometricsSettingsPage.fillFeedbackText",
+   "hash": "6d2bb4f19320813f",
+   "does": "Shows the last fill feedback string as caption text when present.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "fillFeedback non-nil",
+     "effect": "shows the text; otherwise nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var BiometricsSettingsPage.fillFromAppleHealthLabel",
+   "hash": "2db2e91b5de98b66",
+   "does": "Button label: spinner while filling, else heart icon; plus 'Fill from Apple Health'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "isFillingFromHealthKit",
+     "effect": "ProgressView; otherwise heart.text.square.fill icon"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var BiometricsSettingsPage.vo2maxSection",
+   "hash": "086d100dc3e804fe",
+   "does": "Cardio Fitness section with VO2max fields and footer.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.vo2maxFields",
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.vo2maxFooter",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.vo2maxFields": "c218dffc741b79da",
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.vo2maxFooter": "dc4911f9caab6e11"
+   }
+  },
+  {
+   "key": "var BiometricsSettingsPage.vo2maxFields",
+   "hash": "1408b7a4b18a3f12",
+   "does": "Toggle bound to settings.useHealthKitVO2Max, the override row, and a Clear Override button when an override exists.",
+   "entry": "SwiftUI Toggle change / Clear Override button tap",
+   "calls": [
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.vo2maxOverrideRow",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.vo2MaxOverride"
+   ],
+   "writes": [
+    "mem:SettingsManager.settings.useHealthKitVO2Max",
+    "mem:SettingsManager.settings.vo2MaxOverride"
+   ],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "vo2MaxOverride != nil",
+     "effect": "shows Clear Override button that sets it nil; otherwise hidden"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.vo2maxOverrideRow": "05f2d6391273b6c7",
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::var BiometricsSettingsPage.settingsBinding": "c5e03c280d62b2a1"
+   }
+  },
+  {
+   "key": "var BiometricsSettingsPage.vo2maxOverrideRow",
+   "hash": "4a543559b75e2a63",
+   "does": "Decimal TextField bound to vo2MaxOverride through clampedDoubleBinding (upper bound 100 clamped per keystroke), with accessibility label/hint and unit.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.clampedDoubleBinding(_:range:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.vo2MaxOverride"
+   ],
+   "writes": [
+    "mem:SettingsManager.settings.vo2MaxOverride"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.clampedDoubleBinding(_:range:)": "90925be69f4fc8ed",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var BiometricsSettingsPage.vo2maxFooter",
+   "hash": "81b013f592e2686d",
+   "does": "Static footer text about VO2max personalising HRV ranges.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var BiometricsSettingsPage.bodyWeightSection",
+   "hash": "3f0959376335fb1e",
+   "does": "Body Weight section with fields and footer.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.bodyWeightFields",
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.bodyWeightFooter",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.bodyWeightFields": "d038e97201f2c743",
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.bodyWeightFooter": "43d31c140d28b926"
+   }
+  },
+  {
+   "key": "var BiometricsSettingsPage.bodyWeightFields",
+   "hash": "daaec97a12eab8e8",
+   "does": "Body weight row plus a Clear button when a weight is set.",
+   "entry": "SwiftUI Clear button tap sets bodyWeightKg nil",
+   "calls": [
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.bodyWeightRow",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.bodyWeightKg"
+   ],
+   "writes": [
+    "mem:SettingsManager.settings.bodyWeightKg"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "bodyWeightKg != nil",
+     "effect": "shows Clear button; otherwise hidden"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.bodyWeightKg": "832c4ee32f6110e2",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.bodyWeightRow": "ecd0cc373cd504eb"
+   }
+  },
+  {
+   "key": "var BiometricsSettingsPage.bodyWeightRow",
+   "hash": "f710be4686b188e4",
+   "does": "Weight TextField in lb or kg depending on the resolved units preference, bound via bodyWeightDisplayBinding (stored as kg, capped 250 kg), placeholder showing the effective weight.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveBodyWeightKg",
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.bodyWeightDisplayBinding(isImperial:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "ud:units preference (UnitsPreferenceStore.current)",
+    "mem:SettingsManager.settings.bodyWeightKg"
+   ],
+   "writes": [
+    "mem:SettingsManager.settings.bodyWeightKg"
+   ],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "isImperial",
+     "effect": "placeholder = effective kg × 2.20462 rounded; otherwise Int(kg) truncated"
+    },
+    {
+     "at": "+16",
+     "cond": "isImperial",
+     "effect": "accessibility label 'pounds'; otherwise 'kilograms'"
+    },
+    {
+     "at": "+17",
+     "cond": "isImperial",
+     "effect": "unit text 'lb'; otherwise 'kg'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveBodyWeightKg": "6aabde6ed09dc61f",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.bodyWeightDisplayBinding(isImperial:)": "f1f86962484235ea",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var BiometricsSettingsPage.bodyWeightFooter",
+   "hash": "57e1d094d5aea3ba",
+   "does": "Footer explaining the MET calorie formula with current effective weight in kg and lb and its source.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveBodyWeightKg",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.bodyWeightKg"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "bodyWeightKg != nil",
+     "effect": "source 'your value'; otherwise '75 kg default'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.bodyWeightKg": "832c4ee32f6110e2",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveBodyWeightKg": "6aabde6ed09dc61f",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var BiometricsSettingsPage.homeAddressSection",
+   "hash": "0aba68f24aaa93c9",
+   "does": "Home Address section with fields and footer.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.homeAddressFields",
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.homeAddressFooter",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.homeAddressFields": "cbff10a07ba986df",
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.homeAddressFooter": "18ddb96f5480205e"
+   }
+  },
+  {
+   "key": "var BiometricsSettingsPage.homeAddressFields",
+   "hash": "68cae73d1deecf92",
+   "does": "Free-text home address field (whitespace-only input stores nil, otherwise the untrimmed text) and a Clear button when set.",
+   "entry": "SwiftUI TextField edits / Clear button tap",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.homeAddress"
+   ],
+   "writes": [
+    "mem:SettingsManager.settings.homeAddress"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "homeAddress nil",
+     "effect": "field shows ''"
+    },
+    {
+     "at": "+8",
+     "cond": "trimmed input empty",
+     "effect": "stores nil; otherwise stores newValue untrimmed"
+    },
+    {
+     "at": "+16",
+     "cond": "homeAddress != nil",
+     "effect": "shows Clear button"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var BiometricsSettingsPage.homeAddressFooter",
+   "hash": "60796ca374dab2aa",
+   "does": "Static footer on the 'lead me home' AI use and storage.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var BiometricsSettingsPage.hrZonesModeSection",
+   "hash": "09cf9d422e2f843f",
+   "does": "HR Zones section showing Auto/Manual mode label and the effective max/resting/LTHR line.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::var BiometricsSettingsPage.zonesModeLabel",
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::var BiometricsSettingsPage.zonesModeFooter",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::var BiometricsSettingsPage.zonesModeFooter": "47e951c2c322a9dd",
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::var BiometricsSettingsPage.zonesModeLabel": "799e1920fe9b90f8",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var BiometricsSettingsPage.maxHRSection",
+   "hash": "d140c63e02ffea14",
+   "does": "Workout HR Zones section with max-HR fields and footer.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.maxHRFields",
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.maxHRFooter",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.maxHRFields": "4f2a8dbc844f5c45",
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.maxHRFooter": "2e774bb5372eef45"
+   }
+  },
+  {
+   "key": "var BiometricsSettingsPage.maxHRFields",
+   "hash": "5471d0accd968124",
+   "does": "Max HR row plus a Use Age-Based Default button when an override is set.",
+   "entry": "SwiftUI button tap sets maxHR nil",
+   "calls": [
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.maxHRRow",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.maxHR"
+   ],
+   "writes": [
+    "mem:SettingsManager.settings.maxHR"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "maxHR != nil",
+     "effect": "shows reset button; otherwise hidden"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.maxHRRow": "9ee8b72d79db3d5b"
+   }
+  },
+  {
+   "key": "var BiometricsSettingsPage.maxHRRow",
+   "hash": "88692f2f092694ed",
+   "does": "Number TextField for max HR via clampedIntBinding (upper 230 per keystroke), placeholder = effectiveMaxHR.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.clampedIntBinding(_:range:)",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.maxHR",
+    "mem:SettingsManager.settings.birthday"
+   ],
+   "writes": [
+    "mem:SettingsManager.settings.maxHR"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "cef5ee5d9e3b4ade",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.clampedIntBinding(_:range:)": "2814d93e8d89dec8",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var BiometricsSettingsPage.maxHRFooter",
+   "hash": "72feef4f05eda773",
+   "does": "Footer stating the effective max HR and its source, captioned with the same rule effectiveMaxHR applies (an entry under MaxHeartRate.minimumUserEntered = 80 is not the override).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.maxHR",
+    "mem:SettingsManager.settings.birthday"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "maxHR set and >= 80",
+     "effect": "source 'your override'"
+    },
+    {
+     "at": "+9",
+     "cond": "birthday != nil",
+     "effect": "source '208 − 0.7 × age'; otherwise 'default (no age set)'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.birthday": "848cd8a572666b81",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "cef5ee5d9e3b4ade",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var BiometricsSettingsPage.restingHRSection",
+   "hash": "75be532c4f883304",
+   "does": "Resting Heart Rate section with fields and footer.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.restingHRFields",
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.restingHRFooter",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.restingHRFields": "ce19c0a567253406",
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.restingHRFooter": "00d8b93b1f804e9f"
+   }
+  },
+  {
+   "key": "var BiometricsSettingsPage.restingHRFields",
+   "hash": "8388efe1adbd421d",
+   "does": "Resting HR row plus Use Auto-Tracked Baseline button when overridden.",
+   "entry": "SwiftUI button tap sets userRestingHR nil",
+   "calls": [
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.restingHRRow",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.userRestingHR"
+   ],
+   "writes": [
+    "mem:SettingsManager.settings.userRestingHR"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "userRestingHR != nil",
+     "effect": "shows reset button"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.restingHRRow": "53fce430a5468856"
+   }
+  },
+  {
+   "key": "var BiometricsSettingsPage.restingHRRow",
+   "hash": "3eeb561a30988608",
+   "does": "Number TextField for resting HR via clampedIntBinding (upper 110), placeholder = effectiveRestingHR.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.clampedIntBinding(_:range:)",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveRestingHR",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.userRestingHR",
+    "mem:SettingsManager.settings.baselineHR"
+   ],
+   "writes": [
+    "mem:SettingsManager.settings.userRestingHR"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveRestingHR": "6de242bd745f1424",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.clampedIntBinding(_:range:)": "2814d93e8d89dec8",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var BiometricsSettingsPage.restingHRFooter",
+   "hash": "628bbe63e6bc3fd6",
+   "does": "Footer stating effective resting HR and its source, captioned with the same thresholds effectiveRestingHR uses.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveRestingHR",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.userRestingHR",
+    "mem:SettingsManager.settings.baselineHR"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "userRestingHR set and >= 30",
+     "effect": "'your override'"
+    },
+    {
+     "at": "+9",
+     "cond": "baselineHR set and > 30",
+     "effect": "'HRV-derived baseline'; otherwise '60 bpm default'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveRestingHR": "6de242bd745f1424",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var BiometricsSettingsPage.lthrSection",
+   "hash": "d30f89a243a7fcda",
+   "does": "Lactate Threshold HR section with fields and footer.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.lthrFields",
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.lthrFooter",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.lthrFields": "3b7e59943ca35303",
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.lthrFooter": "86bfdd5682fdcabc"
+   }
+  },
+  {
+   "key": "var BiometricsSettingsPage.lthrFields",
+   "hash": "70fbcb3b38518222",
+   "does": "LTHR row plus Use 0.88 × Max Default button when overridden.",
+   "entry": "SwiftUI button tap sets lactateThresholdHR nil",
+   "calls": [
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.lthrRow",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.lactateThresholdHR"
+   ],
+   "writes": [
+    "mem:SettingsManager.settings.lactateThresholdHR"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "lactateThresholdHR != nil",
+     "effect": "shows reset button"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.lthrRow": "cac4de77d48a9fb4"
+   }
+  },
+  {
+   "key": "var BiometricsSettingsPage.lthrRow",
+   "hash": "8c77a6e8d4c326aa",
+   "does": "Number TextField for LTHR via clampedIntBinding (upper 220), placeholder = effectiveLTHR.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.clampedIntBinding(_:range:)",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveLTHR",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.lactateThresholdHR"
+   ],
+   "writes": [
+    "mem:SettingsManager.settings.lactateThresholdHR"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveLTHR": "d8f21d4214c3f50a",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.clampedIntBinding(_:range:)": "2814d93e8d89dec8",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var BiometricsSettingsPage.lthrFooter",
+   "hash": "99cd1b48157217de",
+   "does": "Footer stating effective LTHR and source: 'your override' when lactateThresholdHR >= 80 (the rule effectiveLTHR applies), else '0.88 × max HR'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveLTHR",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.lactateThresholdHR"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "lactateThresholdHR >= 80",
+     "effect": "'your override'; otherwise '0.88 × max HR'"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "Captions the default as '0.88 × max HR', but effectiveLTHR returns max(120, 0.88 × max), so for an effective max HR below 137 the shown value is the 120 floor, not 0.88 × max (needs a new caption string). (The under-80 override case is fixed.)",
+     "evidence": [
+      "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift:448",
+      "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift:450",
+      "Emuqu/Sources/Models/UserSettings+Model.swift:120",
+      "Emuqu/Sources/Models/UserSettings+Model.swift:122"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveLTHR": "d8f21d4214c3f50a",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var BiometricsSettingsPage.functionalThresholdPowerSection",
+   "hash": "ef031a1317e5f9c6",
+   "does": "Functional Threshold Power section with running/cycling FTP fields and footer.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.functionalThresholdPowerFields",
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.functionalThresholdPowerFooter",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.functionalThresholdPowerFields": "474ad66b4c13418d",
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.functionalThresholdPowerFooter": "2a06d207b65aaef1"
+   }
+  },
+  {
+   "key": "var BiometricsSettingsPage.functionalThresholdPowerFields",
+   "hash": "acb201755888ca1d",
+   "does": "Running FTP row plus a Cycling FTP TextField bound via clampedIntBinding (upper 600 W).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.functionalThresholdPowerRow",
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.clampedIntBinding(_:range:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.cyclingFTPWatts"
+   ],
+   "writes": [
+    "mem:SettingsManager.settings.cyclingFTPWatts"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.functionalThresholdPowerRow": "5e414444060c0f72",
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.clampedIntBinding(_:range:)": "2814d93e8d89dec8",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var BiometricsSettingsPage.functionalThresholdPowerRow",
+   "hash": "6ae51f0baccbc9dd",
+   "does": "Running FTP TextField bound via clampedIntBinding (upper 600 W).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.clampedIntBinding(_:range:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.runningFTPWatts"
+   ],
+   "writes": [
+    "mem:SettingsManager.settings.runningFTPWatts"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.clampedIntBinding(_:range:)": "2814d93e8d89dec8",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var BiometricsSettingsPage.functionalThresholdPowerFooter",
+   "hash": "9390ffea079210b5",
+   "does": "Static footer explaining FTP and the 20-minute test.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  }
+ ],
+ "deps": {}
+}

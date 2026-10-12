@@ -1,0 +1,246 @@
+{
+ "file": "EmuquTests/ArchiveRRPreservationTests.swift",
+ "hash": "72fcc6a5e0218e42",
+ "role": "XCTest suite for the archive's RR splice on re-archive: ArchiveStore.storedRRSeries three-way classification (preserved / noBeatsStored / unreadable) and that a metadata-only re-archive keeps stored beats while a beatless workout stays beatless.",
+ "types": [
+  "ArchiveRRPreservationTests: class — @MainActor XCTestCase over SessionArchive RR preservation"
+ ],
+ "state": [
+  "mem:ArchiveRRPreservationTests.archiveDirectory (nonisolated let: a fresh ArchiveRRPreservationTests-<UUID> directory under the temporary directory, per test instance)",
+  "mem:ArchiveRRPreservationTests.archive (lazy SessionArchive on archiveDirectory)"
+ ],
+ "toplevel": "lazy archive = SessionArchive(directory: archiveDirectory, sleepScheduleProvider: 22:00/8h, sessionMergeModeProvider: .defaultGap) on a private temp directory, so it never shares the App Group index.json with the host app's archive; the merge gap still comes from AppDependencies settings (no mergeGapProvider).",
+ "flags": [],
+ "units": [
+  {
+   "key": "func ArchiveRRPreservationTests.tearDown()",
+   "hash": "1ab8e04985226858",
+   "does": "Async tearDown: removes the test's private archive directory if it exists (a removal failure throws and fails the test), then calls super.",
+   "entry": "XCTest: instance tearDown() async after each test",
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "file:ArchiveRRPreservationTests per-test temp archive directory (index.json, session files)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "the archive directory exists",
+     "effect": "removes it"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ArchiveRRPreservationTests.beats(count:)",
+   "hash": "9f5eae3f3d97895d",
+   "does": "Builds an RRSeries of count (default 50) synthetic beats 780-820 ms starting at 1,800,000,000 s.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for index in 0..<count",
+     "effect": "appends one point and advances elapsed"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a"
+   }
+  },
+  {
+   "key": "func ArchiveRRPreservationTests.beatlessWorkout()",
+   "hash": "a4ffd3d777c446a3",
+   "does": "Builds a complete 10-minute walk workout HRVSession with no RR data at a fixed 2027 start.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "eb772ae55676de35"
+   }
+  },
+  {
+   "key": "func ArchiveRRPreservationTests.testABeatlessSessionClassifiesAsNoBeatsNotAsUnreadable()",
+   "hash": "129fe50ea14fad18",
+   "does": "Archives a beatless workout and asserts storedRRSeries classifies it as .noBeatsStored.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchiveRRPreservationTests.swift::func ArchiveRRPreservationTests.beatlessWorkout()",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.storedRRSeries(for:)"
+   ],
+   "reads": [
+    "file:ArchiveRRPreservationTests per-test temp archive directory (index.json, session files)",
+    "kc:EncryptionManager archive key"
+   ],
+   "writes": [
+    "file:ArchiveRRPreservationTests per-test temp archive directory (index.json, session files)",
+    "kc:EncryptionManager archive key",
+    "notif:flowRecoveryArchiveChanged"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "case .noBeatsStored",
+     "effect": "passes"
+    },
+    {
+     "at": "+6",
+     "cond": "case .preserved",
+     "effect": "XCTFail: nothing to preserve"
+    },
+    {
+     "at": "+7",
+     "cond": "case .unreadable",
+     "effect": "XCTFail: file reads fine"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.storedRRSeries(for:)": "4c02bae464058c6b",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
+    "EmuquTests/ArchiveRRPreservationTests.swift::func ArchiveRRPreservationTests.beatlessWorkout()": "652995a4f729c21f"
+   }
+  },
+  {
+   "key": "func ArchiveRRPreservationTests.testAStoredSessionWithBeatsClassifiesAsPreserved()",
+   "hash": "4ccdd1981971439e",
+   "does": "Archives a workout with 50 beats and asserts storedRRSeries is .preserved with 50 points via the hash-checked read (viaRawDecode false).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchiveRRPreservationTests.swift::func ArchiveRRPreservationTests.beatlessWorkout()",
+    "EmuquTests/ArchiveRRPreservationTests.swift::func ArchiveRRPreservationTests.beats(count:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.storedRRSeries(for:)"
+   ],
+   "reads": [
+    "file:ArchiveRRPreservationTests per-test temp archive directory (index.json, session files)",
+    "kc:EncryptionManager archive key"
+   ],
+   "writes": [
+    "file:ArchiveRRPreservationTests per-test temp archive directory (index.json, session files)",
+    "kc:EncryptionManager archive key",
+    "notif:flowRecoveryArchiveChanged"
+   ],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "case .preserved",
+     "effect": "asserts 50 points and viaRawDecode false"
+    },
+    {
+     "at": "+9",
+     "cond": "case .noBeatsStored or .unreadable",
+     "effect": "XCTFail"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.storedRRSeries(for:)": "4c02bae464058c6b",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
+    "EmuquTests/ArchiveRRPreservationTests.swift::func ArchiveRRPreservationTests.beatlessWorkout()": "652995a4f729c21f",
+    "EmuquTests/ArchiveRRPreservationTests.swift::func ArchiveRRPreservationTests.beats(count:)": "b3a90cab539af4b8"
+   }
+  },
+  {
+   "key": "func ArchiveRRPreservationTests.testAnUnknownSessionClassifiesAsUnreadable()",
+   "hash": "67d1adc7099f1f30",
+   "does": "Asserts storedRRSeries for an unknown UUID is .unreadable.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.storedRRSeries(for:)"
+   ],
+   "reads": [
+    "file:ArchiveRRPreservationTests per-test temp archive directory (index.json, session files)",
+    "kc:EncryptionManager archive key"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .unreadable",
+     "effect": "passes"
+    },
+    {
+     "at": "+3",
+     "cond": "case .preserved or .noBeatsStored",
+     "effect": "XCTFail"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.storedRRSeries(for:)": "4c02bae464058c6b"
+   }
+  },
+  {
+   "key": "func ArchiveRRPreservationTests.testABeatlessWorkoutStaysBeatlessRatherThanGainingData()",
+   "hash": "c55615d77b5277b4",
+   "does": "Archives a beatless workout, re-archives it with a note and asserts the retrieved session still has nil rrSeries.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchiveRRPreservationTests.swift::func ArchiveRRPreservationTests.beatlessWorkout()",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)"
+   ],
+   "reads": [
+    "file:ArchiveRRPreservationTests per-test temp archive directory (index.json, session files)",
+    "kc:EncryptionManager archive key"
+   ],
+   "writes": [
+    "file:ArchiveRRPreservationTests per-test temp archive directory (index.json, session files)",
+    "kc:EncryptionManager archive key",
+    "notif:flowRecoveryArchiveChanged"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "8782e72ec2fc6000",
+    "EmuquTests/ArchiveRRPreservationTests.swift::func ArchiveRRPreservationTests.beatlessWorkout()": "652995a4f729c21f"
+   }
+  },
+  {
+   "key": "func ArchiveRRPreservationTests.testReArchivingWithoutBeatsPreservesTheStoredOnes()",
+   "hash": "304fb961c4b8cf14",
+   "does": "Archives a workout with 50 beats, re-archives a copy with rrSeries nil and a note, and asserts the stored session keeps 50 beats and the new note.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchiveRRPreservationTests.swift::func ArchiveRRPreservationTests.beatlessWorkout()",
+    "EmuquTests/ArchiveRRPreservationTests.swift::func ArchiveRRPreservationTests.beats(count:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)"
+   ],
+   "reads": [
+    "file:ArchiveRRPreservationTests per-test temp archive directory (index.json, session files)",
+    "kc:EncryptionManager archive key"
+   ],
+   "writes": [
+    "file:ArchiveRRPreservationTests per-test temp archive directory (index.json, session files)",
+    "kc:EncryptionManager archive key",
+    "notif:flowRecoveryArchiveChanged"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "8782e72ec2fc6000",
+    "EmuquTests/ArchiveRRPreservationTests.swift::func ArchiveRRPreservationTests.beatlessWorkout()": "652995a4f729c21f",
+    "EmuquTests/ArchiveRRPreservationTests.swift::func ArchiveRRPreservationTests.beats(count:)": "b3a90cab539af4b8"
+   }
+  }
+ ],
+ "deps": {}
+}

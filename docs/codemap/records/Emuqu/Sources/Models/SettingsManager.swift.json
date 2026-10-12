@@ -1,0 +1,982 @@
+{
+ "file": "Emuqu/Sources/Models/SettingsManager.swift",
+ "hash": "cddd6a31e22091ae",
+ "role": "Owns the SettingsManager singleton: loads/saves UserSettings JSON (user_settings.json in the App Group container) with a protection-aware don't-clobber guard, off-main coalesced writes, CloudKit export/restore hooks, custom tags, baseline updates, device-local disclaimer flag and trial-clock helpers.",
+ "types": [
+  "SettingsManager: class (@Observable @MainActor) — settings store singleton",
+  "SettingsManager.LoadOutcome: enum — loaded/fileNotPresent/blockedByProtection/unreadableOther",
+  "SettingsManager.WriteState: struct (private) — pending snapshot + scheduled flag for the write queue",
+  "Notification.Name: extension — declares flowRecoverySettingsChanged"
+ ],
+ "state": [
+  "mem:SettingsManager.shared (nonisolated static singleton)",
+  "mem:SettingsManager.settings (@Observable UserSettings; didSet persists + posts notification)",
+  "mem:SettingsManager.loadOutcome (private(set))",
+  "mem:SettingsManager.lockedStartingPoint (settings the app started from while the file was locked; diff base for the unlock merge)",
+  "mem:SettingsManager.settingsSnapshot / snapshotBox (OSAllocatedUnfairLock mirror for off-main readers)",
+  "mem:SettingsManager.writeState (lock: pending/scheduled)",
+  "mem:SettingsManager.protectedDataObserver",
+  "mem:SettingsManager.disclaimerRevision",
+  "file:<AppGroup>/user_settings.json (legacy migration source <Documents>/user_settings.json)",
+  "ud:hasAcceptedHealthDisclaimer (UserDefaultsKeys.disclaimerAccepted, standard)",
+  "ud:lastTrialReminderDate (UserDefaultsKeys.lastTrialReminderDate, standard)",
+  "ud:perf.enableAIAssistant / perf.enableVoiceMode / perf.enableWatchConnectivity (standard; mirrors written in save())",
+  "notif:FlowRecoverySettingsChanged (Notification.Name.flowRecoverySettingsChanged)",
+  "DispatchQueue com.emuqu.settings.write (utility, serial)",
+  "file:<settings dir>/user_settings.unreadable.json (copy of a settings file that existed but could not be read; SettingsManager.unreadableBackupName)"
+ ],
+ "toplevel": "`nonisolated static let shared = SettingsManager()` creates the singleton lazily on first touch from any thread; settingsWriteQueue and writeState are created as stored-property initializers. Notification.Name.flowRecoverySettingsChanged = \"FlowRecoverySettingsChanged\".",
+ "flags": [
+  {
+   "kind": "untested",
+   "sev": "low",
+   "text": "The protection-aware load path (blockedByProtection, retryLoadAfterUnlock, the didSet don't-clobber guard) has no test in EmuquTests (grep for blockedByProtection/retryLoadAfterUnlock finds none).",
+   "evidence": [
+    "Emuqu/Sources/Models/SettingsManager.swift:30",
+    "Emuqu/Sources/Models/SettingsManager.swift:153",
+    "Emuqu/Sources/Models/SettingsManager.swift:192"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "var SettingsManager.settings",
+   "hash": "5435c83b47938fab",
+   "does": "didSet of the settings property: updates the lock-backed snapshot, saves through saveUnlessLocked (skipped, logged, while the file is locked — the change is merged on unlock), and always posts flowRecoverySettingsChanged.",
+   "entry": "Swift property observer: runs on every assignment to SettingsManager.settings (all Settings UI bindings, services).",
+   "calls": [
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.saveUnlessLocked()",
+    "ext:NotificationCenter.post"
+   ],
+   "reads": [
+    "mem:SettingsManager.loadOutcome"
+   ],
+   "writes": [
+    "mem:SettingsManager.settingsSnapshot",
+    "file:user_settings.json",
+    "ud:perf.enableAIAssistant",
+    "ud:perf.enableVoiceMode",
+    "ud:perf.enableWatchConnectivity",
+    "notif:FlowRecoverySettingsChanged"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.saveUnlessLocked()": "8dbee5f9f1a0e56e"
+   }
+  },
+  {
+   "key": "var SettingsManager.settingsSnapshot",
+   "hash": "3f5bde75a9a77aa1",
+   "does": "Nonisolated accessor returning the latest settings value from the lock-backed snapshot box, for off-main readers.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:SettingsManager.settingsSnapshot"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "init SettingsManager()",
+   "hash": "8033af34bc3c9f81",
+   "does": "Private nonisolated init: resolves (and migrates) the settings URL, loads it, records the LoadOutcome, seeds settings and the snapshot with the loaded value or UserSettings() defaults, keeps those defaults as lockedStartingPoint when the load was blocked, schedules the protected-data observer if blocked, and installs background/terminate flush observers.",
+   "entry": "Called once by the static `shared` initializer on first access (EmuquApp.swift:152 and AppDependencies).",
+   "calls": [
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.resolveSettingsURL(fileManager:)",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:)",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.installProtectedDataObserver()",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.installDurabilityObservers()"
+   ],
+   "reads": [
+    "file:user_settings.json"
+   ],
+   "writes": [
+    "mem:SettingsManager.settings",
+    "mem:SettingsManager.loadOutcome",
+    "mem:SettingsManager.settingsSnapshot",
+    "mem:SettingsManager.lockedStartingPoint"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "?? — load returned nil (missing, blocked or unreadable file)",
+     "effect": "UserSettings() defaults are used in memory"
+    },
+    {
+     "at": "+6",
+     "cond": "outcome == .blockedByProtection",
+     "effect": "lockedStartingPoint = the defaults; otherwise nil"
+    },
+    {
+     "at": "+13",
+     "cond": "outcome == .blockedByProtection",
+     "effect": "true: a MainActor Task installs the protectedDataDidBecomeAvailable observer; false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.installDurabilityObservers()": "270b1a0fbcea35cf",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.installProtectedDataObserver()": "f3688cbb39a90c32",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:)": "4f496081d9a90c6a",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.resolveSettingsURL(fileManager:)": "c528108e4d2f5c1c",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "f1ace8ba85027f38"
+   }
+  },
+  {
+   "key": "func SettingsManager.resolveSettingsURL(fileManager:)",
+   "hash": "5eb6fb29b135ec91",
+   "does": "Returns <AppGroup container>/user_settings.json; if that file is absent but <Documents>/user_settings.json exists, copies the legacy file into the App Group first; when that copy fails it returns the Documents URL, so this launch reads and saves the user's settings there and the copy is retried next launch.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Constants.swift::func AppConfig.sharedContainerURL()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:FileManager.copyItem"
+   ],
+   "reads": [
+    "file:Documents/user_settings.json",
+    "file:user_settings.json"
+   ],
+   "writes": [
+    "file:user_settings.json"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "guard: App Group file absent AND Documents URL resolves AND legacy file exists",
+     "effect": "any false: return App Group URL without migration; all true: attempt copy"
+    },
+    {
+     "at": "+12",
+     "cond": "catch: copyItem threw",
+     "effect": "log a warning and return the legacy Documents URL (migration retried on the next launch, since the App Group file still does not exist)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Constants.swift::func AppConfig.sharedContainerURL()": "9cf3a08c95588151",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func SettingsManager.installDurabilityObservers()",
+   "hash": "e9a2624b2f090152",
+   "does": "Registers observers for UIApplication.didEnterBackground and willTerminate that synchronously flush any pending settings write.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.flushPendingWritesSynchronously()",
+    "ext:NotificationCenter.addObserver"
+   ],
+   "reads": [
+    "notif:UIApplication.didEnterBackgroundNotification",
+    "notif:UIApplication.willTerminateNotification"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.flushPendingWritesSynchronously()": "0bd333b6cc926976"
+   }
+  },
+  {
+   "key": "func SettingsManager.load(from:)",
+   "hash": "89463f5abbf81c71",
+   "does": "Static loader: missing file → (nil,.fileNotPresent); successful ISO-8601 JSON decode → (settings,.loaded); NSFileReadNoPermissionError in NSCocoaErrorDomain → (nil,.blockedByProtection); any other read/decode error → logged, the file copied aside by preserveUnreadableFile, (nil,.unreadableOther).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::init UserSettings(from:)",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.preserveUnreadableFile(at:)",
+    "ext:Data(contentsOf:)",
+    "ext:JSONDecoder.decode"
+   ],
+   "reads": [
+    "file:user_settings.json"
+   ],
+   "writes": [
+    "file:user_settings.unreadable.json"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "file does not exist",
+     "effect": "return (nil,.fileNotPresent)"
+    },
+    {
+     "at": "+8",
+     "cond": "catch (bridged NSError)",
+     "effect": "classify the error"
+    },
+    {
+     "at": "+11",
+     "cond": "error is NSCocoaErrorDomain / NSFileReadNoPermissionError (257)",
+     "effect": "true: return (nil,.blockedByProtection); false: log, keep a copy of the file, return (nil,.unreadableOther) — defaults may later be saved over the file, the copy survives"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "8e9dc5b9d24c750a",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.preserveUnreadableFile(at:)": "889a027d8dbe6650",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::init UserSettings(from:)": "be16736fa176d425",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func SettingsManager.preserveUnreadableFile(at:)",
+   "hash": "02287953537d42ac",
+   "does": "Copies a settings file that could not be read to user_settings.unreadable.json beside it (removing an older copy first) and logs a warning; a failure to copy is logged at .error.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:FileManager.removeItem",
+    "ext:FileManager.copyItem"
+   ],
+   "reads": [
+    "file:user_settings.json"
+   ],
+   "writes": [
+    "file:user_settings.unreadable.json"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "an older copy exists",
+     "effect": "remove it before copying"
+    },
+    {
+     "at": "+7",
+     "cond": "catch: remove/copy threw",
+     "effect": "log at .error; no copy kept"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func SettingsManager.installProtectedDataObserver()",
+   "hash": "0a5d765220ce2875",
+   "does": "Installs (once) a main-queue observer for protectedDataDidBecomeAvailable that hops to the MainActor and calls retryLoadAfterUnlock.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.retryLoadAfterUnlock()",
+    "ext:NotificationCenter.addObserver"
+   ],
+   "reads": [
+    "notif:UIApplication.protectedDataDidBecomeAvailableNotification"
+   ],
+   "writes": [
+    "mem:SettingsManager.protectedDataObserver"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "an observer is already installed",
+     "effect": "return; otherwise register one"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.retryLoadAfterUnlock()": "9b40cc1d0f02354b"
+   }
+  },
+  {
+   "key": "func SettingsManager.retryLoadAfterUnlock()",
+   "hash": "185437c0ca221087",
+   "does": "Re-runs the static load. Still locked: logs and returns, keeping the observer for the next unlock. Otherwise clears lockedStartingPoint, stores the outcome, and either assigns the loaded settings merged with every field changed while locked (merging(changesFrom:to:onto:); didSet saves and notifies) or, when the file is now absent/unreadable, saves the in-memory settings; then removes the protected-data observer.",
+   "entry": "NotificationCenter observer for UIApplication.protectedDataDidBecomeAvailableNotification (installed by installProtectedDataObserver).",
+   "calls": [
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:)",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.merging(changesFrom:to:onto:)",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.save()",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.removeProtectedDataObserver()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "file:user_settings.json",
+    "mem:SettingsManager.lockedStartingPoint"
+   ],
+   "writes": [
+    "mem:SettingsManager.loadOutcome",
+    "mem:SettingsManager.lockedStartingPoint",
+    "mem:SettingsManager.settings",
+    "file:user_settings.json",
+    "notif:FlowRecoverySettingsChanged",
+    "mem:SettingsManager.protectedDataObserver"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "outcome still .blockedByProtection",
+     "effect": "log and return; observer kept"
+    },
+    {
+     "at": "+9",
+     "cond": "load returned settings",
+     "effect": "true: settings = merge of locked-time changes onto them (or them, without a starting point); false: save() the in-memory settings"
+    },
+    {
+     "at": "+12",
+     "cond": "lockedStartingPoint present",
+     "effect": "merge; otherwise take the loaded settings as they are"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:)": "4f496081d9a90c6a",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.merging(changesFrom:to:onto:)": "2a1057db7327422b",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.removeProtectedDataObserver()": "f615f129454b105b",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.save()": "2b2393e8376b4c26",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "201177101ead59c4",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func SettingsManager.removeProtectedDataObserver()",
+   "hash": "608ae5bd1ad7b67f",
+   "does": "Removes the protected-data observer from NotificationCenter and clears it; no-op when none is installed.",
+   "entry": null,
+   "calls": [
+    "ext:NotificationCenter.removeObserver"
+   ],
+   "reads": [
+    "mem:SettingsManager.protectedDataObserver"
+   ],
+   "writes": [
+    "mem:SettingsManager.protectedDataObserver"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no observer",
+     "effect": "return"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SettingsManager.merging(changesFrom:to:onto:)",
+   "hash": "5350d4131dbc20af",
+   "does": "Encodes base, changed and disk settings to top-level JSON fields; for every key whose value differs between base and changed (compared as NSObject), sets (or removes) that key in the disk fields from changed; decodes the result as UserSettings. Any encode/decode failure is logged as a warning and returns disk unchanged.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.jsonFields(_:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::init UserSettings(from:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:JSONSerialization.data",
+    "ext:JSONDecoder.decode"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "for each key in base ∪ changed whose values differ",
+     "effect": "take changed's value (nil removes the key)"
+    },
+    {
+     "at": "+13",
+     "cond": "catch",
+     "effect": "log warning, return disk"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.jsonFields(_:)": "4d902ffde6c955d7",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::init UserSettings(from:)": "be16736fa176d425",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func SettingsManager.jsonFields(_:)",
+   "hash": "ec6c23b2832b13c8",
+   "does": "Encodes settings with an ISO-8601 JSONEncoder and returns the top-level JSON object as [String: Any]; throws CocoaError.coderReadCorrupt if it is not an object.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encode(to:)",
+    "ext:JSONEncoder.encode",
+    "ext:JSONSerialization.jsonObject"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "top level is not a dictionary",
+     "effect": "throw"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "201177101ead59c4",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encode(to:)": "b34f5d0e5c02e7e0"
+   }
+  },
+  {
+   "key": "func SettingsManager.resetToDefaults()",
+   "hash": "4b0f5398c578e8eb",
+   "does": "Delete-All-My-Data reset. If the file is locked it deletes the locked user_settings.json (removal needs no read), marks the outcome .fileNotPresent, drops the locked starting point and the unlock retry (so it cannot load the erased settings back). Then deletes the unreadable-file copy, assigns fresh UserSettings() (didSet persists defaults) and clears the device-local disclaimer flag.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.removeFile(at:what:)",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.removeProtectedDataObserver()",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.hasAcceptedDisclaimer"
+   ],
+   "reads": [
+    "mem:SettingsManager.loadOutcome"
+   ],
+   "writes": [
+    "mem:SettingsManager.settings",
+    "mem:SettingsManager.loadOutcome",
+    "mem:SettingsManager.lockedStartingPoint",
+    "mem:SettingsManager.protectedDataObserver",
+    "file:user_settings.json",
+    "file:user_settings.unreadable.json",
+    "ud:hasAcceptedHealthDisclaimer",
+    "notif:FlowRecoverySettingsChanged"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "loadOutcome == .blockedByProtection",
+     "effect": "delete the locked file, outcome .fileNotPresent, clear starting point, remove observer; otherwise straight to the reset"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.removeFile(at:what:)": "08e39540981c56bc",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.removeProtectedDataObserver()": "f615f129454b105b",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.hasAcceptedDisclaimer": "075d6b0f976f5f2f",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "201177101ead59c4",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "f1ace8ba85027f38"
+   }
+  },
+  {
+   "key": "func SettingsManager.removeFile(at:what:)",
+   "hash": "37fb7848ab9145d5",
+   "does": "Deletes the file at url when it exists; a failure is logged at .error naming `what`.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:FileManager.removeItem"
+   ],
+   "reads": [],
+   "writes": [
+    "file:user_settings.json",
+    "file:user_settings.unreadable.json"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "file absent",
+     "effect": "return"
+    },
+    {
+     "at": "+4",
+     "cond": "catch: removeItem threw",
+     "effect": "log at .error"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func SettingsManager.saveUnlessLocked()",
+   "hash": "ee544fbc7a43f3fd",
+   "does": "Saves the settings unless the load was blocked by file protection; while blocked it logs a warning and leaves the change in memory for retryLoadAfterUnlock to merge.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.save()"
+   ],
+   "reads": [
+    "mem:SettingsManager.loadOutcome"
+   ],
+   "writes": [
+    "ud:perf.enableAIAssistant",
+    "ud:perf.enableVoiceMode",
+    "ud:perf.enableWatchConnectivity",
+    "file:user_settings.json"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "loadOutcome == .blockedByProtection",
+     "effect": "log warning and return without saving; otherwise save()"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.save()": "2b2393e8376b4c26",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func SettingsManager.save()",
+   "hash": "687fa151466caffd",
+   "does": "Writes the three performance flags (enableAIAssistant, enableVoiceMode, enableWatchConnectivity) to standard UserDefaults and enqueues an off-main disk write of the current settings.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.enqueueDiskWrite(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:perf.enableAIAssistant",
+    "ud:perf.enableVoiceMode",
+    "ud:perf.enableWatchConnectivity",
+    "file:user_settings.json"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.enqueueDiskWrite(_:)": "6da822623dde7323",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "201177101ead59c4"
+   }
+  },
+  {
+   "key": "func SettingsManager.enqueueDiskWrite(_:)",
+   "hash": "7a52c6abc38060cd",
+   "does": "Stores the snapshot as the pending write under the lock and, if no drain is scheduled, dispatches drainPendingWrites onto the utility write queue (latest-wins coalescing).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.drainPendingWrites()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:SettingsManager.writeState"
+   ],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "a drain was already scheduled",
+     "effect": "return (the running drain picks up the new pending snapshot); false: async-dispatch a drain"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.drainPendingWrites()": "a3ee71a5a45689d2"
+   }
+  },
+  {
+   "key": "func SettingsManager.drainPendingWrites()",
+   "hash": "44f89af6d28f9f9a",
+   "does": "Loops writing pending snapshots to disk until takePendingWrite returns nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.takePendingWrite()",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.writeSettingsToDisk(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:user_settings.json"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "while a pending snapshot exists",
+     "effect": "write it; loop ends when none (scheduled cleared)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.takePendingWrite()": "55abc85e769e8af6",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.writeSettingsToDisk(_:)": "f947da937799b53d"
+   }
+  },
+  {
+   "key": "func SettingsManager.takePendingWrite()",
+   "hash": "9904ab5d52687119",
+   "does": "Under the lock pops the pending snapshot; when none, clears the scheduled flag and returns nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:SettingsManager.writeState"
+   ],
+   "writes": [
+    "mem:SettingsManager.writeState"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "no pending snapshot",
+     "effect": "scheduled=false, return nil; else clear pending and return it"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SettingsManager.writeSettingsToDisk(_:)",
+   "hash": "8f8b9f5f229621d6",
+   "does": "Encodes the snapshot as pretty, sorted-key ISO-8601 JSON, writes it atomically to user_settings.json and sets completeUntilFirstUserAuthentication protection; any error is logged at .error (shown in Troubleshooting's Recent Problems).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encode(to:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:JSONEncoder.encode",
+    "ext:Data.write(.atomic)",
+    "ext:NSURL.setResourceValue(fileProtectionKey)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:user_settings.json"
+   ],
+   "branches": [
+    {
+     "at": "+11",
+     "cond": "catch: encode/write/protection threw",
+     "effect": "logged at .error and dropped; no retry"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encode(to:)": "b34f5d0e5c02e7e0",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func SettingsManager.flushPendingWritesSynchronously()",
+   "hash": "e5cfa4a2dc640ede",
+   "does": "Synchronously runs drainPendingWrites on the settings write queue, blocking the caller until any pending write is on disk.",
+   "entry": "Called from the didEnterBackground / willTerminate NotificationCenter observers installed in installDurabilityObservers.",
+   "calls": [
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.drainPendingWrites()"
+   ],
+   "reads": [],
+   "writes": [
+    "file:user_settings.json"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.drainPendingWrites()": "a3ee71a5a45689d2"
+   }
+  },
+  {
+   "key": "func SettingsManager.currentSettingsJSON()",
+   "hash": "78d7e39429af1ac2",
+   "does": "Returns the in-memory settings encoded as pretty sorted ISO-8601 JSON for CloudKit push, or nil when the load outcome is blockedByProtection or unreadableOther (or encoding throws).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encode(to:)"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings",
+    "mem:SettingsManager.loadOutcome"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "loadOutcome is .loaded or .fileNotPresent",
+     "effect": "true: encode; false: return nil (push skipped)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "201177101ead59c4",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encode(to:)": "b34f5d0e5c02e7e0",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+   }
+  },
+  {
+   "key": "func SettingsManager.restoreFromJSON(_:)",
+   "hash": "2b22d48b3bfbb4c4",
+   "does": "Decodes a CloudKit settings JSON blob (throws on failure), forces loadOutcome to .loaded, clears lockedStartingPoint and assigns it to settings (didSet persists + notifies); when the restored copy carries a trial start, adoptTrialStart bridges it into the entitlement anchor and mirrors the resolved start back.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::init UserSettings(from:)",
+    "ext:JSONDecoder.decode",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.adoptTrialStart(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:SettingsManager.loadOutcome",
+    "mem:SettingsManager.lockedStartingPoint",
+    "mem:SettingsManager.settings",
+    "file:user_settings.json",
+    "notif:FlowRecoverySettingsChanged",
+    "ud:entitlement.anchor.v1 (via adoptTrialStart)",
+    "kc:com.chrissharp.flowrecovery.entitlement/primary (via adoptTrialStart)"
+   ],
+   "branches": [
+    {
+     "at": "+13",
+     "cond": "restored.trialStartDate is set",
+     "effect": "adoptTrialStart(it); otherwise nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.adoptTrialStart(_:)": "d8ef07680d3672b4",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "201177101ead59c4",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::init UserSettings(from:)": "be16736fa176d425"
+   }
+  },
+  {
+   "key": "func SettingsManager.addCustomTag(_:)",
+   "hash": "a65ae599af871767",
+   "does": "Appends a custom ReadingTag to settings.customTags unless one with the same id exists.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:SettingsManager.settings",
+    "file:user_settings.json",
+    "notif:FlowRecoverySettingsChanged"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "a tag with the same id already exists",
+     "effect": "return without change; otherwise append (didSet saves)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "201177101ead59c4"
+   }
+  },
+  {
+   "key": "func SettingsManager.removeCustomTag(_:)",
+   "hash": "ee0cfe7ffa4b4028",
+   "does": "Removes all custom tags with the given tag's id.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:SettingsManager.settings",
+    "file:user_settings.json",
+    "notif:FlowRecoverySettingsChanged"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "201177101ead59c4"
+   }
+  },
+  {
+   "key": "var SettingsManager.hasAcceptedDisclaimer",
+   "hash": "aac41a773ba0bc5f",
+   "does": "Device-local disclaimer flag: getter reads disclaimerRevision (for observation) and UserDefaults bool; setter writes the bool and bumps disclaimerRevision.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "ud:hasAcceptedHealthDisclaimer",
+    "mem:SettingsManager.disclaimerRevision"
+   ],
+   "writes": [
+    "ud:hasAcceptedHealthDisclaimer",
+    "mem:SettingsManager.disclaimerRevision"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SettingsManager.updateBaseline(rmssd:hr:)",
+   "hash": "fb75826a4cc3ebed",
+   "does": "Sets settings.baselineRMSSD and/or settings.baselineHR when the corresponding argument is non-nil (each assignment triggers a separate save + notification).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:SettingsManager.settings",
+    "file:user_settings.json",
+    "notif:FlowRecoverySettingsChanged"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "rmssd non-nil",
+     "effect": "assign baselineRMSSD; else skip"
+    },
+    {
+     "at": "+4",
+     "cond": "hr non-nil",
+     "effect": "assign baselineHR; else skip"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "201177101ead59c4"
+   }
+  },
+  {
+   "key": "var SettingsManager.trialDurationDays",
+   "hash": "356684aa8e1af302",
+   "does": "Static alias returning TrialPolicy.durationDays (30).",
+   "entry": null,
+   "calls": [
+    "ext:TrialPolicy.durationDays"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "Only EntitlementAnchorTests references SettingsManager.trialDurationDays; no production code calls it.",
+     "evidence": [
+      "Emuqu/Sources/Models/SettingsManager.swift:394",
+      "EmuquTests/EntitlementAnchorTests.swift:247"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "var SettingsManager.trialDaysRemaining",
+   "hash": "acf2f5b37570b981",
+   "does": "Days remaining in the trial: start = cached anchor trialStartDate ?? settings.trialStartDate; now = max(wall clock, anchor high-water mark); TrialPolicy.daysRemaining rounds up, 0 when unstarted/expired.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.cached()",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.effectiveNow(_:wallClock:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func TrialPolicy.daysRemaining(start:now:)"
+   ],
+   "reads": [
+    "ud:entitlement.anchor.v1 (EntitlementAnchor.cached, standard defaults)",
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "?? — anchor cache has no trial start",
+     "effect": "falls back to settings.trialStartDate (CloudKit-synced mirror)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "201177101ead59c4",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.cached()": "1f50f386668c92fd",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.effectiveNow(_:wallClock:)": "5364495875c1deda",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func TrialPolicy.daysRemaining(start:now:)": "85ff9dd63dfc635a"
+   }
+  },
+  {
+   "key": "var SettingsManager.isInTrialPeriod",
+   "hash": "d8768ee2d1f55155",
+   "does": "True when trialDaysRemaining > 0.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.trialDaysRemaining"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.trialDaysRemaining": "42d686db341dd612"
+   }
+  },
+  {
+   "key": "func SettingsManager.adoptTrialStart(_:)",
+   "hash": "d6ead2cfe556dba7",
+   "does": "Mirrors a trial start into settings: if the cached anchor already holds a start no later than the given one, mirrors that; otherwise adopts the given date into the anchor as a device start (resolve + persist) and mirrors the anchor's resulting start.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.cached()",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.adoptTrialStart(_:wallClock:)",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.mirrorTrialStart(_:)"
+   ],
+   "reads": [
+    "ud:entitlement.anchor.v1 (EntitlementAnchor.cached)"
+   ],
+   "writes": [
+    "ud:entitlement.anchor.v1 (via EntitlementAnchor.adoptTrialStart persist)",
+    "kc:com.chrissharp.flowrecovery.entitlement/primary (via adoptTrialStart persist)",
+    "mem:SettingsManager.settings",
+    "file:user_settings.json",
+    "notif:FlowRecoverySettingsChanged"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "anchor has a start and it is <= the given start",
+     "effect": "mirror the anchor's start and return (always the case for StoreKitManager, which records the App Store start first); else adopt the given start into the anchor and mirror the anchor's result (a CloudKit-restored start from restoreFromJSON)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.mirrorTrialStart(_:)": "1123a381ac54551c",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.adoptTrialStart(_:wallClock:)": "f3f98f46bf9dd55c",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.cached()": "1f50f386668c92fd"
+   }
+  },
+  {
+   "key": "func SettingsManager.mirrorTrialStart(_:)",
+   "hash": "b94b7008e9f7124a",
+   "does": "Assigns settings.trialStartDate = start when start is non-nil and differs from the stored value.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:SettingsManager.settings",
+    "file:user_settings.json",
+    "notif:FlowRecoverySettingsChanged"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "start is nil or equals settings.trialStartDate",
+     "effect": "return without change; else assign (didSet saves)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "201177101ead59c4"
+   }
+  },
+  {
+   "key": "func SettingsManager.recordTrialReminderShown()",
+   "hash": "31e6938737dcca94",
+   "does": "Stores now as the last trial-reminder date in standard UserDefaults.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "ud:lastTrialReminderDate"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var SettingsManager.hasShownTrialReminderToday",
+   "hash": "2a81df89aa40e920",
+   "does": "True when the stored last trial-reminder date is today per Calendar.current.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "ud:lastTrialReminderDate"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no Date stored under lastTrialReminderDate",
+     "effect": "return false; else isDateInToday(last)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

@@ -1,0 +1,172 @@
+{
+ "file": "Emuqu/Sources/Collection/StrapDeadline.swift",
+ "hash": "70775900857953d1",
+ "role": "Hard wall-clock timeout for strap SDK calls: runs the operation in its own Task and resumes the caller at the first of result, deadline, or caller cancellation; late results are dropped.",
+ "types": [
+  "StrapDeadline: enum — namespace for race()",
+  "StrapRace<T>: class (private, Sendable) — lock-protected continuation + clock/call tasks + cancelled flag",
+  "ResumeOnce<T>: class (private, Sendable) — resumes a CheckedContinuation at most once"
+ ],
+ "state": [
+  "StrapRace.parts: OSAllocatedUnfairLock<Parts> (per race)",
+  "ResumeOnce.resumed: OSAllocatedUnfairLock<Bool> (per race)"
+ ],
+ "toplevel": "No code outside units.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func StrapDeadline.race(seconds:timeout:operation:)",
+   "hash": "f039a1805a5f18b5",
+   "does": "Awaits `operation` with a hard deadline of `seconds`: builds a StrapRace, parks the caller in a checked continuation, and on caller cancellation calls race.cancel(); throws `timeout` at the deadline, CancellationError on cancel, else the operation's result/error.",
+   "entry": "Called from RRCollector+OvernightArming.swift:45, PolarManager+Recording.swift:462, StrapRecordingCoordinator+Transfer.swift:116 and :322; test StrapTransferTests.swift:206.",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapDeadline.swift::func StrapRace.begin(_:seconds:timeout:operation:)",
+    "Emuqu/Sources/Collection/StrapDeadline.swift::func StrapRace.cancel()",
+    "Emuqu/Sources/Collection/StrapDeadline.swift::init ResumeOnce(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapDeadline.swift::func StrapRace.begin(_:seconds:timeout:operation:)": "ccdcda245c476ee0",
+    "Emuqu/Sources/Collection/StrapDeadline.swift::func StrapRace.cancel()": "bb305350e48a7200",
+    "Emuqu/Sources/Collection/StrapDeadline.swift::init ResumeOnce(_:)": "9db9ba3369f5e6b1"
+   }
+  },
+  {
+   "key": "func StrapRace.begin(_:seconds:timeout:operation:)",
+   "hash": "870ddb0c65bde8a7",
+   "does": "Stores the ResumeOnce; if already cancelled resumes CancellationError; else starts a clock Task (expire) and a call Task (run), records both, and if cancel() ran meanwhile calls cancel() again so the new tasks get cancelled.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/StrapDeadline.swift::func StrapRace.expire(after:with:)",
+    "Emuqu/Sources/Collection/StrapDeadline.swift::func StrapRace.run(_:finish:clock:)",
+    "Emuqu/Sources/Collection/StrapDeadline.swift::func StrapRace.cancel()",
+    "Emuqu/Sources/Collection/StrapDeadline.swift::func ResumeOnce.callAsFunction(_:)",
+    "ext:Task"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "caller was cancelled before begin",
+     "effect": "true: resumes with CancellationError and returns without starting tasks; false: starts clock and call tasks"
+    },
+    {
+     "at": "+20",
+     "cond": "cancelled flag set while tasks were being created",
+     "effect": "true: cancel() resumes (no-op if already resumed) and cancels both tasks; false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapDeadline.swift::func ResumeOnce.callAsFunction(_:)": "303ea09ff4ff4da3",
+    "Emuqu/Sources/Collection/StrapDeadline.swift::func StrapRace.cancel()": "bb305350e48a7200",
+    "Emuqu/Sources/Collection/StrapDeadline.swift::func StrapRace.expire(after:with:)": "26c320476c1c925b",
+    "Emuqu/Sources/Collection/StrapDeadline.swift::func StrapRace.run(_:finish:clock:)": "42754f5961031d80",
+    "EmuquTests/OverpassClientTests.swift::var Result.failure": "0476d3f57d94bf98"
+   }
+  },
+  {
+   "key": "func StrapRace.cancel()",
+   "hash": "6b9c53e2fe5cb465",
+   "does": "Marks the race cancelled, resumes the caller with CancellationError (ignored if already resumed), and cancels the clock and call tasks.",
+   "entry": "withTaskCancellationHandler onCancel in StrapDeadline.race (caller's task cancelled, e.g. user Cancel on a strap transfer).",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapDeadline.swift::func ResumeOnce.callAsFunction(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapDeadline.swift::func ResumeOnce.callAsFunction(_:)": "303ea09ff4ff4da3",
+    "EmuquTests/OverpassClientTests.swift::var Result.failure": "0476d3f57d94bf98"
+   }
+  },
+  {
+   "key": "func StrapRace.expire(after:with:)",
+   "hash": "156cc78f58c0bc45",
+   "does": "Sleeps `seconds`; if the sleep is cancelled (call finished first) returns silently; otherwise resumes the caller with `timeout` and cancels both tasks.",
+   "entry": "Clock Task started by StrapRace.begin.",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapDeadline.swift::func ResumeOnce.callAsFunction(_:)",
+    "ext:Task.sleep"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "Task.sleep throws (clock cancelled)",
+     "effect": "catch: return silently — expected when the operation finished first; no throw: deadline reached, caller resumed with timeout"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapDeadline.swift::func ResumeOnce.callAsFunction(_:)": "303ea09ff4ff4da3",
+    "EmuquTests/OverpassClientTests.swift::var Result.failure": "0476d3f57d94bf98",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "9b0181db6472cf0d"
+   }
+  },
+  {
+   "key": "func StrapRace.run(_:finish:clock:)",
+   "hash": "1d6948a407432788",
+   "does": "Awaits the operation, resumes the caller with its value or error, then cancels the clock task.",
+   "entry": "Call Task started by StrapRace.begin.",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapDeadline.swift::func ResumeOnce.callAsFunction(_:)",
+    "closure:operation passed by StrapDeadline.race callers (SDK calls)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "operation throws",
+     "effect": "catch: caller resumed with that error (dropped if deadline/cancel already resumed); no throw: resumed with value"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapDeadline.swift::func ResumeOnce.callAsFunction(_:)": "303ea09ff4ff4da3",
+    "EmuquTests/OverpassClientTests.swift::var Result.failure": "0476d3f57d94bf98"
+   }
+  },
+  {
+   "key": "init ResumeOnce(_:)",
+   "hash": "caef46352dc00a97",
+   "does": "Stores the checked continuation.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ResumeOnce.callAsFunction(_:)",
+   "hash": "a485e04d80754ae8",
+   "does": "Under a lock flips `resumed` and resumes the continuation only the first time; later results are dropped.",
+   "entry": "Invoked as a function by StrapRace.begin/cancel/expire/run.",
+   "calls": [
+    "ext:CheckedContinuation.resume"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "this is the first call",
+     "effect": "true: continuation resumed with the result; false: result dropped"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

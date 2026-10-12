@@ -1,0 +1,162 @@
+{
+ "file": "Emuqu/Sources/Views/Utilities/PDFPreviewView.swift",
+ "hash": "c1c9a381ed6cc481",
+ "role": "QLPreviewController wrapper in a navigation controller with Done and Share bar buttons, used by ReportsListView and MorningResultsView.",
+ "types": [
+  "PDFPreviewView: struct (UIViewControllerRepresentable)",
+  "PDFPreviewView.Coordinator: class (QLPreviewControllerDataSource, QLPreviewControllerDelegate) — single-item data source and button targets"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func PDFPreviewView.makeCoordinator()",
+   "hash": "834c62e222a189e2",
+   "does": "Creates Coordinator holding a copy of this view.",
+   "entry": "UIViewControllerRepresentable.makeCoordinator",
+   "calls": [
+    "Emuqu/Sources/Views/Utilities/PDFPreviewView.swift::init PDFPreviewView.Coordinator(parent:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Utilities/PDFPreviewView.swift::init PDFPreviewView.Coordinator(parent:)": "d4cfe6ef358aebde"
+   }
+  },
+  {
+   "key": "func PDFPreviewView.makeUIViewController(context:)",
+   "hash": "7021c9981de33cf0",
+   "does": "Builds QLPreviewController with the coordinator as data source/delegate, Done (left) and Action (right) bar buttons, wrapped in a UINavigationController.",
+   "entry": "UIViewControllerRepresentable.makeUIViewController",
+   "calls": [
+    "Emuqu/Sources/Views/Utilities/PDFPreviewView.swift::func PDFPreviewView.barButton(_:action:coordinator:)",
+    "ext:QLPreviewController"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::var SystemCueAudioSession.coordinator": "1c56830bce5016ed",
+    "Emuqu/Sources/Views/Utilities/PDFPreviewView.swift::func PDFPreviewView.Coordinator.doneAction()": "398072fed4ea8871",
+    "Emuqu/Sources/Views/Utilities/PDFPreviewView.swift::func PDFPreviewView.Coordinator.previewController(_:previewItemAt:)": "bc82e9ae8dbbf42f",
+    "Emuqu/Sources/Views/Utilities/PDFPreviewView.swift::func PDFPreviewView.Coordinator.shareAction()": "f9ac194562e4c87b",
+    "Emuqu/Sources/Views/Utilities/PDFPreviewView.swift::func PDFPreviewView.barButton(_:action:coordinator:)": "802277a228fcc07e"
+   }
+  },
+  {
+   "key": "func PDFPreviewView.barButton(_:action:coordinator:)",
+   "hash": "35a156b3aeebdd7b",
+   "does": "Creates a system UIBarButtonItem targeting the coordinator with the given selector.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func PDFPreviewView.updateUIViewController(_:context:)",
+   "hash": "d5bd3fedfcc2b7a5",
+   "does": "No-op update; coordinator.parent is never refreshed, so the URL captured at creation stays in use.",
+   "entry": "UIViewControllerRepresentable.updateUIViewController",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "init PDFPreviewView.Coordinator(parent:)",
+   "hash": "6e26d7b9b49ee749",
+   "does": "Stores the parent view copy.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func PDFPreviewView.Coordinator.numberOfPreviewItems(in:)",
+   "hash": "342c46e4af58e440",
+   "does": "Returns 1.",
+   "entry": "QLPreviewControllerDataSource",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func PDFPreviewView.Coordinator.previewController(_:previewItemAt:)",
+   "hash": "665be8e3faa4f48b",
+   "does": "Returns parent.url as the preview item.",
+   "entry": "QLPreviewControllerDataSource",
+   "calls": [],
+   "reads": [
+    "file:parent.url (PDF report)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func PDFPreviewView.Coordinator.previewControllerDidDismiss(_:)",
+   "hash": "875dc37a621611f9",
+   "does": "Calls the parent's SwiftUI dismiss when QuickLook dismisses.",
+   "entry": "QLPreviewControllerDelegate",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func PDFPreviewView.Coordinator.doneAction()",
+   "hash": "400cf1febdf57196",
+   "does": "Done button: calls parent's SwiftUI dismiss.",
+   "entry": "UIBarButtonItem target-action (#selector(doneAction))",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func PDFPreviewView.Coordinator.shareAction()",
+   "hash": "a08d92c29e05acaf",
+   "does": "Share button: finds the topmost presenter and presents a share sheet for the PDF URL; does nothing if no presenter.",
+   "entry": "UIBarButtonItem target-action (#selector(shareAction))",
+   "calls": [
+    "Emuqu/Sources/Views/Utilities/RecapSharing.swift::func topmostPresenter()",
+    "Emuqu/Sources/Views/Utilities/RecapSharing.swift::func presentShareSheet(activityItem:from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "topmostPresenter() non-nil",
+     "effect": "present share sheet; nil → silently return"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Utilities/RecapSharing.swift::func presentShareSheet(activityItem:from:)": "500b0f25ce180df6",
+    "Emuqu/Sources/Views/Utilities/RecapSharing.swift::func topmostPresenter()": "6ff0e54075a6ddbf"
+   }
+  }
+ ],
+ "deps": {}
+}

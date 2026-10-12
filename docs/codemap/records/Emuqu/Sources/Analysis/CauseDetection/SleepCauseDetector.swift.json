@@ -1,0 +1,399 @@
+{
+ "file": "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift",
+ "hash": "d0a3aeb901d6421e",
+ "role": "CauseDetectionStrategy that turns last night's AnalysisSleepInput and the multi-night AnalysisSleepTrendInput into ranked DetectedCause entries (positive causes for good readings, negative ones otherwise) for CauseDetector.",
+ "types": [
+  "SleepCauseDetector: class — sleep-domain CauseDetectionStrategy"
+ ],
+ "state": [],
+ "toplevel": "Conforms to CauseDetectionStrategy (CauseDetector.swift:102); instantiated by CauseDetector.init (CauseDetector.swift:117) and tests (EmuquTests/CauseDetectorTests.swift:229).",
+ "flags": [],
+ "units": [
+  {
+   "key": "func SleepCauseDetector.detectCauses(in:)",
+   "hash": "e12cd02ed3019c53",
+   "does": "Strategy entry: for good/excellent readings returns only positive sleep causes; otherwise, when last night had >0 sleep minutes, concatenates insufficient-sleep, one wakefulness cause (fragmented sleep, else frequent awakenings), low-deep-sleep and below-average/declining-trend causes.",
+   "entry": "dyn:CauseDetectionStrategy.detectCauses called by CauseDetector.detectCauses / detectPositiveCausesOnly (CauseDetector.swift:140,155)",
+   "calls": [
+    "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift::func SleepCauseDetector.detectPositiveSleepCauses(in:)",
+    "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift::func SleepCauseDetector.detectInsufficientSleep(sleep:)",
+    "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift::func SleepCauseDetector.detectWakefulness(sleep:context:)",
+    "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift::func SleepCauseDetector.detectLowDeepSleep(sleep:context:)",
+    "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift::func SleepCauseDetector.detectSleepTrendIssues(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "context.isGoodReading || context.isExcellentReading",
+     "effect": "true: returns detectPositiveSleepCauses only; false: continues to negative detection"
+    },
+    {
+     "at": "+9",
+     "cond": "sleep.totalSleepMinutes > 0",
+     "effect": "false (no sleep data / AnalysisSleepInput.empty): returns []; true: runs the negative detectors"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.isGoodReading(rmssd:)": "a553c84c2cc0efa5",
+    "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift::func SleepCauseDetector.detectInsufficientSleep(sleep:)": "fd0fad081645ac96",
+    "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift::func SleepCauseDetector.detectLowDeepSleep(sleep:context:)": "b5a3e61892dd8572",
+    "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift::func SleepCauseDetector.detectPositiveSleepCauses(in:)": "a7b28cb67e0eee9c",
+    "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift::func SleepCauseDetector.detectSleepTrendIssues(in:)": "1731efdf9201512a",
+    "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift::func SleepCauseDetector.detectWakefulness(sleep:context:)": "0714a92085406c8d",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.totalSleepMinutes(in:)": "89a73025d946f183"
+   }
+  },
+  {
+   "key": "func SleepCauseDetector.detectPositiveSleepCauses(in:)",
+   "hash": "f505edff8e055084",
+   "does": "Positive causes for a good reading: requires a sleep trend with >=3 nights; adds 'Above Your Sleep Average' when tonight is >20% over average and 'Improving Sleep Pattern' (weight 0.7) when the trend is .improving.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift::func SleepCauseDetector.aboveSleepAverageCause(in:trends:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "context.sleepTrend exists and nightsAnalyzed >= 3",
+     "effect": "false: returns [] (no positive sleep cause); true: builds causes"
+    },
+    {
+     "at": "+3",
+     "cond": "trends.trend == .improving",
+     "effect": "true: appends 'Improving Sleep Pattern' moderateHigh/0.7; false: only the above-average cause (if any)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "unreachable-branch",
+     "sev": "med",
+     "text": "In the shipped app context.sleepTrend never has nightsAnalyzed >= 3: the morning summary builds it with AnalysisSleepTrendInput(from: sleepTrendStats), and MorningResultsViewModel.sleepTrendStats is declared but never assigned anywhere in the repo, so it is always .empty (nightsAnalyzed 0). The PDF paths pass nil or the same never-assigned stats, the assistant's ContextBuilder.build defaults it to nil, and HealthKitManager.fetchSleepTrend/analyzeSleepTrend have no app callers. So every trend-based sleep cause (Above/Below Your Sleep Average, Improving/Declining Sleep Pattern) only ever fires in CauseDetectorTests.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift:31",
+      "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift:147",
+      "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift:24",
+      "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift:313",
+      "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift:91",
+      "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift:707",
+      "Emuqu/Sources/Views/ReportsListView.swift:452",
+      "Emuqu/Sources/Views/MainTabView+Reports.swift:96",
+      "Emuqu/Sources/Assistant/Context/ContextBuilder.swift:21",
+      "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift:20"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift::func SleepCauseDetector.aboveSleepAverageCause(in:trends:)": "26b8ae76c7f825c3",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleepTrend": "221b4360b3045fb2"
+   }
+  },
+  {
+   "key": "func SleepCauseDetector.aboveSleepAverageCause(in:trends:)",
+   "hash": "088eb7e20fe2948f",
+   "does": "Returns one 'Above Your Sleep Average' cause (high, 0.78) with tonight's hours and percent over the average when tonight exceeds the recent average by more than HRVThresholds.trendSignificantChange (20%); else [].",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift::func SleepCauseDetector.sleepDiffPercent(sleep:trends:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.integer(_:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "sleepDiffPercent > 20",
+     "effect": "true: appends the cause; false: returns [] (also when average is 0, since sleepDiffPercent returns 0)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift::func SleepCauseDetector.sleepDiffPercent(sleep:trends:)": "cd6cafe3ab3cd175",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.totalSleepMinutes(in:)": "89a73025d946f183",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.integer(_:)": "e447648b612c9e97",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)": "2a4b8a54e9a27938",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "func SleepCauseDetector.detectInsufficientSleep(sleep:)",
+   "hash": "b5aee4b8075f1e22",
+   "does": "Emits 'Insufficient Sleep' when total sleep < 360 min (sleepVeryShortMinutes); under 300 min (sleepShortMinutes) it is veryHigh/0.92, otherwise high/0.82, with hours in the copy.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "totalSleepMinutes < 360",
+     "effect": "true: builds the cause; false: returns []"
+    },
+    {
+     "at": "+8",
+     "cond": "isSeverelyShort (< 300 min) ?:",
+     "effect": "true: confidence .veryHigh; false: .high"
+    },
+    {
+     "at": "+9",
+     "cond": "isSeverelyShort ?:",
+     "effect": "true: weight 0.92; false: 0.82"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.totalSleepMinutes(in:)": "89a73025d946f183",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)": "2a4b8a54e9a27938",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "func SleepCauseDetector.detectFragmentedSleep(sleep:)",
+   "hash": "70b2063135cf0b68",
+   "does": "Emits 'Fragmented Sleep' when measured efficiency < 80% and in-bed time > 300 min; below 75% it is high/0.78 else moderateHigh/0.65. Unmeasured efficiency (nil) yields nothing.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.integer(_:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "sleep.sleepEfficiency != nil",
+     "effect": "nil: returns [] (no evidence); non-nil: evaluates thresholds"
+    },
+    {
+     "at": "+7",
+     "cond": "hasLowEfficiency (<80) && hasAdequateTime (inBed > 300)",
+     "effect": "true: appends cause; false: returns []"
+    },
+    {
+     "at": "+9",
+     "cond": "isVeryLow (<75) ?:",
+     "effect": "true: .high; false: .moderateHigh"
+    },
+    {
+     "at": "+10",
+     "cond": "isVeryLow ?:",
+     "effect": "true: weight 0.78; false: 0.65"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "5814b8c071cb8591",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.integer(_:)": "e447648b612c9e97",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "func SleepCauseDetector.detectWakefulness(sleep:context:)",
+   "hash": "642ddd4bd816c33c",
+   "does": "One cause for the night's time awake: detectFragmentedSleep's cause when it fires, else detectFrequentAwakenings', so the top-3 list never spends two slots on the same awake minutes.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift::func SleepCauseDetector.detectFragmentedSleep(sleep:)",
+    "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift::func SleepCauseDetector.detectFrequentAwakenings(sleep:context:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "fragmented-sleep cause empty",
+     "effect": "frequent-awakenings check; else the fragmented cause"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift::func SleepCauseDetector.detectFragmentedSleep(sleep:)": "b4d44f069a977c0b",
+    "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift::func SleepCauseDetector.detectFrequentAwakenings(sleep:context:)": "6c67c7619d05b3ab"
+   }
+  },
+  {
+   "key": "func SleepCauseDetector.detectFrequentAwakenings(sleep:context:)",
+   "hash": "760153987adf449b",
+   "does": "Emits 'Frequent Awakenings' (moderate, 0.55) when awake minutes > HRVThresholds.sleepFragmentedAwakeMinutes (30) and RMSSD < HRVThresholds.rmssdGood (35 ms). Called only when 'Fragmented Sleep' did not fire.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "awakeMinutes > sleepFragmentedAwakeMinutes (30) && rmssd < 35",
+     "effect": "false: returns []; true: returns the single cause"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "5814b8c071cb8591",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "func SleepCauseDetector.detectLowDeepSleep(sleep:context:)",
+   "hash": "2c4927feb06a7df3",
+   "does": "Emits 'Low Deep Sleep' (moderateHigh, 0.7) when deep sleep is known, < 45 min, total sleep > 300 min, and deep sleep is < 10% of total sleep.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.integer(_:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "deepSleepMinutes non-nil && < 45 && totalSleepMinutes > 300",
+     "effect": "false: returns []; true: computes deep percent"
+    },
+    {
+     "at": "+11",
+     "cond": "deepPercent < 10",
+     "effect": "false: returns []; true: appends cause"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.totalSleepMinutes(in:)": "89a73025d946f183",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.integer(_:)": "e447648b612c9e97",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "func SleepCauseDetector.detectSleepTrendIssues(in:)",
+   "hash": "8f9567fb55f692a0",
+   "does": "Negative trend causes: requires a trend with >=3 nights, then concatenates below-average and declining-trend causes.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift::func SleepCauseDetector.belowSleepAverageCause(in:trends:)",
+    "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift::func SleepCauseDetector.decliningSleepCause(in:trends:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "sleepTrend exists && nightsAnalyzed >= 3",
+     "effect": "false: returns []; true: runs both checks"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "unreachable-branch",
+     "sev": "med",
+     "text": "In the shipped app context.sleepTrend never has nightsAnalyzed >= 3: the morning summary builds it with AnalysisSleepTrendInput(from: sleepTrendStats), and MorningResultsViewModel.sleepTrendStats is declared but never assigned anywhere in the repo, so it is always .empty (nightsAnalyzed 0). The PDF paths pass nil or the same never-assigned stats, the assistant's ContextBuilder.build defaults it to nil, and HealthKitManager.fetchSleepTrend/analyzeSleepTrend have no app callers. So every trend-based sleep cause (Above/Below Your Sleep Average, Improving/Declining Sleep Pattern) only ever fires in CauseDetectorTests.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift:31",
+      "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift:147",
+      "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift:24",
+      "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift:313",
+      "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift:91",
+      "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift:707",
+      "Emuqu/Sources/Views/ReportsListView.swift:452",
+      "Emuqu/Sources/Views/MainTabView+Reports.swift:96",
+      "Emuqu/Sources/Assistant/Context/ContextBuilder.swift:21",
+      "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift:20"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift::func SleepCauseDetector.belowSleepAverageCause(in:trends:)": "773ee1fffbd9dd22",
+    "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift::func SleepCauseDetector.decliningSleepCause(in:trends:)": "e30f8b20b61bd87c",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleepTrend": "221b4360b3045fb2"
+   }
+  },
+  {
+   "key": "func SleepCauseDetector.belowSleepAverageCause(in:trends:)",
+   "hash": "d9e3f6f7dcc97cd0",
+   "does": "Emits 'Below Your Sleep Average' (high, 0.75) when tonight is more than 20% under the trend average and RMSSD < 35 ms; copy calls the average a '7-day average'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift::func SleepCauseDetector.sleepDiffPercent(sleep:trends:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.integer(_:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+11",
+     "cond": "sleepDiffPercent < -20 && rmssd < 35",
+     "effect": "true: appends cause; false: returns []"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func average(_:)": "fdae4edac95e51e3",
+    "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift::func SleepCauseDetector.sleepDiffPercent(sleep:trends:)": "cd6cafe3ab3cd175",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.totalSleepMinutes(in:)": "89a73025d946f183",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.integer(_:)": "e447648b612c9e97",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)": "2a4b8a54e9a27938",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "func SleepCauseDetector.decliningSleepCause(in:trends:)",
+   "hash": "3ff8335bb2a2d7ac",
+   "does": "Emits 'Declining Sleep Pattern' (moderateHigh, 0.72) when trend == .declining and RMSSD < 35 ms, quoting the average as h/m.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.hoursMinutes(_:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "trends.trend == .declining && rmssd < 35",
+     "effect": "true: appends cause; false: returns []"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.hoursMinutes(_:)": "eda0d1f34fbebee1",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "func SleepCauseDetector.sleepDiffPercent(sleep:trends:)",
+   "hash": "6c2ae636b372205b",
+   "does": "Percent difference of tonight's total sleep vs the trend average; 0 when the average is not positive.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "averageSleepMinutes > 0",
+     "effect": "false: returns 0 (no comparison, so neither above/below cause fires); true: ((tonight-avg)/avg)*100"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.totalSleepMinutes(in:)": "89a73025d946f183"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -52,6 +52,6 @@ enum GPSAccuracyLevel: String, CaseIterable, Equatable {
         return Int(meters)
     }
 
-    /// Whether a direction arrow should be drawn at all.
+    /// Whether a direction arrow may be drawn at all: only with a usable fix.
     var showsDirection: Bool { self != .waiting }
 }

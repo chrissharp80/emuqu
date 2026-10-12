@@ -76,7 +76,8 @@ extension RecordPanels {
             OvernightStreamingStatus(
                 streamingLifecycle: streamingLifecycle,
                 polarManager: collector.polarManager,
-                strapBackup: strapBackupState
+                strapBackup: strapBackupState,
+                sessionStartTime: collector.sessionStartTime
             )
         }
     }
@@ -586,25 +587,25 @@ extension RecordPanels {
         Task { await performDeviceRecovery() }
     }
 
-    /// The keep-awake is gated on user preference (default
-    /// off), and only touched when the user opted in, so a workout that
-    /// legitimately holds the idle timer disabled isn't cleared by an
-    /// opt-out session.
+    /// Screen kept on per `RecordingKeepAwake`. A failed Recover leaves the
+    /// Recover card in place to try again (it shows with no session type
+    /// selected, where the Retry card, which re-runs a device-recording Stop,
+    /// does not), and raises the error alert: a refusal or a failed download
+    /// has set `lastError`; a recording too short to assemble only throws.
     private func performDeviceRecovery() async {
-        let keepAwake = AppDependencies.current.app.settingsManager.settings.shouldKeepScreenOnDuringRecording
-        await MainActor.run { Self.applyRecoveryKeepAwake(keepAwake, disabled: true) }
-        defer { Task { @MainActor in Self.applyRecoveryKeepAwake(keepAwake, disabled: false) } }
-        do {
-            _ = try await collector.recoverFromDevice()
-        } catch {
-            await MainActor.run { fetchFailed = true }
+        await RecordingKeepAwake.during {
+            do {
+                _ = try await collector.recoverFromDevice()
+            } catch {
+                surfaceRecoveryError(error)
+            }
         }
     }
 
-    @MainActor
-    private static func applyRecoveryKeepAwake(_ keepAwake: Bool, disabled: Bool) {
-        guard keepAwake else { return }
-        UIApplication.shared.isIdleTimerDisabled = disabled
+    /// Keeps the reason Recover already recorded; sets this one otherwise.
+    private func surfaceRecoveryError(_ error: Error) {
+        guard sessionState.lastError == nil else { return }
+        sessionState.lastError = error
     }
 
     func discardAndStartFresh() {

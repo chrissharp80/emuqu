@@ -1,0 +1,1700 @@
+{
+ "file": "Emuqu/Sources/Views/Theme.swift",
+ "hash": "04c3d7efda88886f",
+ "role": "Central design tokens: AppTheme colour palette (theme- and colour-theme-aware via the settings singleton), Wong status colours and their text variants, metric/HRV/readiness/data-source/tag colour and label helpers, layout constants, View card/background modifiers, and Zen button styles.",
+ "types": [
+  "AppTheme: enum — static palette and helper functions",
+  "View: extension — zenCard/elevatedCard/heroCard/gradientForeground/zenBackground/zenFormBackground/sectionHeader modifiers",
+  "ZenButtonStyle: struct (ButtonStyle) — filled button with white label and drawn disabled state",
+  "ZenSecondaryButtonStyle: struct (ButtonStyle) — outlined secondary button",
+  "ButtonStyle: extension where Self == ZenButtonStyle — .zen(_:) factory",
+  "ButtonStyle: extension where Self == ZenSecondaryButtonStyle — .zenSecondary"
+ ],
+ "state": [
+  "mem:AppTheme.wongOptimal/wongGood/wongCaution/wongAttention (static let, fixed Wong 2011 colours)",
+  "mem:AppTheme.sage/terracotta/dustyRose/softGold/mist (static let)",
+  "mem:AppTheme.secondary/accent(=terracotta)/warning/alert (static let)",
+  "mem:AppTheme.cornerRadius 16/smallCornerRadius 10/padding 16/cardShadowRadius 12 (static let)"
+ ],
+ "toplevel": "Static let colour constants listed in state; line 681 note says Color hex extension lives in HRVSession.swift. All theme-aware computed colours read AppDependencies.current.app.settingsManager.settings (colorTheme, appearanceTheme) at call time; SwiftUI re-renders only when an observing view re-evaluates.",
+ "flags": [
+  {
+   "kind": "coupling",
+   "sev": "low",
+   "text": "Every theme-aware colour reaches into the global AppDependencies.current.app.settingsManager singleton instead of the SwiftUI environment, so colour depends on hidden global state and views re-colour only when something else triggers a re-render.",
+   "evidence": [
+    "Emuqu/Sources/Views/Theme.swift:10",
+    "Emuqu/Sources/Views/Theme.swift:250"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "var AppTheme.currentColorTheme",
+   "hash": "6356bc00bf396c9e",
+   "does": "Returns the user's selected ColorTheme from the settings singleton.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.colorTheme"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "320e181d89b608eb"
+   }
+  },
+  {
+   "key": "var AppTheme.primary",
+   "hash": "557fcb55f9af131d",
+   "does": "Primary accent colour: picks an RGB per colour theme (blue/teal/indigo/purple/rose/orange), the brighter variant when appearance is .dark, the light variant for .light and .dim.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryForDarkAppearance",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryForLightAppearance"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.appearanceTheme",
+    "mem:SettingsManager.settings.colorTheme"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "case .blue",
+     "effect": "blue accent palette entry"
+    },
+    {
+     "at": "+3",
+     "cond": "isDark (appearance == .dark) for .blue",
+     "effect": "dark-appearance RGB; otherwise the light RGB (dim uses the light value)"
+    },
+    {
+     "at": "+4",
+     "cond": "case .teal",
+     "effect": "teal accent palette entry"
+    },
+    {
+     "at": "+4",
+     "cond": "isDark (appearance == .dark) for .teal",
+     "effect": "dark-appearance RGB; otherwise the light RGB (dim uses the light value)"
+    },
+    {
+     "at": "+5",
+     "cond": "case .indigo",
+     "effect": "indigo accent palette entry"
+    },
+    {
+     "at": "+5",
+     "cond": "isDark (appearance == .dark) for .indigo",
+     "effect": "dark-appearance RGB; otherwise the light RGB (dim uses the light value)"
+    },
+    {
+     "at": "+6",
+     "cond": "case .purple",
+     "effect": "purple accent palette entry"
+    },
+    {
+     "at": "+6",
+     "cond": "isDark (appearance == .dark) for .purple",
+     "effect": "dark-appearance RGB; otherwise the light RGB (dim uses the light value)"
+    },
+    {
+     "at": "+7",
+     "cond": "case .rose",
+     "effect": "rose accent palette entry"
+    },
+    {
+     "at": "+7",
+     "cond": "isDark (appearance == .dark) for .rose",
+     "effect": "dark-appearance RGB; otherwise the light RGB (dim uses the light value)"
+    },
+    {
+     "at": "+8",
+     "cond": "case .orange",
+     "effect": "orange accent palette entry"
+    },
+    {
+     "at": "+8",
+     "cond": "isDark (appearance == .dark) for .orange",
+     "effect": "dark-appearance RGB; otherwise the light RGB (dim uses the light value)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "a06d8ed9907ae35c",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryForDarkAppearance": "535a0074fd3ef161",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryForLightAppearance": "627a2a147ca73c89"
+   }
+  },
+  {
+   "key": "var AppTheme.primaryForDarkAppearance",
+   "hash": "435017f5a5cc8e37",
+   "does": "`primary`'s dark-appearance RGB for the current colour theme (blue/teal/indigo/purple/rose/orange); also the dim theme's primaryText.",
+   "entry": "Read by primary and primaryText.",
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentColorTheme"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "switch on colour theme",
+     "effect": "one RGB per theme"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentColorTheme": "44bb6778d825fb3a"
+   }
+  },
+  {
+   "key": "var AppTheme.primaryForLightAppearance",
+   "hash": "9f481e06849155d0",
+   "does": "`primary`'s light/dim-appearance RGB for the current colour theme.",
+   "entry": "Read by primary.",
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentColorTheme"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "switch on colour theme",
+     "effect": "one RGB per theme"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentColorTheme": "44bb6778d825fb3a"
+   }
+  },
+  {
+   "key": "var AppTheme.primaryFilled",
+   "hash": "ac70b82673691a22",
+   "does": "Primary colour darkened for filled surfaces carrying white text; per colour theme, dark vs non-dark RGB.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentColorTheme"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.appearanceTheme",
+    "mem:SettingsManager.settings.colorTheme"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "case .blue",
+     "effect": "blue accent palette entry"
+    },
+    {
+     "at": "+3",
+     "cond": "isDark (appearance == .dark) for .blue",
+     "effect": "dark-appearance RGB; otherwise the light RGB (dim uses the light value)"
+    },
+    {
+     "at": "+4",
+     "cond": "case .teal",
+     "effect": "teal accent palette entry"
+    },
+    {
+     "at": "+4",
+     "cond": "isDark (appearance == .dark) for .teal",
+     "effect": "dark-appearance RGB; otherwise the light RGB (dim uses the light value)"
+    },
+    {
+     "at": "+5",
+     "cond": "case .indigo",
+     "effect": "indigo accent palette entry"
+    },
+    {
+     "at": "+5",
+     "cond": "isDark (appearance == .dark) for .indigo",
+     "effect": "dark-appearance RGB; otherwise the light RGB (dim uses the light value)"
+    },
+    {
+     "at": "+6",
+     "cond": "case .purple",
+     "effect": "purple accent palette entry"
+    },
+    {
+     "at": "+6",
+     "cond": "isDark (appearance == .dark) for .purple",
+     "effect": "dark-appearance RGB; otherwise the light RGB (dim uses the light value)"
+    },
+    {
+     "at": "+7",
+     "cond": "case .rose",
+     "effect": "rose accent palette entry"
+    },
+    {
+     "at": "+7",
+     "cond": "isDark (appearance == .dark) for .rose",
+     "effect": "dark-appearance RGB; otherwise the light RGB (dim uses the light value)"
+    },
+    {
+     "at": "+8",
+     "cond": "case .orange",
+     "effect": "orange accent palette entry"
+    },
+    {
+     "at": "+8",
+     "cond": "isDark (appearance == .dark) for .orange",
+     "effect": "dark-appearance RGB; otherwise the light RGB (dim uses the light value)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc says each value is `primary` darkened until white clears 4.6:1, but indigo-light (0.35,0.34,0.84) and purple-light (0.58,0.30,0.82) are identical to `primary`'s light values, i.e. not darkened (the doc table claims they already pass).",
+     "evidence": [
+      "Emuqu/Sources/Views/Theme.swift:36",
+      "Emuqu/Sources/Views/Theme.swift:58",
+      "Emuqu/Sources/Views/Theme.swift:59",
+      "Emuqu/Sources/Views/Theme.swift:19",
+      "Emuqu/Sources/Views/Theme.swift:20"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentColorTheme": "44bb6778d825fb3a",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "a06d8ed9907ae35c"
+   }
+  },
+  {
+   "key": "var AppTheme.primaryText",
+   "hash": "cbba9072a49d4d76",
+   "does": "Primary for text: returns `primary` unless appearance is .dim, where it returns the dark-appearance accent for the colour theme.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryForDarkAppearance"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.appearanceTheme",
+    "mem:SettingsManager.settings.colorTheme"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "currentTheme == .dim",
+     "effect": "fall through to per-theme dark accent; otherwise return primary"
+    },
+    {
+     "at": "+3",
+     "cond": "case .blue",
+     "effect": "dark blue accent"
+    },
+    {
+     "at": "+4",
+     "cond": "case .teal",
+     "effect": "dark teal accent"
+    },
+    {
+     "at": "+5",
+     "cond": "case .indigo",
+     "effect": "dark indigo accent"
+    },
+    {
+     "at": "+6",
+     "cond": "case .purple",
+     "effect": "dark purple accent"
+    },
+    {
+     "at": "+7",
+     "cond": "case .rose",
+     "effect": "dark rose accent"
+    },
+    {
+     "at": "+8",
+     "cond": "case .orange",
+     "effect": "dark orange accent"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "a06d8ed9907ae35c",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryForDarkAppearance": "535a0074fd3ef161"
+   }
+  },
+  {
+   "key": "var AppTheme.primaryDark",
+   "hash": "a12a97bbb8b40fbd",
+   "does": "Deep primary per colour theme, dark vs non-dark RGB.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentColorTheme"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.appearanceTheme",
+    "mem:SettingsManager.settings.colorTheme"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "case .blue",
+     "effect": "blue accent palette entry"
+    },
+    {
+     "at": "+3",
+     "cond": "isDark (appearance == .dark) for .blue",
+     "effect": "dark-appearance RGB; otherwise the light RGB (dim uses the light value)"
+    },
+    {
+     "at": "+4",
+     "cond": "case .teal",
+     "effect": "teal accent palette entry"
+    },
+    {
+     "at": "+4",
+     "cond": "isDark (appearance == .dark) for .teal",
+     "effect": "dark-appearance RGB; otherwise the light RGB (dim uses the light value)"
+    },
+    {
+     "at": "+5",
+     "cond": "case .indigo",
+     "effect": "indigo accent palette entry"
+    },
+    {
+     "at": "+5",
+     "cond": "isDark (appearance == .dark) for .indigo",
+     "effect": "dark-appearance RGB; otherwise the light RGB (dim uses the light value)"
+    },
+    {
+     "at": "+6",
+     "cond": "case .purple",
+     "effect": "purple accent palette entry"
+    },
+    {
+     "at": "+6",
+     "cond": "isDark (appearance == .dark) for .purple",
+     "effect": "dark-appearance RGB; otherwise the light RGB (dim uses the light value)"
+    },
+    {
+     "at": "+7",
+     "cond": "case .rose",
+     "effect": "rose accent palette entry"
+    },
+    {
+     "at": "+7",
+     "cond": "isDark (appearance == .dark) for .rose",
+     "effect": "dark-appearance RGB; otherwise the light RGB (dim uses the light value)"
+    },
+    {
+     "at": "+8",
+     "cond": "case .orange",
+     "effect": "orange accent palette entry"
+    },
+    {
+     "at": "+8",
+     "cond": "isDark (appearance == .dark) for .orange",
+     "effect": "dark-appearance RGB; otherwise the light RGB (dim uses the light value)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentColorTheme": "44bb6778d825fb3a",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "a06d8ed9907ae35c"
+   }
+  },
+  {
+   "key": "var AppTheme.primaryLight",
+   "hash": "c161af472d47adbd",
+   "does": "Light primary per colour theme, dark vs non-dark RGB.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentColorTheme"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.appearanceTheme",
+    "mem:SettingsManager.settings.colorTheme"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "case .blue",
+     "effect": "blue accent palette entry"
+    },
+    {
+     "at": "+3",
+     "cond": "isDark (appearance == .dark) for .blue",
+     "effect": "dark-appearance RGB; otherwise the light RGB (dim uses the light value)"
+    },
+    {
+     "at": "+4",
+     "cond": "case .teal",
+     "effect": "teal accent palette entry"
+    },
+    {
+     "at": "+4",
+     "cond": "isDark (appearance == .dark) for .teal",
+     "effect": "dark-appearance RGB; otherwise the light RGB (dim uses the light value)"
+    },
+    {
+     "at": "+5",
+     "cond": "case .indigo",
+     "effect": "indigo accent palette entry"
+    },
+    {
+     "at": "+5",
+     "cond": "isDark (appearance == .dark) for .indigo",
+     "effect": "dark-appearance RGB; otherwise the light RGB (dim uses the light value)"
+    },
+    {
+     "at": "+6",
+     "cond": "case .purple",
+     "effect": "purple accent palette entry"
+    },
+    {
+     "at": "+6",
+     "cond": "isDark (appearance == .dark) for .purple",
+     "effect": "dark-appearance RGB; otherwise the light RGB (dim uses the light value)"
+    },
+    {
+     "at": "+7",
+     "cond": "case .rose",
+     "effect": "rose accent palette entry"
+    },
+    {
+     "at": "+7",
+     "cond": "isDark (appearance == .dark) for .rose",
+     "effect": "dark-appearance RGB; otherwise the light RGB (dim uses the light value)"
+    },
+    {
+     "at": "+8",
+     "cond": "case .orange",
+     "effect": "orange accent palette entry"
+    },
+    {
+     "at": "+8",
+     "cond": "isDark (appearance == .dark) for .orange",
+     "effect": "dark-appearance RGB; otherwise the light RGB (dim uses the light value)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentColorTheme": "44bb6778d825fb3a",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "a06d8ed9907ae35c"
+   }
+  },
+  {
+   "key": "var AppTheme.wongOptimalText",
+   "hash": "53b73539617b016b",
+   "does": "wongOptimalText: darkened #007F5C-ish green (0,0.496,0.36) on the light appearance; wongOptimal on dim/dark.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.appearanceTheme"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "currentTheme == .light",
+     "effect": "darkened #007F5C-ish green (0,0.496,0.36); else wongOptimal"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "a06d8ed9907ae35c"
+   }
+  },
+  {
+   "key": "var AppTheme.wongGoodText",
+   "hash": "5ce6ac9ffb9e6229",
+   "does": "wongGoodText: wongGood on the light appearance; lightened blue (0.19,0.554,0.757) on dim/dark.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.appearanceTheme"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "currentTheme == .light",
+     "effect": "wongGood; else lightened blue (0.19,0.554,0.757)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "a06d8ed9907ae35c"
+   }
+  },
+  {
+   "key": "var AppTheme.wongCautionText",
+   "hash": "c5b72cf6a75d11e6",
+   "does": "wongCautionText: darkened amber (0.576,0.397,0) on the light appearance; wongCaution on dim/dark.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.appearanceTheme"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "currentTheme == .light",
+     "effect": "darkened amber (0.576,0.397,0); else wongCaution"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "a06d8ed9907ae35c"
+   }
+  },
+  {
+   "key": "var AppTheme.wongAttentionText",
+   "hash": "447d1390fa95e49b",
+   "does": "wongAttentionText: darkened orange (0.714,0.314,0) on the light appearance; slightly lightened orange (0.846,0.395,0.04) on dim/dark.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.appearanceTheme"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "currentTheme == .light",
+     "effect": "darkened orange (0.714,0.314,0); else slightly lightened orange (0.846,0.395,0.04)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "a06d8ed9907ae35c"
+   }
+  },
+  {
+   "key": "var AppTheme.sageText",
+   "hash": "7f1a790d8909fc8f",
+   "does": "sageText: darkened green (0.126,0.491,0.302) on the light appearance; sage on dim/dark.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.appearanceTheme"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "currentTheme == .light",
+     "effect": "darkened green (0.126,0.491,0.302); else sage"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "a06d8ed9907ae35c"
+   }
+  },
+  {
+   "key": "var AppTheme.softGoldText",
+   "hash": "9a14c1d72e0d588c",
+   "does": "softGoldText: darkened gold (0.539,0.418,0.121) on the light appearance; softGold on dim/dark.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.appearanceTheme"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "currentTheme == .light",
+     "effect": "darkened gold (0.539,0.418,0.121); else softGold"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "a06d8ed9907ae35c"
+   }
+  },
+  {
+   "key": "var AppTheme.terracottaText",
+   "hash": "eb202abcdff11fdd",
+   "does": "terracottaText: darkened coral (0.733,0.281,0.265) on the light appearance; terracotta on dim/dark.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.appearanceTheme"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "currentTheme == .light",
+     "effect": "darkened coral (0.733,0.281,0.265); else terracotta"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "a06d8ed9907ae35c"
+   }
+  },
+  {
+   "key": "var AppTheme.dustyRoseText",
+   "hash": "1f3a58f6e123a3c6",
+   "does": "dustyRoseText: darkened violet (0.513,0.363,0.711) on the light appearance; dustyRose on dim/dark.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.appearanceTheme"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "currentTheme == .light",
+     "effect": "darkened violet (0.513,0.363,0.711); else dustyRose"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "a06d8ed9907ae35c"
+   }
+  },
+  {
+   "key": "var AppTheme.mistText",
+   "hash": "3a5640a98bcb8395",
+   "does": "mistText: darkened cyan (0.18,0.468,0.54) on the light appearance; mist on dim/dark.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.appearanceTheme"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "currentTheme == .light",
+     "effect": "darkened cyan (0.18,0.468,0.54); else mist"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "a06d8ed9907ae35c"
+   }
+  },
+  {
+   "key": "var AppTheme.fitnessAccent",
+   "hash": "a5e467fc877a4a00",
+   "does": "Fitness accent: always returns `primary` so the colour-theme picker repaints fitness surfaces.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.appearanceTheme",
+    "mem:SettingsManager.settings.colorTheme"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+   }
+  },
+  {
+   "key": "var AppTheme.currentTheme",
+   "hash": "22f36ec282f04a76",
+   "does": "Returns the user's AppearanceTheme (light/dim/dark) from the settings singleton.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.appearanceTheme"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "320e181d89b608eb"
+   }
+  },
+  {
+   "key": "var AppTheme.background",
+   "hash": "21c2d8c06a4cb8c7",
+   "does": "Page background: #F5F5F7 for light, #292930 for dim, #111114 for dark.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.appearanceTheme"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .light",
+     "effect": "#F5F5F7"
+    },
+    {
+     "at": "+3",
+     "cond": "case .dim",
+     "effect": "#292930"
+    },
+    {
+     "at": "+4",
+     "cond": "case .dark",
+     "effect": "#111114"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "a06d8ed9907ae35c"
+   }
+  },
+  {
+   "key": "var AppTheme.cardBackground",
+   "hash": "43d6f2694190e55b",
+   "does": "Card background: white for light, #33333D for dim, #1C1C22 for dark.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.appearanceTheme"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .light",
+     "effect": "white"
+    },
+    {
+     "at": "+3",
+     "cond": "case .dim",
+     "effect": "#33333D"
+    },
+    {
+     "at": "+4",
+     "cond": "case .dark",
+     "effect": "#1C1C22"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "a06d8ed9907ae35c"
+   }
+  },
+  {
+   "key": "var AppTheme.cardElevated",
+   "hash": "11b2e9db7f5c29e1",
+   "does": "Elevated card: white for light, #3D3D47 for dim, #26262B for dark.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.appearanceTheme"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .light",
+     "effect": "white"
+    },
+    {
+     "at": "+3",
+     "cond": "case .dim",
+     "effect": "#3D3D47"
+    },
+    {
+     "at": "+4",
+     "cond": "case .dark",
+     "effect": "#26262B"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "a06d8ed9907ae35c"
+   }
+  },
+  {
+   "key": "var AppTheme.sectionTint",
+   "hash": "8713e943fbe1fe78",
+   "does": "Section tint: #EDEDF2 for light, #2E2E36 for dim, #17171B for dark.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.appearanceTheme"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .light",
+     "effect": "#EDEDF2"
+    },
+    {
+     "at": "+3",
+     "cond": "case .dim",
+     "effect": "#2E2E36"
+    },
+    {
+     "at": "+4",
+     "cond": "case .dark",
+     "effect": "#17171B"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "a06d8ed9907ae35c"
+   }
+  },
+  {
+   "key": "var AppTheme.textPrimary",
+   "hash": "266ab43e61861882",
+   "does": "Primary text: #1A1A21 for light, #EAEAF0 for dim, #F0F0F5 for dark.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.appearanceTheme"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .light",
+     "effect": "#1A1A21"
+    },
+    {
+     "at": "+3",
+     "cond": "case .dim",
+     "effect": "#EAEAF0"
+    },
+    {
+     "at": "+4",
+     "cond": "case .dark",
+     "effect": "#F0F0F5"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "a06d8ed9907ae35c"
+   }
+  },
+  {
+   "key": "var AppTheme.textSecondary",
+   "hash": "c8b48a0faa33f8bd",
+   "does": "Secondary text: #5C5C6B for light, #A8A8B8 for dim, #9E9EB3 for dark.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.appearanceTheme"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .light",
+     "effect": "#5C5C6B"
+    },
+    {
+     "at": "+3",
+     "cond": "case .dim",
+     "effect": "#A8A8B8"
+    },
+    {
+     "at": "+4",
+     "cond": "case .dark",
+     "effect": "#9E9EB3"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "a06d8ed9907ae35c"
+   }
+  },
+  {
+   "key": "var AppTheme.textTertiary",
+   "hash": "cb6e902a177ead03",
+   "does": "Tertiary text (contrast-corrected): #6E6E7D for light, #A8A8BE for dim, #8D8DA3 for dark.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.appearanceTheme"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .light",
+     "effect": "#6E6E7D"
+    },
+    {
+     "at": "+3",
+     "cond": "case .dim",
+     "effect": "#A8A8BE"
+    },
+    {
+     "at": "+4",
+     "cond": "case .dark",
+     "effect": "#8D8DA3"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "a06d8ed9907ae35c"
+   }
+  },
+  {
+   "key": "var AppTheme.primaryGradient",
+   "hash": "05f066a0c43903c6",
+   "does": "Linear gradient primaryLight → primary, top-leading to bottom-trailing.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryLight",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.appearanceTheme",
+    "mem:SettingsManager.settings.colorTheme"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryLight": "834bd116ec7451d0"
+   }
+  },
+  {
+   "key": "var AppTheme.heroGradient",
+   "hash": "24757ed1d852356d",
+   "does": "Linear gradient primary@0.85 → primaryDark@0.95, top-leading to bottom-trailing; used by View.heroCard() (HelpCenterView.swift:75).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryDark"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.appearanceTheme",
+    "mem:SettingsManager.settings.colorTheme"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryDark": "f0f931939f03a4f6"
+   }
+  },
+  {
+   "key": "var AppTheme.sdnnColor",
+   "hash": "65e233dc3a19cab1",
+   "does": "SDNN violet: #8C61D1 for light and dim, brighter #AD8AF0 for dark.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.appearanceTheme"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .light, .dim",
+     "effect": "#8C61D1"
+    },
+    {
+     "at": "+3",
+     "cond": "case .dark",
+     "effect": "#AD8AF0"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "a06d8ed9907ae35c"
+   }
+  },
+  {
+   "key": "func AppTheme.readinessColor(_:)",
+   "hash": "002c38db79d9f518",
+   "does": "Readiness colour for the ReadinessScoring.readinessLabel(for:) band (its thresholds and clamping): Ready sage, Moderate softGold (also a non-finite score), Fatigued terracotta, else dustyRose.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessLabel(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "label Ready",
+     "effect": "sage"
+    },
+    {
+     "at": "+3",
+     "cond": "label Moderate",
+     "effect": "softGold"
+    },
+    {
+     "at": "+4",
+     "cond": "label Fatigued",
+     "effect": "terracotta"
+    },
+    {
+     "at": "+5",
+     "cond": "otherwise (Rest)",
+     "effect": "dustyRose"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessLabel(for:)": "855c8b68d2abcbc7"
+   }
+  },
+  {
+   "key": "func AppTheme.recoveryColor(_:)",
+   "hash": "b4a88a37745f2897",
+   "does": "Recovery score colour: delegates to ScoreVerdict(score:).color (Wong ladder 90/75/60/45/30).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/ScoreVerdict.swift::init ScoreVerdict(score:)",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.color"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/ScoreVerdict.swift::init ScoreVerdict(score:)": "89445abed2b3e6c9",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.color": "dc2f3b06b79e333d"
+   }
+  },
+  {
+   "key": "func AppTheme.hrvCategory(_:baseline:)",
+   "hash": "01e26b7785fa1d94",
+   "does": "The night's RMSSDCategory by the rule 'What This Means' (AnalysisSummaryGenerator.hrvCategory) uses: personalCategory(hrv/baseline) with a positive baseline, else AgeAdjustedHRV.interpret with the user's age and sex from settings (absolute bands when no age).",
+   "entry": "Called from hrvLabel, hrvColor and hrvTextColor.",
+   "calls": [
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.personalCategory(ratio:)",
+    "Emuqu/Sources/Analysis/HRVThresholds.swift::func AgeAdjustedHRV.interpret(rmssd:age:sex:)",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.age"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "baseline non-nil and > 0",
+     "effect": "personal category"
+    },
+    {
+     "at": "+5",
+     "cond": "biologicalSex male/female/other or nil",
+     "effect": "sex passed; other/nil → nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.personalCategory(ratio:)": "dc4d1279a4428011",
+    "Emuqu/Sources/Analysis/HRVThresholds.swift::func AgeAdjustedHRV.interpret(rmssd:age:sex:)": "2e243dc56ab312b2",
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.category(_:caller:file:line:)": "315f6413360002af",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "201177101ead59c4",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.age": "1087428d4318dc8f",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.biologicalSex": "55c985aa6bd25115",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+   }
+  },
+  {
+   "key": "func AppTheme.hrvLabel(_:baseline:)",
+   "hash": "45fcc3e028bbe8f0",
+   "does": "HRV word: hrvCategory's localizedLabel (Excellent/Good/Fair/Reduced/Low), so the label matches 'What This Means' with or without a baseline.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::func AppTheme.hrvCategory(_:baseline:)",
+    "Emuqu/Sources/Analysis/HRVThresholds.swift::var RMSSDCategory.localizedLabel"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVThresholds.swift::var RMSSDCategory.localizedLabel": "34fa7b333dfcae74",
+    "Emuqu/Sources/Views/Theme.swift::func AppTheme.hrvCategory(_:baseline:)": "48bf4341199366c9"
+   }
+  },
+  {
+   "key": "func AppTheme.hrvColor(_:baseline:)",
+   "hash": "092f2facc02abe5c",
+   "does": "HRV colour of the hrvCategory tier: excellent sage, good softGold, fair terracotta, reduced/low dustyRose.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::func AppTheme.hrvCategory(_:baseline:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "switch on hrvCategory",
+     "effect": "one colour per tier"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::func AppTheme.hrvCategory(_:baseline:)": "48bf4341199366c9"
+   }
+  },
+  {
+   "key": "func AppTheme.hrvTextColor(_:baseline:)",
+   "hash": "6c8943559a5e1f66",
+   "does": "Text shade of the hrvCategory tier: excellent sageText, good softGoldText, fair terracottaText, reduced/low dustyRoseText.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::func AppTheme.hrvCategory(_:baseline:)",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sageText",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.softGoldText",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.terracottaText",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.dustyRoseText"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.appearanceTheme"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "switch on hrvCategory",
+     "effect": "one text shade per tier"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::func AppTheme.hrvCategory(_:baseline:)": "48bf4341199366c9",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.dustyRoseText": "42a7b75ca4dc32cd",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sageText": "7646093d377bac7c",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.softGoldText": "12fb8e2fb33c18ef",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.terracottaText": "6a18b5025ee3e850"
+   }
+  },
+  {
+   "key": "func AppTheme.dataSourceColor(_:)",
+   "hash": "9f044768a28f3dff",
+   "does": "Colour for a data-source key: composite softGold, internal sage, streaming primary, else textSecondary.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.appearanceTheme",
+    "mem:SettingsManager.settings.colorTheme"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "\"composite\"",
+     "effect": "softGold"
+    },
+    {
+     "at": "+3",
+     "cond": "\"internal\"",
+     "effect": "sage"
+    },
+    {
+     "at": "+4",
+     "cond": "\"streaming\"",
+     "effect": "primary"
+    },
+    {
+     "at": "+5",
+     "cond": "default",
+     "effect": "textSecondary"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func AppTheme.dataSourceLabel(_:)",
+   "hash": "c8d4d56c344a1a10",
+   "does": "Localized label for a data-source key: 'Streamed + Strap', 'Strap', 'Streamed', else the raw key capitalized (unlocalized).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "\"composite\"",
+     "effect": "Streamed + Strap"
+    },
+    {
+     "at": "+3",
+     "cond": "\"internal\"",
+     "effect": "Strap"
+    },
+    {
+     "at": "+4",
+     "cond": "\"streaming\"",
+     "effect": "Streamed"
+    },
+    {
+     "at": "+5",
+     "cond": "default",
+     "effect": "source.capitalized (raw key shown, not localized)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func AppTheme.balanceInterpretation(_:)",
+   "hash": "c2cef605432ec50f",
+   "does": "LF/HF band label: nil → em-dash; <0.5 HF-dominant; <2.0 Mixed; else LF-dominant.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "ratio nil",
+     "effect": "'—'"
+    },
+    {
+     "at": "+2",
+     "cond": "r < 0.5",
+     "effect": "HF-dominant"
+    },
+    {
+     "at": "+3",
+     "cond": "r < 2.0",
+     "effect": "Mixed; else LF-dominant"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func AppTheme.balanceColor(_:)",
+   "hash": "74a6e2865bece0f3",
+   "does": "Neutral LF/HF colour: textTertiary when ratio nil, else textPrimary.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.appearanceTheme"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "ratio == nil",
+     "effect": "textTertiary; else textPrimary"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "func AppTheme.formatMinutes(_:)",
+   "hash": "a5634c818be780c2",
+   "does": "Formats minutes as hours/minutes via LocalizedDuration.hoursMinutes.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Pass-through alias of LocalizedDuration.hoursMinutes; the repo has three more hours/minutes formatters (DurationFormatter.hoursMinutes, NarrativeLanguage.hoursMinutes, SleepData.hoursMinutes).",
+     "evidence": [
+      "Emuqu/Sources/Views/Theme.swift:511",
+      "Emuqu/Sources/Views/NavigationHeader.swift:13",
+      "Emuqu/Sources/Utilities/Extensions.swift:12",
+      "Emuqu/Sources/Services/NarrativeLanguage.swift:47",
+      "Emuqu/Sources/Models/SleepData.swift:83"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)": "a4e4b582efee3f03"
+   }
+  },
+  {
+   "key": "var AppTheme.cardShadow",
+   "hash": "1cc06fefa62adf84",
+   "does": "Card shadow colour: black @0.06 light, @0.20 dim, @0.30 dark.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.appearanceTheme"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .light",
+     "effect": "black 6%"
+    },
+    {
+     "at": "+3",
+     "cond": "case .dim",
+     "effect": "black 20%"
+    },
+    {
+     "at": "+4",
+     "cond": "case .dark",
+     "effect": "black 30%"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "a06d8ed9907ae35c"
+   }
+  },
+  {
+   "key": "func View.zenCard()",
+   "hash": "58150a8067cd6b7e",
+   "does": "Card modifier: 16pt padding, cardBackground, 16pt corners, cardShadow radius 12 y 2.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardShadow"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.appearanceTheme"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardShadow": "32095e3a90467f83"
+   }
+  },
+  {
+   "key": "func View.heroCard()",
+   "hash": "f002369e2f29c3dd",
+   "does": "Hero card modifier: padding, heroGradient background, corners, primary-tinted shadow.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.heroGradient",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.appearanceTheme",
+    "mem:SettingsManager.settings.colorTheme"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.heroGradient": "d005c32e2a9fb187",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+   }
+  },
+  {
+   "key": "func View.zenBackground()",
+   "hash": "42610e76de14b4d6",
+   "does": "Full-screen AppTheme.background ignoring safe area.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.appearanceTheme"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "053cc91a5a90d115"
+   }
+  },
+  {
+   "key": "func View.zenFormBackground()",
+   "hash": "87c9da8d542e4cfe",
+   "does": "Hides List/Form scroll background and puts AppTheme.background behind it.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.appearanceTheme"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "053cc91a5a90d115"
+   }
+  },
+  {
+   "key": "func ZenButtonStyle.makeBody(configuration:)",
+   "hash": "2b6ee17dba254ae8",
+   "does": "Filled button: headline label in labelColor when enabled (white where white clears 4.5:1 on the fill, else black) and white when disabled, padding, rounded fill in `color` (disabled: textTertiary@35%), coloured shadow when enabled, 0.7 opacity when disabled, 0.97 press scale when enabled.",
+   "entry": "SwiftUI ButtonStyle.makeBody for buttons using .buttonStyle(.zen(...))",
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var ZenButtonStyle.labelColor",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.appearanceTheme"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "isEnabled",
+     "effect": "fill colour; disabled → textTertiary 35%"
+    },
+    {
+     "at": "+9",
+     "cond": "isEnabled",
+     "effect": "shadow colour@0.3; disabled → clear"
+    },
+    {
+     "at": "+11",
+     "cond": "isEnabled",
+     "effect": "opacity 1; disabled 0.7"
+    },
+    {
+     "at": "+12",
+     "cond": "pressed && enabled",
+     "effect": "scale 0.97; else 1"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
+    "Emuqu/Sources/Views/Theme.swift::var ZenButtonStyle.labelColor": "ae9fddd6502fa456",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var ZenButtonStyle.labelColor",
+   "hash": "dc6b16c859c4e2ee",
+   "does": "White when whiteClearsContrast on the fill colour resolved in the current environment, else black.",
+   "entry": "Read by makeBody.",
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::func ZenButtonStyle.whiteClearsContrast(on:)",
+    "ext:Color.resolve(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "white clears 4.5:1",
+     "effect": ".white; else .black"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::func ZenButtonStyle.whiteClearsContrast(on:)": "2a66a3302aafff5d"
+   }
+  },
+  {
+   "key": "func ZenButtonStyle.whiteClearsContrast(on:)",
+   "hash": "0e982ce405f75955",
+   "does": "Whether white text on the resolved fill reaches 4.5:1: WCAG relative luminance from the linearized sRGB channels, contrast 1.05/(L+0.05).",
+   "entry": "Called from labelColor.",
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::func ZenButtonStyle.linearized(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::func ZenButtonStyle.linearized(_:)": "928af3fb6bea3fc7"
+   }
+  },
+  {
+   "key": "func ZenButtonStyle.linearized(_:)",
+   "hash": "c96a4d924b60e54f",
+   "does": "sRGB channel to linear: c/12.92 at or below 0.04045, else ((c+0.055)/1.055)^2.4.",
+   "entry": "Called from whiteClearsContrast.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "channel ≤ 0.04045",
+     "effect": "linear segment; else power curve"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ZenSecondaryButtonStyle.makeBody(configuration:)",
+   "hash": "b62016b6a4589330",
+   "does": "Outlined secondary button: primary-coloured label (textTertiary disabled), 1.5pt primary stroke (0.3/0.15 opacity) over cardBackground, disabled opacity 0.7, press scale 0.97.",
+   "entry": "SwiftUI ButtonStyle.makeBody for .buttonStyle(.zenSecondary)",
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.appearanceTheme",
+    "mem:SettingsManager.settings.colorTheme"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "isEnabled",
+     "effect": "primary label; disabled textTertiary"
+    },
+    {
+     "at": "+8",
+     "cond": "isEnabled ? 0.3 : 0.15",
+     "effect": "stroke opacity"
+    },
+    {
+     "at": "+11",
+     "cond": "isEnabled",
+     "effect": "opacity 1; disabled 0.7"
+    },
+    {
+     "at": "+12",
+     "cond": "pressed && enabled",
+     "effect": "scale 0.97; else 1"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "func ButtonStyle.zen(_:)",
+   "hash": "affe92a4c9b8acdd",
+   "does": "Factory for ZenButtonStyle with the given colour, defaulting to AppTheme.primaryFilled (the accent darkened for a white label) when nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryFilled"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.appearanceTheme",
+    "mem:SettingsManager.settings.colorTheme"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "color ?? AppTheme.primary",
+     "effect": "explicit colour when passed; AppTheme.primary when nil — reached by HistoryView.swift:430 `.zen()`"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryFilled": "2f1e670aa8894ea8"
+   }
+  },
+  {
+   "key": "var ButtonStyle.zenSecondary",
+   "hash": "728f4acb771eed49",
+   "does": "Returns a new ZenSecondaryButtonStyle.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

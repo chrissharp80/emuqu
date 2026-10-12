@@ -1,6 +1,7 @@
 import CloudKit
 import CryptoKit
 @testable import Emuqu
+import Security
 import XCTest
 
 /// The cloud write/read contract, exercised through the production codec.
@@ -156,12 +157,39 @@ final class CloudPayloadCodecTests: XCTestCase {
     /// Decoding must never mint a key. A payload that cannot be opened caused
     /// a fresh key to be created, which guaranteed it could never be opened —
     /// and displaced the key other backups depended on.
+    ///
+    /// Checked on the Keychain itself: the accounts holding cloud keys are
+    /// the same after decoding a payload this device can open and one sealed
+    /// with a key it does not hold.
     func testDecodingDoesNotCreateAKey() throws {
         let sealed = try CloudPayloadCodec.encode(payload)
-        // Round-trip works, so a key exists and is stable across decode calls.
+        let foreignBox = try AES.GCM.seal(payload, using: SymmetricKey(size: .bits256))
+        let foreign = CloudPayloadCodec.magic + Data([CloudPayloadCodec.version]) + (try XCTUnwrap(foreignBox.combined))
+        let accountsBefore = try cloudKeyAccounts()
+        XCTAssertFalse(accountsBefore.isEmpty, "encode stores the key it sealed with")
+
         XCTAssertEqual(try CloudPayloadCodec.decode(sealed), payload)
-        XCTAssertEqual(try CloudPayloadCodec.decode(sealed), payload,
-                       "A second decode produced a different result — the key moved")
+        XCTAssertThrowsError(try CloudPayloadCodec.decode(foreign), "A payload sealed with a key this device lacks opened")
+        XCTAssertEqual(try cloudKeyAccounts(), accountsBefore, "Decoding added or replaced a cloud key in the Keychain")
+    }
+
+    /// The accounts of the cloud keys in the Keychain, found the way the
+    /// codec's private `baseQuery` finds them (its service, synchronizable).
+    private func cloudKeyAccounts() throws -> Set<String> {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: "com.chrissharp.flowrecovery.cloud",
+            kSecAttrSynchronizable as String: kCFBooleanTrue as Any,
+            kSecReturnAttributes as String: true,
+            kSecMatchLimit as String: kSecMatchLimitAll
+        ]
+        var items: CFTypeRef?
+        let status = SecItemCopyMatching(query as CFDictionary, &items)
+        if status == errSecItemNotFound { return [] }
+        guard status == errSecSuccess, let rows = items as? [[String: Any]] else {
+            throw CloudPayloadCodec.CodecError.keyUnreadable(status)
+        }
+        return Set(rows.compactMap { $0[kSecAttrAccount as String] as? String })
     }
 
     /// Repeated writes must keep using the SAME key, or every earlier backup

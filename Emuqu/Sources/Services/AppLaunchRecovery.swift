@@ -173,9 +173,10 @@ extension EmuquApp {
     ///
     /// Without it the UI tests have no way to reach the onboarding flow, because
     /// acceptance is persisted across launches. The `-UITests-FreshInstall`
-    /// launch argument (set only by the `OnboardingFlowUITests` target) wipes
-    /// the onboarding/disclaimer/paywall flags so the next launch walks the
-    /// new-install path. A no-op when the flag is absent.
+    /// launch argument (passed by the EmuquUITests suites that need a fresh
+    /// install — onboarding, dashboard, settings, record, data deletion and
+    /// others) wipes the onboarding/disclaimer/paywall flags so the next
+    /// launch walks the new-install path. A no-op when the flag is absent.
     ///
     /// Compiled out of Release. The UI suites run Debug builds, and a store
     /// binary should hold no code path that erases a user's data on a launch
@@ -243,7 +244,7 @@ extension EmuquApp {
         let resetKeys = [
             UserDefaultsKeys.disclaimerAccepted, // "hasAcceptedHealthDisclaimer"
             UserDefaultsKeys.lastTrialReminderDate, // "lastTrialReminderDate"
-            "assistant.disclaimerAccepted", // AI assistant first-use disclaimer
+            AssistantViewModel.disclaimerKey, // AI assistant first-use disclaimer
             // The paywall's "Skip (Debug)" grant. It persists, so one tap in
             // any earlier run on this simulator lifted every forced paywall
             // after it.

@@ -224,18 +224,6 @@ enum ColorTheme: String, Codable, CaseIterable, Identifiable {
         case .orange: return String(localized: "Orange", bundle: bundle)
         }
     }
-
-    var description: String {
-        let bundle = LanguageManager.appBundle
-        switch self {
-        case .blue: return String(localized: "Trust & calm", bundle: bundle)
-        case .teal: return String(localized: "Fresh & balanced", bundle: bundle)
-        case .indigo: return String(localized: "Deep & focused", bundle: bundle)
-        case .purple: return String(localized: "Premium & insightful", bundle: bundle)
-        case .rose: return String(localized: "Warm & energetic", bundle: bundle)
-        case .orange: return String(localized: "Bold & vibrant", bundle: bundle)
-        }
-    }
 }
 
 /// Session merge gap mode for linking split-sleep segments

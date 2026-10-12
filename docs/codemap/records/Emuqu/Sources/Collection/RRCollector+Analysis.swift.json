@@ -1,0 +1,224 @@
+{
+ "file": "Emuqu/Sources/Collection/RRCollector+Analysis.swift",
+ "hash": "d05df09657084c9c",
+ "role": "MorningSessionPipeline extension: composite recovery-score computation for archival, scored with the acceptance path's inputs over the morning service's sleep/vitals snapshots, and the three analyze overloads that delegate to HRVAnalysisPipeline; declares RecoveryScoreOutcome.",
+ "types": [
+  "MorningSessionPipeline: extension — recovery score + analysis delegation",
+  "RecoveryScoreOutcome: struct — score (0-10), breakdown, sleep and vitals snapshots, and the training context scored with"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func MorningSessionPipeline.computeRecoveryScore(for:from:)",
+   "hash": "ab1f7486f1d0a095",
+   "does": "Computes the archival composite recovery score: sleep/vitals snapshots from MorningProcessingService.scoringHealthData (frozen when the session has them, else fresh sleep with the previous day's nap credited — a failed fetch logged — and vitals with the strap's nocturnal RHR), frozen-or-fetched training context, then scoreBreakdown (acceptance-path inputs); returns the 0-10 score, breakdown, the snapshots and the training context it scored with.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.scoringHealthData(for:result:)",
+    "Emuqu/Sources/Collection/RRCollector+Analysis.swift::func MorningSessionPipeline.scoringTrainingContext(result:sessionEnd:)",
+    "Emuqu/Sources/Collection/RRCollector+Analysis.swift::func MorningSessionPipeline.scoreBreakdown(session:result:sleep:vitals:training:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.toTenScale(_:)"
+   ],
+   "reads": [
+    "hk:sleep analysis",
+    "hk:recovery vitals"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "analysisResult nil",
+     "effect": "return nil (callers e.g. SessionRecoveryService leave the score unfrozen)"
+    },
+    {
+     "at": "+2",
+     "cond": "session.endDate nil (??)",
+     "effect": "uses startDate as session end"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Still one of three assemblies of the same ScoreInputs: MorningProcessingService.computeRecoveryScore (MorningProcessingService+Merging.swift) and SessionAcceptanceService.scoreBreakdown build it too, and MorningProcessingService keeps its own ansBalance copy. This one now passes the acceptance path's useBaselineHRV/perceivedReadiness/referenceDate and uses ReanalysisService.ansBalance; the morning service's does not (flagged on its record).",
+     "evidence": [
+      "Emuqu/Sources/Collection/RRCollector+Analysis.swift:22",
+      "Emuqu/Sources/Services/MorningProcessingService+Merging.swift:402",
+      "Emuqu/Sources/Services/SessionAcceptanceService.swift:300"
+     ],
+     "found": "first read, upheld on second; narrowed by b10"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.toTenScale(_:)": "18aa103b513d602d",
+    "Emuqu/Sources/Collection/RRCollector+Analysis.swift::func MorningSessionPipeline.scoreBreakdown(session:result:sleep:vitals:training:)": "3279e974bb93378d",
+    "Emuqu/Sources/Collection/RRCollector+Analysis.swift::func MorningSessionPipeline.scoringTrainingContext(result:sessionEnd:)": "cbea23db8a63d361",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.scoringHealthData(for:result:)": "c1b042f4dde87fd7"
+   }
+  },
+  {
+   "key": "func MorningSessionPipeline.scoreBreakdown(session:result:sleep:vitals:training:)",
+   "hash": "8eb0742026efa7dd",
+   "does": "Builds the composite breakdown the way acceptance does: scoring baseline stats, HRV quality from SessionAcceptanceService.classifyHRVQuality (whether the baseline stands in), the session's perceived readiness, ReanalysisService.ansBalance, and the session's end as the staleness reference date.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.scoringBaselineStats(for:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.classifyHRVQuality(result:sleepData:baselineStats:recordingStart:recordingEnd:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingContext:config:useBaselineHRV:perceivedReadiness:ansBalance:referenceDate:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.currentScoringConfig",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.ansBalance(of:)"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "session.endDate nil (??)",
+     "effect": "startDate is the session end"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingContext:config:useBaselineHRV:perceivedReadiness:ansBalance:referenceDate:)": "6ba2b8b8a5adb0f2",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.scoringBaselineStats(for:)": "f465e8f605f0556c",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.currentScoringConfig": "aa1d03c0318867a7",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.ansBalance(of:)": "654db6a2c6b1ba9a",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.classifyHRVQuality(result:sleepData:baselineStats:recordingStart:recordingEnd:)": "ef2cf4065b8aca0b"
+   }
+  },
+  {
+   "key": "func MorningSessionPipeline.scoringTrainingContext(result:sessionEnd:)",
+   "hash": "358899cfabfb3fc6",
+   "does": "The analysis result's own (frozen) training context, else the load as of sessionEnd via createTrainingContextEnsuringFresh (a past day, not today's cache); nil result goes straight to the fetch. Used by the archival score and by acceptance / composite re-score (RRCollector+Acceptance).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.createTrainingContextEnsuringFresh(relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "result carries a trainingContext",
+     "effect": "returns it; else fetches as of sessionEnd"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.createTrainingContextEnsuringFresh(relativeTo:)": "2cc745ae1ce6d32c"
+   }
+  },
+  {
+   "key": "func MorningSessionPipeline.analyze(_:window:flags:peakCapacity:)",
+   "hash": "9572d3744db537ae",
+   "does": "Analyzes the session with a given recovery window and artifact flags via HRVAnalysisPipeline.analyzeWithWindow, with training context as of the session date and the session's ANS config.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeWithWindow(session:window:flags:peakCapacity:trainingContext:ansConfig:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.createTrainingContextEnsuringFresh(relativeTo:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.ansConfig(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "session.endDate nil (??)",
+     "effect": "uses startDate"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeWithWindow(session:window:flags:peakCapacity:trainingContext:ansConfig:)": "71a0b9279559af80",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.ansConfig(for:)": "3a52960d403cbf6b",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.createTrainingContextEnsuringFresh(relativeTo:)": "85f6f48c29a9652c"
+   }
+  },
+  {
+   "key": "func MorningSessionPipeline.analyze(_:peakCapacity:)",
+   "hash": "019e32e4332b8547",
+   "does": "Analyzes the whole session via HRVAnalysisPipeline.analyzeFullSession with training context and ANS config.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeFullSession(session:peakCapacity:trainingContext:ansConfig:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.createTrainingContextEnsuringFresh(relativeTo:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.ansConfig(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "session.endDate nil (??)",
+     "effect": "uses startDate"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeFullSession(session:peakCapacity:trainingContext:ansConfig:)": "7cbea3ef35240ce1",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.ansConfig(for:)": "3a52960d403cbf6b",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.createTrainingContextEnsuringFresh(relativeTo:)": "85f6f48c29a9652c"
+   }
+  },
+  {
+   "key": "func MorningSessionPipeline.analyze(_:)",
+   "hash": "73f2672f2772ee0f",
+   "does": "Auto-window analysis: resolves sleep start/wake offsets, then HRVAnalysisPipeline.analyzeWithAutoWindow with training context, ANS config and the scoring baseline stats.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+Analysis.swift::func MorningSessionPipeline.resolvedSleepBoundaries(_:)",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeWithAutoWindow(session:sleepStartMs:wakeTimeMs:trainingContext:ansConfig:baselineStats:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.createTrainingContextEnsuringFresh(relativeTo:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.ansConfig(for:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.scoringBaselineStats(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "session.endDate nil (??)",
+     "effect": "uses startDate"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeWithAutoWindow(session:sleepStartMs:wakeTimeMs:trainingContext:ansConfig:baselineStats:)": "4199736e0169638a",
+    "Emuqu/Sources/Collection/RRCollector+Analysis.swift::func MorningSessionPipeline.resolvedSleepBoundaries(_:)": "940bca2d0e91c420",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.ansConfig(for:)": "3a52960d403cbf6b",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.createTrainingContextEnsuringFresh(relativeTo:)": "85f6f48c29a9652c",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.scoringBaselineStats(for:)": "f465e8f605f0556c"
+   }
+  },
+  {
+   "key": "func MorningSessionPipeline.resolvedSleepBoundaries(_:)",
+   "hash": "1934fbfca63136ad",
+   "does": "Resolves sleep start / wake time offsets (ms) via SleepBoundaryResolver for sessions with an end date; returns (nil, nil) without one.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.resolve(sessionStart:recordingEnd:rrPoints:useHREstimation:)"
+   ],
+   "reads": [
+    "hk:sleep analysis (via resolver)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "session.endDate nil",
+     "effect": "return (nil, nil)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.resolve(sessionStart:recordingEnd:rrPoints:useHREstimation:)": "472051ae5134cf89"
+   }
+  }
+ ],
+ "deps": {}
+}

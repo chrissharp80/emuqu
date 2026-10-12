@@ -1,0 +1,556 @@
+{
+ "file": ".github/SECURITY.md",
+ "hash": "e3b0c44298fc1c14",
+ "role": "Security and privacy policy: vulnerability reporting, keychain/transport/logging/privacy-manifest posture, data sent to third parties, data at rest, export-compliance reasoning, solo-workflow trade-offs, SBOM, data deletion.",
+ "types": [],
+ "state": [],
+ "toplevel": "Horizontal rules only; all content is under headings.",
+ "flags": [],
+ "units": [
+  {
+   "key": "§ Security Policy",
+   "hash": "0d3479d174930000",
+   "does": "no behavioural claim: introduction — solo-developer iOS app handling HRV and sleep data; document scope.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Security Policy > Reporting a Vulnerability",
+   "hash": "776726e85e99de3b",
+   "does": "Vulnerability reports go by email to chrissharp80@gmail.com, stated to be the same address as Settings → Contact Support (address appears in Views/SettingsView.swift and Views/PrivacyPolicyView.swift). Lists what a report should include.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SettingsView.swift::var SettingsView.supportLink",
+    "Emuqu/Sources/Views/PrivacyPolicyView.swift::var PrivacyPolicyView.contactLink"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/PrivacyPolicyView.swift::var PrivacyPolicyView.contactLink": "6fc7829655569c3a",
+    "Emuqu/Sources/Views/SettingsView.swift::var SettingsView.supportLink": "59b48f31b1642abf"
+   }
+  },
+  {
+   "key": "§ Security Policy > Response Targets (best-effort, solo maintainer)",
+   "hash": "c9bedab5858cada4",
+   "does": "no behavioural claim: best-effort response targets (5 business days ack, 14 triage) and a disclosure request.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Security Policy > Security Posture",
+   "hash": "bbe67f5f3eb17881",
+   "does": "no behavioural claim: section header for security posture subsections.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Security Policy > Security Posture > Keychain",
+   "hash": "3bede0de447aa4ea",
+   "does": "Four keychain item kinds, none with an access group: APIKeyStore keys AfterFirstUnlockThisDeviceOnly non-sync (APIKeyStore.swift:65,174); EncryptionManager archive key AfterFirstUnlock non-sync (EncryptionManager.swift:234,252) with in-place migration from ThisDeviceOnly on first use (makeKeyMigratable, EncryptionManager.swift:257-269, called from loadKey/loadOrCreateKey); CloudPayloadCodec key AfterFirstUnlock + synchronizable (CloudPayloadCodec.swift:237,281); EntitlementAnchor record AfterFirstUnlock + synchronizable (EntitlementAnchor.swift:355,374). Verified: only these four files call SecItemAdd/SecItemUpdate and no entitlement declares keychain-access-groups (Emuqu/Emuqu.entitlements).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.setKey(_:for:)",
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.setServiceKey(_:for:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.storeKeyInKeychain(_:account:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.makeKeyMigratable(account:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.loadKey(version:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.loadOrCreateKey(version:cache:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.create()",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.saveToKeychain(_:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.addToKeychain(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.setKey(_:for:)": "b26556448903f9ff",
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.setServiceKey(_:for:)": "f20301038493a26f",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.addToKeychain(_:)": "cd822bbe398b5d0d",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.saveToKeychain(_:)": "3529061e84a8ccd8",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.create()": "883abd5e9f98385a",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.loadKey(version:)": "ca33f444b6f02684",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.loadOrCreateKey(version:cache:)": "c39b463856e33c47",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.makeKeyMigratable(account:)": "d4f3a003d85390a6",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.storeKeyInKeychain(_:account:)": "7beb37309a266a6e"
+   }
+  },
+  {
+   "key": "§ Security Policy > Security Posture > Keys in transit",
+   "hash": "b61f0c2cc9f21062",
+   "does": "AI provider requests use HTTPS with system trust; API keys go in headers, never URL query strings: Anthropic x-api-key (AnthropicProvider+Request.swift:110), Gemini x-goog-api-key (GeminiProvider.swift:336; its only query item is alt=sse, :257), OpenAI-compatible (OpenAI/Grok/DeepSeek) Authorization Bearer (OpenAICompatibleStreamer.swift:332); Tavily also Bearer header (WebSearchService.swift:177). No certificate pinning: no URLSession trust-challenge handler or SecTrust use exists in Emuqu/Sources.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.makeRequest(url:apiKey:body:)",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.makeRequest(url:apiKey:body:)",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.buildRequest(endpoint:apiKey:model:reasoning:mapped:tools:)",
+    "Emuqu/Sources/Services/WebSearchService.swift::func WebSearchService.tavilyRequest(query:intent:maxResults:apiKey:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.makeRequest(url:apiKey:body:)": "ba53547df7938cb8",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.makeRequest(url:apiKey:body:)": "f46bd1180a0842b9",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.buildRequest(endpoint:apiKey:model:reasoning:mapped:tools:)": "c121243da786049b",
+    "Emuqu/Sources/Services/WebSearchService.swift::func WebSearchService.tavilyRequest(query:intent:maxResults:apiKey:)": "cb9f7b023c4ea0c8"
+   }
+  },
+  {
+   "key": "§ Security Policy > Security Posture > App Transport Security",
+   "hash": "e69b545fdf5efd40",
+   "does": "No NSAppTransportSecurity exception in Info.plist; verified: Emuqu/Info.plist contains no NSAppTransportSecurity key.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Security Policy > Security Posture > Entitlements",
+   "hash": "1fc0d83e410c8394",
+   "does": "Entitlements limited to HealthKit + background delivery, App Group, iCloud container, CloudKit; no keychain-access-groups/associated-domains/network-extensions. Matches Emuqu/Emuqu.entitlements exactly (watch entitlements: HealthKit only).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.startObservingSleepData()",
+    "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift::func VitalsHealthQueries.observeVitalsType(_:)",
+    "Emuqu/Sources/Utilities/Constants.swift::func AppConfig.sharedContainerURL()",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var SharedUserDefaults.appGroup",
+    "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.privateDB"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.startObservingSleepData()": "2541e915583705b5",
+    "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift::func VitalsHealthQueries.observeVitalsType(_:)": "7f7b0721cf6c1659",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var SharedUserDefaults.appGroup": "d4cc3511c4681e6c",
+    "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)": "a892db29af7907c0",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.privateDB": "0472c6d550eaafca",
+    "Emuqu/Sources/Utilities/Constants.swift::func AppConfig.sharedContainerURL()": "324ee77df2888a13"
+   }
+  },
+  {
+   "key": "§ Security Policy > Security Posture > Logging",
+   "hash": "58ddfb03831b689d",
+   "does": "DebugLog: 5,000-entry in-memory ring; disk persistence always on in DEBUG, opt-in in Release; file in the App Group container with completeUntilFirstUserAuthentication. Says scrubPHI redacts a number after a health-metric name, the numbers chained to it by an arrow or comparison, and latitude/longitude values (DebugLogger.scrubPHI, metricPattern, redactValueChains), and that session IDs are kept as random UUIDs (DebugLog.swift dropFileProtection comment). Says lines are scrubbed once at flush (flushToDisk batch map) and a file export returns that content unchanged (exportLogs), while an in-memory export (Persistent Logging off, exportMemoryLogs) and the error-catalog export (exportErrorCatalog) scrub each line at export; export written to a temp dir with protection .none (exportToFile/dropFileProtection); `make log-redaction-guard` fails a log call that interpolates a raw health or identifying value.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::init DebugLogger()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.resolveLogFileURL()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.relaxFileProtection(at:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.flushPendingLines()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.scrubPHI(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.exportLogs()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.exportErrorCatalog()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.exportToFile()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.dropFileProtection(at:)",
+    "Makefile::target log-redaction-guard"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.dropFileProtection(at:)": "a65aa8e02ac106f4",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.exportErrorCatalog()": "45a0273f16a6c198",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.exportLogs()": "59bffe49f4d6aee5",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.exportToFile()": "ac264ab5ec2f9162",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.flushPendingLines()": "d6fbafbe56b69335",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.relaxFileProtection(at:)": "17eebbaabe47d9de",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.resolveLogFileURL()": "09abe494bab75fc5",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.scrubPHI(_:)": "1ce9d44bc1dd4c98",
+    "Emuqu/Sources/Utilities/DebugLog.swift::init DebugLogger()": "c682460ab6f21e45",
+    "Makefile::target log-redaction-guard": "a395242dcaec5ca7"
+   }
+  },
+  {
+   "key": "§ Security Policy > Security Posture > Privacy manifest (`PrivacyInfo.xcprivacy`)",
+   "hash": "e72b241eea4d0bd3",
+   "does": "Privacy manifest declares Health, Fitness, PreciseLocation, OtherUserContent, Contacts, EmailAddress, PhysicalAddress, SearchHistory as linked and CoarseLocation, AudioData as not linked, all tracking=false purpose AppFunctionality; NSPrivacyTracking false, no domains; API reasons UserDefaults CA92.1+1C8F.1, FileTimestamp C617.1. CoarseLocation row: ~1 km for MET Norway weather, ~100 m (%.3f) for Overpass trail searches (TrailDiscoveryService), and the centre of the user's 250 m grid cell for nearby-road lookups (RoadGraphService cell centre). Lists every Info.plist usage string in Emuqu/Info.plist: Bluetooth, Health share and update (with the Settings → Wearables export switch), Photo library add-only (Save Image), Microphone, Speech recognition, Motion, Location when in use.",
+   "entry": null,
+   "calls": [
+    "Makefile::target infoplist-guard"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Makefile::target infoplist-guard": "534a23e094558e6d"
+   }
+  },
+  {
+   "key": "§ Security Policy > Security Posture > Third-party network egress beyond AI providers",
+   "hash": "66e31e0d662d4e44",
+   "does": "Elevation: only on user tap; route downsampled to <=100 points, rounded to 4 decimals (~11 m), sent to api.opentopodata.org by TopoElevationService (TopoElevationService.swift:89,177,228-248). Roads (RoadGraphService) and trails (TrailDiscoveryService) query Overpass (OverpassClient endpoints overpass.private.coffee and overpass-api.de, OverpassClient.swift:60-61).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.elevations(for:maxSamples:sustainedClimbThreshold:)",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.downsampleIndices(count:target:)",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.fetchFromOpenTopoData(coords:dataset:)",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.openTopoDataURL(dataset:locations:)",
+    "Emuqu/Sources/Services/RoadGraphService.swift::func RoadGraphService.fetchTile(cellKey:centerLat:centerLon:cellLatIndex:cellLonIndex:)",
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.fetchOverpass(coord:filters:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.downsampleIndices(count:target:)": "edb5fc6bb3526696",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.elevations(for:maxSamples:sustainedClimbThreshold:)": "694915adbe9258c0",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.fetchFromOpenTopoData(coords:dataset:)": "9fa41cc35339b178",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.openTopoDataURL(dataset:locations:)": "d6fedefde7c1fb29",
+    "Emuqu/Sources/Services/RoadGraphService.swift::func RoadGraphService.fetchTile(cellKey:centerLat:centerLon:cellLatIndex:cellLonIndex:)": "83f74b14faa3ed8a",
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.fetchOverpass(coord:filters:)": "72c0ad8e685fd8f8"
+   }
+  },
+  {
+   "key": "§ Security Policy > Security Posture > Data sent to third-party AI providers",
+   "hash": "4a34e9e665e04844",
+   "does": "Hosted providers get the chat, saved facts, and a live-state block from renderLiveStateForCloud: the most recent session labelled by wake day (today, yesterday, or date and age; a non-overnight fallback session names its type — liveStateDayLabel) with score+tier, RMSSD, SDNN, mean HR, overnight HR nadir/mean, sleep duration+efficiency and the scoreMessage note; the previous session's score, RMSSD, mean HR; during a live workout the ambient location (road, cross street, locality, subdivision, administrative area, country, heading, speed, altitude, GPS accuracy, fix age — placeBits/motionBits); plus tool results. With Apple selected: Quick keeps typed turns on Apple; Auto sends classifier-flagged turns (sticky tier) to Grok then DeepSeek (consented, enabled, available), else Apple (TierProviderMapper.autoMapping/midTierProvider); Deep sends every turn to Grok then DeepSeek, else Apple (deepMapping); in all three, voice turns (appleVoiceBypass) and action requests landing on tool-less Apple (actionIntentOverride) go to the first consented cloud in registry order, staying on Apple if none; on model failure Quick allows only Apple, Auto/Deep any accepted model, Apple last (failureFallback). Manual and a hosted pick send every turn to the pick. AppleToolDispatcher bridges through CompactToolRouter/FactResolverRegistry; LLMCacheTelemetry is in-memory and normalises Anthropic cache_read_input_tokens, OpenAI cached_tokens / DeepSeek prompt_cache_hit_tokens, Gemini cachedContentTokenCount.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.renderLiveStateForCloud(now:)",
+    "Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift::func AppleToolDispatcher.dispatch(name:argumentsJSON:)",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.dispatch(_:tool:selector:plain:parameterized:args:)",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolve(_:)",
+    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::func LLMCacheTelemetry.record(provider:input:output:cachedRead:cacheCreate:)",
+    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::func LLMCacheTelemetry.reset()",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.preTierDecision(inputs:)",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.appleVoiceBypass(inputs:)",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.actionIntentOverride(inputs:stage:mapping:logLines:)",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.failureFallback(mode:selectedProviderID:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.proposeTier(mode:)",
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.mapping(for:registry:)",
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.route(message:in:)",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.firstConsentedCloud(inputs:)",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.allowedFallbacks(_:under:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveStateDayLabel(_:now:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveStateDayLabel(_:now:)": "1c86cd9245ba3d68",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.renderLiveStateForCloud(now:)": "cc6577a7f3dcdd80",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.dispatch(_:tool:selector:plain:parameterized:args:)": "40aaeeac82dc8d03",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolve(_:)": "c12f9bc70801f517",
+    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::func LLMCacheTelemetry.record(provider:input:output:cachedRead:cacheCreate:)": "94829f2cebdff047",
+    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::func LLMCacheTelemetry.reset()": "f332977010dbd513",
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.route(message:in:)": "3141f88c87917471",
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.mapping(for:registry:)": "cea711b44f092f91",
+    "Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift::func AppleToolDispatcher.dispatch(name:argumentsJSON:)": "dd65e131a7601d37",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.proposeTier(mode:)": "98eda2f52a015e64",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.actionIntentOverride(inputs:stage:mapping:logLines:)": "aa49beb2ffd15915",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.allowedFallbacks(_:under:)": "abaefd31f56e61c4",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.appleVoiceBypass(inputs:)": "efe8e9a74fd5aea1",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.failureFallback(mode:selectedProviderID:)": "3741e44c1cf00c40",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.firstConsentedCloud(inputs:)": "2da15195f6be226a",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.preTierDecision(inputs:)": "914e5a48e368e73f"
+   }
+  },
+  {
+   "key": "§ Security Policy > Security Posture > Data sent to third-party AI providers > Privacy manifest and App Store Connect alignment",
+   "hash": "00b73127f61b8bce",
+   "does": "Three alignment layers: ProviderConsentTracker shows ProviderConsentSheet per provider before first send with schema version (consentSchemaVersion = 8 baked into the defaults key, ProviderConsentTracker.swift:76-79); PrivacyInfo.xcprivacy types; App Store Connect questionnaire (not checkable). MedicalQueryGuard runs before any provider call and marks the refused exchange localOnly (AssistantViewModel.swift:417-423), which truncateForSend and summarizationPrompt filter out (AssistantViewModel+Context.swift:67,123).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.storageKey(for:)",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.acknowledge(_:)",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.evaluate(_:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.medicalGuardRefused(_:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.appendExchange(user:assistant:localOnly:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.truncateForSend(_:provider:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.summarizationPrompt(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.evaluate(_:)": "209910bab182d4ea",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.acknowledge(_:)": "9fa1066b036acf46",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)": "b36a2b8ea48a5e61",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.storageKey(for:)": "d7cf432e48ac4980",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.summarizationPrompt(_:)": "73ef5abc02f722d9",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.truncateForSend(_:provider:)": "9f6626b5c70a4ba3",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.appendExchange(user:assistant:localOnly:)": "10a36de797d5da95",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.medicalGuardRefused(_:)": "febc96bd0c0829d4"
+   }
+  },
+  {
+   "key": "§ Security Policy > Data at Rest",
+   "hash": "daa8f5367cad2ebb",
+   "does": "no behavioural claim: section header for data-at-rest subsections.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Security Policy > Data at Rest > iCloud (CloudKit private database) — app-encrypted with a portable key",
+   "hash": "ed6de465315343b4",
+   "does": "All CloudKit uploads (sessions, live RR backups, settings) are sealed with CloudPayloadCodec AES-GCM-256 using a synchronizable key; multiple per-account keys are tried on decode; hasUsableKey only reports a key exists; framing: EMQC magic + version byte opened with the cloud keys, the older FR prefix decrypted with EncryptionManager's device archive key (readable only on the writing device), and payloads with neither prefix returned unchanged as legacy compressed records — each chosen by prefix, not by a failed decryption (CloudPayloadCodec.decode); upload throws when no key (encryptedForCloud).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::var CloudPayloadCodec.hasUsableKey",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.writingKey()",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.primaryAccount(among:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.storedKeys()",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.encryptedForCloud(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.encryptedSettingsPayload(_:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.decrypt(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.encryptedForCloud(_:)": "1ec8fa5af24b07ab",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.encryptedSettingsPayload(_:)": "c0cb44f7ee9b40b0",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)": "15dfc7e25d0a72b9",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)": "8c3ad22f8d15e4b6",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.primaryAccount(among:)": "f5618d2383fba70d",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.storedKeys()": "54a0f9830a1c9db1",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.writingKey()": "3706dcec5ce9702d",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::var CloudPayloadCodec.hasUsableKey": "955a9721f4e44da3",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.decrypt(_:)": "32058ab0050d0265"
+   }
+  },
+  {
+   "key": "§ Security Policy > Data at Rest > Local session files",
+   "hash": "32c91f523055512d",
+   "does": "Session files encrypted by EncryptionManager and written completeUntilFirstUserAuthentication; when the archive key is unreachable the session is written plain with .completeFileProtection and recorded in PendingEncryptionLedger, re-encrypted next launch (Archive+PendingEncryption.swift:18-28,40-79). Assistant conversations, user facts and artifacts written with .completeFileProtection (ConversationStore.swift:139, UserFactsStore.swift:261, AssistantArtifactStore.swift:212).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)",
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func archiveWriteOptions(for:sessionID:)",
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func reencryptPendingSessions(in:)",
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func reencryptOne(_:in:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func archiveWriteOptions(for:sessionID:)": "d9ad1255ee6ca7c4",
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func reencryptOne(_:in:)": "be6622dcbf06e136",
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func reencryptPendingSessions(in:)": "a6f10f434000c214",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)": "6236f6fa0100fadb",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:)": "ba53b321fe13e376"
+   }
+  },
+  {
+   "key": "§ Security Policy > Export compliance (`ITSAppUsesNonExemptEncryption`)",
+   "hash": "56113d551c130822",
+   "does": "no behavioural claim: introduces the export-compliance record.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Security Policy > Export compliance (`ITSAppUsesNonExemptEncryption`) > What the app actually does",
+   "hash": "f2c3ec549c8ba57d",
+   "does": "Table: CloudPayloadCodec AES.GCM.seal with 256-bit key; EncryptionManager AES.GCM on local archive; SHA-256 digests elsewhere; all CryptoKit. Matches CloudPayloadCodec.swift:131-134,229 and EncryptionManager.swift:221.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)": "8c3ad22f8d15e4b6",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)": "6236f6fa0100fadb"
+   }
+  },
+  {
+   "key": "§ Security Policy > Export compliance (`ITSAppUsesNonExemptEncryption`) > The declaration",
+   "hash": "19081cd0bb1f3cf9",
+   "does": "Emuqu/Info.plist sets ITSAppUsesNonExemptEncryption false — verified at Info.plist:70-71. Rest is legal reasoning.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.create()",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.loadOrCreateKey(version:cache:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.create()": "883abd5e9f98385a",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)": "8c3ad22f8d15e4b6",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)": "6236f6fa0100fadb",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.loadOrCreateKey(version:cache:)": "c39b463856e33c47"
+   }
+  },
+  {
+   "key": "§ Security Policy > Export compliance (`ITSAppUsesNonExemptEncryption`) > If it is ever challenged",
+   "hash": "c81cef95f27ea459",
+   "does": "no behavioural claim: procedure for flipping the export flag and filing paperwork if challenged.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Security Policy > Solo-Workflow Trade-offs",
+   "hash": "c698a76636a4dfcb",
+   "does": "No secret scanning in CI; .gitignore covers .env, .env.local, .env.*.local, *.p8, *.p12, *.pem, *.mobileprovision (verified .gitignore:126-167). Dependabot version PRs disabled with open-pull-requests-limit: 0 for both ecosystems (verified .github/dependabot.yml). Security updates being enabled is a repository setting not visible in the repo.",
+   "entry": null,
+   "calls": [
+    "Makefile::target sbom",
+    "Makefile::target sbom-check",
+    "Makefile::target sbom-guard",
+    "Makefile::target ci",
+    "scripts/generate_sbom.py::def build",
+    "scripts/generate_sbom.py::def main",
+    "scripts/generate_sbom.py::def purl",
+    "scripts/generate_sbom.py::def spdx_id"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Makefile::target ci": "b679f3a8965b735e",
+    "Makefile::target sbom": "0c632a24928c8698",
+    "Makefile::target sbom-check": "e1a31616864cff02",
+    "Makefile::target sbom-guard": "66e379cb76f4a7ec",
+    "scripts/generate_sbom.py::def build": "2bff7ea18a12bcc5",
+    "scripts/generate_sbom.py::def main": "9f1f3c45d4110b37",
+    "scripts/generate_sbom.py::def purl": "3640bda86c8e3bbe",
+    "scripts/generate_sbom.py::def spdx_id": "2ba163face7edd65"
+   }
+  },
+  {
+   "key": "§ Security Policy > Solo-Workflow Trade-offs > Software bill of materials",
+   "hash": "9f526fed77ed1168",
+   "does": "sbom.spdx.json is SPDX-2.3 covering 11 resolved packages (12 package entries = root Emuqu + 11; Package.resolved has 11 identities) generated by scripts/generate_sbom.py; `make sbom-check` runs generate_sbom.py --check (Makefile:199).",
+   "entry": null,
+   "calls": [
+    "Makefile::target sbom",
+    "Makefile::target sbom-check",
+    "scripts/generate_sbom.py::def main"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Makefile::target sbom": "0c632a24928c8698",
+    "Makefile::target sbom-check": "e1a31616864cff02",
+    "scripts/generate_sbom.py::def main": "9f1f3c45d4110b37"
+   }
+  },
+  {
+   "key": "§ Security Policy > Data Deletion Requests (GDPR / CCPA)",
+   "hash": "f70b72c87639ea42",
+   "does": "Delete All My Data: DeleteAllDataPage requires typing DELETE MY DATA (DeleteAllDataPage.swift:28) then DataPurgeService.purgeAllUserData: remote CloudKit zones HRVSessions+UserSettings deleted first via CloudKitSyncManager.deleteAllRemoteData (DataPurgeService.swift:503-512), archive/backups/track/breadcrumbs wiped and containers swept, APIKeyStore.removeAllKeys (provider + Tavily), conversations/facts cleared, settings reset with iCloudSyncEnabled=false (DataPurgeService.swift:553-575); EntitlementAnchor kept via defaults keep-list; report carries remoteDeleted. Wearables page offers 'Delete Emuqu sleep from Apple Health' (WearablesSettingsPage.swift:169-187) which calls deleteAllAppWrittenSleepSamples.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::func DeleteAllDataPage.performPurge()",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:deleteRemote:)",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeRemote(cloudSync:deleteRemote:errors:)",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeLocalStores(cloudSync:settingsManager:)",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeDirectories(settingsManager:cloudSync:errors:)",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweepAllContainers(errors:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.deleteAllRemoteData()",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.deleteAllRemoteData()",
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.removeAllKeys()",
+    "Emuqu/Sources/Views/WearablesSettingsPage.swift::var WearablesSettingsPage.deleteSleepWritesButton",
+    "Emuqu/Sources/Collection/HealthKitManager+WriteForwarding.swift::func HealthKitManager.deleteAllAppWrittenSleepSamples()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.removeAllKeys()": "d7c9c3098bf8a84e",
+    "Emuqu/Sources/Collection/HealthKitManager+WriteForwarding.swift::func HealthKitManager.deleteAllAppWrittenSleepSamples()": "fe8ae526fcf91dae",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:deleteRemote:)": "738ba787af751fec",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeDirectories(settingsManager:cloudSync:errors:)": "a9167ea804ea5e3d",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeLocalStores(cloudSync:settingsManager:)": "b99dd2d7bc852d06",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeRemote(cloudSync:deleteRemote:errors:)": "d951b20451ad7ecc",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweepAllContainers(errors:)": "5ded030f6239c54f",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.deleteAllRemoteData()": "fb3294f4a71c9201",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.deleteAllRemoteData()": "2cb164c03427dc36",
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::func DeleteAllDataPage.performPurge()": "2d6f177d70af20c6",
+    "Emuqu/Sources/Views/WearablesSettingsPage.swift::var WearablesSettingsPage.deleteSleepWritesButton": "b38070bbe5e11ff3"
+   }
+  },
+  {
+   "key": "§ Security Policy > Data Deletion Requests (GDPR / CCPA) > App Store rejection",
+   "hash": "02c28189f6d37b05",
+   "does": "`make infoplist-guard` runs check_infoplist_key_drift.sh which fails on INFOPLIST_KEY_*UsageDescription in project.pbxproj (Makefile:28-31; scripts/check_infoplist_key_drift.sh:30); PrivacyInfo.xcprivacy exists for both iPhone and Watch (Watch declares only UserDefaults CA92.1).",
+   "entry": null,
+   "calls": [
+    "Makefile::target infoplist-guard"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Makefile::target infoplist-guard": "534a23e094558e6d"
+   }
+  },
+  {
+   "key": "§ Security Policy > Supported Versions",
+   "hash": "8ccdda9a64506623",
+   "does": "no behavioural claim: main branch is the only supported line.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

@@ -1,0 +1,210 @@
+{
+ "file": "Emuqu/Sources/Assistant/Facts/FactKey.swift",
+ "hash": "8acc0d60e911f109",
+ "role": "Parsed dotted fact-key grammar (tokens with optional parenthesised argument) used by the registry and namespace pattern matching.",
+ "types": [
+  "FactKey: struct — token list with parse/render",
+  "FactKey.Token: struct — name + optional argument"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "init FactKey.Token(name:argument:)",
+   "hash": "4338e2710290e755",
+   "does": "Memberwise init of a token (argument default nil).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var FactKey.Token.rendered",
+   "hash": "59c24974facfa54e",
+   "does": "Renders 'name(arg)' or 'name'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "argument non-nil",
+     "effect": "name(arg); ?? falls back to bare name"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var FactKey.rendered",
+   "hash": "517c353c264d8409",
+   "does": "Joins rendered tokens with '.'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactKey.swift::var FactKey.Token.rendered"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactKey.swift::var FactKey.Token.rendered": "985b727d38ff4dc2"
+   }
+  },
+  {
+   "key": "func FactKey.parse(_:)",
+   "hash": "95ede51303b263bc",
+   "does": "Trims whitespace, splits on depth-0 dots and parses each piece into a token; nil on empty, unbalanced parens, empty pieces, or a piece that fails to parse.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactKey.swift::func FactKey.splitOnTopLevelDots(_:)",
+    "Emuqu/Sources/Assistant/Facts/FactKey.swift::func FactKey.parseToken(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "trimmed empty or split failed",
+     "effect": "nil"
+    },
+    {
+     "at": "+4",
+     "cond": "some piece failed to parse or zero tokens",
+     "effect": "nil; else FactKey(tokens)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactKey.swift::func FactKey.parseToken(_:)": "acfe1a44088c3dbd",
+    "Emuqu/Sources/Assistant/Facts/FactKey.swift::func FactKey.splitOnTopLevelDots(_:)": "e1e4ce6bca5db583"
+   }
+  },
+  {
+   "key": "func FactKey.splitOnTopLevelDots(_:)",
+   "hash": "1de91fb864a32989",
+   "does": "Splits a key on dots at paren depth 0, failing on empty pieces between dots, a leading or trailing dot, or unbalanced parens.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactKey.swift::func FactKey.flushPiece(_:into:)",
+    "Emuqu/Sources/Assistant/Facts/FactKey.swift::func FactKey.adjustDepth(_:for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "for each character",
+     "effect": "walk"
+    },
+    {
+     "at": "+6",
+     "cond": "depth-0 dot and buffer empty",
+     "effect": "returns nil (leading dot or '..')"
+    },
+    {
+     "at": "+7",
+     "cond": "depth-0 dot",
+     "effect": "skips the separator"
+    },
+    {
+     "at": "+8",
+     "cond": "')' at depth 0",
+     "effect": "returns nil (unbalanced)"
+    },
+    {
+     "at": "+12",
+     "cond": "depth != 0 at end, or the final piece is empty (trailing dot)",
+     "effect": "returns nil; else appends the final piece"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactKey.swift::func FactKey.adjustDepth(_:for:)": "6f968397ecd89675",
+    "Emuqu/Sources/Assistant/Facts/FactKey.swift::func FactKey.flushPiece(_:into:)": "868bdd63286d12cd"
+   }
+  },
+  {
+   "key": "func FactKey.flushPiece(_:into:)",
+   "hash": "9f7b610e0502eb9d",
+   "does": "Appends the buffer as a piece and clears it; false when the buffer is empty.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "buffer empty",
+     "effect": "false; else append + true"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FactKey.adjustDepth(_:for:)",
+   "hash": "7a979c66017f713e",
+   "does": "Adjusts paren depth for one character; nil when ')' would go negative.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "char '('",
+     "effect": "depth+1"
+    },
+    {
+     "at": "+2",
+     "cond": "char not ')'",
+     "effect": "unchanged depth"
+    },
+    {
+     "at": "+3",
+     "cond": "depth > 0",
+     "effect": "depth-1; else nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FactKey.parseToken(_:)",
+   "hash": "41a2f9a6cd2262ec",
+   "does": "Parses 'name(arg)' (first '(' and last char ')') into a token with argument, else a bare-name token; nil for empty or for '(…)' with empty name.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "raw empty",
+     "effect": "nil"
+    },
+    {
+     "at": "+2",
+     "cond": "has '(' and ends with ')'",
+     "effect": "name/arg split (arg may be empty or contain inner parens); else bare token whose name may contain parens, e.g. 'a(b)c'"
+    },
+    {
+     "at": "+7",
+     "cond": "name before '(' empty",
+     "effect": "nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactKey.swift::init FactKey.Token(name:argument:)": "4ea4ec60a1391f75"
+   }
+  }
+ ],
+ "deps": {}
+}

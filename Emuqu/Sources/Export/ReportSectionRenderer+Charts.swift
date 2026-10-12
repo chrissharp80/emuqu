@@ -34,7 +34,8 @@ extension ReportSectionRenderer {
     }
 
     /// Consecutive RR pairs from inside the analysis window, artifact-adjacent
-    /// pairs dropped.
+    /// pairs dropped — the same pairs the on-screen plot
+    /// (`PoincarePlotView.beatPairs`) draws.
     ///
     /// A zeroed/degenerate analysis window (windowEnd 0 or 1) would make the
     /// range `windowStart ..< (windowEnd - 1)` trap before the empty-guard
@@ -42,17 +43,21 @@ extension ReportSectionRenderer {
     private func poincarePairs(series: RRSeries, flags: [ArtifactFlags], result: HRVAnalysisResult) -> [(Double, Double)] {
         let windowStart = result.windowStart
         let windowEnd = min(result.windowEnd, series.points.count)
-        guard windowEnd > windowStart + 1 else { return [] }
+        guard windowStart >= 0, windowEnd > windowStart + 1 else { return [] }
         return (windowStart ..< (windowEnd - 1)).compactMap { i in
             guard Self.isCleanPair(at: i, flags: flags) else { return nil }
             return (Double(series.points[i].rr_ms), Double(series.points[i + 1].rr_ms))
         }
     }
 
-    /// Both beats of the pair must be in range and artifact-free.
+    /// Neither beat of the pair is flagged as an artifact. A beat with no flag
+    /// (nil or short `artifactFlags`, as SessionMerger and the streaming
+    /// builders leave them) counts as clean, as in the tachogram, the PSD and
+    /// the on-screen plot.
     private static func isCleanPair(at i: Int, flags: [ArtifactFlags]) -> Bool {
-        guard i < flags.count, (i + 1) < flags.count else { return false }
-        return !flags[i].isArtifact && !flags[i + 1].isArtifact
+        let firstIsArtifact = i < flags.count ? flags[i].isArtifact : false
+        let secondIsArtifact = (i + 1) < flags.count ? flags[i + 1].isArtifact : false
+        return !firstIsArtifact && !secondIsArtifact
     }
 
     /// Maps an RR value onto the plot, padded so the cloud does not touch the

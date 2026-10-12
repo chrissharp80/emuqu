@@ -41,12 +41,18 @@ final class AssistantInbox {
 
     private static let transientNoticeAutoClearSeconds: TimeInterval = 4.0
 
+    /// Counts flashes, so a timer clears only the notice it was started for
+    /// — not a later flash of the same text.
+    @ObservationIgnored private var noticeGeneration = 0
+
     func flashTransientNotice(_ message: String) {
         transientNotice = message
+        noticeGeneration += 1
+        let generation = noticeGeneration
         Task { @MainActor [weak self] in
             await sleepQuietly(UInt64(Self.transientNoticeAutoClearSeconds * 1_000_000_000), context: "flashTransientNotice")
-            // Only clear if no newer notice has replaced it.
-            if self?.transientNotice == message {
+            // Only clear if no newer flash has replaced it.
+            if self?.noticeGeneration == generation {
                 self?.transientNotice = nil
             }
         }

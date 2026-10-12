@@ -1,0 +1,112 @@
+{
+ "file": "scripts/check_refactor_spec_conformance.sh",
+ "hash": "31d57529cc2b44bc",
+ "role": "CI gate for docs/REFACTOR_SPEC.md: counts functions and computed properties/inits/closure-initialised properties over 20 body lines or nested deeper than 2, commented-out code lines, empty catches, justified waivers and malformed waivers in Emuqu (and a combined count for the watch app) against .ci budgets.",
+ "types": [],
+ "state": [
+  "file:.ci/spec_long_functions_budget.txt",
+  "file:.ci/spec_deep_nesting_budget.txt",
+  "file:.ci/spec_commented_code_budget.txt",
+  "file:.ci/spec_justified_long_budget.txt",
+  "file:.ci/spec_justified_nesting_budget.txt",
+  "file:.ci/spec_long_properties_budget.txt",
+  "file:.ci/spec_deep_nesting_properties_budget.txt",
+  "file:.ci/spec_watch_budget.txt"
+ ],
+ "toplevel": "cd to repo root. SCAN_DIR=Emuqu (missing -> 2). Every budget is read with `$(read_budget ...) || exit $?`, so a missing or non-integer budget file exits 2. MEASURED=measure_spec Emuqu (empty -> 2); first line parsed into 9 counts; prints report; over() for each axis (empty catches and malformed waivers against 0); any over -> worst offenders + exit 1; below-budget hints. Watch: budget file missing -> 2, non-integer -> 2; measure_spec on watch dir; total of 4 axes vs .ci/spec_watch_budget.txt (0); over -> exit 1. Else clean.",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Header says the waiver budgets start at zero and 'The budget is zero'; .ci/spec_justified_long_budget.txt is 7.",
+   "evidence": [
+    "scripts/check_refactor_spec_conformance.sh:33",
+    "scripts/check_refactor_spec_conformance.sh:42",
+    ".ci/spec_justified_long_budget.txt:1"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "silent-failure",
+   "sev": "low",
+   "text": "For the watch target only the four size/nesting axes are summed; empty catches, commented-out code and malformed waivers in watch files are measured and discarded. If the watch measurement fails, the empty fields evaluate to 0 and the gate passes.",
+   "evidence": [
+    "scripts/check_refactor_spec_conformance.sh:532",
+    "scripts/check_refactor_spec_conformance.sh:534"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "fn read_budget",
+   "hash": "53a5d37f4be85321",
+   "does": "Prints the whitespace-stripped content of .ci/<name>; exits 2 (from the $( ) subshell, which every call site turns into the script exit with `|| exit $?`) if the file is missing or its content is not a non-negative integer.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "file:.ci/spec_*_budget.txt"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "file missing",
+     "effect": "stderr, exit 2"
+    },
+    {
+     "at": "+7",
+     "cond": "content not ^[0-9]+$",
+     "effect": "stderr, exit 2; else print value"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "fn measure_spec",
+   "hash": "8fec924b95e50884",
+   "does": "Runs embedded Python over directory $1: for every *.swift, counts commented-out code lines (outside Usage/Example blocks), statement-less catch bodies, malformed swallow-ok markers; finds func/computed-var/init/subscript/closure-initialised declarations, locates the body brace by paren/bracket depth, measures body lines and nesting relative to the body; >20 lines or depth >2 counts as long/deep (func vs prop axis) unless a `// spec:long-function <why>` / `// spec:deep-nesting <why>` waiver sits in the comment block above; bare markers counted malformed. Prints one line of 9 counts, then BADWAIVER/LONG/DEEP rows (top 5 each).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "dir:Emuqu",
+    "dir:EmuquWatch Watch App"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "find_body_brace does not stop at the end of a body-less protocol requirement unless a ';' or blank line follows, so it takes the next depth-0 `{`. FootPodManager.swift:61 `func stopScanning()` is measured as the body of `extension BLEPeripheralConnecting {` at :64. The jump `i = max(j, i+1)` then skips that extension, so `connect(deviceId:)` is never measured on its own. Docstring says <> depth is tracked; only () and [] are.",
+     "evidence": [
+      "scripts/check_refactor_spec_conformance.sh:322",
+      "scripts/check_refactor_spec_conformance.sh:348",
+      "scripts/check_refactor_spec_conformance.sh:437",
+      "Emuqu/Sources/Collection/FootPodManager.swift:61"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "fn over",
+   "hash": "7a10c7ea5ffaef0c",
+   "does": "If actual > budget (arithmetic), prints '<label> is X, over budget Y' to stderr and sets global FAILED=1.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {
+  "scripts/check_refactor_spec_conformance.sh::fn measure_spec": "509182b8a7724c89",
+  "scripts/check_refactor_spec_conformance.sh::fn over": "a8abf10c9c4d580f",
+  "scripts/check_refactor_spec_conformance.sh::fn read_budget": "0bb5b672bbc299cf"
+ }
+}

@@ -51,7 +51,8 @@ struct StrapBatteryUsageTracker {
     /// Restore persisted battery-usage state for a freshly-connected device.
     /// Called from the `deviceConnected` observer. Per-device keying lets
     /// users alternate between multiple straps without losing each one's
-    /// counter.
+    /// counter. The stale flag is recomputed from the restored counter, so a
+    /// previous strap's flag never shows against this one.
     @MainActor
     func loadState(for deviceId: String) {
         let defaults = UserDefaults.standard
@@ -61,6 +62,7 @@ struct StrapBatteryUsageTracker {
         manager.batteryLastReportedValue = storedValue
         manager.batteryLastChangedAt = storedAt
         manager.hoursRecordedSinceBatteryChanged = max(0, storedHours)
+        recomputeStaleness()
     }
 
     private func persist(for deviceId: String) {
@@ -78,10 +80,19 @@ struct StrapBatteryUsageTracker {
     /// (overnight stop, workout stop, quick reading stop, etc.) with the
     /// number of hours the strap was actively delivering data. Persists
     /// after each call so a crash doesn't lose the count.
+    ///
+    /// A strap that dropped or was disconnected before the session ended is
+    /// still charged: the counter in memory is the one restored for the strap
+    /// last connected (`lastConnectedDeviceId`), and it is persisted under
+    /// that strap. Only with no strap ever known are the hours dropped, and
+    /// that is logged.
     @MainActor
     func recordRecordingHours(_ hours: Double) {
         guard hours > 0, hours < 48 else { return } // sanity bound: > 48h = telemetry bug
-        guard let deviceId = manager.connectedDeviceId else { return }
+        guard let deviceId = manager.connectedDeviceId ?? manager.lastConnectedDeviceId else {
+            debugLog("[StrapBattery] \(String(format: "%.2f", hours)) h of recording not charged — no strap known")
+            return
+        }
         manager.hoursRecordedSinceBatteryChanged += hours
         persist(for: deviceId)
         recomputeStaleness()
@@ -97,7 +108,6 @@ struct StrapBatteryUsageTracker {
             return
         }
         let spec = deviceType.specRecordingHours
-        guard spec > 0 else { return }
         // 70 % of spec — gives a comfortable margin while still raising the
         // flag well before the user wakes up to a dead strap.
         manager.isBatteryReadingStale = manager.hoursRecordedSinceBatteryChanged > spec * 0.7

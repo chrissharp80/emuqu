@@ -1,0 +1,1743 @@
+{
+ "file": "Emuqu/EmuquApp.swift",
+ "hash": "bdb875e0b0211f23",
+ "role": "The SwiftUI App declaration: builds the root singletons (collector, sync, settings, StoreKit, language, voice chat, Watch bridge) as @State, assembles the root view (MainTabView + environment + launch modals + scene-phase handlers + interrupted-session alerts + launch tasks), wires Watch->phone control closures, and holds the @main entry EmuquMain.",
+ "types": [
+  "LaunchModal: enum — which full-screen launch cover is up (disclaimer/onboarding/paywall/trialReminder/scoreArchitectureChange)",
+  "InterruptedSessionInfo: struct — a recording found persisted at launch; isResumable gates the resume alert",
+  "EmuquApp: struct (App) — app root; extended by AppLaunchTasks.swift and AppLaunchRecovery.swift",
+  "EmuquMain: enum (@main) — process entry, runs UI-test wipe + crash handlers before EmuquApp.main()"
+ ],
+ "state": [
+  "mem:coldStartLog (file-private OSLog subsystem com.chrissharp.flowrecovery category ColdStart)",
+  "mem:EmuquApp.collector (@State RRCollector.makeDefault())",
+  "mem:EmuquApp.syncManager (@State CloudKitSyncManager.shared)",
+  "mem:EmuquApp.settingsManager (@State SettingsManager.shared)",
+  "mem:EmuquApp.storeKitManager (@State StoreKitManager.shared)",
+  "mem:EmuquApp.languageManager (@State LanguageManager.shared)",
+  "mem:EmuquApp.voiceChat (@State VoiceConversationController.shared)",
+  "mem:EmuquApp.watchBridge (@State WatchConnectivityBridge.shared)",
+  "mem:EmuquApp.emailBridge (@State private AssistantEmailBridge.shared)",
+  "mem:EmuquApp.isLoading (@State, true at start)",
+  "mem:EmuquApp.activeModal (@State LaunchModal?)",
+  "mem:EmuquApp.requestedTab (@State MainTabView.Tab?)",
+  "mem:EmuquApp.dataLoaded (@State Bool)",
+  "mem:EmuquApp.interruptedSessionAlert (@State InterruptedSessionInfo?)",
+  "mem:EmuquApp.recoveryResultMessage (@State String?)"
+ ],
+ "toplevel": "Stored-property initializers of EmuquApp call the seven makeX() factories (EmuquApp.swift:86-99), so every root singleton is built when EmuquApp.main() instantiates the App struct, after EmuquMain.main() has run the UI-test wipe and diagnostics install. emailBridge reads AssistantEmailBridge.shared directly (106). LaunchModal conforms to Identifiable for fullScreenCover(item:). Only the @State factories, emailBridge and installDiagnostics read `.shared` singletons directly (the file is whitelisted as composition root by scripts/check_no_shared_outside_root.sh); the scene-phase, launch and Watch handlers reach ambient location, power policy, morning scheduler, keyboard dismissal, recorder box and settings sync through AppDependencies.current, as the AppLaunchTasks/AppLaunchRecovery extensions do, so a test override reaches both. LaunchModal has no associated values, so it is Equatable and drives .onChange(of: activeModal).",
+ "flags": [
+  {
+   "kind": "untested",
+   "sev": "low",
+   "text": "No unit or UI test references EmuquApp, LaunchModal, InterruptedSessionInfo, the launch-modal ordering, the Watch refusal logic or the scene-phase handler (grep of EmuquTests finds only a comment mention).",
+   "evidence": [
+    "Emuqu/EmuquApp.swift:441",
+    "Emuqu/EmuquApp.swift:790",
+    "Emuqu/Sources/Services/AppLaunchTasks.swift:648"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func signpostStart(_: StaticString)",
+   "hash": "4c98a65829d489f3",
+   "does": "Creates an OSSignpostID on coldStartLog and emits a .begin signpost named `name`; returns the id for signpostEnd.",
+   "entry": null,
+   "calls": [
+    "ext:os_signpost"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/EmuquApp.swift::var LaunchModal.id": "7fcb362a2bde7764"
+   }
+  },
+  {
+   "key": "func signpostStart(_:)",
+   "hash": "d6afb8afa77fe0e7",
+   "does": "Same function as EmuquApp.swift:12 (fallback parse of the declaration line after @inline(__always)): begins a ColdStart signpost and returns its id.",
+   "entry": null,
+   "calls": [
+    "ext:os_signpost"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func signpostEnd(_: StaticString, _: OSSignpostID)",
+   "hash": "4c98a65829d489f3",
+   "does": "Emits the .end signpost for `name`/`id` on coldStartLog.",
+   "entry": null,
+   "calls": [
+    "ext:os_signpost"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/EmuquApp.swift::var LaunchModal.id": "7fcb362a2bde7764"
+   }
+  },
+  {
+   "key": "func signpostEnd(_:_:)",
+   "hash": "b96cfa95c522a975",
+   "does": "Same function as EmuquApp.swift:19 (fallback parse): ends a ColdStart signpost.",
+   "entry": null,
+   "calls": [
+    "ext:os_signpost"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var LaunchModal.id",
+   "hash": "0aee89b35ff41404",
+   "does": "Returns the string identity of the LaunchModal case for fullScreenCover(item:).",
+   "entry": "Identifiable witness read by SwiftUI fullScreenCover(item:) (EmuquApp.swift:332) and by loadDataAndContinue's log (AppLaunchTasks.swift:606).",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .disclaimer",
+     "effect": "returns \"disclaimer\""
+    },
+    {
+     "at": "+3",
+     "cond": "case .onboarding",
+     "effect": "returns \"onboarding\""
+    },
+    {
+     "at": "+4",
+     "cond": "case .paywall",
+     "effect": "returns \"paywall\""
+    },
+    {
+     "at": "+5",
+     "cond": "case .trialReminder",
+     "effect": "returns \"trialReminder\""
+    },
+    {
+     "at": "+6",
+     "cond": "case .scoreArchitectureChange",
+     "effect": "returns \"scoreArchitectureChange\""
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var InterruptedSessionInfo.isResumable",
+   "hash": "cc667be474bbc2bf",
+   "does": "True when the interrupted session is not a workout and started less than SessionConstants.maxResumableSessionAge (6 h) ago; evaluated against Date() on every read.",
+   "entry": "Read by the alert bindings resumableInterruptionBinding / unresumableInterruptionBinding on each SwiftUI evaluation.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "sessionType == .workout",
+     "effect": "true: returns false (workouts always go to the non-resumable alert); false: returns age < 6 h"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func EmuquApp.makeLoggedDefault()",
+   "hash": "a1514f039d183742",
+   "does": "Stored-property factory for @State collector: wraps RRCollector.makeDefault() in a ColdStart signpost and NSLog/debugLog start+done lines. makeDefault builds a NEW RRCollector via the private init(defaultsFromShared:) (not a singleton) and registers it as RRCollector.current (RRCollector.swift:520-533).",
+   "entry": "Called by the EmuquApp stored-property initializer @State var collector (EmuquApp.swift:86-99) when EmuquApp.main() constructs the App.",
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.makeDefault()",
+    "Emuqu/EmuquApp.swift::func signpostStart(_: StaticString)",
+    "Emuqu/EmuquApp.swift::func signpostEnd(_: StaticString, _: OSSignpostID)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:NSLog",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:RRCollector.current (set by makeDefault, RRCollector.swift:532)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/EmuquApp.swift::func signpostEnd(_: StaticString, _: OSSignpostID)": "874005cc61527110",
+    "Emuqu/EmuquApp.swift::func signpostStart(_: StaticString)": "a46d5b33c5a57842",
+    "Emuqu/EmuquApp.swift::var LaunchModal.id": "7fcb362a2bde7764",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.makeDefault()": "c45a4875dda79b61",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)": "77db749d2e74b6b0",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func EmuquApp.makeSyncManager()",
+   "hash": "1555928c7ecfa165",
+   "does": "Stored-property factory for @State syncManager: wraps CloudKitSyncManager.shared in a ColdStart signpost and NSLog/debugLog start+done lines, returns the instance (first access builds the singleton).",
+   "entry": "Called by the EmuquApp stored-property initializer @State var syncManager (EmuquApp.swift:86-99) when EmuquApp.main() constructs the App.",
+   "calls": [
+    "Emuqu/EmuquApp.swift::func signpostStart(_: StaticString)",
+    "Emuqu/EmuquApp.swift::func signpostEnd(_: StaticString, _: OSSignpostID)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:NSLog"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:CloudKitSyncManager singleton (constructed on first access)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/EmuquApp.swift::func signpostEnd(_: StaticString, _: OSSignpostID)": "874005cc61527110",
+    "Emuqu/EmuquApp.swift::func signpostStart(_: StaticString)": "a46d5b33c5a57842",
+    "Emuqu/EmuquApp.swift::var LaunchModal.id": "7fcb362a2bde7764",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func EmuquApp.makeSettingsManager()",
+   "hash": "275f892c06a91a76",
+   "does": "Stored-property factory for @State settingsManager: wraps SettingsManager.shared in a ColdStart signpost and NSLog/debugLog start+done lines, returns the instance (first access builds the singleton).",
+   "entry": "Called by the EmuquApp stored-property initializer @State var settingsManager (EmuquApp.swift:86-99) when EmuquApp.main() constructs the App.",
+   "calls": [
+    "Emuqu/EmuquApp.swift::func signpostStart(_: StaticString)",
+    "Emuqu/EmuquApp.swift::func signpostEnd(_: StaticString, _: OSSignpostID)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:NSLog"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:SettingsManager singleton (constructed on first access)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/EmuquApp.swift::func signpostEnd(_: StaticString, _: OSSignpostID)": "874005cc61527110",
+    "Emuqu/EmuquApp.swift::func signpostStart(_: StaticString)": "a46d5b33c5a57842",
+    "Emuqu/EmuquApp.swift::var LaunchModal.id": "7fcb362a2bde7764",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func EmuquApp.makeStoreKitManager()",
+   "hash": "109eebfe09fd341e",
+   "does": "Stored-property factory for @State storeKitManager: wraps StoreKitManager.shared in a ColdStart signpost and NSLog/debugLog start+done lines, returns the instance (first access builds the singleton).",
+   "entry": "Called by the EmuquApp stored-property initializer @State var storeKitManager (EmuquApp.swift:86-99) when EmuquApp.main() constructs the App.",
+   "calls": [
+    "Emuqu/EmuquApp.swift::func signpostStart(_: StaticString)",
+    "Emuqu/EmuquApp.swift::func signpostEnd(_: StaticString, _: OSSignpostID)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:NSLog"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:StoreKitManager singleton (constructed on first access)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/EmuquApp.swift::func signpostEnd(_: StaticString, _: OSSignpostID)": "874005cc61527110",
+    "Emuqu/EmuquApp.swift::func signpostStart(_: StaticString)": "a46d5b33c5a57842",
+    "Emuqu/EmuquApp.swift::var LaunchModal.id": "7fcb362a2bde7764",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func EmuquApp.makeLanguageManager()",
+   "hash": "7d8046c4cae79e74",
+   "does": "Stored-property factory for @State languageManager: wraps LanguageManager.shared in a ColdStart signpost and NSLog/debugLog start+done lines, returns the instance (first access builds the singleton).",
+   "entry": "Called by the EmuquApp stored-property initializer @State var languageManager (EmuquApp.swift:86-99) when EmuquApp.main() constructs the App.",
+   "calls": [
+    "Emuqu/EmuquApp.swift::func signpostStart(_: StaticString)",
+    "Emuqu/EmuquApp.swift::func signpostEnd(_: StaticString, _: OSSignpostID)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:NSLog"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:LanguageManager singleton (constructed on first access)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/EmuquApp.swift::func signpostEnd(_: StaticString, _: OSSignpostID)": "874005cc61527110",
+    "Emuqu/EmuquApp.swift::func signpostStart(_: StaticString)": "a46d5b33c5a57842",
+    "Emuqu/EmuquApp.swift::var LaunchModal.id": "7fcb362a2bde7764",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func EmuquApp.makeVoiceChat()",
+   "hash": "42dd3a0dfe705888",
+   "does": "Stored-property factory for @State voiceChat: wraps VoiceConversationController.shared in a ColdStart signpost and NSLog/debugLog start+done lines, returns the instance (first access builds the singleton).",
+   "entry": "Called by the EmuquApp stored-property initializer @State var voiceChat (EmuquApp.swift:86-99) when EmuquApp.main() constructs the App.",
+   "calls": [
+    "Emuqu/EmuquApp.swift::func signpostStart(_: StaticString)",
+    "Emuqu/EmuquApp.swift::func signpostEnd(_: StaticString, _: OSSignpostID)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:NSLog"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:VoiceConversationController singleton (constructed on first access)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/EmuquApp.swift::func signpostEnd(_: StaticString, _: OSSignpostID)": "874005cc61527110",
+    "Emuqu/EmuquApp.swift::func signpostStart(_: StaticString)": "a46d5b33c5a57842",
+    "Emuqu/EmuquApp.swift::var LaunchModal.id": "7fcb362a2bde7764",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func EmuquApp.makeWatchBridge()",
+   "hash": "29043c161050e182",
+   "does": "Stored-property factory for @State watchBridge: wraps WatchConnectivityBridge.shared in a ColdStart signpost and NSLog/debugLog start+done lines, returns the instance (first access builds the singleton).",
+   "entry": "Called by the EmuquApp stored-property initializer @State var watchBridge (EmuquApp.swift:86-99) when EmuquApp.main() constructs the App.",
+   "calls": [
+    "Emuqu/EmuquApp.swift::func signpostStart(_: StaticString)",
+    "Emuqu/EmuquApp.swift::func signpostEnd(_: StaticString, _: OSSignpostID)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:NSLog"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:WatchConnectivityBridge singleton (constructed on first access)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/EmuquApp.swift::func signpostEnd(_: StaticString, _: OSSignpostID)": "874005cc61527110",
+    "Emuqu/EmuquApp.swift::func signpostStart(_: StaticString)": "a46d5b33c5a57842",
+    "Emuqu/EmuquApp.swift::var LaunchModal.id": "7fcb362a2bde7764",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "init EmuquApp()",
+   "hash": "a936df737d1a13aa",
+   "does": "App init: logs entry/exit via NSLog and debugLog and installs the memory-warning observer.",
+   "entry": "SwiftUI App.main() constructing EmuquApp (from EmuquMain.main, EmuquApp.swift:876).",
+   "calls": [
+    "Emuqu/EmuquApp.swift::func EmuquApp.observeMemoryWarnings()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:NSLog"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/EmuquApp.swift::func EmuquApp.observeMemoryWarnings()": "b0818bc7b194b948",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func EmuquApp.installDiagnostics()",
+   "hash": "f7abf9fb303ecad6",
+   "does": "Installs CrashLogManager and SystemDiagnosticsManager (MetricKit, memory/thermal sampling) handlers.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.install()",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.install()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:CrashLogManager.shared",
+    "mem:SystemDiagnosticsManager.shared"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.install()": "245cc724df0e73b3",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.install()": "5d93902873652d8a"
+   }
+  },
+  {
+   "key": "func EmuquApp.observeMemoryWarnings()",
+   "hash": "9374ef68d6e5a9f8",
+   "does": "Registers a main-queue NotificationCenter observer for UIApplication.didReceiveMemoryWarningNotification that calls FrequencyDomainAnalyzer.teardownDFTCache(); the token is discarded (observer lives for the process).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.teardownDFTCache()",
+    "ext:NotificationCenter.addObserver"
+   ],
+   "reads": [
+    "notif:UIApplication.didReceiveMemoryWarningNotification"
+   ],
+   "writes": [
+    "mem:FrequencyDomainAnalyzer DFT cache (cleared on warning)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/EmuquApp.swift::func EmuquMain.main()": "78441ed5272f3d2d",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.teardownDFTCache()": "fc58f768615e360e"
+   }
+  },
+  {
+   "key": "var EmuquApp.body",
+   "hash": "c8e130388a1d04b2",
+   "does": "Scene body: a WindowGroup whose content is appRootView.",
+   "entry": "SwiftUI App.body",
+   "calls": [
+    "Emuqu/EmuquApp.swift::var EmuquApp.appRootView"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/EmuquApp.swift::var EmuquApp.appRootView": "d862c36b22a32eea"
+   }
+  },
+  {
+   "key": "var EmuquApp.appRootView",
+   "hash": "2fbf345043fbde5b",
+   "does": "Assembles the root view in stages: rootTabView -> environmentInjected -> modalPresentations -> stateChangeHandlers -> interruptedSessionAlerts -> launchTasks.",
+   "entry": "Read from body (SwiftUI).",
+   "calls": [
+    "Emuqu/EmuquApp.swift::var EmuquApp.rootTabView",
+    "Emuqu/EmuquApp.swift::func EmuquApp.environmentInjected(_:)",
+    "Emuqu/EmuquApp.swift::func EmuquApp.modalPresentations(_:)",
+    "Emuqu/EmuquApp.swift::func EmuquApp.stateChangeHandlers(_:)",
+    "Emuqu/EmuquApp.swift::func EmuquApp.interruptedSessionAlerts(_:)",
+    "Emuqu/EmuquApp.swift::func EmuquApp.launchTasks(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/EmuquApp.swift::func EmuquApp.environmentInjected(_:)": "ffc7e29abe77d6df",
+    "Emuqu/EmuquApp.swift::func EmuquApp.interruptedSessionAlerts(_:)": "41cf243c18061a87",
+    "Emuqu/EmuquApp.swift::func EmuquApp.launchTasks(_:)": "a5f7bd8df1c99b8b",
+    "Emuqu/EmuquApp.swift::func EmuquApp.modalPresentations(_:)": "c8f4389befce7713",
+    "Emuqu/EmuquApp.swift::func EmuquApp.stateChangeHandlers(_:)": "9c39ac9a415a5311",
+    "Emuqu/EmuquApp.swift::var EmuquApp.rootTabView": "2ff54a38d90e7d91"
+   }
+  },
+  {
+   "key": "var EmuquApp.rootTabView",
+   "hash": "2e1e6efa0d25f668",
+   "does": "Builds MainTabView seeded with archive entry count, the latest overnight score and the dashboard summary seed computed from the synchronously loaded archive index, plus the requestedTab binding.",
+   "entry": "Read from appRootView during SwiftUI body evaluation.",
+   "calls": [
+    "Emuqu/Sources/Views/MainTabView.swift::init MainTabView(initialSessionCount:initialSeedScore:initialSeedSummary:requestedTab:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.latestOvernightScore(inEntries:calendar:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.dashboardSummarySeed(inEntries:today:calendar:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.dashboardSummarySeed(inEntries:today:calendar:)": "b24308d59349f9aa",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.latestOvernightScore(inEntries:calendar:)": "d7dab2b30d219444",
+    "Emuqu/Sources/Views/MainTabView.swift::init MainTabView(initialSessionCount:initialSeedScore:initialSeedSummary:requestedTab:)": "b2c8e356a16948e7"
+   }
+  },
+  {
+   "key": "func EmuquApp.environmentInjected(_:)",
+   "hash": "0f371e3145654016",
+   "does": "Injects collector, its sub-objects (archiveSignal, deviceStatus, streamingLifecycle, morningCoordination, sessionState), syncManager, languageManager, settingsManager, voiceChat, locale and layoutDirection into the environment, and forces color scheme: .light only for appearanceTheme .light, .dark for every other theme (dark, dim).",
+   "entry": "Called from appRootView and inside fullScreenCover content (SwiftUI).",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.currentLocale",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.layoutDirection"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.appearanceTheme",
+    "mem:LanguageManager.locale"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+14",
+     "cond": "settings.appearanceTheme == .light",
+     "effect": "true: preferredColorScheme(.light); false (dark or dim): .dark"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.currentLocale": "f07c3820aae0d0e3",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.layoutDirection": "65922f80a2b0ebd5",
+    "EmuquTests/BigScreenSnapshotTests.swift::func BigScreenSnapshotTests.environment(_:)": "fe0869f551e25b93"
+   }
+  },
+  {
+   "key": "func EmuquApp.modalPresentations(_:)",
+   "hash": "ca65911da055b8c7",
+   "does": "Adds the launch fullScreenCover bound to activeModal (content = environmentInjected(launchModal)), injects storeKitManager, and a sheet bound to emailBridge.pendingDraft showing the mail composer.",
+   "entry": "Called from appRootView (SwiftUI).",
+   "calls": [
+    "Emuqu/EmuquApp.swift::func EmuquApp.environmentInjected(_:)",
+    "Emuqu/EmuquApp.swift::func EmuquApp.launchModal(_:)",
+    "Emuqu/EmuquApp.swift::func EmuquApp.mailComposer(for:)"
+   ],
+   "reads": [
+    "mem:EmuquApp.activeModal",
+    "mem:AssistantEmailBridge.pendingDraft"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/EmuquApp.swift::func EmuquApp.environmentInjected(_:)": "ffc7e29abe77d6df",
+    "Emuqu/EmuquApp.swift::func EmuquApp.launchModal(_:)": "d3ba6f96ccf8788a",
+    "Emuqu/EmuquApp.swift::func EmuquApp.mailComposer(for:)": "8ff0275c06c80b02",
+    "EmuquTests/BigScreenSnapshotTests.swift::func BigScreenSnapshotTests.environment(_:)": "fe0869f551e25b93"
+   }
+  },
+  {
+   "key": "func EmuquApp.launchModal(_:)",
+   "hash": "10f6cc64cd4cc38c",
+   "does": "Returns the view for a LaunchModal: HealthDisclaimerView, OnboardingView (onTakeReading sets requestedTab = .record), PaywallView(isGate: true), TrialReminderView, or ScoreArchitectureChangeSheet bound to scoreArchitectureChangeBinding; each gets settingsManager (onboarding also collector).",
+   "entry": "fullScreenCover(item:) content closure (EmuquApp.swift:332).",
+   "calls": [
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::init OnboardingView(onTakeReading:)",
+    "Emuqu/EmuquApp.swift::var EmuquApp.scoreArchitectureChangeBinding"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:EmuquApp.requestedTab"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "case .disclaimer",
+     "effect": "HealthDisclaimerView"
+    },
+    {
+     "at": "+6",
+     "cond": "case .onboarding",
+     "effect": "OnboardingView; its Take a reading callback writes requestedTab = .record"
+    },
+    {
+     "at": "+10",
+     "cond": "case .paywall",
+     "effect": "PaywallView(isGate: true)"
+    },
+    {
+     "at": "+12",
+     "cond": "case .trialReminder",
+     "effect": "TrialReminderView"
+    },
+    {
+     "at": "+15",
+     "cond": "case .scoreArchitectureChange",
+     "effect": "ScoreArchitectureChangeSheet with the custom binding"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/EmuquApp.swift::var EmuquApp.scoreArchitectureChangeBinding": "a6429b548adb2ed5",
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::init OnboardingView(onTakeReading:)": "010b76d536d1a790",
+    "EmuquTests/BigScreenSnapshotTests.swift::func BigScreenSnapshotTests.environment(_:)": "fe0869f551e25b93"
+   }
+  },
+  {
+   "key": "func launchModal(_:)",
+   "hash": "781018237038d010",
+   "does": "Same function as EmuquApp.swift:341 (fallback parse after @ViewBuilder). Returns the view for a LaunchModal: HealthDisclaimerView, OnboardingView (onTakeReading sets requestedTab = .record), PaywallView(isGate: true), TrialReminderView, or ScoreArchitectureChangeSheet bound to scoreArchitectureChangeBinding; each gets settingsManager (onboarding also collector).",
+   "entry": "fullScreenCover(item:) content closure (EmuquApp.swift:332).",
+   "calls": [
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::init OnboardingView(onTakeReading:)",
+    "Emuqu/EmuquApp.swift::var EmuquApp.scoreArchitectureChangeBinding"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:EmuquApp.requestedTab"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .disclaimer",
+     "effect": "HealthDisclaimerView"
+    },
+    {
+     "at": "+5",
+     "cond": "case .onboarding",
+     "effect": "OnboardingView; its Take a reading callback writes requestedTab = .record"
+    },
+    {
+     "at": "+9",
+     "cond": "case .paywall",
+     "effect": "PaywallView(isGate: true)"
+    },
+    {
+     "at": "+11",
+     "cond": "case .trialReminder",
+     "effect": "TrialReminderView"
+    },
+    {
+     "at": "+14",
+     "cond": "case .scoreArchitectureChange",
+     "effect": "ScoreArchitectureChangeSheet with the custom binding"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/EmuquApp.swift::var EmuquApp.scoreArchitectureChangeBinding": "a6429b548adb2ed5",
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::init OnboardingView(onTakeReading:)": "010b76d536d1a790"
+   }
+  },
+  {
+   "key": "var EmuquApp.scoreArchitectureChangeBinding",
+   "hash": "8f91fffbc747428d",
+   "does": "Binding<Bool> for the score-architecture sheet: get = activeModal == .scoreArchitectureChange; set(false) records settings.hasAcknowledgedScoreArchitectureChange = true (persisted by SettingsManager, posts flowRecoverySettingsChanged) and clears activeModal.",
+   "entry": "SwiftUI binding read/written by ScoreArchitectureChangeSheet.",
+   "calls": [],
+   "reads": [
+    "mem:EmuquApp.activeModal"
+   ],
+   "writes": [
+    "mem:SettingsManager.settings.hasAcknowledgedScoreArchitectureChange",
+    "file:user_settings.json",
+    "notif:flowRecoverySettingsChanged",
+    "mem:EmuquApp.activeModal"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "isPresented (new value) is true",
+     "effect": "returns without change; false: sets ack flag true and activeModal = nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func EmuquApp.mailComposer(for:)",
+   "hash": "3d692a08a8de27f5",
+   "does": "Builds MailComposerView from an AssistantEmailDraft (subject, body, recipients, cc, attachment); onDismiss clears the email bridge.",
+   "entry": "sheet(item:) content closure for emailBridge.pendingDraft (EmuquApp.swift:337).",
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/AssistantEmailBridge.swift::func AssistantEmailBridge.clear()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:AssistantEmailBridge.pendingDraft"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/AssistantEmailBridge.swift::func AssistantEmailBridge.clear()": "cc5b64604e08fc73",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.ccRecipients(_:fallback:)": "8dd6f78bcdd316ee"
+   }
+  },
+  {
+   "key": "func EmuquApp.stateChangeHandlers(_:)",
+   "hash": "bfa120c372ac9910",
+   "does": "Attaches onChange handlers: hasAcceptedDisclaimer -> handleDisclaimerAcceptance, settings.hasCompletedOnboarding -> handleOnboardingCompletion, storeKitManager.isPurchased -> handlePurchaseChange, activeModal -> handleLaunchModalChange(from:to:), scenePhase -> handleScenePhaseChange.",
+   "entry": "Called from appRootView; the closures are SwiftUI .onChange callbacks.",
+   "calls": [
+    "Emuqu/EmuquApp.swift::func EmuquApp.handleDisclaimerAcceptance(_:)",
+    "Emuqu/EmuquApp.swift::func EmuquApp.handleOnboardingCompletion(_:)",
+    "Emuqu/EmuquApp.swift::func EmuquApp.handlePurchaseChange(_:)",
+    "Emuqu/EmuquApp.swift::func EmuquApp.handleLaunchModalChange(from:to:)",
+    "Emuqu/EmuquApp.swift::func EmuquApp.handleScenePhaseChange(from:to:)",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.hasAcceptedDisclaimer"
+   ],
+   "reads": [
+    "mem:SettingsManager.hasAcceptedDisclaimer",
+    "mem:SettingsManager.settings.hasCompletedOnboarding",
+    "mem:StoreKitManager.isPurchased",
+    "mem:EmuquApp.activeModal"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/EmuquApp.swift::func EmuquApp.handleDisclaimerAcceptance(_:)": "c92fe77750de1197",
+    "Emuqu/EmuquApp.swift::func EmuquApp.handleLaunchModalChange(from:to:)": "266dbbe68cfd25c0",
+    "Emuqu/EmuquApp.swift::func EmuquApp.handleOnboardingCompletion(_:)": "6b8905b9e02abb2a",
+    "Emuqu/EmuquApp.swift::func EmuquApp.handlePurchaseChange(_:)": "f278ba0b66e7b99f",
+    "Emuqu/EmuquApp.swift::func EmuquApp.handleScenePhaseChange(from:to:)": "96635e5e25b411a8",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.hasAcceptedDisclaimer": "075d6b0f976f5f2f"
+   }
+  },
+  {
+   "key": "func EmuquApp.handleDisclaimerAcceptance(_:)",
+   "hash": "7a5a7e66afd8d98f",
+   "does": "On disclaimer acceptance, logs, clears activeModal and calls loadDataAndContinue().",
+   "entry": "onChange(of: settingsManager.hasAcceptedDisclaimer).",
+   "calls": [
+    "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.loadDataAndContinue()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:NSLog"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:EmuquApp.activeModal"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "accepted is false",
+     "effect": "returns without doing anything; true: dismisses modal and loads data"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.loadDataAndContinue()": "5bee0d9fd03ac782",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func EmuquApp.handleOnboardingCompletion(_:)",
+   "hash": "f3e8398fbeaba3b6",
+   "does": "When onboarding completes: if the paywall is enabled and storeKitManager.hasActiveAccess is false, presents the paywall; otherwise clears activeModal.",
+   "entry": "onChange(of: settings.hasCompletedOnboarding).",
+   "calls": [
+    "Emuqu/Sources/Services/StoreKitManager.swift::var hasActiveAccess"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:EmuquApp.activeModal"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "completed is false",
+     "effect": "returns (no change)"
+    },
+    {
+     "at": "+2",
+     "cond": "StoreKitManager.paywallEnabled && !hasActiveAccess",
+     "effect": "true: activeModal = .paywall; false: activeModal = nil and return"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Two access predicates exist for the same gate: storeKitManager.hasActiveAccess (isPurchased || hasBypassGrant, StoreKitManager.swift:627) here and in presentPaywallIfNowRequired, and EmuquApp.hasAccess (AppLaunchTasks.swift:700) in paywallModal/watch refusals/startWorkoutFromWatch. They differ under -UITests-ForcePaywall: hasAccess returns false unconditionally while hasActiveAccess still honours the persisted Skip (Debug) grant (StoreKitManager.swift:540-543), so the launch gate and onboarding-completion gate can disagree in Debug UI runs.",
+     "evidence": [
+      "Emuqu/EmuquApp.swift:423",
+      "Emuqu/Sources/Services/AppLaunchTasks.swift:240",
+      "Emuqu/Sources/Services/AppLaunchTasks.swift:701",
+      "Emuqu/Sources/Services/StoreKitManager.swift:532",
+      "Emuqu/Sources/Services/StoreKitManager.swift:540",
+      "Emuqu/Sources/Services/StoreKitManager.swift:627"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/StoreKitManager.swift::var hasActiveAccess": "06ce3985fbd581c7"
+   }
+  },
+  {
+   "key": "func EmuquApp.handlePurchaseChange(_:)",
+   "hash": "f4ddff8e93fbbe1d",
+   "does": "When isPurchased flips true while the paywall cover is up and the paywall is enabled, dismisses the cover (the activeModal change then runs the interrupted-session check via handleLaunchModalChange).",
+   "entry": "onChange(of: storeKitManager.isPurchased).",
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:EmuquApp.activeModal"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "StoreKitManager.paywallEnabled is false",
+     "effect": "returns"
+    },
+    {
+     "at": "+2",
+     "cond": "purchased && activeModal == .paywall",
+     "effect": "true: activeModal = nil; false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func EmuquApp.handleLaunchModalChange(from:to:)",
+   "hash": "2647d8cc3dab4584",
+   "does": "When the launch cover goes from .paywall or .trialReminder to none, runs checkForInterruptedSession(), the step presentLaunchModal skips when it stops at either gate; every other transition is ignored.",
+   "entry": "onChange(of: activeModal) in stateChangeHandlers.",
+   "calls": [
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.checkForInterruptedSession()"
+   ],
+   "reads": [
+    "mem:EmuquApp.activeModal (old and new values)"
+   ],
+   "writes": [
+    "mem:EmuquApp.interruptedSessionAlert (via checkForInterruptedSession)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "newModal != nil, or oldModal is neither .paywall nor .trialReminder",
+     "effect": "returns; otherwise checkForInterruptedSession()"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Trial reminder 'Unlock Now' dismisses the reminder (running the interrupted-session check here, which can raise its alert) and 400 ms later observeTrialPaywallRequests sets activeModal = .paywall; with an interrupted session pending, the paywall cover is presented while that alert may still be up, and SwiftUI may not show both.",
+     "evidence": [
+      "Emuqu/EmuquApp.swift:443",
+      "Emuqu/Sources/Views/TrialReminderView.swift:95",
+      "Emuqu/EmuquApp.swift:848"
+     ]
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.checkForInterruptedSession()": "d0144e6bfc52eb61"
+   }
+  },
+  {
+   "key": "func EmuquApp.handleScenePhaseChange(from:to:)",
+   "hash": "0d564669ddd29045",
+   "does": "Scene-phase reactions: background -> auto-archive pending session and stop ambient location (AppDependencies.current.location.ambientLocationService); background->active -> resume sync; any non-active->active -> start ambient location; on active also reschedule morning notification, refresh HealthKit write auth if onboarded, and recheck entitlement if coming from background.",
+   "entry": "onChange(of: scenePhase).",
+   "calls": [
+    "Emuqu/EmuquApp.swift::func EmuquApp.autoArchivePendingSession()",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.ambientLocationService",
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.stop()",
+    "Emuqu/EmuquApp.swift::func EmuquApp.resumeSyncOnForeground()",
+    "Emuqu/EmuquApp.swift::func EmuquApp.startAmbientLocationOnForeground()",
+    "Emuqu/EmuquApp.swift::func EmuquApp.rescheduleMorningNotification()",
+    "Emuqu/EmuquApp.swift::func EmuquApp.refreshHealthKitWriteAuthorization()",
+    "Emuqu/EmuquApp.swift::func EmuquApp.recheckEntitlementOnForeground()"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.hasCompletedOnboarding"
+   ],
+   "writes": [
+    "mem:AmbientLocationService (AppDependencies.current.location.ambientLocationService)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "newPhase == .background",
+     "effect": "true: autoArchivePendingSession() and AmbientLocationService.stop(); false: skip"
+    },
+    {
+     "at": "+5",
+     "cond": "newPhase == .active && oldPhase == .background",
+     "effect": "true: resumeSyncOnForeground(); false: skip (inactive->active does not sync)"
+    },
+    {
+     "at": "+8",
+     "cond": "newPhase == .active && oldPhase != .active",
+     "effect": "true: startAmbientLocationOnForeground(); false: skip"
+    },
+    {
+     "at": "+11",
+     "cond": "newPhase != .active",
+     "effect": "returns early (no reschedule/HK/entitlement work for inactive/background)"
+    },
+    {
+     "at": "+13",
+     "cond": "settings.hasCompletedOnboarding",
+     "effect": "true: refreshHealthKitWriteAuthorization(); false: skip"
+    },
+    {
+     "at": "+16",
+     "cond": "oldPhase == .background",
+     "effect": "true: recheckEntitlementOnForeground(); false: skip"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/EmuquApp.swift::func EmuquApp.autoArchivePendingSession()": "8bdf6cb21914352f",
+    "Emuqu/EmuquApp.swift::func EmuquApp.recheckEntitlementOnForeground()": "38acfb09afd9a12a",
+    "Emuqu/EmuquApp.swift::func EmuquApp.refreshHealthKitWriteAuthorization()": "f404e420aa268a87",
+    "Emuqu/EmuquApp.swift::func EmuquApp.rescheduleMorningNotification()": "5f2985f98397047f",
+    "Emuqu/EmuquApp.swift::func EmuquApp.resumeSyncOnForeground()": "4c82780560b67e99",
+    "Emuqu/EmuquApp.swift::func EmuquApp.startAmbientLocationOnForeground()": "6866ffeb25d33b61",
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.stop()": "c484c284ad06ca32",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.ambientLocationService": "33a2cabc9b97ee7b"
+   }
+  },
+  {
+   "key": "func EmuquApp.recheckEntitlementOnForeground()",
+   "hash": "520445750474f0c1",
+   "does": "Refreshes purchase entitlements on return from background, unless the paywall is disabled, data has not loaded, or a recording/workout is in progress.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.refreshPurchaseEntitlementsInBackground()",
+    "Emuqu/EmuquApp.swift::var EmuquApp.isRecordingInProgress"
+   ],
+   "reads": [
+    "mem:EmuquApp.dataLoaded"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "paywallEnabled && dataLoaded && !isRecordingInProgress",
+     "effect": "true: refreshPurchaseEntitlementsInBackground(); false: returns"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/EmuquApp.swift::var EmuquApp.isRecordingInProgress": "8379756b708df72a",
+    "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.refreshPurchaseEntitlementsInBackground()": "b8a82ad554c6e559"
+   }
+  },
+  {
+   "key": "var EmuquApp.isRecordingInProgress",
+   "hash": "8e1fc6f2c8056b67",
+   "does": "True when the collector is collecting an HRV/overnight session or isWorkoutInProgress (the shared WorkoutRecorder is .recording or .finalizing).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isCollecting",
+    "Emuqu/EmuquApp.swift::var EmuquApp.isWorkoutInProgress"
+   ],
+   "reads": [
+    "mem:RRCollector.isCollecting",
+    "mem:RecorderBox.recorder.phase (via isWorkoutInProgress)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "collector.isCollecting || isWorkoutInProgress",
+     "effect": "true when either holds (short-circuits on isCollecting)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/EmuquApp.swift::var EmuquApp.isWorkoutInProgress": "4f63990a854d3006",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isCollecting": "fae635a5d47df935"
+   }
+  },
+  {
+   "key": "var EmuquApp.isWorkoutInProgress",
+   "hash": "6a3f98a11db42405",
+   "does": "True when AppDependencies.current.app.recorderBox has a recorder in .recording or .finalizing; false for no recorder, .idle, .finished or .failed.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.recorderBox",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.phase"
+   ],
+   "reads": [
+    "mem:RecorderBox.recorder.phase"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "recorder phase is .recording or .finalizing",
+     "effect": "returns true"
+    },
+    {
+     "at": "+3",
+     "cond": "default (nil recorder, idle, finished, failed)",
+     "effect": "returns false"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.phase": "d0bce80edccaa2fe",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.recorderBox": "51d3dd77075ccb10",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder": "2eb455c219ca902b"
+   }
+  },
+  {
+   "key": "func EmuquApp.startAmbientLocationOnForeground()",
+   "hash": "bc346f9e042d7fdd",
+   "does": "On foreground, starts ambient location updates only if onboarding is complete and the AI assistant is enabled, and only when permission is already granted (startIfAuthorized never prompts).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.ambientLocationService",
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.startIfAuthorized()"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.hasCompletedOnboarding",
+    "mem:SettingsManager.settings.enableAIAssistant"
+   ],
+   "writes": [
+    "mem:AmbientLocationService (AppDependencies.current.location.ambientLocationService)"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "hasCompletedOnboarding && enableAIAssistant",
+     "effect": "true: startIfAuthorized(); false: return"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.startIfAuthorized()": "bf3a1dee046c7f81",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.ambientLocationService": "33a2cabc9b97ee7b"
+   }
+  },
+  {
+   "key": "func EmuquApp.autoArchivePendingSession()",
+   "hash": "f85cc5a758f4019f",
+   "does": "On background, if the collector has a completed session awaiting acceptance, begins a BackgroundTaskAssertion and starts an unstructured Task that runs collector.acceptSession() (archive + baseline) and ends the assertion when it returns or throws (deferred); errors are logged only. If the background budget runs out first the assertion's expiration handler ends it, so iOS suspends the app instead of killing it.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.needsAcceptance",
+    "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::init BackgroundTaskAssertion(name:onExpire:)",
+    "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::func BackgroundTaskAssertion.end()",
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.acceptSession()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "archive:SessionArchive (accepted session)",
+    "mem:UIApplication background task (begin/end)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "collector.needsAcceptance is false",
+     "effect": "returns; true: begins the assertion and launches acceptance Task"
+    },
+    {
+     "at": "+9",
+     "cond": "acceptSession throws (catch)",
+     "effect": "error only debugLogged; session stays pending in memory; assertion still ended by the defer"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.needsAcceptance": "37c71d78df96a761",
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.acceptSession()": "800c03c657c5beae",
+    "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::func BackgroundTaskAssertion.end()": "4b7b063f686c4762",
+    "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::init BackgroundTaskAssertion(name:onExpire:)": "de35035394cc6205",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func EmuquApp.resumeSyncOnForeground()",
+   "hash": "450973cb7d41ddba",
+   "does": "On background->active, unless Low Power Mode is on, runs CloudKit performFullSyncIfNeeded with a 10-minute minimum interval.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppServices.powerStatePolicy",
+    "Emuqu/Sources/Services/PowerStatePolicy.swift::var PowerStatePolicy.shouldSkipPeriodicRefresh",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.performFullSyncIfNeeded(minInterval:)"
+   ],
+   "reads": [
+    "mem:PowerStatePolicy.isLowPowerMode"
+   ],
+   "writes": [
+    "ck:full sync (push/pull sessions)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "AppDependencies.current.services.powerStatePolicy.shouldSkipPeriodicRefresh (LPM on)",
+     "effect": "true: return without syncing; false: sync Task"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/PowerStatePolicy.swift::var PowerStatePolicy.shouldSkipPeriodicRefresh": "e22f4aa6249419a7",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.performFullSyncIfNeeded(minInterval:)": "516be81406e72151",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "8f71f3de23c47a6a",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppServices.powerStatePolicy": "7b3132e65863137f"
+   }
+  },
+  {
+   "key": "func EmuquApp.rescheduleMorningNotification()",
+   "hash": "066b210e234f5942",
+   "does": "Starts a main-actor Task calling rescheduleIfNeeded() on AppDependencies.current.services.morningNotificationScheduler.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppServices.morningNotificationScheduler",
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.rescheduleIfNeeded()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:UNUserNotificationCenter pending morning notification"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.rescheduleIfNeeded()": "162c08d2673af8aa",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "8f71f3de23c47a6a",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppServices.morningNotificationScheduler": "63eba98b61787e49"
+   }
+  },
+  {
+   "key": "func EmuquApp.refreshHealthKitWriteAuthorization()",
+   "hash": "be62cf8bb86c12ab",
+   "does": "Main-actor Task: ensureWriteAuthorizationFresh() on HealthKit (may show the supplementary permission sheet), then backfillWorkoutsToHealthKit over the archive with the user's effective body weight; result discarded.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.ensureWriteAuthorizationFresh()",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.backfillWorkoutsToHealthKit(archive:bodyWeightKg:)",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveBodyWeightKg"
+   ],
+   "reads": [
+    "archive:SessionArchive workouts",
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [
+    "hk:workouts/activeEnergy/distance (backfill)",
+    "archive:healthKitExportedAt flag"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.backfillWorkoutsToHealthKit(archive:bodyWeightKg:)": "61d9de6761c320eb",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.ensureWriteAuthorizationFresh()": "504fe81677526ee9",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveBodyWeightKg": "6aabde6ed09dc61f",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.healthKit": "f61a7a679f5280dd"
+   }
+  },
+  {
+   "key": "func EmuquApp.interruptedSessionAlerts(_:)",
+   "hash": "d7e4aa2cdd33e872",
+   "does": "Chains the three alerts: resumable, unresumable, recovery complete.",
+   "entry": "Called from appRootView.",
+   "calls": [
+    "Emuqu/EmuquApp.swift::func EmuquApp.resumableInterruptionAlert(_:)",
+    "Emuqu/EmuquApp.swift::func EmuquApp.unresumableInterruptionAlert(_:)",
+    "Emuqu/EmuquApp.swift::func EmuquApp.recoveryCompleteAlert(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/EmuquApp.swift::func EmuquApp.recoveryCompleteAlert(_:)": "0db601a8ef6a680d",
+    "Emuqu/EmuquApp.swift::func EmuquApp.resumableInterruptionAlert(_:)": "5221bc66fbcbd1ba",
+    "Emuqu/EmuquApp.swift::func EmuquApp.unresumableInterruptionAlert(_:)": "8b066b9dfb9aa0c3"
+   }
+  },
+  {
+   "key": "func EmuquApp.resumableInterruptionAlert(_:)",
+   "hash": "fe69dd011e159b07",
+   "does": "Alert 'Session Interrupted' with Resume / Save as Complete / Dismiss, shown while resumableInterruptionBinding is true; message names type and start time.",
+   "entry": "SwiftUI alert; buttons are user actions.",
+   "calls": [
+    "Emuqu/EmuquApp.swift::var EmuquApp.resumableInterruptionBinding",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resumeInterruptedSession()",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.recoverInterruptedSession()",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.dismissInterruptedSession()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:EmuquApp.interruptedSessionAlert"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "interruptedSessionAlert is non-nil",
+     "effect": "shows the message Text; nil: empty message"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/EmuquApp.swift::var EmuquApp.resumableInterruptionBinding": "636f686a767a63bb",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.dismissInterruptedSession()": "9c336cc06e0af47c",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.recoverInterruptedSession()": "f15986c899237725",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resumeInterruptedSession()": "14e5f528f7e0a6e4",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3"
+   }
+  },
+  {
+   "key": "func EmuquApp.unresumableInterruptionAlert(_:)",
+   "hash": "e8aeee7d690de542",
+   "does": "Alert 'Session Interrupted' with Save to Archive / Dismiss for non-resumable sessions (workouts or older than 6 h).",
+   "entry": "SwiftUI alert; buttons are user actions.",
+   "calls": [
+    "Emuqu/EmuquApp.swift::var EmuquApp.unresumableInterruptionBinding",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.recoverInterruptedSession()",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.dismissInterruptedSession()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:EmuquApp.interruptedSessionAlert"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "interruptedSessionAlert is non-nil",
+     "effect": "shows message; nil: empty message"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/EmuquApp.swift::var EmuquApp.unresumableInterruptionBinding": "d61a63eee6f3f0a5",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.dismissInterruptedSession()": "9c336cc06e0af47c",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.recoverInterruptedSession()": "f15986c899237725",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3"
+   }
+  },
+  {
+   "key": "func EmuquApp.recoveryCompleteAlert(_:)",
+   "hash": "5fd1b4657cdfe0c7",
+   "does": "Alert 'Recovery Complete' showing recoveryResultMessage; OK clears it.",
+   "entry": "SwiftUI alert.",
+   "calls": [
+    "Emuqu/EmuquApp.swift::var EmuquApp.recoveryResultBinding",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:EmuquApp.recoveryResultMessage"
+   ],
+   "writes": [
+    "mem:EmuquApp.recoveryResultMessage"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "recoveryResultMessage non-nil",
+     "effect": "shows Text(msg); nil: no message"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/EmuquApp.swift::var EmuquApp.recoveryResultBinding": "0beb7df2b20b79d3",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var EmuquApp.resumableInterruptionBinding",
+   "hash": "f1b4cff105ca530c",
+   "does": "Binding: true when interruptedSessionAlert is resumable; setting false clears interruptedSessionAlert.",
+   "entry": "SwiftUI alert isPresented binding.",
+   "calls": [
+    "Emuqu/EmuquApp.swift::var InterruptedSessionInfo.isResumable"
+   ],
+   "reads": [
+    "mem:EmuquApp.interruptedSessionAlert"
+   ],
+   "writes": [
+    "mem:EmuquApp.interruptedSessionAlert"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "new value is false",
+     "effect": "clears interruptedSessionAlert; true: no-op"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/EmuquApp.swift::var InterruptedSessionInfo.isResumable": "41435d6748ec21fb"
+   }
+  },
+  {
+   "key": "var EmuquApp.unresumableInterruptionBinding",
+   "hash": "4bc1996ec776f029",
+   "does": "Binding: true when an interrupted session exists and is not resumable; setting false clears it.",
+   "entry": "SwiftUI alert isPresented binding.",
+   "calls": [
+    "Emuqu/EmuquApp.swift::var InterruptedSessionInfo.isResumable"
+   ],
+   "reads": [
+    "mem:EmuquApp.interruptedSessionAlert"
+   ],
+   "writes": [
+    "mem:EmuquApp.interruptedSessionAlert"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "new value is false",
+     "effect": "clears interruptedSessionAlert; true: no-op"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/EmuquApp.swift::var InterruptedSessionInfo.isResumable": "41435d6748ec21fb"
+   }
+  },
+  {
+   "key": "var EmuquApp.recoveryResultBinding",
+   "hash": "8637214685bc7e96",
+   "does": "Binding: true while recoveryResultMessage is set; setting false clears it.",
+   "entry": "SwiftUI alert isPresented binding.",
+   "calls": [],
+   "reads": [
+    "mem:EmuquApp.recoveryResultMessage"
+   ],
+   "writes": [
+    "mem:EmuquApp.recoveryResultMessage"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "new value is false",
+     "effect": "recoveryResultMessage = nil; true: no-op"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func EmuquApp.launchTasks(_:)",
+   "hash": "773bf45aeeb33fe3",
+   "does": "Attaches five root .task modifiers: runLaunchTask, runPostFirstFrameSetup, observeTrialPaywallRequests, rescheduleMorningPushOnSettingsChange, runWatchAndSyncWiring.",
+   "entry": "Called from appRootView; the closures run as SwiftUI .task on first appearance of the root view.",
+   "calls": [
+    "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.runLaunchTask()",
+    "Emuqu/EmuquApp.swift::func EmuquApp.runPostFirstFrameSetup()",
+    "Emuqu/EmuquApp.swift::func EmuquApp.observeTrialPaywallRequests()",
+    "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.rescheduleMorningPushOnSettingsChange()",
+    "Emuqu/EmuquApp.swift::func EmuquApp.runWatchAndSyncWiring()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/EmuquApp.swift::func EmuquApp.observeTrialPaywallRequests()": "cc9d979af2dcdf39",
+    "Emuqu/EmuquApp.swift::func EmuquApp.runPostFirstFrameSetup()": "c991b5d4e8eff9e5",
+    "Emuqu/EmuquApp.swift::func EmuquApp.runWatchAndSyncWiring()": "08e7f2e70f942fce",
+    "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.rescheduleMorningPushOnSettingsChange()": "8b30d986db495bc0",
+    "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.runLaunchTask()": "04785eeb1b5bb490"
+   }
+  },
+  {
+   "key": "func EmuquApp.runPostFirstFrameSetup()",
+   "hash": "b96388167f5e8f17",
+   "does": "Post-first-frame setup: install global keyboard dismissal (after 600 ms), boot the heavy singletons, boot the archive off-main, prewarm speech voices, and wire Watch bridge callbacks.",
+   "entry": "Root .task (EmuquApp.swift:641).",
+   "calls": [
+    "Emuqu/EmuquApp.swift::func EmuquApp.installGlobalKeyboardDismissal()",
+    "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.runDeferredBoot()",
+    "Emuqu/EmuquApp.swift::func EmuquApp.bootArchiveOffMain()",
+    "Emuqu/EmuquApp.swift::func EmuquApp.prewarmSpeechVoices()",
+    "Emuqu/EmuquApp.swift::func EmuquApp.wireWatchBridgeCallbacks()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/EmuquApp.swift::func EmuquApp.bootArchiveOffMain()": "63923472c98af514",
+    "Emuqu/EmuquApp.swift::func EmuquApp.installGlobalKeyboardDismissal()": "9dfb5ef281821c76",
+    "Emuqu/EmuquApp.swift::func EmuquApp.prewarmSpeechVoices()": "7250dcb479571043",
+    "Emuqu/EmuquApp.swift::func EmuquApp.wireWatchBridgeCallbacks()": "eb4be484dee94d6d",
+    "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.runDeferredBoot()": "700d50443111055c"
+   }
+  },
+  {
+   "key": "func EmuquApp.installGlobalKeyboardDismissal()",
+   "hash": "7d277e281cf76a62",
+   "does": "Main-actor Task: sleeps 600 ms (cancellation error ignored), then on AppDependencies.current.app.globalKeyboardDismissal installs the window-level tap recognizer and prewarms the keyboard.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.globalKeyboardDismissal",
+    "Emuqu/Sources/Utilities/GlobalKeyboardDismissal.swift::func GlobalKeyboardDismissal.install()",
+    "Emuqu/Sources/Utilities/GlobalKeyboardDismissal.swift::func GlobalKeyboardDismissal.prewarmKeyboard()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:GlobalKeyboardDismissal (AppDependencies.current.app.globalKeyboardDismissal)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.globalKeyboardDismissal": "f69ecc62d8f3f0be",
+    "Emuqu/Sources/Utilities/GlobalKeyboardDismissal.swift::func GlobalKeyboardDismissal.install()": "382790801bb249ba",
+    "Emuqu/Sources/Utilities/GlobalKeyboardDismissal.swift::func GlobalKeyboardDismissal.prewarmKeyboard()": "a36159df382a7f4f",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "9b0181db6472cf0d"
+   }
+  },
+  {
+   "key": "func EmuquApp.bootArchiveOffMain()",
+   "hash": "d55cd698447c5904",
+   "does": "Runs collector.archive.boot() (orphan reconcile + tombstone walk) in a detached utility task.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.boot()"
+   ],
+   "reads": [],
+   "writes": [
+    "archive:SessionArchive.boot (index reconcile)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.boot()": "84fa584035a1eb46"
+   }
+  },
+  {
+   "key": "func EmuquApp.prewarmSpeechVoices()",
+   "hash": "5580952667562de7",
+   "does": "Prewarms AVSpeechSynthesisVoice list off-main via WorkoutStartCue.prewarm keyed by the app language code, falling back to 'en'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutStartCue.swift::func WorkoutStartCue.prewarm(forLanguage:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [
+    "mem:LanguageManager.locale"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "app locale has no languageCode (??)",
+     "effect": "uses \"en\"; otherwise the language code identifier"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutStartCue.swift::func WorkoutStartCue.prewarm(forLanguage:)": "c177f2494c6c0984",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "func EmuquApp.wireWatchBridgeCallbacks()",
+   "hash": "b3dc7c22c60b21e6",
+   "does": "Mirrors the phone's Polar strap state to the Watch and installs the voice-chat, workout-start and transport closures on the Watch bridge.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.mirrorStrapState(from:)",
+    "Emuqu/EmuquApp.swift::func EmuquApp.wireWatchVoiceChatTrigger()",
+    "Emuqu/EmuquApp.swift::func EmuquApp.wireWatchWorkoutStartTrigger()",
+    "Emuqu/EmuquApp.swift::func EmuquApp.wireWatchWorkoutTransportTriggers()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:WatchConnectivityBridge callbacks"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/EmuquApp.swift::func EmuquApp.wireWatchVoiceChatTrigger()": "a542b191f1be810f",
+    "Emuqu/EmuquApp.swift::func EmuquApp.wireWatchWorkoutStartTrigger()": "fb9fe560a093c80b",
+    "Emuqu/EmuquApp.swift::func EmuquApp.wireWatchWorkoutTransportTriggers()": "da7ec7ab3e526d8d",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.mirrorStrapState(from:)": "32e5f0df18141a5f"
+   }
+  },
+  {
+   "key": "func EmuquApp.wireWatchVoiceChatTrigger()",
+   "hash": "91783d4039a4156d",
+   "does": "Sets watchBridge.onStartVoiceChatFromWatch to a closure calling toggleVoiceChatFromWatch().",
+   "entry": null,
+   "calls": [
+    "closure:WatchConnectivityBridge.onStartVoiceChatFromWatch set here, invoked by WatchConnectivityBridge+Session.swift:341 -> Emuqu/EmuquApp.swift:747"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:WatchConnectivityBridge.onStartVoiceChatFromWatch"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/EmuquApp.swift::func EmuquApp.toggleVoiceChatFromWatch()": "fd075de85810256e"
+   }
+  },
+  {
+   "key": "func EmuquApp.toggleVoiceChatFromWatch()",
+   "hash": "cbac340c54d46e3a",
+   "does": "Watch voice-chat request: returns .needsUnlock when the paywall would block; returns nil without toggling when the AI disclaimer is not accepted (the bridge reply then reports needsDisclaimer); otherwise toggles the shared voice controller and returns nil.",
+   "entry": "Invoked through watchBridge.onStartVoiceChatFromWatch from WatchConnectivityBridge+Session.swift:341 on a WCSession message.",
+   "calls": [
+    "Emuqu/EmuquApp.swift::func EmuquApp.watchAccessRefusal()",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.assistantViewModel",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::var AssistantViewModel.hasAcceptedDisclaimer",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.toggle()"
+   ],
+   "reads": [
+    "ud:assistant.disclaimerAccepted (via AssistantViewModel.hasAcceptedDisclaimer)"
+   ],
+   "writes": [
+    "mem:VoiceConversationController.state"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "watchAccessRefusal() returns a refusal",
+     "effect": "returns it (.needsUnlock); nil: continue"
+    },
+    {
+     "at": "+2",
+     "cond": "assistant disclaimer not accepted",
+     "effect": "returns nil without toggling; accepted: voiceChat.toggle() and nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/EmuquApp.swift::func EmuquApp.watchAccessRefusal()": "a8eea278079a8131",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::var AssistantViewModel.hasAcceptedDisclaimer": "062805abbf745ea9",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.toggle()": "37942af49c1d3170",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "6d93847830e6d9e6",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.assistantViewModel": "683bce28accc5e69"
+   }
+  },
+  {
+   "key": "func EmuquApp.watchAccessRefusal()",
+   "hash": "66e040166bfcbde1",
+   "does": "Returns .needsUnlock when the paywall is enabled and hasAccess is false, else nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/AppLaunchTasks.swift::var EmuquApp.hasAccess"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "StoreKitManager.paywallEnabled && !hasAccess",
+     "effect": "true: .needsUnlock; false: nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/AppLaunchTasks.swift::var EmuquApp.hasAccess": "9b8d4f96a4fa39c4"
+   }
+  },
+  {
+   "key": "func EmuquApp.wireWatchWorkoutStartTrigger()",
+   "hash": "58adee6e9198cdd2",
+   "does": "Sets watchBridge.onStartWorkoutFromWatch: refuses via watchStartRefusal (unknown sport, no access, strap recording on-device, or a workout already recording/finalizing on the phone), else posts .watchRequestedWorkoutStart with userInfo sport (+targetZone if non-nil) and returns nil (success) to the Watch.",
+   "entry": null,
+   "calls": [
+    "closure:WatchConnectivityBridge.onStartWorkoutFromWatch set here, invoked by the bridge on a Watch start message",
+    "Emuqu/EmuquApp.swift::func EmuquApp.watchStartRefusal(sportRaw:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:WatchConnectivityBridge.onStartWorkoutFromWatch",
+    "notif:watchRequestedWorkoutStart"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "watchStartRefusal returns non-nil",
+     "effect": "returns that refusal; nil: posts notification"
+    },
+    {
+     "at": "+4",
+     "cond": "targetZone non-nil",
+     "effect": "adds userInfo[\"targetZone\"]; nil: omitted"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "med",
+     "text": "The Watch is told the start succeeded (nil) as soon as the notification is posted, but startWorkoutFromWatch (AppLaunchTasks.swift) only logs when recorder.start throws, so a start that fails on the phone still shows as started on the Watch. (A workout already recording/finalizing is now refused up front with .strapBusy.) Reporting the throw needs a WatchControlRefusal case and string, outside this file.",
+     "evidence": [
+      "Emuqu/EmuquApp.swift:797",
+      "Emuqu/Sources/Services/AppLaunchTasks.swift:60",
+      "Emuqu/Sources/Services/WatchConnectivityBridge.swift:888"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/EmuquApp.swift::func EmuquApp.watchStartRefusal(sportRaw:)": "20073d738dd55623"
+   }
+  },
+  {
+   "key": "func EmuquApp.watchStartRefusal(sportRaw:)",
+   "hash": "0b68c28c8ef456f3",
+   "does": "Pre-start refusal for a Watch Start: .unknownSport if sportRaw is not a Sport, .needsUnlock if paywalled, .strapBusy if the Polar strap is recording on-device or a workout is already recording/finalizing on the phone (isWorkoutInProgress, the case startWorkoutFromWatch would ignore), else nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/EmuquApp.swift::func EmuquApp.watchAccessRefusal()",
+    "Emuqu/EmuquApp.swift::var EmuquApp.isWorkoutInProgress"
+   ],
+   "reads": [
+    "mem:PolarManager.isRecordingOnDevice (stored property read via collector.polarManager, not RRCollector.isRecordingOnDevice)",
+    "mem:RecorderBox.recorder.phase (via isWorkoutInProgress)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "Sport(rawValue:) is nil",
+     "effect": "returns .unknownSport"
+    },
+    {
+     "at": "+2",
+     "cond": "watchAccessRefusal non-nil",
+     "effect": "returns .needsUnlock"
+    },
+    {
+     "at": "+3",
+     "cond": "polarManager.isRecordingOnDevice || isWorkoutInProgress",
+     "effect": "returns .strapBusy; else nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/EmuquApp.swift::func EmuquApp.watchAccessRefusal()": "a8eea278079a8131",
+    "Emuqu/EmuquApp.swift::var EmuquApp.isWorkoutInProgress": "4f63990a854d3006",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "80cfea9a213f0e16"
+   }
+  },
+  {
+   "key": "func EmuquApp.wireWatchWorkoutTransportTriggers()",
+   "hash": "e5816f85b5c05e2e",
+   "does": "Sets the Watch bridge's stop/pause/resume/acknowledge closures to post the matching watchRequestedWorkout*/watchAcknowledgedFinished notification.",
+   "entry": null,
+   "calls": [
+    "closure:WatchConnectivityBridge.onStop/onPause/onResume/onAcknowledgeFinishedFromWatch set here -> Emuqu/EmuquApp.swift:811"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:WatchConnectivityBridge transport closures"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/EmuquApp.swift::func EmuquApp.postWatchTransport(_:)": "d7b19d5f73cea766"
+   }
+  },
+  {
+   "key": "func EmuquApp.postWatchTransport(_:)",
+   "hash": "c3737daee1fd29eb",
+   "does": "Posts the given notification name with no object and returns nil.",
+   "entry": "Invoked via the Watch bridge transport closures.",
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "notif:watchRequestedWorkoutStop|Pause|Resume / watchAcknowledgedFinished"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func EmuquApp.observeTrialPaywallRequests()",
+   "hash": "15ceb8bedbee9f8a",
+   "does": "Async loop over .showPaywallFromTrial notifications: after each, sleeps 400 ms then sets activeModal = .paywall.",
+   "entry": "Root .task (EmuquApp.swift:642); notifications posted by TrialReminderView.swift:95.",
+   "calls": [],
+   "reads": [
+    "notif:showPaywallFromTrial"
+   ],
+   "writes": [
+    "mem:EmuquApp.activeModal"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for-await each notification",
+     "effect": "sets paywall after 400 ms; loop ends only when the task is cancelled"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "9b0181db6472cf0d"
+   }
+  },
+  {
+   "key": "func EmuquApp.runWatchAndSyncWiring()",
+   "hash": "fc8b8f21f9f2bc08",
+   "does": "Pre-binds the WorkoutRecorder, schedules the delayed settings push to iCloud, then awaits the app-level Watch workout listeners.",
+   "entry": "Root .task (EmuquApp.swift:657).",
+   "calls": [
+    "Emuqu/EmuquApp.swift::func EmuquApp.prebindWorkoutRecorder()",
+    "Emuqu/EmuquApp.swift::func EmuquApp.pushSettingsToCloudAfterLaunch()",
+    "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.runAppLevelWatchWorkoutListeners()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/EmuquApp.swift::func EmuquApp.prebindWorkoutRecorder()": "39dc0a6541f9c07e",
+    "Emuqu/EmuquApp.swift::func EmuquApp.pushSettingsToCloudAfterLaunch()": "41ca9a5eceb72f1c",
+    "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.runAppLevelWatchWorkoutListeners()": "c81abd9a54ded28b"
+   }
+  },
+  {
+   "key": "func EmuquApp.prebindWorkoutRecorder()",
+   "hash": "e2c522c9b8f88111",
+   "does": "Main-actor Task binding AppDependencies.current.app.recorderBox (the same box the app-level Watch listeners read) to a new WorkoutRecorder(core: collector, conversation: voiceChat) if not already bound.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.recorderBox",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func RecorderBox.bind(core:conversation:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:RecorderBox.recorder"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.recorderBox": "51d3dd77075ccb10",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func RecorderBox.bind(core:conversation:)": "3ad83ae7597a6bdb"
+   }
+  },
+  {
+   "key": "func EmuquApp.pushSettingsToCloudAfterLaunch()",
+   "hash": "f06e4495551ef4bd",
+   "does": "Main-actor Task: sleeps 5 s (errors ignored) then AppDependencies.current.storage.cloudKitSettingsSync.pushImmediately() (which itself refuses before onboarding or with sync off).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.cloudKitSettingsSync",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.pushImmediately()"
+   ],
+   "reads": [],
+   "writes": [
+    "ck:settings record"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.pushImmediately()": "271ed9eedddd24d7",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.cloudKitSettingsSync": "795829a4e1aab357",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "9b0181db6472cf0d"
+   }
+  },
+  {
+   "key": "func EmuquMain.main()",
+   "hash": "fdb8f39fb21b7f10",
+   "does": "Process entry: on the main actor runs the Debug UI-test fresh-install wipe and installs crash/diagnostic handlers, then calls EmuquApp.main() (SwiftUI App bootstrap).",
+   "entry": "@main process entry point.",
+   "calls": [
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resetUITestStateIfRequested()",
+    "Emuqu/EmuquApp.swift::func EmuquApp.installDiagnostics()",
+    "ext:SwiftUI App.main"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/EmuquApp.swift::func EmuquApp.installDiagnostics()": "9898f51d4674deb3",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resetUITestStateIfRequested()": "6ce77cca4f0ebae6"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -1,0 +1,39 @@
+{
+ "file": "scripts/check_unchecked_sendable.sh",
+ "hash": "0c0f14ca40355bc1",
+ "role": "CI guard (make sendable-guard; ci.yml, gates.yml) that `@unchecked Sendable` / `nonisolated(unsafe)` appear only in 14 allowlisted files and their non-comment count does not exceed .ci/unchecked_sendable_budget.txt.",
+ "types": [],
+ "state": [
+  "file:.ci/unchecked_sendable_budget.txt (read; 14)",
+  "file:Emuqu/**, EmuquWatch Watch App/** *.swift (read)",
+  "file:$TMPDIR/unchecked-sendable.XXXXXX (temp)"
+ ],
+ "toplevel": "cd to repo root; sources preflight; gate_mktemp (exit on failure). find|xargs grep -nHE writes path:line:content hits (errors swallowed with `|| true`). awk drops hits whose content (after leading whitespace) starts with `//` or `*`. Any hit file not in ALLOWLIST -> prints it with its matches and exit 1. Then count of real hits vs budget file (exit 2 if missing; budget value not validated as integer — a non-integer makes `[ -gt ]` error and the test is false, so it passes). count > budget -> exit 1; else OK. At 8d32097: 14 real hits, one per allowlisted file, budget 14. An allowlisted file whose escape is removed is not detected (the comment says it 'must leave this list' but nothing enforces it). The justification comment at lines 107-114 cites escapes in SettingsManager.swift, LanguageManager.swift and RRCollector.swift that no longer exist (grep finds no annotation in those files and they are not allowlisted).",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "The comment listing 'individually admitted escapes' (SettingsManager.swift:16, LanguageManager.swift:35/47, RRCollector.swift:303) is stale: none of those files contains either annotation now and none is in ALLOWLIST, so the documented safety rationale no longer describes the 14 counted sites.",
+   "evidence": [
+    "scripts/check_unchecked_sendable.sh:107",
+    "scripts/check_unchecked_sendable.sh:113",
+    "Emuqu/Sources/Models/SettingsManager.swift",
+    "Emuqu/Sources/Services/LanguageManager.swift"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "silent-failure",
+   "sev": "low",
+   "text": "The budget value is never validated as an integer: a non-numeric .ci/unchecked_sendable_budget.txt makes `[ \"$ACTUAL_COUNT\" -gt \"$BASELINE_COUNT\" ]` error (status 2), the if is false, and the script prints OK and exits 0 with no count enforced.",
+   "evidence": [
+    "scripts/check_unchecked_sendable.sh:124",
+    "scripts/check_unchecked_sendable.sh:126",
+    "scripts/check_unchecked_sendable.sh:133"
+   ],
+   "found": "second read"
+  }
+ ],
+ "units": [],
+ "deps": {}
+}

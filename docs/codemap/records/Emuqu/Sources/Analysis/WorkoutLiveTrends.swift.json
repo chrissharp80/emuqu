@@ -1,0 +1,798 @@
+{
+ "file": "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift",
+ "hash": "9b53a19f03820aa1",
+ "role": "Stateless math for live/historical workout analytics: mid-workout trend metrics (reverse split, HR drift, decoupling, HR slope, cadence drift, grade-adjusted pace, time-to-fade), live time-in-zone, Riegel race predictions, Daniels-style pace zones, Banister load projection/recovery time, and cross-workout history baselines.",
+ "types": [
+  "WorkoutLiveTrends: enum — namespace of trend functions over [WorkoutSample]",
+  "WorkoutZoneBreakdown: struct — seconds per HR zone (50/60/70/80/90 % of max) + dominant zone",
+  "RaceTimePrediction: enum — Riegel T2=T1*(D2/D1)^1.06 predictions per standard distance",
+  "RaceTimePrediction.Basis / Prediction: struct — effort used and predicted time",
+  "TrainingPaceZones: struct — easy/marathon/threshold/interval/repetition paces from 5K pace",
+  "RecoveryTimeEstimate: enum — hours until TSB>=0 at rest",
+  "TrainingLoadProjection: enum — forward ATL/CTL/TSB projection using TrainingLoadSeries.Point.stepped",
+  "TrainingLoadProjection.Day: struct — projected day",
+  "WorkoutHistoryBaselines: struct — sport-matched averages of pace/HR/alpha1 across recent archived workouts"
+ ],
+ "state": [
+  "mem:WorkoutLiveTrends.halfMetricsMinSeconds=600 (const)",
+  "mem:WorkoutLiveTrends.driftMetricsMinSeconds=420 (const)",
+  "mem:WorkoutZoneBreakdown.empty (const)",
+  "mem:RaceTimePrediction.standardDistancesMeters [5000,10000,21097.5,42195] (const)",
+  "mem:RaceTimePrediction.minimumBasisMeters=3000, recentWindowDays=90, comparableDistanceTolerance=0.20, exponent=1.06 (consts)",
+  "mem:WorkoutHistoryBaselines.empty (const, sport .run)"
+ ],
+ "toplevel": "Only static constants listed in state; Equatable/Sendable conformances synthesized. No global code.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func WorkoutLiveTrends.reverseSplitDeltaSecPerKm(samples:)",
+   "hash": "ed39b108a22a530a",
+   "does": "Splits samples at half of the last sample's offsetSec; averages paceSecPerKm over each half (unweighted per sample) and returns second-half avg minus first-half avg in sec/km (negative = faster second half).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no samples or last.offsetSec < 600",
+     "effect": "return nil; otherwise continue"
+    },
+    {
+     "at": "+5",
+     "cond": "either half has fewer than 30 non-nil paces",
+     "effect": "return nil; otherwise compute delta"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutLiveTrends.hrDriftPercent(samples:)",
+   "hash": "3c248638a9f811eb",
+   "does": "HR drift: mean HR of samples with offset >= 3q minus mean HR of samples with offset < q (q = last offset / 4), as a percent of the first-quarter mean.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no samples or last offset < 420 s",
+     "effect": "return nil; else continue"
+    },
+    {
+     "at": "+3",
+     "cond": "q <= 0",
+     "effect": "return nil (unreachable in practice since offset>=420 gives q>=105)"
+    },
+    {
+     "at": "+6",
+     "cond": "fewer than 30 HR readings in first or last quarter",
+     "effect": "return nil"
+    },
+    {
+     "at": "+9",
+     "cond": "first-quarter mean <= 0",
+     "effect": "return nil; else return percent change"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutLiveTrends.aerobicDecouplingPercent(samples:)",
+   "hash": "8e122460d1dd0740",
+   "does": "Aerobic decoupling: for each half (split at last offset / 2) computes mean speed (1000/pace) divided by mean HR via nested efficiency(); returns (firstEff - secondEff)/firstEff*100 (positive = efficiency dropped).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.efficiency(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no samples or last offset < 600 s",
+     "effect": "return nil"
+    },
+    {
+     "at": "+16",
+     "cond": "either half's efficiency is nil, or firstEff <= 0",
+     "effect": "return nil; else return percent drop"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Live aerobic decoupling is a separate implementation from the post-workout WorkoutAnalyzer.computeDecoupling: live averages per-sample speed (1000/pace) over sample-count halves, the finished value uses moving distance/moving time halves from the GPS track and RR-derived HR. The live coach rule (aerobicDecouplingMaterial) and the post-workout report can state different decoupling for the same run.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift:66",
+      "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift:74",
+      "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift:576",
+      "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift:600",
+      "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift:671"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.efficiency(in:)": "467a9c51ab2218b6"
+   }
+  },
+  {
+   "key": "func WorkoutLiveTrends.efficiency(in:)",
+   "hash": "82b16566863e330e",
+   "does": "Nested helper: filters a slice to samples with HR>0 and pace>0, returns avg speed (m/s) / avg HR.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "HR ?? 0 > 0 and pace ?? 0 > 0 (nil-coalesced to 0)",
+     "effect": "sample kept only when both present and positive"
+    },
+    {
+     "at": "+2",
+     "cond": "fewer than 30 valid samples",
+     "effect": "return nil"
+    },
+    {
+     "at": "+4",
+     "cond": "pace ?? 1 fallback",
+     "effect": "pace is never nil here (filtered at 71) so the 1 fallback is never used"
+    },
+    {
+     "at": "+8",
+     "cond": "avg HR <= 0",
+     "effect": "return nil; else ratio"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutLiveTrends.recentHRSlopeBpm(samples:)",
+   "hash": "0732cc851cd559f6",
+   "does": "Short-term HR slope: mean HR of samples in the last 30 s minus mean HR of samples 60-90 s ago.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no samples or last offset < 90",
+     "effect": "return nil"
+    },
+    {
+     "at": "+11",
+     "cond": "fewer than 10 HR readings in either window",
+     "effect": "return nil; else difference in bpm"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutLiveTrends.cadenceDriftSpm(samples:)",
+   "hash": "710521fa7c0735e6",
+   "does": "Cadence drift: mean cadence of last quarter minus mean cadence of first quarter (spm).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no samples or last offset < 420",
+     "effect": "return nil"
+    },
+    {
+     "at": "+3",
+     "cond": "q <= 0",
+     "effect": "return nil (practically unreachable)"
+    },
+    {
+     "at": "+6",
+     "cond": "fewer than 30 cadence readings in either quarter",
+     "effect": "return nil; else difference"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.cadenceStepsPerMin": "d9315eaf78873e8c"
+   }
+  },
+  {
+   "key": "func WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(pace:gradePercent:)",
+   "hash": "452142ebc93f2633",
+   "does": "Minetti (2002) grade-adjusted pace: cost multiplier from a quintic in grade fraction clipped to +/-45 %; returns pace / multiplier.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "pace nil or <= 0",
+     "effect": "return nil"
+    },
+    {
+     "at": "+2",
+     "cond": "gradePercent nil",
+     "effect": "return raw pace unchanged"
+    },
+    {
+     "at": "+7",
+     "cond": "multiplier <= 0",
+     "effect": "return raw pace (cost polynomial is positive across +/-45 %, so not reached); else pace/multiplier"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutLiveTrends.recentSplitGradeAdjustedPaces(samples:)",
+   "hash": "3ae5139d24fadbf1",
+   "does": "Takes the last 3 completed 1 km splits (most recent first) and returns each split's grade-adjusted pace.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.kilometreSplits(_:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(pace:gradePercent:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(pace:gradePercent:)": "bac5eb2b12a99713",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.kilometreSplits(_:)": "8fc70e20a3316582"
+   }
+  },
+  {
+   "key": "func WorkoutLiveTrends.kilometreSplits(_:)",
+   "hash": "49e076272155ea61",
+   "does": "Walks samples and emits a split every time cumulative distance advances >= 1000 m from the split start: raw pace = elapsed sec / km; grade = rise over run from the split's start altitude to the last known altitude (carried forward), where the run is measured from the sample that supplied the start altitude (altDist) — the split start, or, when that had no altitude yet, the first later sample that has one.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.splitGrade(from:to:run:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "for each sample",
+     "effect": "iterates all samples"
+    },
+    {
+     "at": "+5",
+     "cond": "sample has no distanceMeters",
+     "effect": "skip sample (continue)"
+    },
+    {
+     "at": "+6",
+     "cond": "altitudeMeters ?? lastAlt",
+     "effect": "nil altitude carries the previous known altitude forward"
+    },
+    {
+     "at": "+7",
+     "cond": "split start altitude still nil and an altitude is now known",
+     "effect": "set start altitude to lastAlt and altDist to this sample's distance"
+    },
+    {
+     "at": "+12",
+     "cond": "run since split start < 1000 m",
+     "effect": "continue; else append split (grade over d - altDist) and reset start, altDist to this sample"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.splitGrade(from:to:run:)": "774ebb117d88f0ac"
+   }
+  },
+  {
+   "key": "func WorkoutLiveTrends.sessionGradeAdjustedPaceSecPerKm(samples:)",
+   "hash": "2232f3f839641cbf",
+   "does": "Whole-session GAP: length-weighted mean of each kilometre split's grade-adjusted pace; nil without any completed km.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.kilometreSplits(_:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(pace:gradePercent:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "total km of adjusted splits <= 0",
+     "effect": "return nil; else weighted mean"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(pace:gradePercent:)": "bac5eb2b12a99713",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.kilometreSplits(_:)": "8fc70e20a3316582"
+   }
+  },
+  {
+   "key": "func WorkoutLiveTrends.splitGrade(from:to:run:)",
+   "hash": "dbcd5a51106ffb3b",
+   "does": "Rise over run in percent between two altitudes.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "either altitude nil or run <= 0",
+     "effect": "return nil; else (end-start)/run*100"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutLiveTrends.projectedMinutesUntilFade(samples:currentDriftPercent:)",
+   "hash": "cca6d18e9ae60e50",
+   "does": "Linear extrapolation of HR drift to the 10 % threshold: drift rate = drift / (0.75*elapsed min); returns minutes remaining clamped to 1..180, 0 when already >= 10 %.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "drift nil or <= 1 %",
+     "effect": "return nil"
+    },
+    {
+     "at": "+5",
+     "cond": "no samples or elapsed < 840 s",
+     "effect": "return nil"
+    },
+    {
+     "at": "+11",
+     "cond": "drift span <= 0",
+     "effect": "return nil (unreachable after 228)"
+    },
+    {
+     "at": "+13",
+     "cond": "drift rate <= 0.05 %/min",
+     "effect": "return nil (no trend)"
+    },
+    {
+     "at": "+15",
+     "cond": "remaining drift <= 0 (drift >= 10 %)",
+     "effect": "return 0; else clamp(remaining/rate,1,180)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutZoneBreakdown.compute(samples:userMaxHR:)",
+   "hash": "61dca7ae4cf225ef",
+   "does": "Bins each sample's time delta (offset minus previous offset, first sample measured from 0) into the HR zone of that sample (fraction of userMaxHR); samples without HR or below 50 % max add nothing. Returns per-zone seconds, total, and the zone with the most seconds; on a tie the LOWER zone wins because Sequence.max(by:) keeps the first maximal element.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutZoneBreakdown.zoneIndex(fractionOfMax:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "userMaxHR <= 0 or samples empty",
+     "effect": "return .empty"
+    },
+    {
+     "at": "+4",
+     "cond": "for each sample",
+     "effect": "accumulate dt=max(0,offset-prev)"
+    },
+    {
+     "at": "+7",
+     "cond": "sample has no HR or zoneIndex nil (<50 % max)",
+     "effect": "skip sample; its time not binned"
+    },
+    {
+     "at": "+16",
+     "cond": "total > 0",
+     "effect": "dominantZone = 1-based index of max bin; else nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutZoneBreakdown.zoneIndex(fractionOfMax:)": "0e2f0214db8994ad",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.element(_:gate:)": "1f6afb21d0621d1d"
+   }
+  },
+  {
+   "key": "func WorkoutZoneBreakdown.zoneIndex(fractionOfMax:)",
+   "hash": "d662f6bf38a1cfc9",
+   "does": "Maps fraction of max HR to zero-based zone index.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "pct < 0.50",
+     "effect": "nil"
+    },
+    {
+     "at": "+3",
+     "cond": "pct < 0.60",
+     "effect": "0 (Z1)"
+    },
+    {
+     "at": "+4",
+     "cond": "pct < 0.70",
+     "effect": "1 (Z2)"
+    },
+    {
+     "at": "+5",
+     "cond": "pct < 0.80",
+     "effect": "2 (Z3)"
+    },
+    {
+     "at": "+6",
+     "cond": "pct < 0.90",
+     "effect": "3 (Z4)"
+    },
+    {
+     "at": "+7",
+     "cond": "default (>= 0.90)",
+     "effect": "4 (Z5)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RaceTimePrediction.predict(from:sport:now:)",
+   "hash": "c4d3eb69080af3a6",
+   "does": "Predicted seconds per standard distance; strips the basis from predictWithBasis.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.predictWithBasis(from:sport:now:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.predictWithBasis(from:sport:now:)": "d13d57cdb2f9db13"
+   }
+  },
+  {
+   "key": "func RaceTimePrediction.predictWithBasis(from:sport:now:)",
+   "hash": "73d9a72131f51212",
+   "does": "For each of 5K/10K/HM/M, picks from the candidate pool the efforts within +/-20 % of the target (or the whole pool if none), Riegel-extrapolates each, and keeps the fastest prediction.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.candidatePool(from:sport:now:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.riegel(_:to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "candidate pool empty",
+     "effect": "return [:]"
+    },
+    {
+     "at": "+8",
+     "cond": "for each standard distance",
+     "effect": "compute prediction"
+    },
+    {
+     "at": "+12",
+     "cond": "no comparable-distance efforts",
+     "effect": "use the entire pool; else only comparable ones"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.candidatePool(from:sport:now:)": "d7cfa004b98291a3",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.riegel(_:to:)": "2f4d51ba26563af9"
+   }
+  },
+  {
+   "key": "func RaceTimePrediction.riegel(_:to:)",
+   "hash": "f0863bbb07142285",
+   "does": "Riegel formula: duration * (target/dist)^1.06.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RaceTimePrediction.candidatePool(from:sport:now:)",
+   "hash": "23713c2aa4e2a0bf",
+   "does": "Builds Basis list from sessions of matching sport with duration>0 and distance>=3000 m; returns those from the last 90 days, or all of them if none are recent.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "sport mismatch, duration nil/<=0, or distance nil/<3000",
+     "effect": "session excluded"
+    },
+    {
+     "at": "+10",
+     "cond": "recent subset empty",
+     "effect": "return all-history pool; else recent pool"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TrainingPaceZones.from5KPace(secPerKm:)",
+   "hash": "f6ff88e18feca35a",
+   "does": "Pace zones from a 5K pace: easy x1.30, marathon x1.15, threshold x1.06, interval x1.00, repetition x0.93.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "secPerKm <= 0",
+     "effect": "return nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TrainingPaceZones.from(racePredictions:)",
+   "hash": "7636bd4bf38f5867",
+   "does": "Pace zones from the 5000 m entry of a Riegel prediction map (total sec / 5).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingPaceZones.from5KPace(secPerKm:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no 5000 key",
+     "effect": "return nil"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "TrainingPaceZones.from(racePredictions:) has no production caller; only WorkoutLiveTrendsTests calls it. Production builds pace zones with from5KPace directly (AppFactResolver+TrainingProjections, AppFactResolver+WorkoutLiveDerived).",
+     "evidence": [
+      "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift:436",
+      "EmuquTests/WorkoutLiveTrendsTests.swift:596",
+      "EmuquTests/WorkoutLiveTrendsTests.swift:601"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingPaceZones.from5KPace(secPerKm:)": "183480b28ecc7ec8"
+   }
+  },
+  {
+   "key": "func RecoveryTimeEstimate.hoursFromTrainingLoad(atl:ctl:)",
+   "hash": "252d5a11260e5b23",
+   "does": "Hours of rest until TSB >= 0: daysUntilFresh * 24.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.daysUntilFresh(currentATL:currentCTL:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "atl or ctl nil, or atl <= ctl",
+     "effect": "return nil (already fresh / missing input)"
+    },
+    {
+     "at": "+4",
+     "cond": "daysUntilFresh returns nil (>30 days)",
+     "effect": "return nil; else days*24"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.daysUntilFresh(currentATL:currentCTL:)": "4ee276687dff6f4b"
+   }
+  },
+  {
+   "key": "var TrainingLoadProjection.Day.tsb",
+   "hash": "b18a2cd957a1779f",
+   "does": "TSB of a projected day = ctl - atl.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TrainingLoadProjection.project(startingATL:startingCTL:dailyTrimp:horizonDays:)",
+   "hash": "d904c308c2f65ada",
+   "does": "Projects ATL/CTL forward horizonDays (min 1) by repeatedly applying TrainingLoadSeries.Point.stepped(load: dailyTrimp) from the starting values.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.Point.stepped(load:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+11",
+     "cond": "for offset in 1...max(1,horizonDays)",
+     "effect": "one Day per step"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.Point.stepped(load:)": "6b391f26011174a2",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+   }
+  },
+  {
+   "key": "func TrainingLoadProjection.daysUntilFresh(currentATL:currentCTL:)",
+   "hash": "8198584737148ff2",
+   "does": "Days at zero load until projected TSB >= 0, within 30 days.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.project(startingATL:startingCTL:dailyTrimp:horizonDays:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "currentATL <= currentCTL",
+     "effect": "return 0 (already fresh); else first projected day with tsb>=0 or nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.project(startingATL:startingCTL:dailyTrimp:horizonDays:)": "d4fe1750bac7aed4"
+   }
+  },
+  {
+   "key": "func TrainingLoadProjection.daysUntilATLConverges(currentATL:currentCTL:dailyTrimp:gapTrimp:horizonDays:)",
+   "hash": "36131b44d2563e16",
+   "does": "Days at the given daily load until |ATL-CTL| <= gap within horizon (default 60).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.project(startingATL:startingCTL:dailyTrimp:horizonDays:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "already within gap",
+     "effect": "return 0; else first converging projected day or nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.project(startingATL:startingCTL:dailyTrimp:horizonDays:)": "d4fe1750bac7aed4",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+   }
+  },
+  {
+   "key": "func WorkoutHistoryBaselines.compute(from:sport:limit:)",
+   "hash": "94bef4146a75a620",
+   "does": "Filters sessions to workouts of the sport, newest first, keeps up to `limit`; returns distance-weighted pace and sample-weighted HR/alpha1 averages, sampleCount = number of matched sessions.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutHistoryBaselines.distanceWeightedPace(_:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutHistoryBaselines.sampleWeightedAverages(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "no matches",
+     "effect": "return baselines with nil averages and sampleCount 0"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutHistoryBaselines.distanceWeightedPace(_:)": "cac5a8c99a6940ec",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutHistoryBaselines.sampleWeightedAverages(_:)": "18240302ad36fd28"
+   }
+  },
+  {
+   "key": "func WorkoutHistoryBaselines.distanceWeightedPace(_:)",
+   "hash": "efd3e902c006250d",
+   "does": "Sum of durations over sum of distances (sec/km) across sessions with distance>100 m and duration>60 s.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each match",
+     "effect": "accumulate"
+    },
+    {
+     "at": "+4",
+     "cond": "distance nil/<=100 or duration nil/<=60",
+     "effect": "skip session"
+    },
+    {
+     "at": "+9",
+     "cond": "total distance > 100",
+     "effect": "return pace; else nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutHistoryBaselines.sampleWeightedAverages(_:)",
+   "hash": "5d9206903ea07530",
+   "does": "Flattens all samples of matched sessions and returns mean HR (>0) and mean alpha1 (>0).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutHistoryBaselines.mean(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "workoutMetadata?.samples ?? []",
+     "effect": "session without samples contributes nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutHistoryBaselines.mean(_:)": "73942b93ffb40d6d"
+   }
+  },
+  {
+   "key": "func WorkoutHistoryBaselines.mean(_:)",
+   "hash": "284a89d93fb8bf77",
+   "does": "Arithmetic mean.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "values empty",
+     "effect": "return nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

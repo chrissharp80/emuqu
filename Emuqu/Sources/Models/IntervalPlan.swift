@@ -14,9 +14,8 @@ import Foundation
 // with this shape.
 //
 // The `WorkoutRecorder` ticks through the plan's steps during the workout;
-// the voice coach announces transitions via TTS. Stats per step are
-// captured at finalize (avg HR, distance, pace) so the post-summary can
-// show a per-interval breakdown next to the regular splits.
+// the voice coach announces transitions via TTS. Only the presets below
+// exist; nothing builds a plan from user input.
 
 struct IntervalStep: Codable, Equatable, Identifiable {
     /// The step's index in the plan, so it is stable within one plan
@@ -45,13 +44,9 @@ struct IntervalStep: Codable, Equatable, Identifiable {
     /// Short label ("warm up", "interval", "cool down"). Stored in English;
     /// `displayLabel` is the on-screen and spoken form.
     let label: String
-    /// Whether this step is a "work" step (counts in the training-stress
-    /// tally) vs. "recovery" (does not, for session-level TRIMP weighting).
-    /// Set explicitly by whoever builds the step; there is no default.
-    let isWork: Bool
 
     /// `label` in the app's language when it is one of the preset labels;
-    /// a label the user wrote is shown as written.
+    /// any other label is shown as stored.
     var displayLabel: String {
         let b = LanguageManager.appBundle
         return switch label {
@@ -68,11 +63,12 @@ struct IntervalStep: Codable, Equatable, Identifiable {
     }
 
     /// Human-readable "what is this step" string for AI consumption.
-    /// Combines label + duration/distance + target into one phrase the
-    /// assistant can read back verbatim. Examples:
-    ///   "warm up — 5 min @ Zone 2"
-    ///   "interval 3 of 5 — 800 m @ Zone 4"
-    ///   "all out — 30 s @ hard effort"
+    /// Joins label, duration/distance (when set) and target with " — " into
+    /// one phrase the assistant can read back verbatim. Examples:
+    ///   "warm up — 5 min — @ Zone 2"
+    ///   "interval — 800 m — @ Zone 4"
+    ///   "hard — 30 s — @ hard effort"
+    ///   "easy — @ Zone 2" (open-ended step)
     /// Used by `WorkoutRecorder.liveIntervalProgressSnapshot` and the
     /// `workout.live.interval.*` AI facts.
     var intervalAILabel: String {
@@ -110,10 +106,8 @@ struct IntervalPlan: Codable, Equatable, Identifiable {
     /// announces "set 2 of 3" / etc.
     let repeatCount: Int
 
-    var totalSteps: Int { steps.count * max(1, repeatCount) }
-
-    /// `name` in the app's language for the presets; a user plan's name as
-    /// written.
+    /// `name` in the app's language for the presets; any other name is shown
+    /// as stored.
     var displayName: String {
         let b = LanguageManager.appBundle
         return switch name {
@@ -122,11 +116,6 @@ struct IntervalPlan: Codable, Equatable, Identifiable {
         case "4×30/30 VO₂ (2 sets)": String(localized: "4×30/30 VO₂ (2 sets)", bundle: b)
         default: name
         }
-    }
-
-    var estimatedDurationSec: Int {
-        let perSet = steps.compactMap { $0.durationSec }.reduce(0, +)
-        return perSet * max(1, repeatCount)
     }
 
     // MARK: - Presets
@@ -157,7 +146,7 @@ struct IntervalPlan: Codable, Equatable, Identifiable {
         let zones = ["warm up": 2, "hard": 5, "easy": 2, "rest": 1]
         return specs.enumerated().map { index, spec in
             IntervalStep(index: index, durationSec: spec.0, distanceMeters: nil,
-                         target: .zone(zones[spec.1] ?? 2), label: spec.1, isWork: spec.1 == "hard")
+                         target: .zone(zones[spec.1] ?? 2), label: spec.1)
         }
     }
 
@@ -167,11 +156,11 @@ struct IntervalPlan: Codable, Equatable, Identifiable {
             name: "Easy base (30 min Z2)",
             steps: [
                 IntervalStep(index: 0, durationSec: 5 * 60, distanceMeters: nil,
-                             target: .zone(2), label: "warm up", isWork: false),
+                             target: .zone(2), label: "warm up"),
                 IntervalStep(index: 1, durationSec: 20 * 60, distanceMeters: nil,
-                             target: .zone(2), label: "aerobic base", isWork: true),
+                             target: .zone(2), label: "aerobic base"),
                 IntervalStep(index: 2, durationSec: 5 * 60, distanceMeters: nil,
-                             target: .zone(1), label: "cool down", isWork: false)
+                             target: .zone(1), label: "cool down")
             ],
             repeatCount: 1
         ),
@@ -180,27 +169,27 @@ struct IntervalPlan: Codable, Equatable, Identifiable {
             name: "5×3' tempo @ Z4",
             steps: [
                 IntervalStep(index: 0, durationSec: 10 * 60, distanceMeters: nil,
-                             target: .zone(2), label: "warm up", isWork: false),
+                             target: .zone(2), label: "warm up"),
                 IntervalStep(index: 1, durationSec: 3 * 60, distanceMeters: nil,
-                             target: .zone(4), label: "interval", isWork: true),
+                             target: .zone(4), label: "interval"),
                 IntervalStep(index: 2, durationSec: 2 * 60, distanceMeters: nil,
-                             target: .zone(2), label: "recovery", isWork: false),
+                             target: .zone(2), label: "recovery"),
                 IntervalStep(index: 3, durationSec: 3 * 60, distanceMeters: nil,
-                             target: .zone(4), label: "interval", isWork: true),
+                             target: .zone(4), label: "interval"),
                 IntervalStep(index: 4, durationSec: 2 * 60, distanceMeters: nil,
-                             target: .zone(2), label: "recovery", isWork: false),
+                             target: .zone(2), label: "recovery"),
                 IntervalStep(index: 5, durationSec: 3 * 60, distanceMeters: nil,
-                             target: .zone(4), label: "interval", isWork: true),
+                             target: .zone(4), label: "interval"),
                 IntervalStep(index: 6, durationSec: 2 * 60, distanceMeters: nil,
-                             target: .zone(2), label: "recovery", isWork: false),
+                             target: .zone(2), label: "recovery"),
                 IntervalStep(index: 7, durationSec: 3 * 60, distanceMeters: nil,
-                             target: .zone(4), label: "interval", isWork: true),
+                             target: .zone(4), label: "interval"),
                 IntervalStep(index: 8, durationSec: 2 * 60, distanceMeters: nil,
-                             target: .zone(2), label: "recovery", isWork: false),
+                             target: .zone(2), label: "recovery"),
                 IntervalStep(index: 9, durationSec: 3 * 60, distanceMeters: nil,
-                             target: .zone(4), label: "interval", isWork: true),
+                             target: .zone(4), label: "interval"),
                 IntervalStep(index: 10, durationSec: 5 * 60, distanceMeters: nil,
-                             target: .zone(2), label: "cool down", isWork: false)
+                             target: .zone(2), label: "cool down")
             ],
             repeatCount: 1
         ),

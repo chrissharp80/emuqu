@@ -1,0 +1,443 @@
+{
+ "file": "EmuquTests/StrapArmingTests.swift",
+ "hash": "ee1168ed2e7a879b",
+ "role": "Async tests driving overnight H10 recording arming against FakeStrapRadio: battery-too-low refusal and its notice, timed retry of transient refusals, no arming after the night ends, start withdrawal, and rescuing/clearing/keeping a prior undownloaded recording before a fresh start.",
+ "types": [
+  "StrapArmingTests: class — @MainActor XCTestCase for overnight strap arming"
+ ],
+ "state": [
+  "deviceId = \"H10-ARMING\"",
+  "file:<tmp>/StrapArmingTests-<UUID> (lazy directory for a per-test SessionArchive)",
+  "ud:suite StrapArmingTests-<UUID> (per-manager StrapDownloadLedger defaults)",
+  "collectors: [RRCollector] created per test, ended in tearDown"
+ ],
+ "toplevel": "Lazy `directory` (temp dir per test instance) and `archive` (SessionArchive over it).",
+ "flags": [],
+ "units": [
+  {
+   "key": "func StrapArmingTests.tearDown()",
+   "hash": "acf0c5a26100c59c",
+   "does": "Ends device-recording arming on every collector created, clears PersistedRecordingState in standard UserDefaults, removes the temp archive directory (ignoring a missing directory), then calls super.tearDown.",
+   "entry": "XCTest runner: tearDown after each test",
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+OvernightArming.swift::func OvernightStreamingCoordinator.endDeviceRecordingArming()",
+    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.clear()",
+    "ext:FileManager.removeItem"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:UserDefaultsKeys.persistedRecordingState (standard, removed)",
+    "ud:RRCollector.dismissedInterruptedSessionIds (standard, removed)",
+    "file:<tmp>/StrapArmingTests-<UUID>"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each collector created",
+     "effect": "awaits endDeviceRecordingArming"
+    },
+    {
+     "at": "+6",
+     "cond": "catch removeItem error",
+     "effect": "swallowed: the test archived nothing so no directory exists"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "tearDown calls PersistedRecordingState.clear(), which removes the persisted recording state and dismissed-interrupted-session ids from UserDefaults.standard of the app host process; the test shares and wipes app-host state.",
+     "evidence": [
+      "EmuquTests/StrapArmingTests.swift:21",
+      "Emuqu/Sources/Collection/PersistedRecordingState.swift:63",
+      "Emuqu/Sources/Collection/PersistedRecordingState.swift:70"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.clear()": "40d48ad743b2b737",
+    "Emuqu/Sources/Collection/RRCollector+OvernightArming.swift::func OvernightStreamingCoordinator.endDeviceRecordingArming()": "277c3bbd7ba0c13e",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::var RRCollector.overnightStreaming": "1de92bef61865565"
+   }
+  },
+  {
+   "key": "func StrapArmingTests.linkedManager(_:)",
+   "hash": "0a52da9eb32d2a01",
+   "does": "Builds a PolarManager over the given FakeStrapRadio, sets it connected to H10-ARMING, marks readiness link-established and settled, and gives it a StrapDownloadLedger in a fresh UUID-named UserDefaults suite (falls back to .standard if the suite cannot be created).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.setConnectedDeviceForTesting(id:type:)",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkEstablished()",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.settleWithoutSummary()",
+    "Emuqu/Sources/Collection/StrapRecording.swift::init StrapDownloadLedger(defaults:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:suite StrapArmingTests-<UUID> (ledger since key)"
+   ],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "UserDefaults(suiteName:) returns nil (??)",
+     "effect": "falls back to UserDefaults.standard, so the ledger would write to the host's standard defaults"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Each call creates a new UUID-named UserDefaults suite that is never removed (removePersistentDomain is not called), leaving a plist per test run in the host container.",
+     "evidence": [
+      "EmuquTests/StrapArmingTests.swift:37"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.setConnectedDeviceForTesting(id:type:)": "119fb2afbb3f1150",
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "b9f281895be22d44",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkEstablished()": "f32f3e5777f67ce6",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.settleWithoutSummary()": "e36111b9f64a69b7",
+    "Emuqu/Sources/Collection/StrapRecording.swift::init StrapDownloadLedger(defaults:)": "53b6693e0e3e79d1"
+   }
+  },
+  {
+   "key": "func StrapArmingTests.armingNight(_:battery:)",
+   "hash": "74b3d70b14d394c4",
+   "does": "Creates a linked manager with an optional battery level, builds an RRCollector over it with a HealthKitManager and the temp archive, records it for teardown, sets arming retry 0.05 s, enables device backup and overnight streaming, and launches the arming loop.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/StrapArmingTests.swift::func StrapArmingTests.linkedManager(_:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:backgroundAudioManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::init HealthKitManager(settingsProvider:)",
+    "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)",
+    "Emuqu/Sources/Collection/RRCollector+OvernightArming.swift::func OvernightStreamingCoordinator.launchDeviceRecordingLoop()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager.swift::init HealthKitManager(settingsProvider:)": "b07f454e4747c40b",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isOvernightStreaming": "ee98ca364404b3d4",
+    "Emuqu/Sources/Collection/RRCollector+OvernightArming.swift::func OvernightStreamingCoordinator.launchDeviceRecordingLoop()": "be55eafc30ff0216",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::var RRCollector.overnightStreaming": "1de92bef61865565",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:backgroundAudioManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)": "ab46982b96b81c2c",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.batteryLevel": "ddfd0bc6b3d69f3b",
+    "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)": "a892db29af7907c0",
+    "EmuquTests/StrapArmingTests.swift::func StrapArmingTests.linkedManager(_:)": "78abe31ef10b58a3"
+   }
+  },
+  {
+   "key": "func StrapArmingTests.starts(_:)",
+   "hash": "ee7ecca41ef4f445",
+   "does": "Counts startRecording calls recorded by the fake radio.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "call is .startRecording",
+     "effect": "counted; otherwise excluded"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/FakeStrapRadio.swift::var FakeStrapRadio.calls": "f3f360684b4dcac1"
+   }
+  },
+  {
+   "key": "func StrapArmingTests.exerciseId(_:)",
+   "hash": "e24cf51f25bd086c",
+   "does": "Returns StrapExerciseDecoder.exerciseId(at: start).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.exerciseId(at:timeZone:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.exerciseId(at:timeZone:)": "bde2f9a59f6c5745"
+   }
+  },
+  {
+   "key": "func StrapArmingTests.testABatteryRefusalIsShownAndNotRetriedUntilTheBatteryRises()",
+   "hash": "a6fd0bdad524dc88",
+   "does": "Refuses the first startRecording with PFTP 209 at 10% battery: asserts the collector shows strapBatteryTooLow(10) mentioning '10', no retry after a link signal and 400 ms, and after battery rises to 100 the strap arms (2 starts) and the notice clears.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refuse(_:times:with:)",
+    "EmuquTests/StrapArmingTests.swift::func StrapArmingTests.armingNight(_:battery:)",
+    "EmuquTests/StrapArmingTests.swift::func StrapArmingTests.starts(_:)",
+    "EmuquTests/StrapArmingTests.swift::func StrapArmingTests.waitUntil(timeout:_:)",
+    "Emuqu/Sources/Collection/StrapSignal.swift::func StrapSignal.fire()",
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "lastError is PolarError.strapBatteryTooLow(percent: 10)",
+     "effect": "false: XCTFail and return; true: continues"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "'Not retried' is proven by sleeping 400 ms and counting calls; a slow simulator could retry after the window and still pass, so the negative assertion is timing-dependent.",
+     "evidence": [
+      "EmuquTests/StrapArmingTests.swift:80",
+      "EmuquTests/StrapArmingTests.swift:81"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "9f997d8c7612d204",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.batteryLevel": "ddfd0bc6b3d69f3b",
+    "Emuqu/Sources/Collection/StrapSignal.swift::func StrapSignal.fire()": "d215a2acaf301215",
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "c0fa5e77e7dfe851",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refuse(_:times:with:)": "975d3292e9e4e597",
+    "EmuquTests/StrapArmingTests.swift::func StrapArmingTests.armingNight(_:battery:)": "d5db6cf53c0edaed",
+    "EmuquTests/StrapArmingTests.swift::func StrapArmingTests.starts(_:)": "2bb2fd97f6e438a8",
+    "EmuquTests/StrapArmingTests.swift::func StrapArmingTests.waitUntil(timeout:_:)": "4ec09e6233d29575"
+   }
+  },
+  {
+   "key": "func StrapArmingTests.testTheSDKsBatteryRefusalIsRecognised()",
+   "hash": "fb0868f24d5179d2",
+   "does": "Asserts isBatteryTooLow is true for PFTP error 209 and false for 106 and notificationNotEnabled.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.isBatteryTooLow(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.isBatteryTooLow(_:)": "254db8cb9b0e033f"
+   }
+  },
+  {
+   "key": "func StrapArmingTests.testATransientRefusalIsRetriedOnATimerWithAStableLink()",
+   "hash": "1d7ef4662f7e3047",
+   "does": "Refuses the first startRecording with a transient deviceError: asserts the strap arms on the timed retry (2 starts) with no link change.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refuse(_:times:with:)",
+    "EmuquTests/StrapArmingTests.swift::func StrapArmingTests.armingNight(_:battery:)",
+    "EmuquTests/StrapArmingTests.swift::func StrapArmingTests.waitUntil(timeout:_:)",
+    "EmuquTests/StrapArmingTests.swift::func StrapArmingTests.starts(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refuse(_:times:with:)": "975d3292e9e4e597",
+    "EmuquTests/StrapArmingTests.swift::func StrapArmingTests.armingNight(_:battery:)": "d5db6cf53c0edaed",
+    "EmuquTests/StrapArmingTests.swift::func StrapArmingTests.starts(_:)": "2bb2fd97f6e438a8",
+    "EmuquTests/StrapArmingTests.swift::func StrapArmingTests.waitUntil(timeout:_:)": "4ec09e6233d29575"
+   }
+  },
+  {
+   "key": "func StrapArmingTests.testNothingArmsOnceTheNightIsEnding()",
+   "hash": "f3a4a91c6fcc1d58",
+   "does": "With startRecording always refused, waits for a first attempt, ends arming, fires the link signal and sleeps 300 ms: asserts no further radio calls and overnightArmingTask nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refuse(_:times:with:)",
+    "EmuquTests/StrapArmingTests.swift::func StrapArmingTests.armingNight(_:battery:)",
+    "EmuquTests/StrapArmingTests.swift::func StrapArmingTests.waitUntil(timeout:_:)",
+    "EmuquTests/StrapArmingTests.swift::func StrapArmingTests.starts(_:)",
+    "Emuqu/Sources/Collection/RRCollector+OvernightArming.swift::func OvernightStreamingCoordinator.endDeviceRecordingArming()",
+    "Emuqu/Sources/Collection/StrapSignal.swift::func StrapSignal.fire()",
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Absence of further radio calls is checked after a fixed 300 ms sleep; timing-dependent negative assertion.",
+     "evidence": [
+      "EmuquTests/StrapArmingTests.swift:122",
+      "EmuquTests/StrapArmingTests.swift:124"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+OvernightArming.swift::func OvernightStreamingCoordinator.endDeviceRecordingArming()": "277c3bbd7ba0c13e",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::var RRCollector.overnightStreaming": "1de92bef61865565",
+    "Emuqu/Sources/Collection/StrapSignal.swift::func StrapSignal.fire()": "d215a2acaf301215",
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "c0fa5e77e7dfe851",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refuse(_:times:with:)": "975d3292e9e4e597",
+    "EmuquTests/FakeStrapRadio.swift::var FakeStrapRadio.calls": "f3f360684b4dcac1",
+    "EmuquTests/StrapArmingTests.swift::func StrapArmingTests.armingNight(_:battery:)": "d5db6cf53c0edaed",
+    "EmuquTests/StrapArmingTests.swift::func StrapArmingTests.starts(_:)": "2bb2fd97f6e438a8",
+    "EmuquTests/StrapArmingTests.swift::func StrapArmingTests.waitUntil(timeout:_:)": "4ec09e6233d29575"
+   }
+  },
+  {
+   "key": "func StrapArmingTests.testAStartIsWithdrawnWhenTheSessionEndsOrATransferRuns()",
+   "hash": "7da8a3bb45abc64c",
+   "does": "Asserts startFreshRecording throws CancellationError when its while-closure returns false and when transfersInFlight is 1, without touching the radio.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StrapArmingTests.swift::func StrapArmingTests.linkedManager(_:)",
+    "EmuquTests/StrapArmingTests.swift::func StrapArmingTests.assertWithdrawn(_:)",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.startFreshRecording(while:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.startFreshRecording(while:)": "2791be1f170c0a52",
+    "EmuquTests/FakeStrapRadio.swift::var FakeStrapRadio.calls": "f3f360684b4dcac1",
+    "EmuquTests/StrapArmingTests.swift::func StrapArmingTests.assertWithdrawn(_:)": "c2a90f182747ad86",
+    "EmuquTests/StrapArmingTests.swift::func StrapArmingTests.linkedManager(_:)": "78abe31ef10b58a3"
+   }
+  },
+  {
+   "key": "func StrapArmingTests.testAnUndownloadedRecordingIsRescuedBeforeTheClear()",
+   "hash": "87ed7049dd09c6b1",
+   "does": "Puts an undownloaded 700-beat exercise from 20 h ago on the fake strap: asserts startFreshRecording rescues all 700 points via onUnrecoveredDataRescued and fetches the exercise before removing it.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.addExercise(entryId:path:date:rrMs:)",
+    "EmuquTests/StrapArmingTests.swift::func StrapArmingTests.exerciseId(_:)",
+    "EmuquTests/StrapArmingTests.swift::func StrapArmingTests.linkedManager(_:)",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.startFreshRecording(while:)",
+    "closure:onUnrecoveredDataRescued set by the test to capture points"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.startFreshRecording(while:)": "2791be1f170c0a52",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.addExercise(entryId:path:date:rrMs:)": "922c29ced26bff57",
+    "EmuquTests/FakeStrapRadio.swift::var FakeStrapRadio.calls": "f3f360684b4dcac1",
+    "EmuquTests/StrapArmingTests.swift::func StrapArmingTests.exerciseId(_:)": "d155a725c0ec620b",
+    "EmuquTests/StrapArmingTests.swift::func StrapArmingTests.linkedManager(_:)": "78abe31ef10b58a3"
+   }
+  },
+  {
+   "key": "func StrapArmingTests.testADownloadedRecordingIsClearedWithoutAnotherDownload()",
+   "hash": "9f87fd6d3003b74b",
+   "does": "Marks the prior exercise downloaded in the ledger: asserts startFreshRecording removes it without fetching it.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.addExercise(entryId:path:date:rrMs:)",
+    "EmuquTests/StrapArmingTests.swift::func StrapArmingTests.exerciseId(_:)",
+    "EmuquTests/StrapArmingTests.swift::func StrapArmingTests.linkedManager(_:)",
+    "Emuqu/Sources/Collection/StrapRecording.swift::func StrapDownloadLedger.markDownloaded(recordingStartedAt:)",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.startFreshRecording(while:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.startFreshRecording(while:)": "2791be1f170c0a52",
+    "Emuqu/Sources/Collection/StrapRecording.swift::func StrapDownloadLedger.markDownloaded(recordingStartedAt:)": "f7777736bca46a35",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.addExercise(entryId:path:date:rrMs:)": "922c29ced26bff57",
+    "EmuquTests/FakeStrapRadio.swift::var FakeStrapRadio.calls": "f3f360684b4dcac1",
+    "EmuquTests/StrapArmingTests.swift::func StrapArmingTests.exerciseId(_:)": "d155a725c0ec620b",
+    "EmuquTests/StrapArmingTests.swift::func StrapArmingTests.linkedManager(_:)": "78abe31ef10b58a3"
+   }
+  },
+  {
+   "key": "func StrapArmingTests.testAnUndownloadableRecordingStopsTheStartInsteadOfBeingDeleted()",
+   "hash": "54c44f7af56e2ee2",
+   "does": "Makes fetchExercise always fail: asserts startFreshRecording throws with startRefusal .undownloadedRecordingOnStrap, never removes the exercise and never starts recording.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.addExercise(entryId:path:date:rrMs:)",
+    "EmuquTests/StrapArmingTests.swift::func StrapArmingTests.exerciseId(_:)",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refuse(_:times:with:)",
+    "EmuquTests/StrapArmingTests.swift::func StrapArmingTests.linkedManager(_:)",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.startFreshRecording(while:)",
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.startRefusal(for:)",
+    "EmuquTests/StrapArmingTests.swift::func StrapArmingTests.starts(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "catch from startFreshRecording",
+     "effect": "asserts the refusal kind; no-throw path XCTFails"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.startFreshRecording(while:)": "2791be1f170c0a52",
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.startRefusal(for:)": "dbec95e92c154b09",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.addExercise(entryId:path:date:rrMs:)": "922c29ced26bff57",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refuse(_:times:with:)": "975d3292e9e4e597",
+    "EmuquTests/FakeStrapRadio.swift::var FakeStrapRadio.calls": "f3f360684b4dcac1",
+    "EmuquTests/StrapArmingTests.swift::func StrapArmingTests.exerciseId(_:)": "d155a725c0ec620b",
+    "EmuquTests/StrapArmingTests.swift::func StrapArmingTests.linkedManager(_:)": "78abe31ef10b58a3",
+    "EmuquTests/StrapArmingTests.swift::func StrapArmingTests.starts(_:)": "2bb2fd97f6e438a8"
+   }
+  },
+  {
+   "key": "func StrapArmingTests.assertWithdrawn(_:)",
+   "hash": "3f09a438605ad389",
+   "does": "Runs the start closure and asserts it throws CancellationError; fails if it returns normally.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "catch",
+     "effect": "asserts error is CancellationError; reaching after try means XCTFail 'not withdrawn'"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func StrapArmingTests.waitUntil(timeout:_:)",
+   "hash": "ef759d8fee08860d",
+   "does": "Polls a MainActor condition every 20 ms until true or the timeout (default 20 s) passes, failing on timeout.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "condition false",
+     "effect": "loops sleeping 20 ms"
+    },
+    {
+     "at": "+3",
+     "cond": "deadline passed",
+     "effect": "XCTFail and return"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "9b0181db6472cf0d"
+   }
+  }
+ ],
+ "deps": {}
+}

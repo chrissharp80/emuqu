@@ -1,0 +1,304 @@
+{
+ "file": "EmuquTests/HealthExportIdentityTests.swift",
+ "hash": "d55c82ce6d01cc4e",
+ "role": "XCTest suite for the HKMetadataKeyExternalUUID naming scheme (HealthExportIdentity) that scopes which app-written Health samples a re-export deletes: exact summary match, prefix series match, no cross-metric or cross-session reach, stable string format.",
+ "types": [
+  "HealthExportIdentityTests: class — XCTestCase over HealthExportIdentity summary/series/predicates"
+ ],
+ "state": [
+  "mem:HealthExportIdentityTests.session (per-instance random UUID)",
+  "mem:HealthExportIdentityTests.otherSession (per-instance random UUID)"
+ ],
+ "toplevel": "Two stored UUID() properties session/otherSession are created per test-case instance.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func HealthExportIdentityTests.testTheHeartRateSummaryPredicateDoesNotReachTheMinuteSeries()",
+   "hash": "409e62beca02ee8f",
+   "does": "For indices 0,1,42,9999 builds seriesMember(heartRate,index) and asserts isSummary(... heartRate) is false, i.e. the exact summary predicate never matches a minute-series member.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.seriesMember(sessionId:metric:index:)",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.seriesMember(sessionId:metric:suffix:)",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.seriesPrefix(sessionId:metric:)",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.isSummary(_:sessionId:metric:)",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.summary(sessionId:metric:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each of indices [0,1,42,9999]",
+     "effect": "asserts isSummary false for each member; fixed 4 iterations"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.isSummary(_:sessionId:metric:)": "87ee17f0e63f08b4",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.seriesMember(sessionId:metric:index:)": "2093eba13e354404",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.seriesMember(sessionId:metric:suffix:)": "f7e37cdf5b6e9f40",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.seriesPrefix(sessionId:metric:)": "c2c4acf239efce8a",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.summary(sessionId:metric:)": "9f1251cef2f88729"
+   }
+  },
+  {
+   "key": "func HealthExportIdentityTests.testTheMinuteSeriesPredicateDoesNotReachTheSummary()",
+   "hash": "18ecde7d4b531f89",
+   "does": "Builds summary(heartRate) and asserts isSeriesMember(summary, heartRate) is false (prefix ends in '-' so '…-hr' is not caught).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.summary(sessionId:metric:)",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.isSeriesMember(_:sessionId:metric:)",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.seriesPrefix(sessionId:metric:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.isSeriesMember(_:sessionId:metric:)": "46a4eff9ff6b6698",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.seriesPrefix(sessionId:metric:)": "c2c4acf239efce8a",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.summary(sessionId:metric:)": "9f1251cef2f88729"
+   }
+  },
+  {
+   "key": "func HealthExportIdentityTests.testEachPredicateMatchesItsOwnSamples()",
+   "hash": "85e7b6680b918759",
+   "does": "Asserts isSummary(summary(heartRate)) is true and isSeriesMember(seriesMember(heartRate,i)) is true for i in 0..<5.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.summary(sessionId:metric:)",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.isSummary(_:sessionId:metric:)",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.seriesMember(sessionId:metric:index:)",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.seriesMember(sessionId:metric:suffix:)",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.seriesPrefix(sessionId:metric:)",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.isSeriesMember(_:sessionId:metric:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for index in 0..<5",
+     "effect": "asserts each member is matched by isSeriesMember"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.isSeriesMember(_:sessionId:metric:)": "46a4eff9ff6b6698",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.isSummary(_:sessionId:metric:)": "87ee17f0e63f08b4",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.seriesMember(sessionId:metric:index:)": "2093eba13e354404",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.seriesMember(sessionId:metric:suffix:)": "f7e37cdf5b6e9f40",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.seriesPrefix(sessionId:metric:)": "c2c4acf239efce8a",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.summary(sessionId:metric:)": "9f1251cef2f88729"
+   }
+  },
+  {
+   "key": "func HealthExportIdentityTests.testNoMetricsPredicatesReachAnotherMetricsSamples()",
+   "hash": "bc18ab355200c750",
+   "does": "For every ordered pair of distinct Metric cases asserts belongsToSession(other's summary or other's series member #3, owner) is false.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.summary(sessionId:metric:)",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.seriesMember(sessionId:metric:index:)",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.seriesMember(sessionId:metric:suffix:)",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.seriesPrefix(sessionId:metric:)",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.belongsToSession(_:sessionId:metric:)",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.isSummary(_:sessionId:metric:)",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.isSeriesMember(_:sessionId:metric:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for owner in Metric.allCases",
+     "effect": "iterates all 5 metrics"
+    },
+    {
+     "at": "+2",
+     "cond": "for other in allCases where other != owner",
+     "effect": "skips the same metric; builds other's summary and member"
+    },
+    {
+     "at": "+7",
+     "cond": "for sample in [otherSummary, otherMember]",
+     "effect": "asserts owner's belongsToSession is false for each"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.belongsToSession(_:sessionId:metric:)": "aa8a931034a7607a",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.isSeriesMember(_:sessionId:metric:)": "46a4eff9ff6b6698",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.isSummary(_:sessionId:metric:)": "87ee17f0e63f08b4",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.seriesMember(sessionId:metric:index:)": "2093eba13e354404",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.seriesMember(sessionId:metric:suffix:)": "f7e37cdf5b6e9f40",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.seriesPrefix(sessionId:metric:)": "c2c4acf239efce8a",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.summary(sessionId:metric:)": "9f1251cef2f88729"
+   }
+  },
+  {
+   "key": "func HealthExportIdentityTests.testHeartRateAndRestingHeartRateDoNotCollide()",
+   "hash": "b44d7e84972b14f7",
+   "does": "Asserts belongsToSession(summary(restingHeartRate), heartRate) and belongsToSession(summary(heartRate), restingHeartRate) are both false.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.summary(sessionId:metric:)",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.belongsToSession(_:sessionId:metric:)",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.isSummary(_:sessionId:metric:)",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.isSeriesMember(_:sessionId:metric:)",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.seriesPrefix(sessionId:metric:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.belongsToSession(_:sessionId:metric:)": "aa8a931034a7607a",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.isSeriesMember(_:sessionId:metric:)": "46a4eff9ff6b6698",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.isSummary(_:sessionId:metric:)": "87ee17f0e63f08b4",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.seriesPrefix(sessionId:metric:)": "c2c4acf239efce8a",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.summary(sessionId:metric:)": "9f1251cef2f88729"
+   }
+  },
+  {
+   "key": "func HealthExportIdentityTests.testSleepsPrefixDeleteStopsAtTheSeparator()",
+   "hash": "d9da957d3347ec4c",
+   "does": "Asserts seriesMember(sleep, suffix:'inbed') belongs to sleep, and a hand-built '<uuid>-sleepDebt-0' string does not belong to sleep (prefix carries trailing '-').",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.seriesMember(sessionId:metric:suffix:)",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.seriesPrefix(sessionId:metric:)",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.belongsToSession(_:sessionId:metric:)",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.isSummary(_:sessionId:metric:)",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.isSeriesMember(_:sessionId:metric:)",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.summary(sessionId:metric:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.belongsToSession(_:sessionId:metric:)": "aa8a931034a7607a",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.isSeriesMember(_:sessionId:metric:)": "46a4eff9ff6b6698",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.isSummary(_:sessionId:metric:)": "87ee17f0e63f08b4",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.seriesMember(sessionId:metric:suffix:)": "f7e37cdf5b6e9f40",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.seriesPrefix(sessionId:metric:)": "c2c4acf239efce8a",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.summary(sessionId:metric:)": "9f1251cef2f88729"
+   }
+  },
+  {
+   "key": "func HealthExportIdentityTests.testNoPredicateReachesAnotherSessionsSamples()",
+   "hash": "edc4f653f91132df",
+   "does": "For every metric asserts belongsToSession(otherSession's summary or series member #1, session, metric) is false.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.summary(sessionId:metric:)",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.seriesMember(sessionId:metric:index:)",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.seriesMember(sessionId:metric:suffix:)",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.seriesPrefix(sessionId:metric:)",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.belongsToSession(_:sessionId:metric:)",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.isSummary(_:sessionId:metric:)",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.isSeriesMember(_:sessionId:metric:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for metric in Metric.allCases",
+     "effect": "iterates all 5 metrics"
+    },
+    {
+     "at": "+6",
+     "cond": "for sample in [theirSummary, theirMember]",
+     "effect": "asserts belongsToSession false for this session"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.belongsToSession(_:sessionId:metric:)": "aa8a931034a7607a",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.isSeriesMember(_:sessionId:metric:)": "46a4eff9ff6b6698",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.isSummary(_:sessionId:metric:)": "87ee17f0e63f08b4",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.seriesMember(sessionId:metric:index:)": "2093eba13e354404",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.seriesMember(sessionId:metric:suffix:)": "f7e37cdf5b6e9f40",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.seriesPrefix(sessionId:metric:)": "c2c4acf239efce8a",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.summary(sessionId:metric:)": "9f1251cef2f88729"
+   }
+  },
+  {
+   "key": "func HealthExportIdentityTests.testIdentityFormatIsStable()",
+   "hash": "79b1dce5df5d523c",
+   "does": "Pins exact identity strings: '<uuid>-hr', '<uuid>-hr-7', '<uuid>-rhr', '<uuid>-sdnn-0', '<uuid>-rmssd-2', '<uuid>-sleep-inbed'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.summary(sessionId:metric:)",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.seriesMember(sessionId:metric:index:)",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.seriesMember(sessionId:metric:suffix:)",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.seriesPrefix(sessionId:metric:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.seriesMember(sessionId:metric:index:)": "2093eba13e354404",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.seriesMember(sessionId:metric:suffix:)": "f7e37cdf5b6e9f40",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.seriesPrefix(sessionId:metric:)": "c2c4acf239efce8a",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.summary(sessionId:metric:)": "9f1251cef2f88729"
+   }
+  },
+  {
+   "key": "func HealthExportIdentityTests.testUnrelatedIdentifiersAreNeverMatched()",
+   "hash": "dce641e8cf18d62b",
+   "does": "For junk ids ['', 'not-a-uuid', uuid, uuid (duplicate), 'hr', '-hr'] and every metric asserts belongsToSession is false.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.belongsToSession(_:sessionId:metric:)",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.isSummary(_:sessionId:metric:)",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.isSeriesMember(_:sessionId:metric:)",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.summary(sessionId:metric:)",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.seriesPrefix(sessionId:metric:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for junk in 6 literal strings",
+     "effect": "asserts no metric matches"
+    },
+    {
+     "at": "+2",
+     "cond": "for metric in Metric.allCases",
+     "effect": "asserts belongsToSession false"
+    },
+    {
+     "at": "+5",
+     "cond": "junk.isEmpty ? '<empty>' : junk",
+     "effect": "only formats the failure message"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "The junk list contains session.uuidString twice ('session.uuidString' and \"\\(session.uuidString)\" are identical), so one case is redundant.",
+     "evidence": [
+      "EmuquTests/HealthExportIdentityTests.swift:154"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.belongsToSession(_:sessionId:metric:)": "aa8a931034a7607a",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.isSeriesMember(_:sessionId:metric:)": "46a4eff9ff6b6698",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.isSummary(_:sessionId:metric:)": "87ee17f0e63f08b4",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.seriesPrefix(sessionId:metric:)": "c2c4acf239efce8a",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.summary(sessionId:metric:)": "9f1251cef2f88729"
+   }
+  }
+ ],
+ "deps": {}
+}

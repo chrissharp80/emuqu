@@ -1,0 +1,105 @@
+{
+ "file": "Emuqu/Sources/Utilities/Extensions.swift",
+ "hash": "6a3470e04b32a31e",
+ "role": "Small shared extensions: the English 'Xh Ym' duration fallback used by LocalizedDuration, and Bundle version strings.",
+ "types": [
+  "DurationFormatter: enum — 'Xh Ym' fallback formatter",
+  "Bundle: extension — version strings"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func DurationFormatter.hoursMinutes(minutes:)",
+   "hash": "58666e6719077e16",
+   "does": "Formats non-negative minutes as 'Hh Mm', 'Hh' or 'Mm'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "h > 0",
+     "effect": "hour form"
+    },
+    {
+     "at": "+5",
+     "cond": "mm > 0",
+     "effect": "'Hh Mm' else 'Hh'; when h == 0 returns 'Mm'"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "SleepData.hoursMinutes re-implements LocalizedDuration.hoursMinutes plus this English fallback with its own fallback string, which disagrees for whole hours: SleepData's fallback prints '7h 0m' where DurationFormatter prints '7h'.",
+     "evidence": [
+      "Emuqu/Sources/Utilities/Extensions.swift:17",
+      "Emuqu/Sources/Models/SleepData.swift:83",
+      "Emuqu/Sources/Models/SleepData.swift:92",
+      "Emuqu/Sources/Views/NavigationHeader.swift:13"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "var Bundle.appVersion",
+   "hash": "ddb9f2632f9d9a2e",
+   "does": "CFBundleShortVersionString or 'Unknown'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "key missing",
+     "effect": "'Unknown'"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var Bundle.appBuild",
+   "hash": "ca01275c24a749fc",
+   "does": "CFBundleVersion or 'Unknown'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "key missing",
+     "effect": "'Unknown'"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var Bundle.appVersionString",
+   "hash": "5efae63b13f1afdd",
+   "does": "'<appVersion> (<appBuild>)'.",
+   "entry": "SettingsView.swift:483 About row",
+   "calls": [
+    "Emuqu/Sources/Utilities/Extensions.swift::var Bundle.appVersion",
+    "Emuqu/Sources/Utilities/Extensions.swift::var Bundle.appBuild"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Extensions.swift::var Bundle.appBuild": "a445014a645ad924",
+    "Emuqu/Sources/Utilities/Extensions.swift::var Bundle.appVersion": "e23b8fc68ca5f22c"
+   }
+  }
+ ],
+ "deps": {}
+}

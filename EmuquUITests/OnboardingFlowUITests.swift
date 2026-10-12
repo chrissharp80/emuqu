@@ -68,12 +68,20 @@ final class OnboardingFlowUITests: XCTestCase {
         // user's device). The tab bar therefore still exists in the hierarchy;
         // what matters, and what the gate actually guarantees, is that it
         // cannot be touched while the cover is up.
+        //
+        // Checked by the tap's effect, not by `isHittable`: on iOS 26 the tab
+        // bar under a `fullScreenCover` reports hittable although every tap
+        // goes to the cover (see `UITestLaunch.anyPresent`). A coordinate tap
+        // on the More tab must leave the More menu unopened and the
+        // disclaimer up.
         let tabBar = app.tabBars.firstMatch
         if tabBar.exists {
+            UITestFind.tapSafely(UITestFind.tabButton(in: tabBar, identifier: UITestID.tabMore, title: UITestID.tabMoreTitle), in: app)
             XCTAssertFalse(
-                UITestFind.isSafelyHittable(tabBar.buttons.firstMatch, in: app),
-                "Tabs must not be tappable until the disclaimer is accepted."
+                UITestFind.anyElement(in: app, identifier: UITestID.moreSettings).waitForExistence(timeout: UITestTiming.s(2)),
+                "Tabs must not be tappable until the disclaimer is accepted — a tap on More opened it."
             )
+            XCTAssertTrue(agreeButton.exists, "The disclaimer must still be up after a tap on the tab bar.")
         }
     }
 
@@ -170,23 +178,28 @@ final class OnboardingFlowUITests: XCTestCase {
         var sawSkipAffordance = false
         var reachedApp = false
         for _ in 0 ..< 12 {
-            let skip = app.buttons.matching(identifier: UITestID.onboardingSkip).firstMatch
-            let advance = app.buttons.matching(identifier: UITestID.onboardingAdvance).firstMatch
-            if skip.exists, skip.isEnabled, UITestFind.isSafelyHittable(skip, in: app) {
+            if let skip = laidOutButton(UITestID.onboardingSkip) {
                 sawSkipAffordance = true
                 skip.tap()
                 continue
             }
-            if advance.exists, advance.isEnabled, UITestFind.isSafelyHittable(advance, in: app) {
+            if let advance = laidOutButton(UITestID.onboardingAdvance) {
                 advance.tap()
                 continue
             }
-            if !skip.exists, !advance.exists, app.tabBars.firstMatch.exists {
+            let onboardingGone = !app.buttons.matching(identifier: UITestID.onboardingSkip).firstMatch.exists
+                && !app.buttons.matching(identifier: UITestID.onboardingAdvance).firstMatch.exists
+            if onboardingGone, app.tabBars.firstMatch.exists {
                 reachedApp = true
                 break
             }
             _ = app.staticTexts.firstMatch.waitForExistence(timeout: UITestTiming.s(1))
         }
+        // The tab bar exists under any cover, so onboarding being gone is not
+        // yet "in the app": the paywall can follow it. `toMainUI` dismisses
+        // that last gate (onboarding is already walked) and is true only
+        // once no gate is up and the tab bar takes taps.
+        reachedApp = reachedApp && UITestLaunch.toMainUI(app)
 
         XCTAssertTrue(
             sawSkipAffordance,
@@ -198,5 +211,16 @@ final class OnboardingFlowUITests: XCTestCase {
             "Skipping every optional onboarding step must land the user in the app — " +
                 UITestFind.onScreen(app)
         )
+    }
+
+    /// The enabled `identifier` button that is actually laid out, or nil.
+    /// `OnboardingView` is a paged `TabView`, so a neighbouring page's button
+    /// stays in the hierarchy with a zero-size frame; `firstMatch` can pick
+    /// that one, which exists but is never hittable. One snapshot
+    /// (`allElementsBoundByIndex`), as the launch helper resolves gates.
+    private func laidOutButton(_ identifier: String) -> XCUIElement? {
+        app.buttons.matching(identifier: identifier).allElementsBoundByIndex.first {
+            $0.isEnabled && UITestFind.isSafelyHittable($0, in: app)
+        }
     }
 }

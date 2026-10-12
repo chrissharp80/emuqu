@@ -110,7 +110,6 @@ final class SleepResolverTests: XCTestCase {
         let result = SleepResolver.resolve(ctx)
         XCTAssertEqual(result.sleepData.nightSleepMinutes, 480)
         XCTAssertEqual(result.sleepData.awakeMinutes, 0)
-        XCTAssertFalse(result.writeToHealthKit)
     }
 
     // #2 Row 1 — enhance toggle ON, not enough RR to augment → pass-through
@@ -187,12 +186,11 @@ final class SleepResolverTests: XCTestCase {
         let ctx = makeContext(sessionBounds: bounds, watchSamples: [])
         let result = SleepResolver.resolve(ctx)
         XCTAssertEqual(result.sleepData.nightSleepMinutes, 0)
-        XCTAssertFalse(result.writeToHealthKit)
     }
 
     // #6 Row 3 — no session, Watch only
     // Bedtime window 10pm-6am. Watch reports core 10:30pm-5:30am = 420 min.
-    // Expected: 420 min. writeToHealthKit = false.
+    // Expected: 420 min.
     func test06_row3_watchOnly_usesBedtimeWindow() {
         let samples = [
             makeHKSample(.asleepCore, from: 30, to: 450)
@@ -202,7 +200,6 @@ final class SleepResolverTests: XCTestCase {
         )
         let result = SleepResolver.resolve(ctx)
         XCTAssertEqual(result.sleepData.nightSleepMinutes, 420)
-        XCTAssertFalse(result.writeToHealthKit)
     }
 
     // #7 Row 4 — nothing at all
@@ -211,7 +208,6 @@ final class SleepResolverTests: XCTestCase {
         let result = SleepResolver.resolve(ctx)
         XCTAssertEqual(result.sleepData.nightSleepMinutes, 0)
         XCTAssertEqual(result.sleepData.awakeMinutes, 0)
-        XCTAssertFalse(result.writeToHealthKit)
     }
 
     // #8 Edge — Watch sleep extends BEFORE session.startDate
@@ -441,14 +437,13 @@ final class SleepResolverTests: XCTestCase {
 
     // MARK: - Integration
 
-    // #15 Integration — row 2 (session, no Watch) asserts writeToHealthKit=true
+    // #15 Integration — row 2 (session, no Watch) tags the night HR-inferred
     //
     // This is the contract that guarantees we actually export RR-inferred sleep
     // to Apple Health. The real exporter (`HealthKitManager.exportSessionMetrics`)
-    // reads this flag indirectly via the `.hrEstimated` boundary source; the
-    // resolver is the only component that can set that source, and it is the
-    // only component that returns `writeToHealthKit = true`. If this test
-    // breaks, the export gate upstream will silently no-op.
+    // decides from the `.hrEstimated` boundary source, and the resolver is the
+    // only component that can set that source. If this test breaks, the export
+    // gate upstream will silently no-op.
     func test15_integration_row2_triggersHealthKitWrite() {
         let (_, bounds) = makeSession(startMin: 0, endMin: 480)
         // Synthetic RR data: 8 hours at ~55 bpm (~1090ms RR), well over the
@@ -472,9 +467,6 @@ final class SleepResolverTests: XCTestCase {
             result.sleepData.boundarySource == .hrEstimated ||
             result.sleepData.boundarySource == .healthKitHREstimated
         XCTAssertTrue(isInferred, "Row 2 must tag sleep as HR-inferred so the export gate fires")
-        if result.sleepData.nightSleepMinutes > 0 {
-            XCTAssertTrue(result.writeToHealthKit, "Row 2 with content must flag writeToHealthKit=true")
-        }
     }
 
     // #16 Integration — AutoSleep back-to-bed, full shape check
@@ -530,9 +522,9 @@ final class SleepResolverTests: XCTestCase {
         //    this to badge "extended sleep detected."
         XCTAssertEqual(result.sleepData.boundarySource, .hrValidated)
 
-        // 5. Does NOT write to HealthKit — Watch is the primary source, so
-        //    writing our derived copy back would pollute future reads.
-        XCTAssertFalse(result.writeToHealthKit, "Row 1 never writes back to HealthKit")
+        // 5. Not written back to HealthKit: the export gate fires only on an
+        //    HR-inferred boundary source, and step 4 pins .hrValidated. Watch
+        //    is the primary source; our derived copy would pollute its reads.
 
         // 6. Idempotence: resolving the same context twice is stable.
         let secondRun = SleepResolver.resolve(ctx)
@@ -631,7 +623,7 @@ final class SleepResolverTests: XCTestCase {
     /// A third-party "asleep" sample spanning the night under the Watch's
     /// stages: each minute counts once, as the Watch's stage.
     func testOverlappingSourcesCountEachMinuteOnce() {
-        let resolved = SleepResolver.resolvingOverlaps([
+        let resolved = SleepResolver.mergeStagesAcrossSources([
             makeStage(.unspecified, from: 0, to: 480),
             makeStage(.core, from: 0, to: 420),
             makeStage(.awake, from: 420, to: 450)
@@ -645,7 +637,7 @@ final class SleepResolverTests: XCTestCase {
     /// The iPhone's "asleep" guess never takes minutes the Watch staged, awake
     /// included.
     func testIphoneGuessGivesWayToWatchAwake() {
-        let resolved = SleepResolver.resolvingOverlaps([
+        let resolved = SleepResolver.mergeStagesAcrossSources([
             makeStage(.awake, from: 400, to: 420),
             makeStage(.unspecified, from: 400, to: 460, provenance: .iphone)
         ])
@@ -654,9 +646,15 @@ final class SleepResolverTests: XCTestCase {
         XCTAssertEqual(resolved.map(\.end), [t(420), t(460)])
     }
 
+    /// Merging rebuilds each interval (a new id), so "unchanged" is the
+    /// stage, span and provenance of each.
     func testIntervalsThatOverlapNothingPassThroughUnchanged() {
         let stages = [makeStage(.core, from: 0, to: 100), makeStage(.awake, from: 100, to: 110)]
-        XCTAssertEqual(SleepResolver.resolvingOverlaps(stages), stages)
+        let merged = SleepResolver.mergeStagesAcrossSources(stages)
+        XCTAssertEqual(merged.map(\.stage), stages.map(\.stage))
+        XCTAssertEqual(merged.map(\.start), stages.map(\.start))
+        XCTAssertEqual(merged.map(\.end), stages.map(\.end))
+        XCTAssertEqual(merged.map(\.provenance), stages.map(\.provenance))
     }
 
     func testOverlappingSamplesDoNotInflateTimeInBed() {

@@ -1,0 +1,152 @@
+{
+ "file": "Emuqu/Sources/Collection/HealthKitManager+VitalsForwarding.swift",
+ "hash": "be2dde9fbe4c9113",
+ "role": "HealthKitManager extension forwarding recovery-vitals, vitals-observer and daily-activity queries to VitalsHealthQueries.",
+ "types": [
+  "HealthKitManager: extension — vitals forwarders"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "var HealthKitManager.vitals",
+   "hash": "a660b2170b84170b",
+   "does": "Computed property building a fresh VitalsHealthQueries(manager: self) on every access (the doc says 'Lazy', but it is rebuilt each time).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HealthKitManager.fetchRecoveryVitals(relativeTo:)",
+   "hash": "832415bf4fd1f25d",
+   "does": "Forwards fetchRecoveryVitals(relativeTo:) to VitalsHealthQueries; protocol witness used by acceptance, morning processing, reanalysis and detail views.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+VitalsForwarding.swift::var HealthKitManager.vitals",
+    "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift::func VitalsHealthQueries.fetchRecoveryVitals(relativeTo:)"
+   ],
+   "reads": [
+    "hk:respiratoryRate",
+    "hk:oxygenSaturation",
+    "hk:appleSleepingWristTemperature",
+    "hk:restingHeartRate"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+VitalsForwarding.swift::var HealthKitManager.vitals": "57599b41f1e1540f",
+    "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift::func VitalsHealthQueries.fetchRecoveryVitals(relativeTo:)": "620b566e8c74eb13"
+   }
+  },
+  {
+   "key": "func HealthKitManager.startObservingVitalsData()",
+   "hash": "e2d37af1ffc50f12",
+   "does": "Forwards startObservingVitalsData() to VitalsHealthQueries; called by RRCollector+OvernightStreaming.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+VitalsForwarding.swift::var HealthKitManager.vitals",
+    "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift::func VitalsHealthQueries.startObservingVitalsData()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:HealthKitManager.vitalsObserverQueries",
+    "mem:HealthKitManager.vitalsDataVersion"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+VitalsForwarding.swift::var HealthKitManager.vitals": "57599b41f1e1540f",
+    "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift::func VitalsHealthQueries.startObservingVitalsData()": "294ae00c061c0589"
+   }
+  },
+  {
+   "key": "func HealthKitManager.fetchDailyActivity(days:)",
+   "hash": "95195ed511fb0d18",
+   "does": "Forwards fetchDailyActivity(days:) to VitalsHealthQueries; used by FitnessTabView and AppFactResolver.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+VitalsForwarding.swift::var HealthKitManager.vitals",
+    "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift::func VitalsHealthQueries.fetchDailyActivity(days:)"
+   ],
+   "reads": [
+    "hk:stepCount",
+    "hk:distanceWalkingRunning",
+    "hk:flightsClimbed"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+VitalsForwarding.swift::var HealthKitManager.vitals": "57599b41f1e1540f",
+    "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift::func VitalsHealthQueries.fetchDailyActivity(days:)": "c47c9be6c7a4f2f1"
+   }
+  },
+  {
+   "key": "func HealthKitManager.fetchSumSteps(from:to:)",
+   "hash": "04764d2341f5081a",
+   "does": "Forwards fetchSumSteps(from:to:) to VitalsHealthQueries; used by FitnessTabView+Sections.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+VitalsForwarding.swift::var HealthKitManager.vitals",
+    "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift::func VitalsHealthQueries.fetchSumSteps(from:to:)"
+   ],
+   "reads": [
+    "hk:stepCount"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+VitalsForwarding.swift::var HealthKitManager.vitals": "57599b41f1e1540f",
+    "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift::func VitalsHealthQueries.fetchSumSteps(from:to:)": "e2d2bc9957285030"
+   }
+  },
+  {
+   "key": "func HealthKitManager.fetchSumDistance(from:to:)",
+   "hash": "a90f24ee3ffa0949",
+   "does": "Forwards fetchSumDistance(from:to:) to VitalsHealthQueries; used by FitnessTabView+Sections.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+VitalsForwarding.swift::var HealthKitManager.vitals",
+    "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift::func VitalsHealthQueries.fetchSumDistance(from:to:)"
+   ],
+   "reads": [
+    "hk:distanceWalkingRunning"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+VitalsForwarding.swift::var HealthKitManager.vitals": "57599b41f1e1540f",
+    "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift::func VitalsHealthQueries.fetchSumDistance(from:to:)": "76e012202929925c"
+   }
+  },
+  {
+   "key": "func HealthKitManager.fetchSumFlights(from:to:)",
+   "hash": "876873fff90d4fe1",
+   "does": "Forwards fetchSumFlights(from:to:) to VitalsHealthQueries; used by FitnessTabView+Sections.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+VitalsForwarding.swift::var HealthKitManager.vitals",
+    "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift::func VitalsHealthQueries.fetchSumFlights(from:to:)"
+   ],
+   "reads": [
+    "hk:flightsClimbed"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+VitalsForwarding.swift::var HealthKitManager.vitals": "57599b41f1e1540f",
+    "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift::func VitalsHealthQueries.fetchSumFlights(from:to:)": "1c326fd0afde4b3c"
+   }
+  }
+ ],
+ "deps": {}
+}

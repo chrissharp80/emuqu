@@ -31,12 +31,12 @@ enum ImportSleepWindow {
         }
     }
 
-    /// Milliseconds are held in Int64. A recording offset beyond ±100 years is
-    /// not a real boundary, it is corrupt input, and clamping it would invent
-    /// a plausible-looking window rather than reporting bad data.
-    static let maxOffsetMs: Double = 100 * 365.25 * 24 * 60 * 60 * 1000
-
     /// Convert one absolute boundary into an offset, or explain the rejection.
+    ///
+    /// Milliseconds are held in Int64. An offset beyond the range
+    /// `MillisecondOffset` represents is not a real boundary, it is corrupt
+    /// input, and clamping it would invent a plausible-looking window rather
+    /// than reporting bad data.
     static func offsetMs(
         of boundary: Date,
         from recordingStart: Date

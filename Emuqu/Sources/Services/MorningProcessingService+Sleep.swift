@@ -30,12 +30,13 @@ extension MorningProcessingService {
         debugLog("[MorningTiming] sleep poll: \(sleepMs)ms (source=\(sleepResult.sleepBoundarySource), totalSleepMin=\(sleepResult.fetchedSleepData?.nightSleepMinutes ?? -1))")
         return sleepResult
     }
-    /// The REAL recording end = start + measured RR span, NOT
+    /// The REAL recording end = start + the last beat's end, NOT
     /// `now()`. `now()` can be well after the recording ended (deferred/late
     /// morning processing), which would inflate the plausibility window so a
     /// foreign-night sleep block always looks valid and the sleep-attach
-    /// guard could never reject it for a short pre-sleep clip. The RR span is
-    /// the truth. Falls back to `now()` for an empty series.
+    /// guard could never reject it for a short pre-sleep clip. The last
+    /// beat's end, not the first-to-last span, so a series whose first beat
+    /// is not at 0 is not cut short. Falls back to `now()` for an empty series.
     func pollForSleepData(
         series: RRSeries,
         effectiveStartDate: Date,
@@ -45,9 +46,9 @@ extension MorningProcessingService {
         prefetchedSleepData: SleepData? = nil,
         statusCallback: StatusCallback?
     ) async -> SleepPollResult {
-        let recordingEnd: Date = series.durationMs > 0
-            ? effectiveStartDate.addingTimeInterval(TimeInterval(series.durationMs) / 1000.0)
-            : now()
+        let recordingEnd = series.points.last.map {
+            effectiveStartDate.addingTimeInterval(TimeInterval($0.endMs) / 1000.0)
+        } ?? now()
         if let ready = readySleepData(
             prefetched: prefetchedSleepData, effectiveStartDate: effectiveStartDate, recordingEnd: recordingEnd, isBackgroundRefinement: isBackgroundRefinement
         ) { return ready }
@@ -190,7 +191,7 @@ extension MorningProcessingService {
         sleepSchedule: SleepSchedule
     ) async {
         if result.sleepStartMs == nil, result.sleepBoundarySource != .healthKit,
-           let hrEstimate = HealthKitManager.estimateSleepFromHR(
+           let hrEstimate = healthKit.estimateSleepFromRR(
                rrPoints: series.points, recordingStart: effectiveStartDate
            ) {
             Self.applyEstimate(

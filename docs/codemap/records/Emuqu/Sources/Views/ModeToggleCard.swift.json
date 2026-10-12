@@ -1,0 +1,160 @@
+{
+ "file": "Emuqu/Sources/Views/ModeToggleCard.swift",
+ "hash": "fe408d5cd14ffe44",
+ "role": "Tappable card for a training mode (Comeback / Peaking / Intentional overreach on LoadTrajectoryView) showing icon, title, Off/On/Auto badge and footer copy; tap runs the caller's onTap.",
+ "types": [
+  "ModeToggleCard: struct (View)",
+  "ModeToggleCard.ModeStatus: enum — off | on | autoDetected"
+ ],
+ "state": [],
+ "toplevel": "Constructed at LoadTrajectoryView.swift:684,694,704.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var ModeToggleCard.body",
+   "hash": "4b3e5f628d8b2919",
+   "does": "Plain-style Button running onTap with the card content.",
+   "entry": "SwiftUI body; Button tap runs closure:onTap from LoadTrajectoryView.",
+   "calls": [
+    "Emuqu/Sources/Views/ModeToggleCard.swift::var ModeToggleCard.content",
+    "closure:onTap — set by LoadTrajectoryView (toggle or confirmation)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ModeToggleCard.swift::var ModeToggleCard.content": "f8544ada60fe0d92"
+   }
+  },
+  {
+   "key": "var ModeToggleCard.content",
+   "hash": "ec8139a05399edac",
+   "does": "Header row plus footer copy, padded, on the card background.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ModeToggleCard.swift::var ModeToggleCard.headerRow",
+    "Emuqu/Sources/Views/ModeToggleCard.swift::var ModeToggleCard.cardBackground",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ModeToggleCard.swift::var ModeToggleCard.cardBackground": "176f9c55f64dbbba",
+    "Emuqu/Sources/Views/ModeToggleCard.swift::var ModeToggleCard.headerRow": "fa7cd07c9b8cb822",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var ModeToggleCard.headerRow",
+   "hash": "79ba2e3f942fee00",
+   "does": "Icon tinted by status, title, spacer, status badge.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ModeToggleCard.swift::var ModeToggleCard.statusColor",
+    "Emuqu/Sources/Views/ModeToggleCard.swift::var ModeToggleCard.statusBadge",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ModeToggleCard.swift::var ModeToggleCard.statusBadge": "cba90d4f1d645580",
+    "Emuqu/Sources/Views/ModeToggleCard.swift::var ModeToggleCard.statusColor": "e92d176c0975bc47",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+   }
+  },
+  {
+   "key": "var ModeToggleCard.cardBackground",
+   "hash": "c8453290ee991adb",
+   "does": "Rounded card fill with a 1 pt stroke in the status colour at 20% opacity.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ModeToggleCard.swift::var ModeToggleCard.statusColor"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ModeToggleCard.swift::var ModeToggleCard.statusColor": "e92d176c0975bc47",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var ModeToggleCard.statusBadgeStyle",
+   "hash": "a7fd5e7cb1849120",
+   "does": "Badge label and colour per status.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .off",
+     "effect": "'Off', textTertiary"
+    },
+    {
+     "at": "+3",
+     "cond": "case .on",
+     "effect": "'On', wongOptimal"
+    },
+    {
+     "at": "+4",
+     "cond": "case .autoDetected",
+     "effect": "'Auto', wongGood"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var ModeToggleCard.statusBadge",
+   "hash": "9857c547a8d0d8cd",
+   "does": "Capsule badge with the status label.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ModeToggleCard.swift::var ModeToggleCard.statusBadgeStyle",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ModeToggleCard.swift::var ModeToggleCard.statusBadgeStyle": "0ebd0729aa4fd4fb",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var ModeToggleCard.statusColor",
+   "hash": "9c0766bfaf99cbad",
+   "does": "The colour half of statusBadgeStyle for the current status (one switch over the status, shared with the badge).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ModeToggleCard.swift::var ModeToggleCard.statusBadgeStyle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ModeToggleCard.swift::var ModeToggleCard.statusBadgeStyle": "0ebd0729aa4fd4fb"
+   }
+  }
+ ],
+ "deps": {}
+}

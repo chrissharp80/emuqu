@@ -1,0 +1,248 @@
+{
+ "file": "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift",
+ "hash": "0a4edec48979e6fb",
+ "role": "RRCollector forwarders into MorningSessionPipeline (built on demand): gather, process, accept/reject, supersede, scoring and analysis.",
+ "types": [
+  "RRCollector: extension — morning pipeline forwarders"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "var RRCollector.morning",
+   "hash": "e58a2beb9337b49f",
+   "does": "Returns a new MorningSessionPipeline wrapping this collector on each access.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RRCollector.gatherOvernightData()",
+   "hash": "4e5f2b2faf27a613",
+   "does": "Forwards to MorningSessionPipeline.gatherOvernightData.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::var RRCollector.morning",
+    "Emuqu/Sources/Collection/RRCollector+OvernightGather.swift::func MorningSessionPipeline.gatherOvernightData()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::var RRCollector.morning": "74bd9499d7e73a42",
+    "Emuqu/Sources/Collection/RRCollector+OvernightGather.swift::func MorningSessionPipeline.gatherOvernightData()": "195c7a78169d9671"
+   }
+  },
+  {
+   "key": "func RRCollector.processOvernightData(points:baseSession:dataSource:reconnectCount:streamingBeats:deviceBeats:isBackgroundRefinement:prefetchedSleepData:)",
+   "hash": "8238dd680dcccb60",
+   "does": "Forwards to MorningSessionPipeline.processOvernightData with all parameters.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::var RRCollector.morning",
+    "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift::func MorningSessionPipeline.processOvernightData(points:baseSession:dataSource:reconnectCount:streamingBeats:deviceBeats:isBackgroundRefinement:prefetchedSleepData:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::var RRCollector.morning": "74bd9499d7e73a42",
+    "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift::func MorningSessionPipeline.processOvernightData(points:baseSession:dataSource:reconnectCount:streamingBeats:deviceBeats:isBackgroundRefinement:prefetchedSleepData:)": "0b386cb958d5c72c"
+   }
+  },
+  {
+   "key": "func RRCollector.publishGatherSavingState(streamingPoints:elapsedHours:)",
+   "hash": "c096c106ba019184",
+   "does": "Forwards to MorningSessionPipeline.publishGatherSavingState.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::var RRCollector.morning",
+    "Emuqu/Sources/Collection/RRCollector+OvernightGather.swift::func MorningSessionPipeline.publishGatherSavingState(streamingPoints:elapsedHours:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::var RRCollector.morning": "74bd9499d7e73a42",
+    "Emuqu/Sources/Collection/RRCollector+OvernightGather.swift::func MorningSessionPipeline.publishGatherSavingState(streamingPoints:elapsedHours:)": "ea2cac84048a4fcc"
+   }
+  },
+  {
+   "key": "func RRCollector.acceptSession()",
+   "hash": "eb85e6714d7cc65e",
+   "does": "Forwards to MorningSessionPipeline.acceptSession.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::var RRCollector.morning",
+    "Emuqu/Sources/Collection/RRCollector+Acceptance.swift::func MorningSessionPipeline.acceptSession()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Acceptance.swift::func MorningSessionPipeline.acceptSession()": "7e9ea7e8d0cd3f8d",
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::var RRCollector.morning": "74bd9499d7e73a42"
+   }
+  },
+  {
+   "key": "func RRCollector.rejectSession()",
+   "hash": "2aec40c0b4644ccd",
+   "does": "Discard: first removes the night saved for review from the archive/baseline (while currentSession still names it), then runs the pipeline's rejectSession.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::var RRCollector.morning",
+    "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift::func MorningSessionPipeline.discardReviewArchivedSession()",
+    "Emuqu/Sources/Collection/RRCollector+Acceptance.swift::func MorningSessionPipeline.rejectSession()"
+   ],
+   "reads": [],
+   "writes": [
+    "archive:session (to trash)",
+    "file:HRVBaseline",
+    "ck:deletion"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Acceptance.swift::func MorningSessionPipeline.rejectSession()": "eb28cd1f16567216",
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::var RRCollector.morning": "74bd9499d7e73a42",
+    "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift::func MorningSessionPipeline.discardReviewArchivedSession()": "55cc69607ab6fe10"
+   }
+  },
+  {
+   "key": "func RRCollector.clearAcceptanceState()",
+   "hash": "e06dc373645bf270",
+   "does": "Forwards to MorningSessionPipeline.clearAcceptanceState.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::var RRCollector.morning",
+    "Emuqu/Sources/Collection/RRCollector+Acceptance.swift::func MorningSessionPipeline.clearAcceptanceState()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Acceptance.swift::func MorningSessionPipeline.clearAcceptanceState()": "a1f3beaeed5f01dc",
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::var RRCollector.morning": "74bd9499d7e73a42"
+   }
+  },
+  {
+   "key": "func RRCollector.supersedeSameNightSession(newSession:)",
+   "hash": "1694a48292cd4730",
+   "does": "Forwards to MorningSessionPipeline.supersedeSameNightSession.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::var RRCollector.morning",
+    "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift::func MorningSessionPipeline.supersedeSameNightSession(newSession:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::var RRCollector.morning": "74bd9499d7e73a42",
+    "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift::func MorningSessionPipeline.supersedeSameNightSession(newSession:)": "ac649e5f86426492"
+   }
+  },
+  {
+   "key": "func RRCollector.computeRecoveryScore(for:from:)",
+   "hash": "d6d94ca1feab6f20",
+   "does": "Forwards to MorningSessionPipeline.computeRecoveryScore.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::var RRCollector.morning",
+    "Emuqu/Sources/Collection/RRCollector+Analysis.swift::func MorningSessionPipeline.computeRecoveryScore(for:from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Analysis.swift::func MorningSessionPipeline.computeRecoveryScore(for:from:)": "0e6851d7bed686b8",
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::var RRCollector.morning": "74bd9499d7e73a42"
+   }
+  },
+  {
+   "key": "func RRCollector.updateCompositeRecoveryScore(for:exportMetrics:)",
+   "hash": "cf6f9e34f58437db",
+   "does": "Forwards to MorningSessionPipeline.updateCompositeRecoveryScore.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::var RRCollector.morning",
+    "Emuqu/Sources/Collection/RRCollector+Acceptance.swift::func MorningSessionPipeline.updateCompositeRecoveryScore(for:exportMetrics:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Acceptance.swift::func MorningSessionPipeline.updateCompositeRecoveryScore(for:exportMetrics:)": "2215b1eb11486718",
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::var RRCollector.morning": "74bd9499d7e73a42"
+   }
+  },
+  {
+   "key": "func RRCollector.analyze(_:window:flags:peakCapacity:)",
+   "hash": "feda4e857b145a38",
+   "does": "Forwards windowed analysis to MorningSessionPipeline.analyze(_:window:flags:peakCapacity:).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::var RRCollector.morning",
+    "Emuqu/Sources/Collection/RRCollector+Analysis.swift::func MorningSessionPipeline.analyze(_:window:flags:peakCapacity:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Analysis.swift::func MorningSessionPipeline.analyze(_:window:flags:peakCapacity:)": "4c328386784507f5",
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::var RRCollector.morning": "74bd9499d7e73a42"
+   }
+  },
+  {
+   "key": "func RRCollector.analyze(_:peakCapacity:)",
+   "hash": "2aeb62d22d6efaa2",
+   "does": "Forwards to MorningSessionPipeline.analyze(_:peakCapacity:).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::var RRCollector.morning",
+    "Emuqu/Sources/Collection/RRCollector+Analysis.swift::func MorningSessionPipeline.analyze(_:peakCapacity:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Analysis.swift::func MorningSessionPipeline.analyze(_:peakCapacity:)": "4e048095a763eeea",
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::var RRCollector.morning": "74bd9499d7e73a42"
+   }
+  },
+  {
+   "key": "func RRCollector.analyze(_:)",
+   "hash": "ee288f907d184a5c",
+   "does": "Forwards to MorningSessionPipeline.analyze(_:).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::var RRCollector.morning",
+    "Emuqu/Sources/Collection/RRCollector+Analysis.swift::func MorningSessionPipeline.analyze(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Analysis.swift::func MorningSessionPipeline.analyze(_:)": "e56cca68b1cfc230",
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::var RRCollector.morning": "74bd9499d7e73a42"
+   }
+  }
+ ],
+ "deps": {}
+}

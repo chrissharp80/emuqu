@@ -33,7 +33,7 @@ extension DiscoverTrailsView {
                     .tint(AppTheme.terracotta)
             }
             HStack(spacing: 8) {
-                Slider(value: $maxAscentMeters, in: 100 ... 2_000, step: 50)
+                Slider(value: $maxAscentMeters, in: 100 ... Self.ascentSliderMaxMeters, step: 50)
                     .tint(AppTheme.terracotta)
             }
             ascentFilterCaveat
@@ -94,8 +94,15 @@ extension DiscoverTrailsView {
                      .moderate, .hard, .expert], id: \.self) { difficultyChip($0) }
         }
     }
-    /// Activity picker
+    /// Activity picker — discover-only, like the radius: it picks what the
+    /// OSM search looks for, and the saved-routes list is not filtered by it.
+    @ViewBuilder
     var activityPicker: some View {
+        if tab == .findNew {
+            activityStack
+        }
+    }
+    var activityStack: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(String(localized: "Activity", bundle: LanguageManager.appBundle))
                 .font(.caption.weight(.medium))
@@ -130,7 +137,8 @@ extension DiscoverTrailsView {
         }
     }
     /// Length range — applies to both tabs. Stepper-driven for
-    /// precision (slider was finicky for users wanting "8 to 12 km").
+    /// precision (slider was finicky for users wanting "8 to 12 km"). The max
+    /// stepper's top (`lengthStepperMaxKm`, the default) means "no max".
     var lengthRangeFilter: some View {
         lengthRangeStack
     }
@@ -145,12 +153,12 @@ extension DiscoverTrailsView {
     /// converts. `%@` keeps the placeholder localizable.
     var lengthSteppers: some View {
         HStack(spacing: 8) {
-            Stepper(value: $minLengthKm, in: 0 ... 100, step: 1) {
+            Stepper(value: $minLengthKm, in: 0 ... Self.lengthStepperMaxKm, step: 1) {
                 Text(String(localized: "Min: \(stepperLengthLabel(minLengthKm))", bundle: LanguageManager.appBundle))
                     .font(.caption2)
             }
-            Stepper(value: $maxLengthKm, in: 1 ... 100, step: 1) {
-                Text(String(localized: "Max: \(stepperLengthLabel(maxLengthKm))", bundle: LanguageManager.appBundle))
+            Stepper(value: $maxLengthKm, in: 1 ... Self.lengthStepperMaxKm, step: 1) {
+                Text(String(localized: "Max: \(maxStepperLengthLabel)", bundle: LanguageManager.appBundle))
                     .font(.caption2)
             }
         }

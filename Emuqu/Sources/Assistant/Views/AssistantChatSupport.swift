@@ -75,6 +75,9 @@ struct ChatInputBar: View {
     let onSendPrefab: (PrefabQuestion) -> Void
 
     @State private var draft: String = ""
+    /// What the field held when dictation started; the transcript is added
+    /// after it rather than replacing it.
+    @State private var draftBeforeDictation: String = ""
     @State private var speech = SpeechInputManager()
     @State private var voiceErrorMessage: String?
     @FocusState private var inputFocused: Bool
@@ -91,6 +94,7 @@ struct ChatInputBar: View {
         .onDisappear { stopDictationIfRecording() }
         .onChange(of: inbox.pendingDraft) { _, _ in consumeInboxIfPresent() }
         .onChange(of: composerState.canSend) { _, _ in consumeInboxIfPresent() }
+        .onChange(of: floNoticeAccepted) { _, _ in consumeInboxIfPresent() }
         .onChange(of: composerState.returnedDraft) { _, _ in restoreReturnedDraft() }
         .onChange(of: inputFocused) { _, focused in signpostFocusChange(focused) }
     }
@@ -106,7 +110,7 @@ struct ChatInputBar: View {
         )
     }
 
-    /// With Apple's on-device model and no API key
+    /// With Apple's on-device model selected
     /// there is no composer at all (see the `isAppleActive` branch
     /// below); the chips *are* the input surface. A test asserting "the
     /// chat input must be reachable" has to accept either.
@@ -129,8 +133,8 @@ struct ChatInputBar: View {
         }
     }
 
-    /// With no API key there is no composer, so say why rather than leaving a
-    /// dead space where the field would be.
+    /// With Apple Intelligence selected there is no composer, so say why
+    /// rather than leaving a dead space where the field would be.
     private var appleOnlyComposerHint: some View {
         HStack(spacing: 6) {
             Image(systemName: "iphone")
@@ -226,7 +230,25 @@ struct ChatInputBar: View {
         .accessibilityHint(String(localized: "Send your question to the AI assistant", bundle: LanguageManager.appBundle))
     }
 
+    /// The dictation button plus the voice-error alert and the transcript /
+    /// recogniser-failure observers that feed the draft.
     private var micButton: some View {
+        micButtonCore
+            .alert(String(localized: "Voice input", bundle: LanguageManager.appBundle), isPresented: voiceErrorBinding) {
+                Button(String(localized: "OK", bundle: LanguageManager.appBundle), role: .cancel) {}
+            } message: {
+                Text(voiceErrorMessage ?? "")
+            }
+            .onChange(of: speech.transcript) { _, newValue in
+                if speech.isRecording { draft = Self.joined(draftBeforeDictation, newValue) }
+            }
+            .onChange(of: speech.lastError) { _, failure in
+                if let failure { voiceErrorMessage = failure }
+            }
+    }
+
+    /// The mic toggle itself: starts or stops dictation.
+    private var micButtonCore: some View {
         Button {
             toggleDictation()
         } label: {
@@ -238,14 +260,14 @@ struct ChatInputBar: View {
         }
         .accessibilityLabel(speech.isRecording ? String(localized: "Stop dictation", bundle: LanguageManager.appBundle) : String(localized: "Start dictation", bundle: LanguageManager.appBundle))
         .accessibilityHint(String(localized: "Use your voice to compose a question", bundle: LanguageManager.appBundle))
-        .alert(String(localized: "Voice input", bundle: LanguageManager.appBundle), isPresented: voiceErrorBinding) {
-            Button(String(localized: "OK", bundle: LanguageManager.appBundle), role: .cancel) {}
-        } message: {
-            Text(voiceErrorMessage ?? "")
-        }
-        .onChange(of: speech.transcript) { _, newValue in
-            if speech.isRecording { draft = newValue }
-        }
+    }
+
+    /// `prefix` followed by `addition`, separated by a space unless either is
+    /// blank or the prefix already ends in whitespace.
+    private static func joined(_ prefix: String, _ addition: String) -> String {
+        guard !prefix.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return addition }
+        guard !addition.isEmpty else { return prefix }
+        return prefix.last?.isWhitespace == true ? prefix + addition : prefix + " " + addition
     }
 
     private var voiceErrorBinding: Binding<Bool> {
@@ -253,12 +275,15 @@ struct ChatInputBar: View {
     }
 
     /// Stop-and-commit when already recording; otherwise start, surfacing any
-    /// permission or recogniser failure in the alert above.
+    /// permission or recogniser failure in the alert above (a recogniser
+    /// failure mid-dictation arrives through `speech.lastError`). Text typed
+    /// before dictation stays in front of the transcript.
     private func toggleDictation() {
         if speech.isRecording {
-            draft = speech.stop()
+            draft = Self.joined(draftBeforeDictation, speech.stop())
             return
         }
+        draftBeforeDictation = draft
         Task {
             do {
                 try await speech.start()
@@ -278,18 +303,29 @@ struct ChatInputBar: View {
     /// Auto-sends a complete question (ends with ?, ？ or ؟), and always sends
     /// when Apple Intelligence is active, because there is no field to put a
     /// draft in; otherwise it pre-fills the field for the user to edit. With
-    /// Apple active and sending unavailable, the question stays in the inbox
-    /// until `canSend` turns true.
+    /// Apple active and sending unavailable — no model, or Flo's notice not
+    /// yet accepted — the question stays in the inbox until it can be sent
+    /// (`canSend` or the notice changing re-runs this). A cloud-model send the
+    /// view model still rejects goes back into the field, as the Send button
+    /// does. A pre-fill is added after anything already typed.
     private func consumeInboxIfPresent() {
         guard let pending = inbox.pendingDraft else { return }
-        if isAppleActive, !composerState.canSend { return }
+        let canSendNow = composerState.canSend && floNoticeAccepted
+        if isAppleActive, !canSendNow { return }
         inbox.pendingDraft = nil
         let trimmed = pending.trimmingCharacters(in: .whitespacesAndNewlines)
-        if composerState.canSend, isAppleActive || Self.endsWithQuestionMark(trimmed) {
-            _ = onSend(trimmed)
+        if canSendNow, isAppleActive || Self.endsWithQuestionMark(trimmed) {
+            if case .rejectedNoProvider = onSend(trimmed), !isAppleActive { draft = Self.joined(draft, pending) }
         } else {
-            draft = pending
+            draft = Self.joined(draft, pending)
         }
+    }
+
+    /// Flo may answer (`AssistantViewModel.aiIsAllowed`). Read in `body` only
+    /// through `.onChange`, so the bar re-renders on the notice flipping and
+    /// nothing else of the view model.
+    private var floNoticeAccepted: Bool {
+        AssistantViewModel.aiIsAllowed(disclaimerAccepted: dependencies.assistant.assistantViewModel.hasAcceptedDisclaimer)
     }
 
     /// Put a message the view-model handed back (consent declined) into the

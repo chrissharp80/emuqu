@@ -1,0 +1,25 @@
+{
+ "file": "scripts/check_gate_preflight.sh",
+ "hash": "de01b07a584e1ad5",
+ "role": "Meta-gate: every scripts/*.sh (except itself) must not call mktemp directly, must guard each gate_mktemp call with `|| exit`, and must source only existing helper paths.",
+ "types": [],
+ "state": [
+  "dir:scripts"
+ ],
+ "toplevel": "cd to repo root. Python over scripts/*.sh: rule 1 non-# lines matching bare `mktemp` without gate_mktemp; rule 2 lines containing gate_mktemp (not # lines) without '|| exit'; rule 3 `source \"$(dirname \"$0\")/X\"` where scripts/X missing. Failures -> exit 1; else clean with counts. Does not scan scripts/lib/ or Python scripts. Wired: gates.yml, ci.yml, Makefile gate-preflight.",
+ "flags": [
+  {
+   "kind": "fragile",
+   "sev": "low",
+   "text": "Covers only the mktemp fail-open shape. Other fail-open shapes are not detected: gates that do not cd and scan relative roots report clean on 0 files (check_date_ms_conversion.sh:27, check_empty_range_loops.sh:34, check_no_orphan_swift.sh:58 - verified it prints 'clean. 0 Swift files' from /tmp), and check_localization_orphans.sh reports clean on an empty count.",
+   "evidence": [
+    "scripts/check_gate_preflight.sh:53",
+    "scripts/check_no_orphan_swift.sh:58",
+    "scripts/check_localization_orphans.sh:262"
+   ],
+   "found": "second read"
+  }
+ ],
+ "units": [],
+ "deps": {}
+}

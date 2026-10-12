@@ -1,0 +1,621 @@
+{
+ "file": "EmuquTests/DFAAnalysisTests.swift",
+ "hash": "4404afbc33a9878e",
+ "role": "XCTest suite for DFAAnalyzer.compute: minimum sample count (64), α1/α2 ranges and R² bounds, α2 needing 256 beats, custom α1 box range, reproducibility, constant / high-variability / long inputs. Inputs are sinusoids or SplitMix64-seeded noise (DFAReferenceValidationTests.SeededGenerator).",
+ "types": [
+  "DFAAnalysisTests: class (XCTestCase)"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "test-defect",
+   "sev": "low",
+   "text": "Most range assertions are very wide (α1 in (0.3, 2.0), α2 in (0.2, 2.0)) and inputs are sums of sinusoids, so a constant-offset error in the exponent passes; DFAReferenceValidationTests exists to cover that.",
+   "evidence": [
+    "EmuquTests/DFAAnalysisTests.swift:61",
+    "EmuquTests/DFAAnalysisTests.swift:99",
+    "EmuquTests/DFAAnalysisTests.swift:130"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func DFAAnalysisTests.createRRIntervals(count:meanMs:variability:)",
+   "hash": "ed64f1e8bfa72a46",
+   "does": "Returns count RR values 850 + sin(0.3 i) * variability (default 50 ms): a pure sinusoid.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for i in 0..<count",
+     "effect": "appends one sample per index"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func DFAAnalysisTests.createWhiteNoiseRR(count:)",
+   "hash": "ae9255e1ecaed168",
+   "does": "Returns count samples 850 ± uniform(50) from SplitMix64 seeded 0xD1; deterministic and identical on every call.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/DFAReferenceValidationTests.swift::init DFAReferenceValidationTests.SeededGenerator(seed:)",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.SeededGenerator.next()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.SeededGenerator.next()": "80a4dd34e7ac09ba",
+    "EmuquTests/DFAReferenceValidationTests.swift::init DFAReferenceValidationTests.SeededGenerator(seed:)": "df012a011701b266"
+   }
+  },
+  {
+   "key": "func DFAAnalysisTests.createCorrelatedRR(count:)",
+   "hash": "58da40f165dd3a4b",
+   "does": "Returns count samples 850 + three sinusoids (periods ~12.6, 63, 314 beats; amplitudes 20/30/15) + uniform ±5 noise from SplitMix64 seed 0xD2.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/DFAReferenceValidationTests.swift::init DFAReferenceValidationTests.SeededGenerator(seed:)",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.SeededGenerator.next()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "for i in 0..<count",
+     "effect": "appends one sample per index"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.SeededGenerator.next()": "80a4dd34e7ac09ba",
+    "EmuquTests/DFAReferenceValidationTests.swift::init DFAReferenceValidationTests.SeededGenerator(seed:)": "df012a011701b266"
+   }
+  },
+  {
+   "key": "func DFAAnalysisTests.testDFARequiresMinimumSamples()",
+   "hash": "55867c5609621c74",
+   "does": "Asserts compute returns nil for 50 samples (< HRVConstants.DFA.alpha2ScaleMax = 64, reused as the minimum count).",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "93a8b95af9c5a354",
+    "EmuquTests/DFAAnalysisTests.swift::func DFAAnalysisTests.createRRIntervals(count:meanMs:variability:)": "28c35f3fc5fc44da"
+   }
+  },
+  {
+   "key": "func DFAAnalysisTests.testDFAWithMinimumSamples()",
+   "hash": "8904b43598628f41",
+   "does": "Asserts compute returns non-nil for exactly 64 samples (maxBox 16 gives ≥3 α1 box sizes).",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.integratedSeries(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.detrendedSumOfSquares(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.leastSquaresLine(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:beatCount:)",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:beatCount:)": "3fe033cde5824936",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "93a8b95af9c5a354",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:)": "5e2d210eaaa5ec53",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.detrendedSumOfSquares(_:)": "568750a21fdeea90",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.integratedSeries(_:)": "2016475f9338aaaf",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.leastSquaresLine(_:)": "29cd50667ce25e0a",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)": "122daaa56131b662",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)": "6da94147dc9db2eb",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)": "0849ec6ef37bc3ef",
+    "EmuquTests/DFAAnalysisTests.swift::func DFAAnalysisTests.createRRIntervals(count:meanMs:variability:)": "28c35f3fc5fc44da"
+   }
+  },
+  {
+   "key": "func DFAAnalysisTests.testDFAAlpha1InPhysiologicalRange()",
+   "hash": "4d04253deeaf483a",
+   "does": "300-sample correlated series: asserts α1 in (0.3, 2.0).",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.integratedSeries(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.detrendedSumOfSquares(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.leastSquaresLine(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:beatCount:)",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:beatCount:)": "3fe033cde5824936",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "93a8b95af9c5a354",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:)": "5e2d210eaaa5ec53",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.detrendedSumOfSquares(_:)": "568750a21fdeea90",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.integratedSeries(_:)": "2016475f9338aaaf",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.leastSquaresLine(_:)": "29cd50667ce25e0a",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)": "122daaa56131b662",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)": "6da94147dc9db2eb",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)": "0849ec6ef37bc3ef",
+    "EmuquTests/DFAAnalysisTests.swift::func DFAAnalysisTests.createCorrelatedRR(count:)": "f1a9d919123b7eb5"
+   }
+  },
+  {
+   "key": "func DFAAnalysisTests.testDFAReturnsValidR2()",
+   "hash": "bc5bcbe23515c549",
+   "does": "200-sample correlated series: asserts α1R2 in [0, 1].",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.integratedSeries(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.detrendedSumOfSquares(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.leastSquaresLine(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:beatCount:)",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:beatCount:)": "3fe033cde5824936",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "93a8b95af9c5a354",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:)": "5e2d210eaaa5ec53",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.detrendedSumOfSquares(_:)": "568750a21fdeea90",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.integratedSeries(_:)": "2016475f9338aaaf",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.leastSquaresLine(_:)": "29cd50667ce25e0a",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)": "122daaa56131b662",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)": "6da94147dc9db2eb",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)": "0849ec6ef37bc3ef",
+    "EmuquTests/DFAAnalysisTests.swift::func DFAAnalysisTests.createCorrelatedRR(count:)": "f1a9d919123b7eb5"
+   }
+  },
+  {
+   "key": "func DFAAnalysisTests.testAlpha2RequiresSufficientData()",
+   "hash": "e9428f7cd24f13be",
+   "does": "100 samples: asserts result non-nil and α2 nil (beatCount < HRVConstants.MinimumBeats.forDFA = 256).",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.integratedSeries(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.detrendedSumOfSquares(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.leastSquaresLine(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:beatCount:)",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:beatCount:)": "3fe033cde5824936",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "93a8b95af9c5a354",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:)": "5e2d210eaaa5ec53",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.detrendedSumOfSquares(_:)": "568750a21fdeea90",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.integratedSeries(_:)": "2016475f9338aaaf",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.leastSquaresLine(_:)": "29cd50667ce25e0a",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)": "122daaa56131b662",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)": "6da94147dc9db2eb",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)": "0849ec6ef37bc3ef",
+    "EmuquTests/DFAAnalysisTests.swift::func DFAAnalysisTests.createRRIntervals(count:meanMs:variability:)": "28c35f3fc5fc44da"
+   }
+  },
+  {
+   "key": "func DFAAnalysisTests.testAlpha2WithSufficientData()",
+   "hash": "abd0d73e755c1baf",
+   "does": "500-sample correlated series: asserts α2 and α2R2 non-nil (XCTUnwrap throws if nil; the wrapping XCTAssertNotNil is redundant).",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.integratedSeries(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.detrendedSumOfSquares(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.leastSquaresLine(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:beatCount:)",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:beatCount:)": "3fe033cde5824936",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "93a8b95af9c5a354",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:)": "5e2d210eaaa5ec53",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.detrendedSumOfSquares(_:)": "568750a21fdeea90",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.integratedSeries(_:)": "2016475f9338aaaf",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.leastSquaresLine(_:)": "29cd50667ce25e0a",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)": "122daaa56131b662",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)": "6da94147dc9db2eb",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)": "0849ec6ef37bc3ef",
+    "EmuquTests/DFAAnalysisTests.swift::func DFAAnalysisTests.createCorrelatedRR(count:)": "f1a9d919123b7eb5"
+   }
+  },
+  {
+   "key": "func DFAAnalysisTests.testAlpha2InReasonableRange()",
+   "hash": "33c8ed631407921d",
+   "does": "500-sample correlated series: asserts α2 in (0.2, 2.0).",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.integratedSeries(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.detrendedSumOfSquares(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.leastSquaresLine(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:beatCount:)",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:beatCount:)": "3fe033cde5824936",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "93a8b95af9c5a354",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:)": "5e2d210eaaa5ec53",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.detrendedSumOfSquares(_:)": "568750a21fdeea90",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.integratedSeries(_:)": "2016475f9338aaaf",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.leastSquaresLine(_:)": "29cd50667ce25e0a",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)": "122daaa56131b662",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)": "6da94147dc9db2eb",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)": "0849ec6ef37bc3ef",
+    "EmuquTests/DFAAnalysisTests.swift::func DFAAnalysisTests.createCorrelatedRR(count:)": "f1a9d919123b7eb5"
+   }
+  },
+  {
+   "key": "func DFAAnalysisTests.testWhiteNoiseProducesLowAlpha()",
+   "hash": "dba8f245edb91bd2",
+   "does": "Five iterations of the same seeded white-noise series (300 samples); asserts at least one result and mean α1 < 0.9.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.integratedSeries(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.detrendedSumOfSquares(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.leastSquaresLine(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:beatCount:)",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)",
+    "EmuquTests/DFAAnalysisTests.swift::func DFAAnalysisTests.createWhiteNoiseRR(count:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for 5 iterations",
+     "effect": "each iteration regenerates the identical series from seed 0xD1"
+    },
+    {
+     "at": "+5",
+     "cond": "compute returns non-nil",
+     "effect": "true: α1 appended; false: skipped (cannot happen for 300 samples)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "createWhiteNoiseRR reseeds SplitMix64 with 0xD1 on every call, so the 5-iteration average is the same α1 five times; the loop and averaging add nothing and the 0.9 ceiling is loose against the analytic 0.5.",
+     "evidence": [
+      "EmuquTests/DFAAnalysisTests.swift:21",
+      "EmuquTests/DFAAnalysisTests.swift:108",
+      "EmuquTests/DFAAnalysisTests.swift:118"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:beatCount:)": "3fe033cde5824936",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "93a8b95af9c5a354",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:)": "5e2d210eaaa5ec53",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.detrendedSumOfSquares(_:)": "568750a21fdeea90",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.integratedSeries(_:)": "2016475f9338aaaf",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.leastSquaresLine(_:)": "29cd50667ce25e0a",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)": "122daaa56131b662",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)": "6da94147dc9db2eb",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)": "0849ec6ef37bc3ef",
+    "EmuquTests/DFAAnalysisTests.swift::func DFAAnalysisTests.createWhiteNoiseRR(count:)": "c3a119320c2efa3b"
+   }
+  },
+  {
+   "key": "func DFAAnalysisTests.testCorrelatedSignalProducesModerateAlpha()",
+   "hash": "de5d08ba8d6f17fa",
+   "does": "300-sample correlated series: asserts α1 in (0.4, 2.0).",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.integratedSeries(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.detrendedSumOfSquares(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.leastSquaresLine(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:beatCount:)",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Same input (createCorrelatedRR(300)) and nearly the same bounds as testDFAAlpha1InPhysiologicalRange (0.3–2.0 vs 0.4–2.0).",
+     "evidence": [
+      "EmuquTests/DFAAnalysisTests.swift:55",
+      "EmuquTests/DFAAnalysisTests.swift:121"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:beatCount:)": "3fe033cde5824936",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "93a8b95af9c5a354",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:)": "5e2d210eaaa5ec53",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.detrendedSumOfSquares(_:)": "568750a21fdeea90",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.integratedSeries(_:)": "2016475f9338aaaf",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.leastSquaresLine(_:)": "29cd50667ce25e0a",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)": "122daaa56131b662",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)": "6da94147dc9db2eb",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)": "0849ec6ef37bc3ef",
+    "EmuquTests/DFAAnalysisTests.swift::func DFAAnalysisTests.createCorrelatedRR(count:)": "f1a9d919123b7eb5"
+   }
+  },
+  {
+   "key": "func DFAAnalysisTests.testCustomAlpha1Range()",
+   "hash": "3001847ca7e167b2",
+   "does": "200-sample correlated series: asserts α1 with box range 5...12 differs from the default 4...16 by more than 0.01 (XCTAssertNotEqual with accuracy).",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.integratedSeries(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.detrendedSumOfSquares(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.leastSquaresLine(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:beatCount:)",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:beatCount:)": "3fe033cde5824936",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "93a8b95af9c5a354",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:)": "5e2d210eaaa5ec53",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.detrendedSumOfSquares(_:)": "568750a21fdeea90",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.integratedSeries(_:)": "2016475f9338aaaf",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.leastSquaresLine(_:)": "29cd50667ce25e0a",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)": "122daaa56131b662",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)": "6da94147dc9db2eb",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)": "0849ec6ef37bc3ef",
+    "EmuquTests/DFAAnalysisTests.swift::func DFAAnalysisTests.createCorrelatedRR(count:)": "f1a9d919123b7eb5"
+   }
+  },
+  {
+   "key": "func DFAAnalysisTests.testDFAIsReproducible()",
+   "hash": "d023d647493752a3",
+   "does": "Computes the same 300-sample series twice and asserts α1 equal within 1e-4.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.integratedSeries(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.detrendedSumOfSquares(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.leastSquaresLine(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:beatCount:)",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:beatCount:)": "3fe033cde5824936",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "93a8b95af9c5a354",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:)": "5e2d210eaaa5ec53",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.detrendedSumOfSquares(_:)": "568750a21fdeea90",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.integratedSeries(_:)": "2016475f9338aaaf",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.leastSquaresLine(_:)": "29cd50667ce25e0a",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)": "122daaa56131b662",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)": "6da94147dc9db2eb",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)": "0849ec6ef37bc3ef",
+    "EmuquTests/DFAAnalysisTests.swift::func DFAAnalysisTests.createCorrelatedRR(count:)": "f1a9d919123b7eb5"
+   }
+  },
+  {
+   "key": "func DFAAnalysisTests.testDFAWithConstantRR()",
+   "hash": "89347ad0c57117cc",
+   "does": "100 constant 850 ms samples: if a result is returned, asserts α1 is neither NaN nor infinite. Integrated series is all zero, every fluctuation is 0, logLogRegression maps each to the -10 sentinel and the regression slope is 0, so α1 = 0.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.integratedSeries(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.detrendedSumOfSquares(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.leastSquaresLine(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:beatCount:)",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "result non-nil",
+     "effect": "true: asserts α1 finite; false: test passes with no assertion (cannot happen: 100 ≥ 64)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Accepts α1 = 0 for a flat signal (the -10 log sentinel makes every point equal) without asserting what a zero-fluctuation input should report; production then hands a fabricated 0 exponent to callers rather than nil.",
+     "evidence": [
+      "EmuquTests/DFAAnalysisTests.swift:173",
+      "Emuqu/Sources/Analysis/DFAAnalysis.swift:164"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:beatCount:)": "3fe033cde5824936",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "93a8b95af9c5a354",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:)": "5e2d210eaaa5ec53",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.detrendedSumOfSquares(_:)": "568750a21fdeea90",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.integratedSeries(_:)": "2016475f9338aaaf",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.leastSquaresLine(_:)": "29cd50667ce25e0a",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)": "122daaa56131b662",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)": "6da94147dc9db2eb",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)": "0849ec6ef37bc3ef"
+   }
+  },
+  {
+   "key": "func DFAAnalysisTests.testDFAWithLargeDataset()",
+   "hash": "87941688c20c7574",
+   "does": "7200-sample correlated series: asserts α2 non-nil.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.integratedSeries(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.detrendedSumOfSquares(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.leastSquaresLine(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:beatCount:)",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:beatCount:)": "3fe033cde5824936",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "93a8b95af9c5a354",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:)": "5e2d210eaaa5ec53",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.detrendedSumOfSquares(_:)": "568750a21fdeea90",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.integratedSeries(_:)": "2016475f9338aaaf",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.leastSquaresLine(_:)": "29cd50667ce25e0a",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)": "122daaa56131b662",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)": "6da94147dc9db2eb",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)": "0849ec6ef37bc3ef",
+    "EmuquTests/DFAAnalysisTests.swift::func DFAAnalysisTests.createCorrelatedRR(count:)": "f1a9d919123b7eb5"
+   }
+  },
+  {
+   "key": "func DFAAnalysisTests.testDFAWithHighVariability()",
+   "hash": "29929b2ffc782d00",
+   "does": "300 samples of 600 + 300 sin(0.2 i) (300–900 ms): asserts result non-nil and α1 not NaN.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.integratedSeries(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.detrendedSumOfSquares(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.leastSquaresLine(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:beatCount:)",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for i in 0..<300",
+     "effect": "appends one sinusoid sample per index"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:beatCount:)": "3fe033cde5824936",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "93a8b95af9c5a354",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:)": "5e2d210eaaa5ec53",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.detrendedSumOfSquares(_:)": "568750a21fdeea90",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.integratedSeries(_:)": "2016475f9338aaaf",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.leastSquaresLine(_:)": "29cd50667ce25e0a",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)": "122daaa56131b662",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)": "6da94147dc9db2eb",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)": "0849ec6ef37bc3ef"
+   }
+  },
+  {
+   "key": "func DFAAnalysisTests.testGoodFitProducesHighR2()",
+   "hash": "87473cb9b67beede",
+   "does": "500-sample correlated series: asserts α1R2 > 0.7.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.integratedSeries(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.detrendedSumOfSquares(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.leastSquaresLine(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:beatCount:)",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:beatCount:)": "3fe033cde5824936",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "93a8b95af9c5a354",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:)": "5e2d210eaaa5ec53",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.detrendedSumOfSquares(_:)": "568750a21fdeea90",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.integratedSeries(_:)": "2016475f9338aaaf",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.leastSquaresLine(_:)": "29cd50667ce25e0a",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)": "122daaa56131b662",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)": "6da94147dc9db2eb",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)": "0849ec6ef37bc3ef",
+    "EmuquTests/DFAAnalysisTests.swift::func DFAAnalysisTests.createCorrelatedRR(count:)": "f1a9d919123b7eb5"
+   }
+  }
+ ],
+ "deps": {}
+}

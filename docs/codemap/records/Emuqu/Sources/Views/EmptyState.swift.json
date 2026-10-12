@@ -1,0 +1,84 @@
+{
+ "file": "Emuqu/Sources/Views/EmptyState.swift",
+ "hash": "0d691b0e9d95694f",
+ "role": "Reusable empty/no-data screen: glyph, headline, message, optional primary and secondary buttons.",
+ "types": [
+  "EmptyState: struct (View)"
+ ],
+ "state": [],
+ "toplevel": "Stored glyph, headline, message, optional primaryLabel/secondaryLabel with no-op default actions.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var EmptyState.body",
+   "hash": "813f3f3fc8fce401",
+   "does": "Centered VStack of 56pt glyph, headline, message and the optional buttons.",
+   "entry": "SwiftUI body",
+   "calls": [
+    "Emuqu/Sources/Views/EmptyState.swift::var EmptyState.primaryActionButton",
+    "Emuqu/Sources/Views/EmptyState.swift::var EmptyState.secondaryActionButton",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/EmptyState.swift::var EmptyState.primaryActionButton": "59889ca5646c2410",
+    "Emuqu/Sources/Views/EmptyState.swift::var EmptyState.secondaryActionButton": "62ac7083bd3010d7",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var EmptyState.primaryActionButton",
+   "hash": "ca05bfcbc9d9bc74",
+   "does": "Primary filled button when primaryLabel is set.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "primaryLabel != nil",
+     "effect": "button running primaryAction; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var EmptyState.secondaryActionButton",
+   "hash": "304f9c3904ed1c12",
+   "does": "Underlined secondary button when secondaryLabel is set.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "secondaryLabel != nil",
+     "effect": "button running secondaryAction; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+   }
+  }
+ ],
+ "deps": {}
+}

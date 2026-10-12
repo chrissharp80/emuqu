@@ -1,0 +1,704 @@
+{
+ "file": "Emuqu/Sources/Views/LoadTrajectoryLoader.swift",
+ "hash": "d4527c4bc37265df",
+ "role": "SwiftUI glue view that turns TrainingMetricsCache's daily CTL/ATL/TSB series (last 90 days, today overridden with the live value) and the archive's recent workouts into LoadTrajectoryView inputs, wires the three mode toggles (Comeback and overreach through TrainingModeSwitches), and hosts the long-press 'What was happening' sheet listing that day's archived and Apple-Health-only workouts.",
+ "types": [
+  "LoadTrajectoryLoader: struct — View; data loader/adapter for LoadTrajectoryView",
+  "LoadTrajectoryLoader.ContextSheetIdentity: struct — Identifiable wrapper of the long-pressed day for .sheet(item:)"
+ ],
+ "state": [
+  "mem:LoadTrajectoryLoader.contextSheetWorkouts (@State)",
+  "mem:LoadTrajectoryLoader.contextSheetDate (@State)",
+  "mem:LoadTrajectoryLoader.recentWorkouts (@State, up to 20 rows)",
+  "mem:LoadTrajectoryLoader.recentWorkoutsGeneration (@State, bumped per recent-workouts load; only the newest publishes)"
+ ],
+ "toplevel": "Environment deps: dependencies, accessibilityReduceTransparency, RRCollector, ArchiveSignal. Instantiated by DashboardV2View.swift:408 (.load destination) and FitnessTabView+Strap.swift:59.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var LoadTrajectoryLoader.cache",
+   "hash": "1fb137e0ab93c092",
+   "does": "Returns the shared TrainingMetricsCache from the dependency container.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AnalysisServices.trainingMetricsCache"
+   ],
+   "reads": [
+    "mem:AppDependencies.analysis.trainingMetricsCache"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AnalysisServices.trainingMetricsCache": "c54dab42e8e86c14"
+   }
+  },
+  {
+   "key": "var LoadTrajectoryLoader.settingsManager",
+   "hash": "a5b9ef0fa49aaa67",
+   "does": "Returns the shared SettingsManager from the dependency container.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager"
+   ],
+   "reads": [
+    "mem:AppDependencies.app.settingsManager"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "320e181d89b608eb"
+   }
+  },
+  {
+   "key": "var LoadTrajectoryLoader.body",
+   "hash": "949828846fa34a7c",
+   "does": "Root view: renders trajectoryOrPaused; on appear runs loadTrajectory; re-runs loadRecentWorkouts whenever ArchiveSignal.version changes; presents the 'What was happening' sheet (medium/large detents) bound to contextSheetBinding.",
+   "entry": "SwiftUI body; .task on appear, .onChange(of: archiveSignal.version), .sheet(item:)",
+   "calls": [
+    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift::var LoadTrajectoryLoader.trajectoryOrPaused",
+    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift::func LoadTrajectoryLoader.loadTrajectory()",
+    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift::func LoadTrajectoryLoader.loadRecentWorkouts()",
+    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift::var LoadTrajectoryLoader.contextSheetBinding",
+    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift::func LoadTrajectoryLoader.whatWasHappeningSheet(date:workouts:)"
+   ],
+   "reads": [
+    "mem:ArchiveSignal.version"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift::func LoadTrajectoryLoader.loadRecentWorkouts()": "9266382af2ff868c",
+    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift::func LoadTrajectoryLoader.loadTrajectory()": "481f5098f69631b6",
+    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift::func LoadTrajectoryLoader.whatWasHappeningSheet(date:workouts:)": "c267e20135782ff5",
+    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift::var LoadTrajectoryLoader.contextSheetBinding": "f9b3678200d2521b",
+    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift::var LoadTrajectoryLoader.trajectoryOrPaused": "1fc0ea9ca2287578"
+   }
+  },
+  {
+   "key": "var LoadTrajectoryLoader.trajectoryOrPaused",
+   "hash": "f9f6c7ecd817e147",
+   "does": "Shows TrainingLoadPausedCard in a ScrollView when training load is paused (integration off or on training break), otherwise the full LoadTrajectoryView built from makeSamples() and the cached recentWorkouts.",
+   "entry": "Evaluated from body",
+   "calls": [
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingLoadVisibility.isPaused(_:)",
+    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift::func LoadTrajectoryLoader.trajectoryView(samples:recents:)",
+    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift::func LoadTrajectoryLoader.makeSamples()",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "TrainingLoadVisibility.isPaused(settings) — enableTrainingLoadIntegration false or isOnTrainingBreak",
+     "effect": "true: paused card only (no chart, no modes section, no telemetry difference); false: trajectory view"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "201177101ead59c4",
+    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift::func LoadTrajectoryLoader.makeSamples()": "edbe67771cf67e43",
+    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift::func LoadTrajectoryLoader.trajectoryView(samples:recents:)": "2f1fb6d0b487838e",
+    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift::var LoadTrajectoryLoader.settingsManager": "b958003c43442ffa",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "053cc91a5a90d115",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingLoadVisibility.isPaused(_:)": "1d59fbbd894f7ba5"
+   }
+  },
+  {
+   "key": "func LoadTrajectoryLoader.trajectoryView(samples:recents:)",
+   "hash": "f4d021d4ada462eb",
+   "does": "Builds LoadTrajectoryView: weeklyTrimp = sum of last 7 daily trimp, delta vs the 7 days before, rampRate = TrajectoryVerdict.ctlSlopePerWeek over all sample CTLs, comeback/overreach flags from settings, peakingDetected = setting && peakingHeuristic, monotonyFlagged = FosterMonotonyWarning over last 7 days, recents, toggle callbacks, long-press → openContextSheet.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.ctlSlopePerWeek(_:)",
+    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift::func LoadTrajectoryLoader.peakingHeuristic(_:)",
+    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift::func LoadTrajectoryLoader.lastWeekLoad(_:)",
+    "Emuqu/Sources/Analysis/FosterMonotonyWarning.swift::func FosterMonotonyWarning.isRaised(dailyLoad:referenceDate:)",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isComebackModeActive",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isIntentionalOverreachInEffect",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings",
+    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift::func LoadTrajectoryLoader.toggleComeback()",
+    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift::func LoadTrajectoryLoader.togglePeakingDetection()",
+    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift::func LoadTrajectoryLoader.toggleOverreach()",
+    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift::func LoadTrajectoryLoader.openContextSheet(for:)"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/FosterMonotonyWarning.swift::func FosterMonotonyWarning.isRaised(dailyLoad:referenceDate:)": "abf013434c2dc527",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.ctlSlopePerWeek(_:)": "5b6106827ca00e1b",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "201177101ead59c4",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isComebackModeActive": "4a697d3be6c9e5eb",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isIntentionalOverreachInEffect": "89d88619860d2f61",
+    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift::func LoadTrajectoryLoader.lastWeekLoad(_:)": "f07a9f199f65bbf9",
+    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift::func LoadTrajectoryLoader.openContextSheet(for:)": "accad9634ed08886",
+    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift::func LoadTrajectoryLoader.peakingHeuristic(_:)": "cd9c76e68397ba21",
+    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift::func LoadTrajectoryLoader.toggleComeback()": "46247ca69898ba78",
+    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift::func LoadTrajectoryLoader.toggleOverreach()": "45e195168e61944e",
+    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift::func LoadTrajectoryLoader.togglePeakingDetection()": "b3402f36d9b19dc1",
+    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift::var LoadTrajectoryLoader.settingsManager": "b958003c43442ffa"
+   }
+  },
+  {
+   "key": "func LoadTrajectoryLoader.openContextSheet(for:)",
+   "hash": "ac9e566cd11471d4",
+   "does": "Normalises the long-pressed date to start of day, clears the sheet's workouts (spinner), sets contextSheetDate (opens sheet), then asynchronously loads that day's workouts (archived and Apple-Health-only, workoutRows(on:)) and stores them only if the sheet still shows the same day.",
+   "entry": "closure: LoadTrajectoryView.onChartLongPress (long-press gesture on the chart)",
+   "calls": [
+    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift::func LoadTrajectoryLoader.workoutRows(on:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "contextSheetDate still equals the requested day after the async load",
+     "effect": "true: publish rows to the sheet; false (user dismissed or long-pressed another day): discard result"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift::func LoadTrajectoryLoader.workoutRows(on:)": "81d36f572cee9451"
+   }
+  },
+  {
+   "key": "func LoadTrajectoryLoader.workoutRows(on:)",
+   "hash": "62b4bf703d4e4240",
+   "does": "That day's workout rows, oldest first: archive entries of sessionType .workout on the calendar day mapped via workoutRows(for:), plus healthKitOnlyRows for Apple Health workouts the archive holds no copy of (the chart's daily load counts those too).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
+    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift::func LoadTrajectoryLoader.workoutRows(for:)",
+    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift::func LoadTrajectoryLoader.healthKitOnlyRows(on:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries",
+    "hk:workouts"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
+    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift::func LoadTrajectoryLoader.healthKitOnlyRows(on:)": "f6ceb96d0851aae3",
+    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift::func LoadTrajectoryLoader.workoutRows(for:)": "82402e37415796b5"
+   }
+  },
+  {
+   "key": "func LoadTrajectoryLoader.healthKitOnlyRows(on:)",
+   "hash": "6271cf709eb41bb3",
+   "does": "Fetches Apple Health workouts for the day (fetchWorkoutsExtended(days: 1, relativeTo: next midnight), filtered to the day); when any, builds that window's archive summaries off the main actor (fromAppArchive), merges with mergeArchiveAuthoritative (the rule TrainingMetricsCache.mergedWorkouts uses) and keeps the merged workouts that came from Apple Health, as rows without a load.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.fetchWorkoutsExtended(days:relativeTo:)",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.fromAppArchive(archive:days:relativeTo:)",
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.mergeArchiveAuthoritative(archive:healthKit:additional:)",
+    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift::func LoadTrajectoryLoader.healthKitRow(_:)"
+   ],
+   "reads": [
+    "hk:workouts",
+    "archive:SessionArchive.entries",
+    "archive:SessionArchive.retrieveLightweight"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "next midnight not computable",
+     "effect": "[]"
+    },
+    {
+     "at": "+5",
+     "cond": "no Apple Health workout that day",
+     "effect": "[] (no archive read)"
+    },
+    {
+     "at": "+12",
+     "cond": "merged workout matches an Apple Health one (date + type)",
+     "effect": "kept as a row; archive workouts and Apple Health twins of them dropped"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.fromAppArchive(archive:days:relativeTo:)": "bff2d08aed4fed7c",
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.fetchWorkoutsExtended(days:relativeTo:)": "38a55a184f52b84c",
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.mergeArchiveAuthoritative(archive:healthKit:additional:)": "50f4b0e0045aa152",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.healthKit": "f61a7a679f5280dd",
+    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift::func LoadTrajectoryLoader.healthKitRow(_:)": "98ba183cdc43df53"
+   }
+  },
+  {
+   "key": "func LoadTrajectoryLoader.healthKitRow(_:)",
+   "hash": "ea8b65c8417bc3cd",
+   "does": "Row for an Apple Health workout: fresh id, generic heart.text.square symbol, the localized workout type as label, its date and rounded duration, no load.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::var HealthWorkoutSummary.localizedTypeDescription"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::var HealthWorkoutSummary.localizedTypeDescription": "45eeaf1e3975c035"
+   }
+  },
+  {
+   "key": "func LoadTrajectoryLoader.loadTrajectory()",
+   "hash": "66f7144cbb82bb3e",
+   "does": "Awaits TrainingMetricsCache.refresh (no-op if HealthKit not wired or nothing changed), records a Trajectory visit in ValidationTelemetry, then loads the recent-workouts list.",
+   "entry": ".task on body appear",
+   "calls": [
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.refresh(reference:forMorningReading:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppServices.validationTelemetry",
+    "Emuqu/Sources/Services/ValidationTelemetry.swift::func ValidationTelemetry.recordTrajectoryVisit()",
+    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift::func LoadTrajectoryLoader.loadRecentWorkouts()"
+   ],
+   "reads": [
+    "mem:TrainingMetricsCache.dailySeries"
+   ],
+   "writes": [
+    "ud:telemetry.trajectoryVisits",
+    "ud:telemetry.lastTrajectoryVisit",
+    "mem:TrainingMetricsCache.current",
+    "mem:TrainingMetricsCache.dailySeries"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.refresh(reference:forMorningReading:)": "261edc49e75a859f",
+    "Emuqu/Sources/Services/ValidationTelemetry.swift::func ValidationTelemetry.recordTrajectoryVisit()": "426070d97d4cde10",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "8f71f3de23c47a6a",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppServices.validationTelemetry": "bc555877026a986a",
+    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift::func LoadTrajectoryLoader.loadRecentWorkouts()": "9266382af2ff868c",
+    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift::var LoadTrajectoryLoader.cache": "875c5d67871f07cf"
+   }
+  },
+  {
+   "key": "var LoadTrajectoryLoader.contextSheetBinding",
+   "hash": "fba6dd5704c8c8c7",
+   "does": "Binding for .sheet(item:): get wraps contextSheetDate in ContextSheetIdentity; set stores the new date and clears contextSheetWorkouts when the sheet is dismissed.",
+   "entry": "SwiftUI sheet binding get/set",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "new identity is nil (sheet dismissed)",
+     "effect": "true: contextSheetWorkouts = nil; false: only the date is updated"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var LoadTrajectoryLoader.ContextSheetIdentity.id",
+   "hash": "90ee21e7cc9450bf",
+   "does": "Identity of the sheet item: the day's date.",
+   "entry": "Identifiable requirement used by .sheet(item:)",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func LoadTrajectoryLoader.whatWasHappeningSheet(date:workouts:)",
+   "hash": "d96e14f1576f074c",
+   "does": "NavigationStack with a ScrollView of whatWasHappeningBody and inline title 'What was happening'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift::func LoadTrajectoryLoader.whatWasHappeningBody(date:workouts:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift::func LoadTrajectoryLoader.whatWasHappeningBody(date:workouts:)": "08822924c65daa09"
+   }
+  },
+  {
+   "key": "func LoadTrajectoryLoader.whatWasHappeningBody(date:workouts:)",
+   "hash": "d02d208564aa3703",
+   "does": "VStack with the day's full localized date and the workout rows.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift::func LoadTrajectoryLoader.whatWasHappeningRows(_:)",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3",
+    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift::func LoadTrajectoryLoader.whatWasHappeningRows(_:)": "d1a8ccdb8a4c0443",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059"
+   }
+  },
+  {
+   "key": "func LoadTrajectoryLoader.whatWasHappeningRows(_:)",
+   "hash": "81a7e60e5d8b9d02",
+   "does": "Renders workout rows, a spinner while loading, or 'No workouts logged that day.'",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift::func LoadTrajectoryLoader.whatWasHappeningRow(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "workouts non-nil and non-empty",
+     "effect": "true: one row per workout"
+    },
+    {
+     "at": "+4",
+     "cond": "workouts == nil (still loading)",
+     "effect": "true: ProgressView; false (empty array): 'No workouts logged that day.' text"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift::func LoadTrajectoryLoader.whatWasHappeningRow(_:)": "03f7c13daa9a7092",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func LoadTrajectoryLoader.whatWasHappeningRow(_:)",
+   "hash": "d9428afcc4bc4135",
+   "does": "One sheet row: sport SF symbol, sport label, and duration in minutes on a thin adaptive-material rounded background.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)",
+    "Emuqu/Sources/Views/Utilities/AdaptiveMaterial.swift::func AdaptiveMaterial.thin(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/Utilities/AdaptiveMaterial.swift::func AdaptiveMaterial.thin(_:)": "b00400fd214db995",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.sportLabel(fromRaw:)": "a7f8b050f64db1bd"
+   }
+  },
+  {
+   "key": "func LoadTrajectoryLoader.loadRecentWorkouts()",
+   "hash": "db5222cdb8ce053f",
+   "does": "Bumps recentWorkoutsGeneration, takes the 20 most recent archive entries of type .workout, maps them to rows and publishes them only if no newer load started meanwhile, so an older snapshot finishing last cannot overwrite a newer one.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
+    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift::func LoadTrajectoryLoader.workoutRows(for:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries"
+   ],
+   "writes": [
+    "mem:LoadTrajectoryLoader.recentWorkouts",
+    "mem:LoadTrajectoryLoader.recentWorkoutsGeneration"
+   ],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "a newer load started while mapping",
+     "effect": "discard these rows"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
+    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift::func LoadTrajectoryLoader.workoutRows(for:)": "82402e37415796b5"
+   }
+  },
+  {
+   "key": "func LoadTrajectoryLoader.workoutRows(for:)",
+   "hash": "63e6e6ce83e03331",
+   "does": "Decodes each entry's session with retrieveLightweightOrLog on a detached userInitiated task, then on the main actor maps each (entry, session) to a RecentWorkout, dropping entries whose session fails to decode or lacks workoutMetadata.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift::func LoadTrajectoryLoader.pairWithSession(_:archive:)",
+    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift::func LoadTrajectoryLoader.recentWorkoutRow(entry:session:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.retrieveLightweight"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift::func LoadTrajectoryLoader.pairWithSession(_:archive:)": "9516fc1119d1d5e4",
+    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift::func LoadTrajectoryLoader.recentWorkoutRow(entry:session:)": "06e2c31cbb5d5d6c"
+   }
+  },
+  {
+   "key": "func LoadTrajectoryLoader.pairWithSession(_:archive:)",
+   "hash": "3823d5774131d7cf",
+   "does": "Returns (entry, lightweight session) or nil when the archive read fails (the failure is logged/counted inside retrieveLightweightOrLog).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.retrieveLightweight"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "retrieveLightweightOrLog returned a session",
+     "effect": "true: pair returned; false: nil and the row is silently skipped from the list"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "8dd50c9f204fb5d6"
+   }
+  },
+  {
+   "key": "func LoadTrajectoryLoader.recentWorkoutRow(entry:session:)",
+   "hash": "2c94192541016811",
+   "does": "Maps a session to a RecentWorkout row: sport icon/name, start date, duration minutes (endDate or 0), and preferredTrainingLoad value+source.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.icon",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.localizedName",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.preferredTrainingLoad"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "session.workoutMetadata present",
+     "effect": "false: nil (row dropped)"
+    },
+    {
+     "at": "+3",
+     "cond": "session.endDate ?? startDate",
+     "effect": "nil endDate → duration 0 → '0 min' row"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.icon": "ddc62fcbe71995cf",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.localizedName": "dbe667c792d47f39",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.preferredTrainingLoad": "4c06ba92c36737df"
+   }
+  },
+  {
+   "key": "func LoadTrajectoryLoader.makeSamples()",
+   "hash": "4b17446ea1e3b090",
+   "does": "Builds the chart series: TrainingMetricsCache days since now−90 d, reversed to oldest-first; today's bucket uses the live TrainingMetricsCache.current CTL/ATL/TSB when present.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.samplesSince(_:)",
+    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift::func LoadTrajectoryLoader.sample(_:ctl:atl:tsb:)"
+   ],
+   "reads": [
+    "mem:TrainingMetricsCache.dailySeries",
+    "mem:TrainingMetricsCache.current"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "Calendar date(byAdding: -90 days) ?? Date()",
+     "effect": "nil only at a calendar discontinuity; fallback cutoff = now, giving an empty/1-day series"
+    },
+    {
+     "at": "+8",
+     "cond": "day is today AND cache.current is non-nil",
+     "effect": "true: sample with live ctl/atl/tsb; false: stored daily values"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.samplesSince(_:)": "ffe29dcbda438e76",
+    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7",
+    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift::func LoadTrajectoryLoader.sample(_:ctl:atl:tsb:)": "ee772fa3c8915436",
+    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift::var LoadTrajectoryLoader.cache": "875c5d67871f07cf",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+   }
+  },
+  {
+   "key": "func LoadTrajectoryLoader.sample(_:ctl:atl:tsb:)",
+   "hash": "17d3932c177331d8",
+   "does": "Converts a cached DaySample to a DailySample, optionally overriding ctl/atl/tsb.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "ctl override nil",
+     "effect": "use day.ctl"
+    },
+    {
+     "at": "+10",
+     "cond": "atl override nil",
+     "effect": "use day.atl"
+    },
+    {
+     "at": "+11",
+     "cond": "tsb override nil",
+     "effect": "use day.tsb (ctl−atl)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+   }
+  },
+  {
+   "key": "func LoadTrajectoryLoader.lastWeekLoad(_:)",
+   "hash": "a15d088508da726d",
+   "does": "Maps the last 7 samples to [startOfDay: trimp] (duplicates summed) for the Foster monotony check.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
+   }
+  },
+  {
+   "key": "func LoadTrajectoryLoader.peakingHeuristic(_:)",
+   "hash": "63fdc5bb16b3a978",
+   "does": "Peaking heuristic: true when each of the last 4 samples has CTL>0 and (CTL−ATL)/CTL > 0.10.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "fewer than 4 samples",
+     "effect": "return false"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Same 4-day >10% rule is re-implemented in DashboardV2View.peakingDetected and AppFactResolver+Trajectory.isPeaking; three copies must be kept in lockstep for the chip, assistant and screen to agree.",
+     "evidence": [
+      "Emuqu/Sources/Views/LoadTrajectoryLoader.swift:274",
+      "Emuqu/Sources/Views/DashboardV2View+Chips.swift:266",
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Trajectory.swift:90"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+   }
+  },
+  {
+   "key": "func LoadTrajectoryLoader.toggleComeback()",
+   "hash": "42721349f0537c83",
+   "does": "Switches Comeback to the opposite of isComebackModeActive through TrainingModeSwitches.setComeback (on: start date now + .comeback telemetry; off: start date cleared).",
+   "entry": "closure: LoadTrajectoryView.onComebackTap (ModeToggleCard tap / confirmation dialog)",
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isComebackModeActive",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings",
+    "Emuqu/Sources/Views/ModesSettingsPage.swift::func TrainingModeSwitches.setComeback(_:settings:telemetry:)"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [
+    "file:user_settings.json (SettingsManager, App Group container)",
+    "mem:SettingsManager.settings.comebackModeStartDate",
+    "ud:telemetry.modeActivationsByKind"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "201177101ead59c4",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isComebackModeActive": "4a697d3be6c9e5eb",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "8f71f3de23c47a6a",
+    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift::var LoadTrajectoryLoader.settingsManager": "b958003c43442ffa",
+    "Emuqu/Sources/Views/ModesSettingsPage.swift::func TrainingModeSwitches.setComeback(_:settings:telemetry:)": "b29a48972f91d8f3"
+   }
+  },
+  {
+   "key": "func LoadTrajectoryLoader.togglePeakingDetection()",
+   "hash": "829ebcfa1685412a",
+   "does": "Flips settings.peakingDetectionEnabled.",
+   "entry": "closure: LoadTrajectoryView.onPeakingTap",
+   "calls": [
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [
+    "file:user_settings.json (SettingsManager, App Group container)",
+    "mem:SettingsManager.settings.peakingDetectionEnabled"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
+    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift::var LoadTrajectoryLoader.settingsManager": "b958003c43442ffa"
+   }
+  },
+  {
+   "key": "func LoadTrajectoryLoader.toggleOverreach()",
+   "hash": "719b045832541aef",
+   "does": "Switches overreach to the opposite of 'in effect' (an expired block reads as off) through TrainingModeSwitches.setOverreach: on saves an end date a week out and records telemetry, off clears the end date.",
+   "entry": "closure: LoadTrajectoryView.onOverreachTap",
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isIntentionalOverreachInEffect",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings",
+    "Emuqu/Sources/Views/ModesSettingsPage.swift::func TrainingModeSwitches.setOverreach(_:settings:telemetry:)"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [
+    "file:user_settings.json (SettingsManager, App Group container)",
+    "mem:SettingsManager.settings.intentionalOverreachActive",
+    "mem:SettingsManager.settings.intentionalOverreachEndDate",
+    "ud:telemetry.modeActivationsByKind"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "201177101ead59c4",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isIntentionalOverreachInEffect": "89d88619860d2f61",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "8f71f3de23c47a6a",
+    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift::var LoadTrajectoryLoader.settingsManager": "b958003c43442ffa",
+    "Emuqu/Sources/Views/ModesSettingsPage.swift::func TrainingModeSwitches.setOverreach(_:settings:telemetry:)": "520c910ef75c9415"
+   }
+  }
+ ],
+ "deps": {}
+}

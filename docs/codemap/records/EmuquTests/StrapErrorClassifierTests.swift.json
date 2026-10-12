@@ -1,0 +1,63 @@
+{
+ "file": "EmuquTests/StrapErrorClassifierTests.swift",
+ "hash": "083845725958bae9",
+ "role": "XCTest suite for StrapErrorClassifier.isNotReadyYet: which Polar SDK / app errors count as retryable 'not ready yet' refusals.",
+ "types": [
+  "StrapErrorClassifierTests: class — XCTestCase for StrapErrorClassifier",
+  "StrapErrorClassifierTests.Unrelated: struct — arbitrary Error for the negative case"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func StrapErrorClassifierTests.testTheSDKsLocalRefusalsAreNotReadyYet()",
+   "hash": "8dc63aa26bc526bb",
+   "does": "Asserts PolarErrors.notificationNotEnabled, BleGattException.gattDisconnected and PolarManager.PolarError.featureNotReady are not-ready-yet.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapErrorClassifier.swift::func StrapErrorClassifier.isNotReadyYet(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapErrorClassifier.swift::func StrapErrorClassifier.isNotReadyYet(_:)": "46a6f187fefac939"
+   }
+  },
+  {
+   "key": "func StrapErrorClassifierTests.testAWrappedRefusalIsNotReadyYet()",
+   "hash": "4d557783be0a64a0",
+   "does": "Asserts PolarErrors.deviceError whose description contains 'notificationNotEnabled' is not-ready-yet.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapErrorClassifier.swift::func StrapErrorClassifier.isNotReadyYet(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapErrorClassifier.swift::func StrapErrorClassifier.isNotReadyYet(_:)": "46a6f187fefac939"
+   }
+  },
+  {
+   "key": "func StrapErrorClassifierTests.testRealFailuresAreNotRetried()",
+   "hash": "a71f271184f00a91",
+   "does": "Asserts deviceError('file not found'), operationNotSupported, noRecordingFound, pairingLost and an unrelated Error are not retryable.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapErrorClassifier.swift::func StrapErrorClassifier.isNotReadyYet(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapErrorClassifier.swift::func StrapErrorClassifier.isNotReadyYet(_:)": "46a6f187fefac939"
+   }
+  }
+ ],
+ "deps": {}
+}

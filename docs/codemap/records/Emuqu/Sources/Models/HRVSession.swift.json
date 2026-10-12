@@ -1,0 +1,253 @@
+{
+ "file": "Emuqu/Sources/Models/HRVSession.swift",
+ "hash": "8b6b412d35527453",
+ "role": "Despite its name, holds the skipRRSeries decoding flag, the ReadingTag model with its 14 system preset tags, and the Color hex helpers.",
+ "types": [
+  "CodingUserInfoKey: extension — adds skipRRSeries flag",
+  "ReadingTag: struct — user/system tag on a session (id,name,colorHex,isSystem)",
+  "Color: extension — init?(hex:) and hexString"
+ ],
+ "state": [
+  "mem:CodingUserInfoKey.skipRRSeries (static let)",
+  "mem:ReadingTag.systemTagDefinitions (private static table of 14 (suffix, English name, hex, @Sendable closure returning the localized name))",
+  "mem:ReadingTag.morning…menstrual (14 static lets built from the table, ids 00000000-0000-0000-0000-00000000000{1..E})"
+ ],
+ "toplevel": "Static let skipRRSeries = decodeFlag(\"skipRRSeries\"); 14 static let system tags each initialised via definedTag(suffix) at first access. ReadingTag synthesized Codable/Hashable/Identifiable/Sendable.",
+ "flags": [
+  {
+   "kind": "hack",
+   "sev": "low",
+   "text": "File named HRVSession.swift contains no HRVSession; HRVSession lives in SessionMetadata.swift — the name misleads lookups.",
+   "evidence": [
+    "Emuqu/Sources/Models/HRVSession.swift:1",
+    "Emuqu/Sources/Models/SessionMetadata.swift:113"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func CodingUserInfoKey.decodeFlag(_:)",
+   "hash": "60d12fbe85752b48",
+   "does": "Builds a CodingUserInfoKey from a raw string, trapping with preconditionFailure naming the literal if init fails (only for empty raw).",
+   "entry": "Static let initializer CodingUserInfoKey.skipRRSeries",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "CodingUserInfoKey(rawValue:) returns nil",
+     "effect": "preconditionFailure crash; otherwise returns key. Unreachable for the single non-empty caller literal"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "init ReadingTag(id:name:colorHex:isSystem:)",
+   "hash": "34d189a58505290c",
+   "does": "Memberwise initializer for ReadingTag; id defaults to a fresh UUID, isSystem to false.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var ReadingTag.color",
+   "hash": "3dfdf7adcb637b2c",
+   "does": "Returns the SwiftUI Color parsed from colorHex, gray if unparseable.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/HRVSession.swift::init Color(hex:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "Color(hex:) ?? .gray",
+     "effect": "hex not scannable → gray"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/HRVSession.swift::init Color(hex:)": "802233adc33ed1a4"
+   }
+  },
+  {
+   "key": "var ReadingTag.displayName",
+   "hash": "3fad7ebc8f75a824",
+   "does": "User-visible tag name: for system tags with the reserved UUID prefix, the localized name for its suffix; otherwise the stored name.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/HRVSession.swift::func ReadingTag.systemSuffix(of:)",
+    "Emuqu/Sources/Models/HRVSession.swift::func ReadingTag.localizedSystemName(suffix:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "isSystem and id has reserved system suffix",
+     "effect": "false → returns stored name (user tags, or system tag with non-reserved id)"
+    },
+    {
+     "at": "+2",
+     "cond": "localizedSystemName ?? name",
+     "effect": "unknown suffix → stored English name"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/HRVSession.swift::func ReadingTag.localizedSystemName(suffix:)": "cf43d87e74379dce",
+    "Emuqu/Sources/Models/HRVSession.swift::func ReadingTag.systemSuffix(of:)": "df1eea337a2afb83"
+   }
+  },
+  {
+   "key": "func ReadingTag.systemSuffix(of:)",
+   "hash": "fe02d29ce215c727",
+   "does": "Returns the last character of the UUID string when it starts with the reserved 35-char system prefix, else nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "uuidString hasPrefix reserved prefix and has last char",
+     "effect": "false → nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ReadingTag.localizedSystemName(suffix:)",
+   "hash": "e0413246ca5b044e",
+   "does": "Looks the suffix up in systemTagDefinitions and returns that row's localized name (each row carries its String(localized:) closure, LanguageManager.appBundle); nil for a suffix with no row.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "a row has this suffix",
+     "effect": "its localized name; otherwise nil (caller falls back to stored name)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func ReadingTag.systemTag(suffix:name:colorHex:)",
+   "hash": "8f6bbe2ae39e7699",
+   "does": "Builds a system ReadingTag with id 00000000-0000-0000-0000-00000000000<suffix>; if that string is not a UUID, assertionFailure and returns a tag with a random id.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/HRVSession.swift::init ReadingTag(id:name:colorHex:isSystem:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "UUID(uuidString:) fails",
+     "effect": "debug: assertionFailure; release: tag with random UUID (isSystem true) whose displayName then falls back to English name. Unreachable for the 14 single-hex suffixes in the table"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/HRVSession.swift::init ReadingTag(id:name:colorHex:isSystem:)": "66647711f045f928"
+   }
+  },
+  {
+   "key": "func ReadingTag.definedTag(_:)",
+   "hash": "02e800ca38242991",
+   "does": "Looks up a suffix in systemTagDefinitions and builds that system tag; preconditionFailure if absent.",
+   "entry": "Static let initializers ReadingTag.morning…menstrual",
+   "calls": [
+    "Emuqu/Sources/Models/HRVSession.swift::func ReadingTag.systemTag(suffix:name:colorHex:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no definition for suffix",
+     "effect": "preconditionFailure crash at static-let init; unreachable for the 14 literals used"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/HRVSession.swift::func ReadingTag.systemTag(suffix:name:colorHex:)": "9bc6e873a0dc638e"
+   }
+  },
+  {
+   "key": "var ReadingTag.systemTags",
+   "hash": "a82341cc7f402523",
+   "does": "Returns all 14 system tags freshly built from the definitions table.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/HRVSession.swift::func ReadingTag.systemTag(suffix:name:colorHex:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/HRVSession.swift::func ReadingTag.systemTag(suffix:name:colorHex:)": "9bc6e873a0dc638e"
+   }
+  },
+  {
+   "key": "init Color(hex:)",
+   "hash": "199c120031455e93",
+   "does": "Parses '#RRGGBB' or the '#RGB' shorthand (whitespace and '#' stripped; shorthand digits doubled) into an sRGB Color; nil for any other length or a non-hex character.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "three characters",
+     "effect": "expand each digit to two"
+    },
+    {
+     "at": "+6",
+     "cond": "not six hex digits, or Scanner fails",
+     "effect": "return nil; otherwise RGB from the 24 bits"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var Color.hexString",
+   "hash": "37f91c29ada8026d",
+   "does": "Converts a Color to '#RRGGBB' via UIColor.getRed, each component clamped to 0…1 and rounded to the nearest of 0…255; '#000000' if getRed fails.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "UIColor.getRed succeeds",
+     "effect": "true → formatted hex; false → '#000000' (color silently becomes black)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

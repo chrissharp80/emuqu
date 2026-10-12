@@ -44,16 +44,7 @@ final class SevereCauseDetector: CauseDetectionStrategy {
 
     private func detectElevatedHRWithLowHRV(in context: CauseDetectionContext) -> [DetectedCause] {
         var causes: [DetectedCause] = []
-        let stats = context.trendStats
-
-        guard stats.hasData, stats.avgHR > 0, let currentHR = context.currentHR else {
-            return causes
-        }
-
-        let hrElevation = currentHR - stats.avgHR
-        let hrvSuppressed = context.rmssd < stats.avgRMSSD * 0.8
-
-        if hrElevation > HRVThresholds.hrSignificantElevation, hrvSuppressed {
+        if let hrElevation = Self.elevatedHRWithLowHRV(in: context) {
             causes.append(DetectedCause(
                 cause: String(localized: "Elevated HR + Low HRV", bundle: NarrativeLanguage.bundle),
                 confidence: .high,
@@ -63,5 +54,19 @@ final class SevereCauseDetector: CauseDetectionStrategy {
         }
 
         return causes
+    }
+
+    /// How far tonight's resting HR sits above the baseline when the
+    /// "Elevated HR + Low HRV" pattern holds: more than
+    /// `hrSignificantElevation` above `trendStats.avgHR` with RMSSD under 80 %
+    /// of its average. Nil otherwise, or without an HR baseline or tonight's
+    /// HR. `MetricBasedCauseDetector` reads it so the same resting-HR rise is
+    /// not reported twice.
+    static func elevatedHRWithLowHRV(in context: CauseDetectionContext) -> Double? {
+        let stats = context.trendStats
+        guard stats.hasData, stats.avgHR > 0, let currentHR = context.currentHR else { return nil }
+        let hrElevation = currentHR - stats.avgHR
+        let hrvSuppressed = context.rmssd < stats.avgRMSSD * 0.8
+        return hrElevation > HRVThresholds.hrSignificantElevation && hrvSuppressed ? hrElevation : nil
     }
 }

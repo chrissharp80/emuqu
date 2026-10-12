@@ -1,0 +1,536 @@
+{
+ "file": "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift",
+ "hash": "5d2b88d0a81707de",
+ "role": "Declares BaselineNamespace (`baseline.*` facts): rolling 7-/30-day RMSSD geometric means and overnight-HR means plus today-vs-baseline deviations, reconstructed from overnight sessions in the archive rather than from BaselineTracker's stored points.",
+ "types": [
+  "BaselineNamespace: struct (FactNamespaceResolver) — baseline.* facts over SessionArchive",
+  "BaselineNamespace.Sample: struct (private) — date/rmssd/hr per overnight session"
+ ],
+ "state": [
+  "let namespace = 'baseline'",
+  "let archive: SessionArchive (injected by AppFactResolverFactory.registerHealthNamespaces, AppFactResolver.swift:196)"
+ ],
+ "toplevel": "Struct conformance only.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func BaselineNamespace.lastNight(in:now:)",
+   "hash": "efac456ae31fee33",
+   "does": "Static: the newest sample of the given oldest→newest list, only when it is at most 36 h old (last night's), else nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no samples or newest older than 36 h",
+     "effect": "nil; else the newest"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func BaselineNamespace.samples()",
+   "hash": "74ce33ba838a4524",
+   "does": "Filters archive entries to overnight + isReliableForHRVAggregates, sorts oldest→newest and maps each through sample(for:), dropping entries without a usable RMSSD. Each resolver calls it once.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.sample(for:)"
+   ],
+   "reads": [
+    "mem:SessionArchive.entries (index)",
+    "file:archive session files (only for entries without index mirrors)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.sample(for:)": "8082f6b7f5d4d844"
+   }
+  },
+  {
+   "key": "func BaselineNamespace.sample(for:)",
+   "hash": "854d644bd5794c57",
+   "does": "Builds a Sample from the index entry's mirrored meanRMSSD/meanHR (written from the same analysis result) when both are present — no file read; otherwise loads the session lightweight and uses analysisResult.timeDomain. Nil when RMSSD is not positive or the session cannot be loaded/has no analysis.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)"
+   ],
+   "reads": [
+    "mem:SessionArchive.entries (index)",
+    "file:archive session file (fallback)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "index has both meanRMSSD and meanHR",
+     "effect": "Sample from the index when RMSSD > 0, else nil"
+    },
+    {
+     "at": "+4",
+     "cond": "session cannot be loaded, has no analysis or RMSSD ≤ 0",
+     "effect": "nil; else Sample from the session"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "8dd50c9f204fb5d6"
+   }
+  },
+  {
+   "key": "func BaselineNamespace.window(_:days:)",
+   "hash": "579f5035a5d01062",
+   "does": "Static: the samples dated within the trailing `days` days of now.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "cutoff date cannot be computed",
+     "effect": "[]"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func BaselineNamespace.rmssdDeviationPct(days:)",
+   "hash": "0d5e794773a6165e",
+   "does": "Loads samples once; last night's RMSSD as a % deviation from the geometric mean of the earlier samples within `days`. Missing notRecorded without a last-night session, notYetComputed without earlier data.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.samples()",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.lastNight(in:now:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.window(_:days:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.geometricMean(_:)"
+   ],
+   "reads": [
+    "mem:SessionArchive.entries (index)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "no last-night sample",
+     "effect": "missing notRecorded"
+    },
+    {
+     "at": "+6",
+     "cond": "no positive earlier samples in the window",
+     "effect": "missing notYetComputed; else the %"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.geometricMean(_:)": "96a33e7daf319d2c",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.lastNight(in:now:)": "2ec2da1856ec7bd7",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.samples()": "a1fceaf668a9d086",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.window(_:days:)": "799c8f8263d87ce5"
+   }
+  },
+  {
+   "key": "func BaselineNamespace.rmssdMean(days:)",
+   "hash": "c51cbd6d680e1de3",
+   "does": "Geometric mean RMSSD of the samples within the trailing `days`; missing notYetComputed when none.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.samples()",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.window(_:days:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.geometricMean(_:)"
+   ],
+   "reads": [
+    "mem:SessionArchive.entries (index)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no positive samples in the window",
+     "effect": "missing notYetComputed; else the mean"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.geometricMean(_:)": "96a33e7daf319d2c",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.samples()": "a1fceaf668a9d086",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.window(_:days:)": "799c8f8263d87ce5"
+   }
+  },
+  {
+   "key": "func BaselineNamespace.hrMean(days:)",
+   "hash": "a08fbab77ba55d3c",
+   "does": "Arithmetic mean of overnight mean HR over the trailing `days`; missing notYetComputed when none.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.samples()",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.window(_:days:)"
+   ],
+   "reads": [
+    "mem:SessionArchive.entries (index)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "no samples in the window",
+     "effect": "missing notYetComputed; else the mean"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.samples()": "a1fceaf668a9d086",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.window(_:days:)": "799c8f8263d87ce5"
+   }
+  },
+  {
+   "key": "func BaselineNamespace.usableNightCount()",
+   "hash": "d9d2b375ce3d0cbe",
+   "does": "Number of distinct nights among the usable samples, keyed with the user's SleepSchedule.nightKey (as BaselineTracker keys its one point per night), so two recordings of one night count once.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settingsSnapshot",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.sleepSchedule",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.nightKey(for:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.samples()"
+   ],
+   "reads": [
+    "mem:SettingsManager.settingsSnapshot",
+    "mem:SessionArchive.entries (index)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.samples()": "a1fceaf668a9d086",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settingsSnapshot": "599269848673b93a",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.nightKey(for:)": "b52d1b79b4d7211e",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.sleepSchedule": "8de4d6a741ac1366",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+   }
+  },
+  {
+   "key": "func BaselineNamespace.geometricMean(_:)",
+   "hash": "ab4bf20cb6cf3c11",
+   "does": "Geometric mean exp(mean(ln x)) of the positive values; nil when none are positive.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "at least one positive value",
+     "effect": "returns the geometric mean; else nil"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Third geometric-mean helper: BaselineTracker.geometricMeanRMSSD and AnalysisSummaryGenerator.geometricMean compute the same exp(mean(ln x)).",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift:70",
+      "Emuqu/Sources/Analysis/BaselineTracker.swift:646",
+      "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift:237"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func BaselineNamespace.baselineAvailability()",
+   "hash": "75be888300581158",
+   "does": "Availability for every baseline entry: unavailable when the archive has no overnight entries; otherwise hasData with validRange earliest...latest overnight entry date and lastUpdated = latest.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries (overnight)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "overnight entries exist with min/max dates",
+     "effect": "returns Availability(hasData:true, range); else .unavailable"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::var BaselineNamespace.entries": "91f160c6e5e1272d",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e"
+   }
+  },
+  {
+   "key": "var BaselineNamespace.entries",
+   "hash": "f91812dd189c4fb3",
+   "does": "Returns the 9 baseline entries (rmssd mean 7d/30d, deviation today vs 7d/30d, hr mean 7d/30d, hr deviation vs 30d, days_of_history, is_established).",
+   "entry": "FactNamespaceResolver protocol requirement; read by FactNamespaceResolver.resolve/resolveAsync",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::var BaselineNamespace.baselineRmssdMean7dEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::var BaselineNamespace.baselineRmssdDeviationPctTodayEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::var BaselineNamespace.baselineHrMean7dEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::var BaselineNamespace.baselineRmssdMean30dEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::var BaselineNamespace.baselineRmssdDeviationPctTodayVs30dEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::var BaselineNamespace.baselineHrMean30dEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::var BaselineNamespace.baselineHrDeviationPctTodayVs30dEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::var BaselineNamespace.baselineDaysOfHistoryEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::var BaselineNamespace.baselineIsEstablishedEntry"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::var BaselineNamespace.baselineDaysOfHistoryEntry": "01de97bb17a44e37",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::var BaselineNamespace.baselineHrDeviationPctTodayVs30dEntry": "94f1a462d094191c",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::var BaselineNamespace.baselineHrMean30dEntry": "4a42570f9ca22684",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::var BaselineNamespace.baselineHrMean7dEntry": "640df2da60b253cd",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::var BaselineNamespace.baselineIsEstablishedEntry": "e0709188ef8f769b",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::var BaselineNamespace.baselineRmssdDeviationPctTodayEntry": "2f7a3f433d6ab914",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::var BaselineNamespace.baselineRmssdDeviationPctTodayVs30dEntry": "6f9cdcd2b43647ab",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::var BaselineNamespace.baselineRmssdMean30dEntry": "8f5d66fc1db2dc1f",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::var BaselineNamespace.baselineRmssdMean7dEntry": "b34d547d9cc3a9b3"
+   }
+  },
+  {
+   "key": "var BaselineNamespace.baselineRmssdMean7dEntry",
+   "hash": "1f81022eba39b680",
+   "does": "Fixed fact `baseline.rmssd.mean_7d`: rmssdMean(days: 7).",
+   "entry": "invoked by FactResolverRegistry when the namespace entries list is built (FactNamespaceResolver.resolve/resolveAsync walking entries) for tool dispatch / key resolution",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:availability:resolve:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.baselineAvailability()",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.rmssdMean(days:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries (overnight, isReliableForHRVAggregates)",
+    "archive:SessionArchive.retrieveLightweight (analysisResult.timeDomain)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.baselineAvailability()": "82ecada3b47e226b",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.rmssdMean(days:)": "6aeb5ed33dfc1286",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:availability:resolve:)": "2ede3d3bbb6ddc46"
+   }
+  },
+  {
+   "key": "var BaselineNamespace.baselineRmssdDeviationPctTodayEntry",
+   "hash": "4d9d5a9e726385dc",
+   "does": "Fixed fact `baseline.rmssd.deviation_pct_today`: rmssdDeviationPct(days: 7).",
+   "entry": "invoked by FactResolverRegistry when the namespace entries list is built (FactNamespaceResolver.resolve/resolveAsync walking entries) for tool dispatch / key resolution",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:availability:resolve:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.baselineAvailability()",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.rmssdDeviationPct(days:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries (overnight, isReliableForHRVAggregates)",
+    "archive:SessionArchive.retrieveLightweight (analysisResult.timeDomain)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.baselineAvailability()": "82ecada3b47e226b",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.rmssdDeviationPct(days:)": "f4c61eeeaf49ebd5",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:availability:resolve:)": "2ede3d3bbb6ddc46"
+   }
+  },
+  {
+   "key": "var BaselineNamespace.baselineHrMean7dEntry",
+   "hash": "1a372b82b819f961",
+   "does": "Fixed fact `baseline.hr.mean_7d`: hrMean(days: 7).",
+   "entry": "invoked by FactResolverRegistry when the namespace entries list is built (FactNamespaceResolver.resolve/resolveAsync walking entries) for tool dispatch / key resolution",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:availability:resolve:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.baselineAvailability()",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.hrMean(days:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries (overnight, isReliableForHRVAggregates)",
+    "archive:SessionArchive.retrieveLightweight (analysisResult.timeDomain)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.baselineAvailability()": "82ecada3b47e226b",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.hrMean(days:)": "84c3d88cec08049d",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:availability:resolve:)": "2ede3d3bbb6ddc46"
+   }
+  },
+  {
+   "key": "var BaselineNamespace.baselineRmssdMean30dEntry",
+   "hash": "8374615ae9cc2e54",
+   "does": "Fixed fact `baseline.rmssd.mean_30d`: rmssdMean(days: 30).",
+   "entry": "invoked by FactResolverRegistry when the namespace entries list is built (FactNamespaceResolver.resolve/resolveAsync walking entries) for tool dispatch / key resolution",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:availability:resolve:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.baselineAvailability()",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.rmssdMean(days:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries (overnight, isReliableForHRVAggregates)",
+    "archive:SessionArchive.retrieveLightweight (analysisResult.timeDomain)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.baselineAvailability()": "82ecada3b47e226b",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.rmssdMean(days:)": "6aeb5ed33dfc1286",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:availability:resolve:)": "2ede3d3bbb6ddc46"
+   }
+  },
+  {
+   "key": "var BaselineNamespace.baselineRmssdDeviationPctTodayVs30dEntry",
+   "hash": "80a0111e868b1a61",
+   "does": "Fixed fact `baseline.rmssd.deviation_pct_today_vs_30d`: rmssdDeviationPct(days: 30).",
+   "entry": "invoked by FactResolverRegistry when the namespace entries list is built (FactNamespaceResolver.resolve/resolveAsync walking entries) for tool dispatch / key resolution",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:availability:resolve:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.baselineAvailability()",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.rmssdDeviationPct(days:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries (overnight, isReliableForHRVAggregates)",
+    "archive:SessionArchive.retrieveLightweight (analysisResult.timeDomain)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.baselineAvailability()": "82ecada3b47e226b",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.rmssdDeviationPct(days:)": "f4c61eeeaf49ebd5",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:availability:resolve:)": "2ede3d3bbb6ddc46"
+   }
+  },
+  {
+   "key": "var BaselineNamespace.baselineHrMean30dEntry",
+   "hash": "2cdf3b466b9bc032",
+   "does": "Fixed fact `baseline.hr.mean_30d`: hrMean(days: 30).",
+   "entry": "invoked by FactResolverRegistry when the namespace entries list is built (FactNamespaceResolver.resolve/resolveAsync walking entries) for tool dispatch / key resolution",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:availability:resolve:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.baselineAvailability()",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.hrMean(days:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries (overnight, isReliableForHRVAggregates)",
+    "archive:SessionArchive.retrieveLightweight (analysisResult.timeDomain)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.baselineAvailability()": "82ecada3b47e226b",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.hrMean(days:)": "84c3d88cec08049d",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:availability:resolve:)": "2ede3d3bbb6ddc46"
+   }
+  },
+  {
+   "key": "var BaselineNamespace.baselineHrDeviationPctTodayVs30dEntry",
+   "hash": "1304f80f5c42bfb8",
+   "does": "Fixed fact `baseline.hr.deviation_pct_today_vs_30d`: loads samples once; (last-night meanHR − arithmetic mean of the earlier samples within 30 days)/baseline ×100.",
+   "entry": "invoked by FactResolverRegistry when the namespace entries list is built (FactNamespaceResolver.resolve/resolveAsync walking entries) for tool dispatch / key resolution",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:availability:resolve:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.baselineAvailability()",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.samples()",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.lastNight(in:now:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.window(_:days:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries (overnight, isReliableForHRVAggregates)",
+    "archive:SessionArchive.retrieveLightweight (analysisResult.timeDomain)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "no last-night sample",
+     "effect": "missing notRecorded"
+    },
+    {
+     "at": "+12",
+     "cond": "no earlier samples in 30 days",
+     "effect": "missing notYetComputed"
+    },
+    {
+     "at": "+16",
+     "cond": "baseline ≤ 0",
+     "effect": "missing notYetComputed; else the %"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.baselineAvailability()": "82ecada3b47e226b",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.lastNight(in:now:)": "2ec2da1856ec7bd7",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.samples()": "a1fceaf668a9d086",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.window(_:days:)": "799c8f8263d87ce5",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:availability:resolve:)": "2ede3d3bbb6ddc46"
+   }
+  },
+  {
+   "key": "var BaselineNamespace.baselineDaysOfHistoryEntry",
+   "hash": "23e85e3e3c4ef6c7",
+   "does": "Fixed fact `baseline.days_of_history`: min(usableNightCount(), 60) — distinct nights with a usable reading, keyed as the score's baseline keys nights; the description says it is counted from the archive and can differ from the score's own count when a night was never added to the baseline.",
+   "entry": "invoked by FactResolverRegistry when the namespace entries list is built (FactNamespaceResolver.resolve/resolveAsync walking entries) for tool dispatch / key resolution",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:availability:resolve:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.baselineAvailability()",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.usableNightCount()"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries (overnight, isReliableForHRVAggregates)",
+    "archive:SessionArchive.retrieveLightweight (analysisResult.timeDomain)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.baselineAvailability()": "82ecada3b47e226b",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.usableNightCount()": "afee069dab2d7788",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:availability:resolve:)": "2ede3d3bbb6ddc46"
+   }
+  },
+  {
+   "key": "var BaselineNamespace.baselineIsEstablishedEntry",
+   "hash": "8199dcd515786f4b",
+   "does": "Fixed fact `baseline.is_established`: usableNightCount() ≥ BaselineTracker.RecoveryBaselineStats.minimumDays (3) distinct nights; the description says it is counted from the archive and can, rarely, say true a night before the score's own baseline does.",
+   "entry": "invoked by FactResolverRegistry when the namespace entries list is built (FactNamespaceResolver.resolve/resolveAsync walking entries) for tool dispatch / key resolution",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:availability:resolve:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.baselineAvailability()",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.usableNightCount()"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries (overnight, isReliableForHRVAggregates)",
+    "archive:SessionArchive.retrieveLightweight (analysisResult.timeDomain)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.baselineAvailability()": "82ecada3b47e226b",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.usableNightCount()": "afee069dab2d7788",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:availability:resolve:)": "2ede3d3bbb6ddc46"
+   }
+  }
+ ],
+ "deps": {}
+}

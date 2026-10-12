@@ -1,0 +1,846 @@
+{
+ "file": "EmuquTests/FactValueTests.swift",
+ "hash": "6558b582211c8407",
+ "role": "XCTest suite for FactValue: humanReadable rendering (numbers, trailing-zero strip regression, dates, durations, missing reasons, containers with sorted keys), isScalar/isMissing, from(_:) builders, prettyMultiline, and the tool_result JSON envelope (missingReason only on absence, NaN→null, sorted keys, both encoders agree, always valid JSON).",
+ "types": [
+  "FactValueTests: class — XCTestCase for Assistant/Facts/FactValue.swift"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func FactValueTests.testIntegerRendersBare()",
+   "hash": "f62d4f324f3e298e",
+   "does": "Asserts .integer renders bare: 42, -7, 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.humanReadable"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.humanReadable": "69b6b36b84fd52f6"
+   }
+  },
+  {
+   "key": "func FactValueTests.testWholeDoubleDropsItsDecimalPoint()",
+   "hash": "1a35b556686ebb44",
+   "does": "Asserts whole doubles render without decimal point: 5, -12.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.humanReadable"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.humanReadable": "69b6b36b84fd52f6"
+   }
+  },
+  {
+   "key": "func FactValueTests.testFractionalDoubleCapsAtTwoDecimals()",
+   "hash": "719199cdb5451af6",
+   "does": "Asserts fractional doubles cap at two decimals: 5.25→'5.25', 1.234→'1.23'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.humanReadable"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.humanReadable": "69b6b36b84fd52f6"
+   }
+  },
+  {
+   "key": "func FactValueTests.testSingleDecimalDoubleKeepsItsValue()",
+   "hash": "a847eddf45b74417",
+   "does": "Regression for the unescaped-dot strip regex: 5.2→'5.2', 5.10→'5.1', -0.1→'-0.1', and 4.1…4.9 each render '4.<tenth>'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.humanReadable"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "for tenth in 1...9",
+     "effect": "asserts 4.tenth survives the strip"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.humanReadable": "69b6b36b84fd52f6"
+   }
+  },
+  {
+   "key": "func FactValueTests.testTwoDecimalDoublesAreUnaffectedByTheStrip()",
+   "hash": "c2ecb48164b4c520",
+   "does": "Asserts 5.25 and 5.05 keep both decimals.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.humanReadable"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.humanReadable": "69b6b36b84fd52f6"
+   }
+  },
+  {
+   "key": "func FactValueTests.testDoubleRoundingToZeroCollapsesToTheWholeNumber()",
+   "hash": "c490844e8c8755e8",
+   "does": "Asserts 5.004 (formats '5.00') renders '5' with no trailing dot.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.humanReadable"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.humanReadable": "69b6b36b84fd52f6"
+   }
+  },
+  {
+   "key": "func FactValueTests.testStringRendersVerbatim()",
+   "hash": "94e9fadc36031eac",
+   "does": "Asserts .string renders verbatim including empty string.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.humanReadable"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Test pins verbatim .string rendering (\"elevated\"→\"elevated\"), while FactValue's own rendering-rules comment says \".string → quoted, truncated for display if very long\"; humanReadable returns s unchanged (FactValue.swift:156), so the comment is wrong and nothing truncates long strings.",
+     "evidence": [
+      "EmuquTests/FactValueTests.swift:72",
+      "Emuqu/Sources/Assistant/Facts/FactValue.swift:104",
+      "Emuqu/Sources/Assistant/Facts/FactValue.swift:156"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.humanReadable": "69b6b36b84fd52f6"
+   }
+  },
+  {
+   "key": "func FactValueTests.testBooleanRendersAsYesOrNo()",
+   "hash": "878cd1e30319660f",
+   "does": "Asserts .boolean renders 'yes'/'no'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.humanReadable"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.humanReadable": "69b6b36b84fd52f6"
+   }
+  },
+  {
+   "key": "func FactValueTests.testDateRendersAsInternetDateTimeInLocalOffset()",
+   "hash": "f67713e258d3d3b3",
+   "does": "Asserts .date(epoch).humanReadable equals ISO8601DateFormatter output in the current time zone and parses back to epoch.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.humanReadable",
+    "EmuquTests/FactValueTests.swift::func FactValueTests.localISO(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.humanReadable": "69b6b36b84fd52f6",
+    "EmuquTests/FactValueTests.swift::func FactValueTests.localISO(_:)": "4e30ced46176437d"
+   }
+  },
+  {
+   "key": "func FactValueTests.localISO(_:)",
+   "hash": "2a647d652cbe0c2f",
+   "does": "Test helper: formats a date with ISO8601DateFormatter in TimeZone.current.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FactValueTests.testDurationUnderAMinuteShowsSecondsOnly()",
+   "hash": "9c790deae20be74d",
+   "does": "Asserts durations under a minute render 'Ns' (0s, 7s, 59s).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.humanReadable"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.humanReadable": "69b6b36b84fd52f6"
+   }
+  },
+  {
+   "key": "func FactValueTests.testDurationUnderAnHourZeroPadsTheSeconds()",
+   "hash": "f95b7ef1b32045ae",
+   "does": "Asserts durations under an hour render 'Mm SSs' with zero-padded seconds (63→'1m 03s', 600→'10m 00s', 3599→'59m 59s').",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.humanReadable"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Comment cites '63m 07s' but no assertion covers that value; the case actually asserted is 63 s → '1m 03s'. Comment does not match the test.",
+     "evidence": [
+      "EmuquTests/FactValueTests.swift:104",
+      "EmuquTests/FactValueTests.swift:106"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.humanReadable": "69b6b36b84fd52f6"
+   }
+  },
+  {
+   "key": "func FactValueTests.testDurationOverAnHourShowsAllThreeUnits()",
+   "hash": "19c9f403e735326d",
+   "does": "Asserts durations ≥ 1 h render 'Hh Mm Ss' without padding (3600→'1h 0m 0s', 3661→'1h 1m 1s', 45296→'12h 34m 56s').",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.humanReadable"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Test pins the hours form for ≥3600 s (\"1h 0m 0s\"), which contradicts the rendering-rules comment \".duration → \\\"63m 07s\\\"\" in FactValue.swift:106 (and the test comment at line 104): formatDuration (FactValue.swift:361) can never produce a minute count above 59.",
+     "evidence": [
+      "EmuquTests/FactValueTests.swift:112",
+      "Emuqu/Sources/Assistant/Facts/FactValue.swift:106",
+      "Emuqu/Sources/Assistant/Facts/FactValue.swift:361"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.humanReadable": "69b6b36b84fd52f6"
+   }
+  },
+  {
+   "key": "func FactValueTests.testMissingNamesItsReason()",
+   "hash": "70f7bbbb37ab4cb9",
+   "does": "Asserts .missing renders 'unknown (<reason>)' for notRecorded and sensorDropout.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.humanReadable"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.humanReadable": "69b6b36b84fd52f6"
+   }
+  },
+  {
+   "key": "func FactValueTests.testMissingAppendsItsDetailWhenPresent()",
+   "hash": "83456f660a047c76",
+   "does": "Asserts .missing with detail renders 'unknown (outOfRange: before first session)'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.humanReadable"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.humanReadable": "69b6b36b84fd52f6"
+   }
+  },
+  {
+   "key": "func FactValueTests.testEveryMissingReasonRendersItsRawValue()",
+   "hash": "f6449cd1d47caa72",
+   "does": "Asserts each of 9 listed MissingReason cases renders 'unknown (<rawValue>)'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.humanReadable"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "for each listed reason",
+     "effect": "asserts rendering"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.humanReadable": "69b6b36b84fd52f6"
+   }
+  },
+  {
+   "key": "func FactValueTests.testListRendersBracketed()",
+   "hash": "dafd1b60339c6e17",
+   "does": "Asserts list renders '[1, 2, 3]'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.humanReadable"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.humanReadable": "69b6b36b84fd52f6"
+   }
+  },
+  {
+   "key": "func FactValueTests.testEmptyListRendersAsEmptyBrackets()",
+   "hash": "46a4b1de2a32b7e8",
+   "does": "Asserts empty list renders '[]'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.humanReadable"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.humanReadable": "69b6b36b84fd52f6"
+   }
+  },
+  {
+   "key": "func FactValueTests.testListPreservesItsOrder()",
+   "hash": "949957070f970734",
+   "does": "Asserts list keeps insertion order '[c, a, b]'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.humanReadable"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.humanReadable": "69b6b36b84fd52f6"
+   }
+  },
+  {
+   "key": "func FactValueTests.testRecordSortsItsKeys()",
+   "hash": "b87951f8b19bdb82",
+   "does": "Asserts record renders keys sorted '{atl: 71, ctl: 62, rmssd: 42}'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.humanReadable"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.humanReadable": "69b6b36b84fd52f6"
+   }
+  },
+  {
+   "key": "func FactValueTests.testNestedContainersRenderInline()",
+   "hash": "92f8048c2f569f4d",
+   "does": "Asserts nested record/list render inline with sorted keys.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.humanReadable"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.humanReadable": "69b6b36b84fd52f6"
+   }
+  },
+  {
+   "key": "func FactValueTests.testScalarsAreScalarAndContainersAreNot()",
+   "hash": "9582aa5de0d79bb8",
+   "does": "Asserts scalar cases (incl. missing) are isScalar and list/record are not.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.isScalar"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "for each scalar value",
+     "effect": "asserts isScalar"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.isScalar": "4ff9e01db7c521f9"
+   }
+  },
+  {
+   "key": "func FactValueTests.testOnlyMissingIsMissing()",
+   "hash": "6172562046127d09",
+   "does": "Asserts only .missing is isMissing; 0, '', false and [] are not.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.isMissing"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.isMissing": "6bb98d051f1fc0e2"
+   }
+  },
+  {
+   "key": "func FactValueTests.testAnEmptyValueIsNotAMissingValue()",
+   "hash": "43c402b229afc583",
+   "does": "Asserts zero integer/double/duration are not isMissing.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.isMissing"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.isMissing": "6bb98d051f1fc0e2"
+   }
+  },
+  {
+   "key": "func FactValueTests.testFromWrapsNonNilScalars()",
+   "hash": "808c66068123d537",
+   "does": "Asserts FactValue.from wraps non-nil Int/Double/String/Bool/Date into the matching case (via humanReadable).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Int?, reason: MissingReason, detail: String?)",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Double?, reason: MissingReason, detail: String?)",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: String?, reason: MissingReason, detail: String?)",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Bool?, reason: MissingReason, detail: String?)",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Date?, reason: MissingReason, detail: String?)",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.humanReadable",
+    "EmuquTests/FactValueTests.swift::func FactValueTests.localISO(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Bool?, reason: MissingReason, detail: String?)": "c9609eb287ebded6",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Date?, reason: MissingReason, detail: String?)": "3518f2eb24433cd0",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Double?, reason: MissingReason, detail: String?)": "47972947e76f100c",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Int?, reason: MissingReason, detail: String?)": "5a39f12343a8c5ae",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: String?, reason: MissingReason, detail: String?)": "944da9d754759532",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.humanReadable": "69b6b36b84fd52f6",
+    "EmuquTests/FactValueTests.swift::func FactValueTests.localISO(_:)": "4e30ced46176437d"
+   }
+  },
+  {
+   "key": "func FactValueTests.testFromDefaultsNilToNotRecorded()",
+   "hash": "a99b830afcdf50ed",
+   "does": "Asserts FactValue.from(nil) for Int/Double/String/Bool/Date renders 'unknown (notRecorded)'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Int?, reason: MissingReason, detail: String?)",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Double?, reason: MissingReason, detail: String?)",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: String?, reason: MissingReason, detail: String?)",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Bool?, reason: MissingReason, detail: String?)",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Date?, reason: MissingReason, detail: String?)",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.humanReadable"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Bool?, reason: MissingReason, detail: String?)": "c9609eb287ebded6",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Date?, reason: MissingReason, detail: String?)": "3518f2eb24433cd0",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Double?, reason: MissingReason, detail: String?)": "47972947e76f100c",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Int?, reason: MissingReason, detail: String?)": "5a39f12343a8c5ae",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: String?, reason: MissingReason, detail: String?)": "944da9d754759532",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.humanReadable": "69b6b36b84fd52f6"
+   }
+  },
+  {
+   "key": "func FactValueTests.testFromCarriesAnExplicitReasonAndDetail()",
+   "hash": "464bfcdeab3428a9",
+   "does": "Asserts from(nil, reason: .invalidParameter, detail:) renders reason and detail.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Double?, reason: MissingReason, detail: String?)",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.humanReadable"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Double?, reason: MissingReason, detail: String?)": "47972947e76f100c",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.humanReadable": "69b6b36b84fd52f6"
+   }
+  },
+  {
+   "key": "func FactValueTests.testFromIgnoresTheReasonWhenAValueIsPresent()",
+   "hash": "fcef01131a1ed46e",
+   "does": "Asserts from(3, reason:.internalError) ignores the reason and renders '3'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Int?, reason: MissingReason, detail: String?)",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.isMissing",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.humanReadable"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Int?, reason: MissingReason, detail: String?)": "5a39f12343a8c5ae",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.humanReadable": "69b6b36b84fd52f6",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.isMissing": "6bb98d051f1fc0e2"
+   }
+  },
+  {
+   "key": "func FactValueTests.testPrettyMultilineListsOneItemPerLine()",
+   "hash": "212c6d80d052d4fe",
+   "does": "Asserts list prettyMultiline is '- 1\\n- 2'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.prettyMultiline(indent:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.prettyMultiline(indent:)": "57215d97e7d82240"
+   }
+  },
+  {
+   "key": "func FactValueTests.testPrettyMultilineMarksAnEmptyList()",
+   "hash": "357d2385761770a7",
+   "does": "Asserts empty list prettyMultiline is '(empty)'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.prettyMultiline(indent:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.prettyMultiline(indent:)": "57215d97e7d82240"
+   }
+  },
+  {
+   "key": "func FactValueTests.testPrettyMultilineIndentsNestedRecords()",
+   "hash": "cde5709b1283b044",
+   "does": "Asserts nested record prettyMultiline drops to an indented block: 'atl: 71\\nwindow: \\n  end: 10\\n  start: 0'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.prettyMultiline(indent:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.prettyMultiline(indent:)": "57215d97e7d82240"
+   }
+  },
+  {
+   "key": "func FactValueTests.testPrettyMultilineFallsBackToHumanReadableForScalars()",
+   "hash": "2ed934399aa49849",
+   "does": "Asserts scalar prettyMultiline falls back to humanReadable with 2-space-per-level padding.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.prettyMultiline(indent:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.prettyMultiline(indent:)": "57215d97e7d82240"
+   }
+  },
+  {
+   "key": "func FactValueTests.envelope(_:)",
+   "hash": "9e34f3d5e3868308",
+   "does": "Test helper: parses value.toToolResultJSON() into a [String: Any]; XCTFails and returns [:] when not decodable.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.toToolResultJSON()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "UTF-8 data and JSON object decode succeed",
+     "effect": "false: XCTFail and return empty dict"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.toToolResultJSON()": "de8ff66062894932"
+   }
+  },
+  {
+   "key": "func FactValueTests.testSuccessEnvelopeCarriesTheValueAndNoMissingReason()",
+   "hash": "bac0cc56a544d590",
+   "does": "Asserts success envelope has value 62, no missingReason key, confidence 'high' and an asOf.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/FactValueTests.swift::func FactValueTests.envelope(_:)",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.toToolResultJSON()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.toToolResultJSON()": "de8ff66062894932",
+    "EmuquTests/FactValueTests.swift::func FactValueTests.envelope(_:)": "86a8dd93fe8edb35"
+   }
+  },
+  {
+   "key": "func FactValueTests.testNonFiniteDoubleNullsOnlyThatField()",
+   "hash": "f1a4faf197b7724b",
+   "does": "Asserts a NaN double inside a record becomes JSON null for that field only, other fields kept, no missingReason.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/FactValueTests.swift::func FactValueTests.envelope(_:)",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.toToolResultJSON()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.toToolResultJSON()": "de8ff66062894932",
+    "EmuquTests/FactValueTests.swift::func FactValueTests.envelope(_:)": "86a8dd93fe8edb35"
+   }
+  },
+  {
+   "key": "func FactValueTests.testMissingEnvelopeNullsTheValueAndNamesTheReason()",
+   "hash": "c19feb7e83989403",
+   "does": "Asserts missing envelope has value null, missingReason 'sensorDropout', no detail key.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/FactValueTests.swift::func FactValueTests.envelope(_:)",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.toToolResultJSON()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.toToolResultJSON()": "de8ff66062894932",
+    "EmuquTests/FactValueTests.swift::func FactValueTests.envelope(_:)": "86a8dd93fe8edb35"
+   }
+  },
+  {
+   "key": "func FactValueTests.testMissingEnvelopeIncludesDetailWhenGiven()",
+   "hash": "7153a35b74447dab",
+   "does": "Asserts missing envelope includes detail when given.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/FactValueTests.swift::func FactValueTests.envelope(_:)",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.toToolResultJSON()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.toToolResultJSON()": "de8ff66062894932",
+    "EmuquTests/FactValueTests.swift::func FactValueTests.envelope(_:)": "86a8dd93fe8edb35"
+   }
+  },
+  {
+   "key": "func FactValueTests.testEnvelopePreservesScalarTypes()",
+   "hash": "0d8489ab20951d40",
+   "does": "Asserts envelope keeps scalar JSON types (string, double, bool, duration as Int) and dates as localISO8601 strings.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/FactValueTests.swift::func FactValueTests.envelope(_:)",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.toToolResultJSON()",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.localISO8601(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.localISO8601(_:)": "9043f4e802508b2a",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.toToolResultJSON()": "de8ff66062894932",
+    "EmuquTests/FactValueTests.swift::func FactValueTests.envelope(_:)": "86a8dd93fe8edb35"
+   }
+  },
+  {
+   "key": "func FactValueTests.testEnvelopeCarriesListsAndRecordsStructurally()",
+   "hash": "0ee30aecc6bfa00c",
+   "does": "Asserts lists and records are emitted as JSON arrays/objects.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/FactValueTests.swift::func FactValueTests.envelope(_:)",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.toToolResultJSON()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.toToolResultJSON()": "de8ff66062894932",
+    "EmuquTests/FactValueTests.swift::func FactValueTests.envelope(_:)": "86a8dd93fe8edb35"
+   }
+  },
+  {
+   "key": "func FactValueTests.testNestedMissingCarriesItsOwnEnvelope()",
+   "hash": "99c91d80bddf0e7a",
+   "does": "Asserts a missing field inside a record carries its own nested envelope (missingReason notYetComputed, value null).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/FactValueTests.swift::func FactValueTests.envelope(_:)",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.toToolResultJSON()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.toToolResultJSON()": "de8ff66062894932",
+    "EmuquTests/FactValueTests.swift::func FactValueTests.envelope(_:)": "86a8dd93fe8edb35"
+   }
+  },
+  {
+   "key": "func FactValueTests.testEnvelopeKeysAreSorted()",
+   "hash": "9016cb297b21a586",
+   "does": "Asserts toToolResultJSON key order for a missing value is asOf < confidence < detail < missingReason < value.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.toToolResultJSON()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.toToolResultJSON()": "de8ff66062894932",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.lowerBound": "42532e07486db197"
+   }
+  },
+  {
+   "key": "func FactValueTests.testBothJSONEntryPointsAgree()",
+   "hash": "1045523284fe5606",
+   "does": "For 8 values asserts toolResultJSON (JSONEncoder path) and toToolResultJSON() (JSONSerialization path) are identical after masking asOf.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.toolResultJSON",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.toToolResultJSON()",
+    "EmuquTests/FactValueTests.swift::func FactValueTests.strippingTimestamp(_:)",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.humanReadable"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+14",
+     "cond": "for each value",
+     "effect": "compares both encodings"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "The agreement check omits .date, a NaN double and nested .missing — the cases where the two encoders' fallbacks differ (toolResultJSON's failure body lacks 'value', FactValue.swift:285 vs 299).",
+     "evidence": [
+      "EmuquTests/FactValueTests.swift:388",
+      "Emuqu/Sources/Assistant/Facts/FactValue.swift:285",
+      "Emuqu/Sources/Assistant/Facts/FactValue.swift:299"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.toToolResultJSON()": "de8ff66062894932",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.humanReadable": "69b6b36b84fd52f6",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.toolResultJSON": "01e0921b265d1ba5",
+    "EmuquTests/FactValueTests.swift::func FactValueTests.strippingTimestamp(_:)": "6db74a1c621a6902"
+   }
+  },
+  {
+   "key": "func FactValueTests.strippingTimestamp(_:)",
+   "hash": "20d381c0c213555a",
+   "does": "Test helper: replaces the asOf timestamp in a JSON string with '?' via regex.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FactValueTests.testEnvelopeIsAlwaysValidJSON()",
+   "hash": "f307bdef72ed5aba",
+   "does": "Asserts toToolResultJSON produces parseable JSON for 0, a string with quote/backslash, a list with nested missing, empty record and empty list.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.toToolResultJSON()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "for each value",
+     "effect": "asserts UTF-8 data and JSONSerialization parse"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.toToolResultJSON()": "de8ff66062894932"
+   }
+  }
+ ],
+ "deps": {}
+}

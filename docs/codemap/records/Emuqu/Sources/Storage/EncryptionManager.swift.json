@@ -1,0 +1,515 @@
+{
+ "file": "Emuqu/Sources/Storage/EncryptionManager.swift",
+ "hash": "b5d22809b6755c6d",
+ "role": "At-rest AES-GCM encryption for archive session files and one-shot raw RR backups, with versioned non-synchronizable Keychain keys (FR magic + version framing, legacy version-prefixed and bare formats readable), an in-process key cache, and migration of old ThisDeviceOnly keys to AfterFirstUnlock.",
+ "types": [
+  "EncryptionManager: final class (Sendable singleton) — encrypt/decrypt/key management",
+  "EncryptionManager.EncryptionError: enum — encryptionFailed/decryptionFailed/keyNotFound/keychainError"
+ ],
+ "state": [
+  "mem:EncryptionManager.shared",
+  "mem:EncryptionManager.currentKeyVersion = 1",
+  "mem:EncryptionManager.magicPrefix FR [0x46,0x52]",
+  "mem:EncryptionManager.cachedKeys (OSAllocatedUnfairLock [UInt8: SymmetricKey])",
+  "kc:AppConfig.keychainService / session-encryption-key[-vN] (v1 account 'session-encryption-key', vN 'session-encryption-key-vN'; kSecAttrAccessibleAfterFirstUnlock)"
+ ],
+ "toplevel": "keychainService is AppConfig.keychainService. shared built lazily on first access.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func EncryptionManager.keychainAccount(for:)",
+   "hash": "24bbf760c0124416",
+   "does": "Keychain account for a key version: 'session-encryption-key' for v1, else 'session-encryption-key-v<N>'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "version == 1",
+     "effect": "legacy account name; else suffixed name"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "init EncryptionManager()",
+   "hash": "4f171088cdf643a5",
+   "does": "Private no-op init for the singleton.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func EncryptionManager.encrypt(_:)",
+   "hash": "56396aee30789810",
+   "does": "Encrypts with the current-version key (created if absent) and returns FR magic + version byte + AES-GCM combined.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.getOrCreateKey(version:)",
+    "ext:AES.GCM.seal"
+   ],
+   "reads": [
+    "kc:AppConfig.keychainService / session-encryption-key[-vN]"
+   ],
+   "writes": [
+    "kc:AppConfig.keychainService / session-encryption-key[-vN] (created when absent)"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "combined nil",
+     "effect": "throw encryptionFailed; else build framed data"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::var AssistantSystemPrompt.Composed.combined": "3c86d6708fa36edc",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.getOrCreateKey(version:)": "4022d046812dddbc"
+   }
+  },
+  {
+   "key": "func EncryptionManager.decrypt(_:)",
+   "hash": "64610fe84f62964e",
+   "does": "Decrypts any of the three formats: opens with the extracted version's key; on failure, if any framing was stripped (FR magic or legacy version byte), retries the whole blob as bare with the v1 key via openAsBare, which rethrows the first error if that also fails; an unframed blob's error is rethrown directly.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.extractVersion(from:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.openSealed(_:version:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.openAsBare(_:otherwise:)"
+   ],
+   "reads": [
+    "kc:AppConfig.keychainService / session-encryption-key[-vN]",
+    "mem:EncryptionManager.cachedKeys"
+   ],
+   "writes": [
+    "mem:EncryptionManager.cachedKeys"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "openSealed threw",
+     "effect": "enter fallback check"
+    },
+    {
+     "at": "+5",
+     "cond": "payload shorter than input (blob was parsed as framed)",
+     "effect": "openAsBare(whole blob); else rethrow original error"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.extractVersion(from:)": "a845a5d28c932fe3",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.openAsBare(_:otherwise:)": "15d03da16e5017b6",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.openSealed(_:version:)": "131eba2f36eca16a"
+   }
+  },
+  {
+   "key": "func EncryptionManager.openAsBare(_:otherwise:)",
+   "hash": "94aaa905e4b3bc86",
+   "does": "Opens the whole blob as bare legacy AES-GCM data with the v1 key; if that throws, throws the framed reading's error instead.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.openSealed(_:version:)"
+   ],
+   "reads": [
+    "mem:EncryptionManager.cachedKeys",
+    "kc:AppConfig.keychainService / session-encryption-key[-vN]"
+   ],
+   "writes": [
+    "mem:EncryptionManager.cachedKeys"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "bare open throws",
+     "effect": "throw framedError"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.openSealed(_:version:)": "131eba2f36eca16a"
+   }
+  },
+  {
+   "key": "func EncryptionManager.openSealed(_:version:)",
+   "hash": "3989742dc932b7fa",
+   "does": "Loads (never creates) the key for version and AES-GCM-opens the combined box.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.loadKey(version:)",
+    "ext:AES.GCM.open"
+   ],
+   "reads": [
+    "kc:AppConfig.keychainService / session-encryption-key[-vN]"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.loadKey(version:)": "73bbaca567719214"
+   }
+  },
+  {
+   "key": "var EncryptionManager.isAvailable",
+   "hash": "b318e8b648c2bc97",
+   "does": "True when the current-version key can be loaded or created; false on Keychain error. Side effect: creates the key when absent.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.getOrCreateKey(version:)"
+   ],
+   "reads": [
+    "kc:AppConfig.keychainService / session-encryption-key[-vN]"
+   ],
+   "writes": [
+    "kc:AppConfig.keychainService / session-encryption-key[-vN] (created when absent)"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "getOrCreateKey threw",
+     "effect": "return false; else true"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.getOrCreateKey(version:)": "4022d046812dddbc"
+   }
+  },
+  {
+   "key": "func EncryptionManager.reEncryptIfNeeded(_:)",
+   "hash": "19cd5f4db3c62c54",
+   "does": "Returns data re-encrypted under the current key when its extracted version differs, nil when already current.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.extractVersion(from:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.decrypt(_:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)"
+   ],
+   "reads": [
+    "kc:AppConfig.keychainService / session-encryption-key[-vN]"
+   ],
+   "writes": [
+    "kc:AppConfig.keychainService / session-encryption-key[-vN]"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "version == currentKeyVersion",
+     "effect": "return nil (also for legacy version-prefixed v1 and bare blobs, which are never re-framed)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.decrypt(_:)": "32058ab0050d0265",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)": "6236f6fa0100fadb",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.extractVersion(from:)": "a845a5d28c932fe3"
+   }
+  },
+  {
+   "key": "func EncryptionManager.extractVersion(from:)",
+   "hash": "5ec0a2a8a0f049db",
+   "does": "Parses (version, payload): empty → (1, data); FR-framed → its version byte; legacy first byte 1-127 → that version; else bare → (1, data).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.magicPrefixed(_:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.legacyVersionPrefixed(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "data empty",
+     "effect": "return (1, data)"
+    },
+    {
+     "at": "+2",
+     "cond": "FR-framed",
+     "effect": "return magic parse"
+    },
+    {
+     "at": "+3",
+     "cond": "legacy version-prefixed",
+     "effect": "return legacy parse; else bare v1"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.legacyVersionPrefixed(_:)": "57781d7bd5072573",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.magicPrefixed(_:)": "612228b56ca30f77"
+   }
+  },
+  {
+   "key": "func EncryptionManager.magicPrefixed(_:)",
+   "hash": "165390d75baf1f3b",
+   "does": "Returns (version, payload) when data is >=31 bytes and starts with 'FR', else nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "count>=31 and FR prefix",
+     "effect": "return (byte2, rest); else nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func EncryptionManager.legacyVersionPrefixed(_:)",
+   "hash": "e759eb5cdb61badb",
+   "does": "Returns (firstByte, rest) when first byte is 1-127, total >=29 and rest >=28 bytes, else nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "first byte 1..127 and count>=29",
+     "effect": "continue; else nil"
+    },
+    {
+     "at": "+4",
+     "cond": "payload >= 28",
+     "effect": "return; else nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func EncryptionManager.loadKey(version:)",
+   "hash": "10fe41885e841025",
+   "does": "Returns the cached key (checked under the lock); on a miss reads it from the Keychain and migrates its accessibility OUTSIDE the lock (keyNotFound/other errors propagate, never creates), then stores it under the lock unless another thread stored one first, returning the stored key.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.keychainAccount(for:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.retrieveKeyFromKeychain(account:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.makeKeyMigratable(account:)"
+   ],
+   "reads": [
+    "mem:EncryptionManager.cachedKeys",
+    "kc:AppConfig.keychainService / session-encryption-key[-vN]"
+   ],
+   "writes": [
+    "mem:EncryptionManager.cachedKeys",
+    "kc:AppConfig.keychainService / session-encryption-key[-vN] (accessibility update)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "key cached for version",
+     "effect": "return it; else Keychain read outside the lock"
+    },
+    {
+     "at": "+6",
+     "cond": "another thread cached a key meanwhile",
+     "effect": "return that one; else cache and return this one"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.keychainAccount(for:)": "196540555ada322e",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.makeKeyMigratable(account:)": "d4f3a003d85390a6",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.retrieveKeyFromKeychain(account:)": "5358dff5ae6f19a8"
+   }
+  },
+  {
+   "key": "func EncryptionManager.getOrCreateKey(version:)",
+   "hash": "904a692c8670a8a6",
+   "does": "Runs loadOrCreateKey under the cache lock.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.loadOrCreateKey(version:cache:)"
+   ],
+   "reads": [
+    "mem:EncryptionManager.cachedKeys"
+   ],
+   "writes": [
+    "mem:EncryptionManager.cachedKeys"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.loadOrCreateKey(version:cache:)": "c39b463856e33c47"
+   }
+  },
+  {
+   "key": "func EncryptionManager.loadOrCreateKey(version:cache:)",
+   "hash": "4de5381548c2eb4f",
+   "does": "Returns cached key, else reads from Keychain (migrating accessibility), else on keyNotFound creates and stores a 256-bit key; other Keychain errors propagate.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.keychainAccount(for:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.retrieveKeyFromKeychain(account:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.makeKeyMigratable(account:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.storeKeyInKeychain(_:account:)"
+   ],
+   "reads": [
+    "kc:AppConfig.keychainService / session-encryption-key[-vN]",
+    "mem:EncryptionManager.cachedKeys"
+   ],
+   "writes": [
+    "kc:AppConfig.keychainService / session-encryption-key[-vN]",
+    "mem:EncryptionManager.cachedKeys"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "cache hit",
+     "effect": "return cached"
+    },
+    {
+     "at": "+12",
+     "cond": "retrieve threw keyNotFound",
+     "effect": "create+store new key and cache it; other errors propagate uncached"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.keychainAccount(for:)": "196540555ada322e",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.makeKeyMigratable(account:)": "d4f3a003d85390a6",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.retrieveKeyFromKeychain(account:)": "5358dff5ae6f19a8",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.storeKeyInKeychain(_:account:)": "7beb37309a266a6e"
+   }
+  },
+  {
+   "key": "func EncryptionManager.storeKeyInKeychain(_:account:)",
+   "hash": "549dd3474f45bb48",
+   "does": "SecItemDelete then SecItemAdd of the key under service/account with AfterFirstUnlock accessibility; throws keychainError on add failure.",
+   "entry": null,
+   "calls": [
+    "ext:SecItemDelete",
+    "ext:SecItemAdd"
+   ],
+   "reads": [],
+   "writes": [
+    "kc:AppConfig.keychainService / session-encryption-key[-vN]"
+   ],
+   "branches": [
+    {
+     "at": "+15",
+     "cond": "SecItemAdd success",
+     "effect": "return; else throw keychainError(status)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/EncryptionManager.swift::var EncryptionManager.keyAccessibility": "4776b5a9830ddb55"
+   }
+  },
+  {
+   "key": "var EncryptionManager.keyAccessibility",
+   "hash": "da700c59d5b06f2e",
+   "does": "kSecAttrAccessibleAfterFirstUnlock (not ThisDeviceOnly) so the key moves with device backups.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func EncryptionManager.makeKeyMigratable(account:)",
+   "hash": "b89146f400bc74fc",
+   "does": "SecItemUpdate changes an AfterFirstUnlockThisDeviceOnly item for this account to AfterFirstUnlock; logs a warning on errors other than not-found.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:SecItemUpdate"
+   ],
+   "reads": [],
+   "writes": [
+    "kc:AppConfig.keychainService / session-encryption-key[-vN] (accessibility)"
+   ],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "status not success and not itemNotFound",
+     "effect": "log warning; error otherwise ignored"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/EncryptionManager.swift::var EncryptionManager.keyAccessibility": "4776b5a9830ddb55",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func EncryptionManager.retrieveKeyFromKeychain(account:)",
+   "hash": "89f0163a61de9374",
+   "does": "SecItemCopyMatching for the account's key data; returns data, throws keyNotFound on errSecItemNotFound, else keychainError(status).",
+   "entry": null,
+   "calls": [
+    "ext:SecItemCopyMatching"
+   ],
+   "reads": [
+    "kc:AppConfig.keychainService / session-encryption-key[-vN]"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "success with Data",
+     "effect": "return it"
+    },
+    {
+     "at": "+12",
+     "cond": "errSecItemNotFound",
+     "effect": "throw keyNotFound; else throw keychainError"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var EncryptionManager.EncryptionError.errorDescription",
+   "hash": "7f24d7b9e7acc3d1",
+   "does": "Localized text for EncryptionError cases.",
+   "entry": "LocalizedError witness; reaches the Settings sync error line",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": ".encryptionFailed",
+     "effect": "message"
+    },
+    {
+     "at": "+5",
+     "cond": ".decryptionFailed",
+     "effect": "message"
+    },
+    {
+     "at": "+7",
+     "cond": ".keyNotFound",
+     "effect": "message"
+    },
+    {
+     "at": "+9",
+     "cond": ".keychainError(status)",
+     "effect": "message with status"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -94,11 +94,14 @@ extension MorningProcessingService {
     /// avoids a per-entry retrieve. The 1,000-beat (≈ 13 min) floor on the new
     /// session is the other half: below it the new session is almost certainly
     /// a partial recovery and must not claim the night.
+    ///
+    /// A new session with no beats at all (no series) is below that floor
+    /// too: it cannot claim a real overnight.
     static func newSessionMayClaimNight(
         over entry: SessionArchiveEntry, newBeatCount: Int
     ) -> Bool {
         let entryIsRealOvernight = entry.recoveryScore != nil && entry.meanRMSSD != nil
-        guard entryIsRealOvernight, newBeatCount > 0 else { return true }
+        guard entryIsRealOvernight else { return true }
         return newBeatCount >= 1_000
     }
 
@@ -118,11 +121,17 @@ extension MorningProcessingService {
         }.value
     }
 
-    /// The merge gap in seconds: the caller's value when given, else the
-    /// mode's own (none when merging is off, the default 4.5 h otherwise).
+    /// The default merge mode's gap (`UserSettings.effectiveMergeGapSeconds`
+    /// for `.defaultGap`).
+    static let defaultMergeGapSeconds: TimeInterval = 4.5 * 60 * 60
+
+    /// The merge gap in seconds: none when merging is off; otherwise the
+    /// caller's value when given (production callers pass the user's
+    /// `effectiveMergeGapSeconds`), else `defaultMergeGapSeconds` — also for
+    /// `.custom`, whose hours only the caller's settings know.
     static func mergeGap(mode: SessionMergeMode, seconds: TimeInterval?) -> TimeInterval {
         guard mode != .off else { return 0 }
-        return seconds ?? UserSettings().effectiveMergeGapSeconds
+        return seconds ?? defaultMergeGapSeconds
     }
 
     /// Time between two recordings; zero when they touch or overlap. The
@@ -195,8 +204,7 @@ extension MorningProcessingService {
     /// skipped: merging it again would put the same beats in twice, out of
     /// time order.
     func sameNightSegments(
-        baseSession: HRVSession, points: [RRPoint], sleepSchedule: SleepSchedule,
-        mergeGap: TimeInterval = UserSettings().effectiveMergeGapSeconds
+        baseSession: HRVSession, points: [RRPoint], sleepSchedule: SleepSchedule, mergeGap: TimeInterval
     ) -> (segments: [NightSegment], links: [UUID]) {
         let sameNightEntries = sameNightEntries(of: baseSession, sleepSchedule: sleepSchedule)
         let alreadyLinked = Set(baseSession.linkedSessionIds ?? [])
@@ -254,9 +262,6 @@ extension MorningProcessingService {
             SessionMerger.rebased(segment.points, from: segment.startDate, onto: effectiveStartDate)
         }
     }
-
-    /// Gap detection diagnostics (no-op; enable for development debugging).
-    func logGapDetection(series _: RRSeries) {}
 
     /// Result of sleep data polling.
     /// Internal rather than private: the helpers that build it live in
@@ -393,7 +398,7 @@ extension MorningProcessingService {
         )
     }
 
-    /// Compute composite recovery score.
+    /// PNS minus SNS index of the analysis; nil without both.
     static func ansBalance(of result: HRVAnalysisResult) -> Double? {
         guard let pns = result.ansMetrics?.pnsIndex, let sns = result.ansMetrics?.snsIndex else { return nil }
         return pns - sns
@@ -410,34 +415,57 @@ extension MorningProcessingService {
         guard let result = analysisResult else { return nil }
         let health = await scoringHealthData(for: session, result: result)
         let breakdown = RecoveryScoreCalculator.calculateWithBreakdown(
-            RecoveryScoreCalculator.ScoreInputs(
-                hrvReadiness: result.ansMetrics?.readinessScore, rmssd: result.timeDomain.rmssd,
-                meanHR: result.timeDomain.meanHR, dfaAlpha1: result.nonlinear.dfaAlpha1,
-                baselineStats: baselineTracker.recoveryBaselineStats(
-                    excludingNightOf: session, sleepSchedule: settings.sleepSchedule
-                ), sleepData: health.sleep,
-                vitals: health.vitals, typicalSleepHours: settings.typicalSleepHours
+            Self.scoreInputs(
+                result: result, health: health, settings: settings,
+                baselineStats: baselineTracker.recoveryBaselineStats(excludingNightOf: session, sleepSchedule: settings.sleepSchedule)
             ),
             // Use training context from analysis result, or the one passed in
             trainingContext: result.trainingContext ?? trainingContext,
             config: settings.scoringConfig,
-            ansBalance: Self.ansBalance(of: result)
+            // The baseline HRV stands in for a night the gate marked
+            // untrustworthy, as acceptance does; the staleness term is
+            // measured from the night itself, so a repaired past night is
+            // not aged against today.
+            useBaselineHRV: session.hrvDataQuality == .insufficient || session.hrvDataQuality == .preSleep,
+            ansBalance: Self.ansBalance(of: result),
+            referenceDate: session.endDate ?? session.startDate
         )
         return (RecoveryScoreCalculator.toTenScale(breakdown.compositeScore), breakdown)
     }
 
+    /// The calculator's inputs from the analysis, the night's sleep and
+    /// vitals, and the baseline of the nights before it.
+    static func scoreInputs(
+        result: HRVAnalysisResult, health: (sleep: SleepData?, vitals: RecoveryVitals?),
+        settings: SettingsSnapshot, baselineStats: BaselineTracker.RecoveryBaselineStats?
+    ) -> RecoveryScoreCalculator.ScoreInputs {
+        RecoveryScoreCalculator.ScoreInputs(
+            hrvReadiness: result.ansMetrics?.readinessScore, rmssd: result.timeDomain.rmssd,
+            meanHR: result.timeDomain.meanHR, dfaAlpha1: result.nonlinear.dfaAlpha1,
+            baselineStats: baselineStats, sleepData: health.sleep,
+            vitals: health.vitals, typicalSleepHours: settings.typicalSleepHours
+        )
+    }
+
     /// Use frozen morning snapshots when available so the recovery score stays
     /// stable after acceptance (e.g. during reanalysis); otherwise fetch fresh.
+    /// Sleep and vitals are taken independently: a session with a frozen
+    /// sleep snapshot but no vitals snapshot (a background-refinement pass,
+    /// which skips `attachVitalsSnapshot`) still gets fresh vitals for the
+    /// night instead of none.
     ///
     /// Strap-RHR override: see `attachVitalsSnapshot`.
     func scoringHealthData(
         for session: HRVSession, result: HRVAnalysisResult
     ) async -> (sleep: SleepData?, vitals: RecoveryVitals?) {
-        if let frozenSleep = session.sleepSnapshot {
-            return (frozenSleep, session.vitalsSnapshot)
-        }
         let sessionEnd = session.endDate ?? session.startDate
-        let sleepData = await freshSleepData(for: session, sessionEnd: sessionEnd)
+        let sleepData: SleepData?
+        if let frozenSleep = session.sleepSnapshot {
+            sleepData = frozenSleep
+        } else {
+            sleepData = await freshSleepData(for: session, sessionEnd: sessionEnd)
+        }
+        if let frozenVitals = session.vitalsSnapshot { return (sleepData, frozenVitals) }
         let fresh = await healthKit.fetchRecoveryVitals(relativeTo: sessionEnd)
         return (sleepData, fresh.withStrapNocturnalRHR(result.timeDomain.meanHR))
     }

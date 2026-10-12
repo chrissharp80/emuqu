@@ -15,8 +15,12 @@ import XCTest
 final class StrapTransferTests: XCTestCase {
     private let deviceId = "H10-TRANSFER"
 
+    /// Every manager gets a download ledger on its own defaults suite: the
+    /// default one is the host app's standard defaults, and the stop and
+    /// download paths write to it while `startFreshRecording` reads it back.
     private func linkedManager(_ radio: FakeStrapRadio, type: PolarDeviceType = .h10) -> PolarManager {
         let manager = PolarManager()
+        manager.downloadLedger = StrapDownloadLedger(defaults: isolatedDefaults())
         manager.radioForTesting = radio
         manager.setConnectedDeviceForTesting(id: deviceId, type: type)
         manager.readiness.linkEstablished()
@@ -65,7 +69,6 @@ final class StrapTransferTests: XCTestCase {
         let radio = FakeStrapRadio()
         let walk = Date(timeIntervalSince1970: (Date().timeIntervalSince1970 - 16 * 3600).rounded(.down))
         let manager = armedStrap(radio, start: walk, beats: 3_000)
-        manager.downloadLedger = StrapDownloadLedger(defaults: isolatedDefaults())
 
         await manager.stopDeviceRecordingIfNeeded(streamHoldsIt: true)
         try await manager.recording.startFreshRecording()
@@ -82,7 +85,6 @@ final class StrapTransferTests: XCTestCase {
         let radio = FakeStrapRadio()
         let night = Date(timeIntervalSince1970: (Date().timeIntervalSince1970 - 20 * 3600).rounded(.down))
         let manager = armedStrap(radio, start: night, beats: 3_000)
-        manager.downloadLedger = StrapDownloadLedger(defaults: isolatedDefaults())
         var rescued: [RRPoint] = []
         manager.onUnrecoveredDataRescued = { rescued = $0.points }
 
@@ -239,7 +241,6 @@ final class StrapTransferTests: XCTestCase {
         let start = Date().addingTimeInterval(-3600).rounded()
         radio.addExercise(entryId: exerciseId(start), date: start, rrMs: Array(repeating: 800, count: 500))
         let manager = linkedManager(radio)
-        manager.downloadLedger = StrapDownloadLedger(defaults: isolatedDefaults())
 
         _ = try await manager.fetchRecording(recordedSince: nil, budget: .unattended)
 
@@ -268,9 +269,15 @@ final class StrapTransferTests: XCTestCase {
 
     // MARK: - Helpers
 
+    /// A fresh defaults suite, removed when the test ends.
     private func isolatedDefaults() -> UserDefaults {
         let name = "StrapTransferTests-\(UUID().uuidString)"
-        return UserDefaults(suiteName: name) ?? .standard
+        addTeardownBlock { @MainActor in UserDefaults.standard.removePersistentDomain(forName: name) }
+        guard let defaults = UserDefaults(suiteName: name) else {
+            XCTFail("Could not open the defaults suite \(name); the ledger would share the host's")
+            return .standard
+        }
+        return defaults
     }
 
     private func waitUntil(timeout: TimeInterval = 10, _ condition: @MainActor () -> Bool) async throws {

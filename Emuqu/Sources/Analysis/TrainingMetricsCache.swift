@@ -21,8 +21,21 @@ final class TrainingMetricsCache {
     static let shared = TrainingMetricsCache()
 
     private(set) var current: TrainingMetrics?
+    /// When the last compute was published — the dirty flag too:
+    /// `invalidate()` clears it to force the next rebuild.
     private(set) var lastUpdated: Date?
+    /// When `current` was computed (restored from disk on launch). Unlike
+    /// `lastUpdated`, an invalidation never clears it, so it is what an
+    /// "as of" stamp reads (`TrainingLoadRegistry`).
+    private(set) var computedAt: Date?
     @ObservationIgnored private var refreshTask: Task<Void, Never>?
+    /// Whether a historical-series build has started and not yet landed.
+    /// `needsRebuild` counts it as a result on its way, so refreshes during a
+    /// cold build don't keep restarting it.
+    @ObservationIgnored private var historicalBuildPending = false
+    /// The latest disk write, which the next one waits for, so snapshots land
+    /// in the order they were taken.
+    @ObservationIgnored private var persistTask: Task<Void, Never>?
 
     /// Day-indexed training-load series covering the last 400 days.
     /// Keyed by `startOfDay(local)`; value is that day's (atl, ctl, trimp).
@@ -181,17 +194,22 @@ final class TrainingMetricsCache {
 
     /// Persist the current cache state to disk, off the main actor. Best-effort:
     /// a failed write just means the next cold launch rebuilds (as it always did).
+    /// Each write waits for the one before it, so an older snapshot (the
+    /// publish's, with the previous series) can never land after a newer one
+    /// (the series adoption's). Nothing is written before the first compute.
     private func persistToDisk() {
-        guard let url = Self.persistenceURL else { return }
+        guard let url = Self.persistenceURL, let computedAt else { return }
         let snapshot = PersistedCache(
             current: current,
             dailySeries: dailySeries,
             fingerprint: lastWorkoutFingerprint ?? "",
             computedDay: lastComputedDay,
-            savedAt: lastUpdated ?? Date(),
+            savedAt: computedAt,
             loadSettings: lastLoadSettings
         )
-        Task.detached(priority: .utility) {
+        let previous = persistTask
+        persistTask = Task.detached(priority: .utility) {
+            await previous?.value
             do {
                 let data = try JSONEncoder().encode(snapshot)
                 try data.write(to: url, options: .atomic)
@@ -216,6 +234,7 @@ final class TrainingMetricsCache {
         lastComputedDay = snapshot.computedDay
         lastLoadSettings = snapshot.loadSettings
         lastUpdated = snapshot.savedAt
+        computedAt = snapshot.savedAt
         debugLog("[TrainingMetricsCache] restored persisted metrics (saved \(snapshot.savedAt), \(snapshot.dailySeries.count) day-samples) — will reconcile on refresh", level: .info)
     }
 
@@ -275,7 +294,10 @@ final class TrainingMetricsCache {
     /// Await a fresh refresh. Use when the caller genuinely needs the
     /// newest numbers — dashboard foreground, explicit refresh, post-
     /// workout-save re-materialize. Concurrent callers are coalesced
-    /// onto a single in-flight task.
+    /// onto a single in-flight task: a caller that joins one gets that
+    /// task's result, computed for ITS `reference` and `forMorningReading`,
+    /// not the caller's. Every caller passes today and `false`, so the two
+    /// agree in practice.
     ///
     /// Also repopulates `dailySeries` so historical-date queries have a
     /// day-by-day EWMA to look up against. The replay is cheap in-process;
@@ -314,7 +336,7 @@ final class TrainingMetricsCache {
         let observedChange = workoutFingerprint() != lastWorkoutFingerprint || refDay != lastComputedDay
         return Self.needsRebuild(
             lastUpdated: lastUpdated,
-            hasResult: current != nil && !dailySeries.isEmpty,
+            hasResult: current != nil && (!dailySeries.isEmpty || historicalBuildPending),
             observedChange: observedChange,
             settingsChanged: currentLoadSettings() != lastLoadSettings,
             reference: reference
@@ -354,15 +376,25 @@ final class TrainingMetricsCache {
     ///
     /// A task cancelled by `rebuildFromScratch` publishes nothing, so it can't
     /// overwrite the rebuild's result or clear the rebuild's registration.
+    /// A task that finds HealthKit gone releases its registration, so a
+    /// later refresh can start rather than await this finished task forever.
     @discardableResult
     private func startRefreshTask(reference: Date, forMorningReading: Bool) -> Task<Void, Never> {
         let settings = currentLoadSettings()
         let task = Task { [weak self] in
-            guard let self, let hk = self.healthKit else { return }
+            guard let self else { return }
+            guard let hk = self.healthKit else { return self.releaseRefreshTaskUnlessCancelled() }
             await self.recompute(healthKit: hk, reference: reference, forMorningReading: forMorningReading, settings: settings)
         }
         refreshTask = task
         return task
+    }
+
+    /// Clears `refreshTask` from inside the running refresh task, unless that
+    /// task was cancelled (`rebuildFromScratch` has registered its own).
+    private func releaseRefreshTaskUnlessCancelled() {
+        guard !Task.isCancelled else { return }
+        refreshTask = nil
     }
 
     /// The refresh task's work: fetch, compute and publish `current`, then
@@ -370,6 +402,9 @@ final class TrainingMetricsCache {
     private func recompute(
         healthKit hk: HealthKitManager, reference: Date, forMorningReading: Bool, settings: LoadSettings
     ) async {
+        // The archived workouts this compute starts from; a workout archived
+        // while it awaits HealthKit is not in it.
+        let startFingerprint = workoutFingerprint()
         let hkWorkouts = await hk.fetchWorkoutsExtended(days: lookbackDays + replayWarmUpDays, relativeTo: reference)
         let anchors = await hk.trainingHeartRateAnchors()
         let metrics = await hk.calculateTrainingMetrics(
@@ -378,17 +413,22 @@ final class TrainingMetricsCache {
         )
         guard !Task.isCancelled else { return }
         current = metrics
-        publishCurrent(reference: reference, settings: settings)
+        publishCurrent(reference: reference, settings: settings, workoutFingerprint: startFingerprint)
         let key = historicalKey(reference: reference, healthKitWorkouts: hkWorkouts, settings: settings, anchors: anchors)
         startHistoricalRebuildIfNeeded(reference: reference, workouts: hkWorkouts, key: key)
     }
 
     /// Stamps what this compute reflects — so the incremental gate can reuse it
     /// until the workouts or the day actually change — and persists it so the
-    /// next cold launch shows it instantly.
-    private func publishCurrent(reference: Date, settings: LoadSettings) {
-        lastUpdated = Date()
-        lastWorkoutFingerprint = workoutFingerprint()
+    /// next cold launch shows it instantly. The fingerprint stamped is the one
+    /// the compute started from; when the archived workouts changed while it
+    /// ran, the result is published but left dirty (`lastUpdated` nil), so the
+    /// next refresh recomputes with the new workout instead of reusing this.
+    private func publishCurrent(reference: Date, settings: LoadSettings, workoutFingerprint startFingerprint: String) {
+        let now = Date()
+        computedAt = now
+        lastUpdated = startFingerprint == workoutFingerprint() ? now : nil
+        lastWorkoutFingerprint = startFingerprint
         lastComputedDay = Calendar.current.startOfDay(for: reference)
         lastLoadSettings = settings
         refreshTask = nil
@@ -425,8 +465,9 @@ final class TrainingMetricsCache {
         workouts: [HealthKitManager.WorkoutSummary],
         key: HistoricalKey
     ) {
-        guard dailySeries.isEmpty || key != lastHistoricalKey else { return }
+        guard key != lastHistoricalKey || (dailySeries.isEmpty && !historicalBuildPending) else { return }
         lastHistoricalKey = key
+        historicalBuildPending = true
         let (keptDays, replayDays) = (lookbackDays, lookbackDays + replayWarmUpDays)
         historicalTask = Task.detached(priority: .utility) {
             let series = Self.buildDailySeries(
@@ -440,6 +481,7 @@ final class TrainingMetricsCache {
     /// Lands a finished historical build unless a newer one has started since.
     private func adoptHistoricalSeries(_ series: [Date: DaySample], key: HistoricalKey) {
         guard key == lastHistoricalKey else { return }
+        historicalBuildPending = false
         dailySeries = series
         // Persist again now the 400-day series has landed.
         persistToDisk()
@@ -518,8 +560,10 @@ final class TrainingMetricsCache {
     }
 
     /// Invalidate the cache so the next `snapshot()` or `refresh()`
-    /// triggers a re-read. Called when a workout is recorded / deleted,
-    /// when HealthKit reports background updates, etc.
+    /// triggers a re-read. Its one caller is `invalidateIfWorkoutsChanged`,
+    /// on an archive write that changed the archived workouts. No HealthKit
+    /// observer calls it: another app's workout reaches the cache when the
+    /// result ages past `unchangedMaxAgeSec`.
     func invalidate() {
         lastUpdated = nil
     }
@@ -537,6 +581,7 @@ final class TrainingMetricsCache {
         refreshTask?.cancel()
         refreshTask = nil
         lastHistoricalKey = nil
+        historicalBuildPending = false
         dailySeries = [:]
         await refresh(reference: Date(), forMorningReading: false)
     }

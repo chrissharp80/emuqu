@@ -1,0 +1,1531 @@
+{
+ "file": "EmuquWatch Watch App/WatchLiveView.swift",
+ "hash": "1c15aa7583e7baac",
+ "role": "The whole Watch UI: a vertical-paged TabView (Start / Live metrics / Pause-Stop) that becomes a CompletionScreen after a workout ends, plus sport and zone pickers.",
+ "types": [
+  "WatchLiveView: struct (View) — root, page selection",
+  "SportOption: struct — sport raw/label",
+  "ZoneOption: struct — target zone value/label",
+  "StartScreen: struct (private View) — sport/target/start/strap/voice",
+  "SportPickerView, ZonePickerView: struct (private View) — full-screen list pickers",
+  "PickerRow: struct (private View) — row with checkmark",
+  "LiveMetricsScreen: struct (private View) — HR/pace/time/α1/distance/elevation grid",
+  "PauseStopScreen: struct (private View) — Pause/Resume and End",
+  "CompletionScreen: struct (private View) — Save & Done"
+ ],
+ "state": [
+  "mem:sportOptions (global let: run, walk, bike, treadmill, indoor_bike)",
+  "mem:zoneOptions (global let: 0=No target, 1-5)",
+  "mem:WatchLiveView.page (@State TabPage)",
+  "mem:StartScreen.selectedSport (@State, default run)",
+  "mem:StartScreen.selectedZone (@State, default No target)"
+ ],
+ "toplevel": "Global lets sportOptions and zoneOptions (94-122) are built with String(localized:) at first use. The Start screen offers only 5 of the 10 iPhone sports. zoneOptions is now 'No target' plus plain 'Zone 1'…'Zone 5' (as iOS HRZone names them), built with (1...5).map.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var WatchLiveView.body",
+   "hash": "4f5885f2a24229f7",
+   "does": "Root body: CompletionScreen when justCompleted, else the three-page vertical TabView; follows isRecording changes to move between pages.",
+   "entry": "SwiftUI body; .onChange(isRecording)",
+   "calls": [
+    "EmuquWatch Watch App/WatchLiveView.swift::var WatchLiveView.completion",
+    "EmuquWatch Watch App/WatchLiveView.swift::var WatchLiveView.pages",
+    "EmuquWatch Watch App/WatchLiveView.swift::func WatchLiveView.followRecording(_:)"
+   ],
+   "reads": [
+    "mem:WatchSessionManager.justCompleted",
+    "mem:WatchSessionManager.isRecording"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "sessionManager.justCompleted",
+     "effect": "true: completion view; false: pages with .verticalPage"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchLiveView.swift::func WatchLiveView.followRecording(_:)": "4123e601a38537cf",
+    "EmuquWatch Watch App/WatchLiveView.swift::var WatchLiveView.completion": "ab7bf9bd67742cfe",
+    "EmuquWatch Watch App/WatchLiveView.swift::var WatchLiveView.pages": "e546774a22805d10",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.justCompleted(current:wasRecording:update:)": "a2f239bf6b929b19"
+   }
+  },
+  {
+   "key": "var WatchLiveView.completion",
+   "hash": "d53c926b52b8fde3",
+   "does": "NavigationStack wrapping CompletionScreen.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var WatchLiveView.pages",
+   "hash": "4edde321761cf377",
+   "does": "TabView bound to page: StartScreen (in NavigationStack, tag start), LiveMetricsScreen (live), PauseStopScreen (pauseStop).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:WatchLiveView.page"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WatchLiveView.followRecording(_:)",
+   "hash": "2c97d47d1102d080",
+   "does": "On recording start jumps from the Start page to Live; on recording end returns from Live or Pause/Stop to Start.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:WatchLiveView.page"
+   ],
+   "writes": [
+    "mem:WatchLiveView.page"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "isRecording && page == .start",
+     "effect": "true: page = .live"
+    },
+    {
+     "at": "+3",
+     "cond": "!isRecording && page is .live or .pauseStop",
+     "effect": "true: page = .start; otherwise unchanged"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var SportOption.id",
+   "hash": "777785ce7c225928",
+   "does": "Identity of a sport option = its raw value.",
+   "entry": "Identifiable requirement used by List(sportOptions)",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var ZoneOption.id",
+   "hash": "64c11342fd0c89b7",
+   "does": "Identity of a zone option = its value.",
+   "entry": "Identifiable requirement used by List(zoneOptions)",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var ZoneOption.shortLabel",
+   "hash": "822691c6f94985f6",
+   "does": "Short row value: the label (\"No target\") for 0, else \"Zone N\".",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "value == 0",
+     "effect": "true: label; false: \"Zone \\(value)\""
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var StartScreen.body",
+   "hash": "3637695de7172d8b",
+   "does": "ScrollView of the Start screen content rows.",
+   "entry": "SwiftUI body",
+   "calls": [
+    "EmuquWatch Watch App/WatchLiveView.swift::var StartScreen.content"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchLiveView.swift::var StartScreen.content": "6096172e2bdbbd49"
+   }
+  },
+  {
+   "key": "var StartScreen.content",
+   "hash": "4f68a6f72d7d3795",
+   "does": "Start screen rows in order: reachability banner, title, sport row, target row, Start button, divider, strap pairing row, voice-chat button, status text.",
+   "entry": null,
+   "calls": [
+    "EmuquWatch Watch App/WatchLiveView.swift::var StartScreen.reachabilityBanner",
+    "EmuquWatch Watch App/WatchLiveView.swift::var StartScreen.sportRow",
+    "EmuquWatch Watch App/WatchLiveView.swift::var StartScreen.targetRow",
+    "EmuquWatch Watch App/WatchLiveView.swift::var StartScreen.startButton",
+    "EmuquWatch Watch App/WatchLiveView.swift::var StartScreen.strapPairingRow",
+    "EmuquWatch Watch App/WatchLiveView.swift::var StartScreen.voiceChatButton",
+    "EmuquWatch Watch App/WatchLiveView.swift::var StartScreen.statusText"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchLiveView.swift::var StartScreen.reachabilityBanner": "eeca29d7cc6e2ba1",
+    "EmuquWatch Watch App/WatchLiveView.swift::var StartScreen.sportRow": "41e18accd57b2b61",
+    "EmuquWatch Watch App/WatchLiveView.swift::var StartScreen.startButton": "093ac25d9386450b",
+    "EmuquWatch Watch App/WatchLiveView.swift::var StartScreen.statusText": "d1c70d88b0f2ff37",
+    "EmuquWatch Watch App/WatchLiveView.swift::var StartScreen.strapPairingRow": "d1a6d0d78a57c8c7",
+    "EmuquWatch Watch App/WatchLiveView.swift::var StartScreen.targetRow": "015e35c6ad872981",
+    "EmuquWatch Watch App/WatchLiveView.swift::var StartScreen.voiceChatButton": "86cf3ce2f1e08a69"
+   }
+  },
+  {
+   "key": "var StartScreen.statusText",
+   "hash": "49be121e74aabdc8",
+   "does": "Shows sessionManager.statusLine in caption2 without a line limit.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:WatchSessionManager.statusLine"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var StartScreen.sportRow",
+   "hash": "11601845241cdcbf",
+   "does": "NavigationLink to SportPickerView bound to selectedSport, labelled with the current sport.",
+   "entry": null,
+   "calls": [
+    "EmuquWatch Watch App/WatchLiveView.swift::func StartScreen.pickerRowLabel(title:icon:value:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchLiveView.swift::func StartScreen.pickerRowLabel(title:icon:value:)": "a605779546757a66"
+   }
+  },
+  {
+   "key": "var StartScreen.targetRow",
+   "hash": "de3ab755bf792330",
+   "does": "NavigationLink to ZonePickerView bound to selectedZone, labelled with its shortLabel.",
+   "entry": null,
+   "calls": [
+    "EmuquWatch Watch App/WatchLiveView.swift::func StartScreen.pickerRowLabel(title:icon:value:)",
+    "EmuquWatch Watch App/WatchLiveView.swift::var ZoneOption.shortLabel"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchLiveView.swift::func StartScreen.pickerRowLabel(title:icon:value:)": "a605779546757a66",
+    "EmuquWatch Watch App/WatchLiveView.swift::var ZoneOption.shortLabel": "1012ade4b001646a"
+   }
+  },
+  {
+   "key": "func StartScreen.pickerRowLabel(title:icon:value:)",
+   "hash": "a1c6d97d27b52d7a",
+   "does": "Row label: titled icon on the left, value on the right.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var StartScreen.startButton",
+   "hash": "ae7a08a0905e593e",
+   "does": "Start button: tinted green when the effective strap is connected else orange, disabled while the iPhone is unreachable or a start is in flight, with an accessibility hint describing the strap situation.",
+   "entry": null,
+   "calls": [
+    "EmuquWatch Watch App/WatchLiveView.swift::func StartScreen.startWorkout()",
+    "EmuquWatch Watch App/WatchLiveView.swift::var StartScreen.startButtonLabel",
+    "EmuquWatch Watch App/WatchLiveView.swift::var StartScreen.effectiveStrapConnected",
+    "EmuquWatch Watch App/WatchLiveView.swift::var StartScreen.effectiveStrapHint"
+   ],
+   "reads": [
+    "mem:WatchSessionManager.isReachable",
+    "mem:WatchSessionManager.startWorkoutRequestInFlight"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "effectiveStrapConnected",
+     "effect": "true: .green tint; false: .orange"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "380cb385515abafc",
+    "EmuquWatch Watch App/WatchLiveView.swift::func StartScreen.startWorkout()": "a5dde1aef753afc0",
+    "EmuquWatch Watch App/WatchLiveView.swift::var StartScreen.effectiveStrapConnected": "46b0f08a33c50c17",
+    "EmuquWatch Watch App/WatchLiveView.swift::var StartScreen.effectiveStrapHint": "85e4f0eb25085454",
+    "EmuquWatch Watch App/WatchLiveView.swift::var StartScreen.startButtonLabel": "9b19f41481af6a53"
+   }
+  },
+  {
+   "key": "func StartScreen.startWorkout()",
+   "hash": "bf519b5371b1a9f0",
+   "does": "Start tap: requests a workout start for the selected sport and zone (nil for 0), then plays the start haptic.",
+   "entry": "Button action on StartScreen.startButton",
+   "calls": [
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.requestStartWorkout(sportRaw:targetZone:)",
+    "ext:WKInterfaceDevice.play"
+   ],
+   "reads": [],
+   "writes": [
+    "wc:startWorkoutFromWatch"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "selectedZone.value == 0",
+     "effect": "true: targetZone nil (omitted); false: zone value"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.requestStartWorkout(sportRaw:targetZone:)": "1441e5279f72abbd"
+   }
+  },
+  {
+   "key": "var StartScreen.startButtonLabel",
+   "hash": "ade0953116dbb630",
+   "does": "Start button label: spinner and \"Starting…\" while a start is in flight, else play icon and \"Start\".",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:WatchSessionManager.startWorkoutRequestInFlight"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "startWorkoutRequestInFlight",
+     "effect": "true: ProgressView; false: play.fill"
+    },
+    {
+     "at": "+7",
+     "cond": "startWorkoutRequestInFlight",
+     "effect": "true: \"Starting…\"; false: \"Start\""
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "380cb385515abafc"
+   }
+  },
+  {
+   "key": "var StartScreen.strapPairingRow",
+   "hash": "b5d0c8db5099226d",
+   "does": "Strap pairing NavigationLink (to WatchStrapPairingView), shown in legacy mode or whenever a strap is saved on the Watch.",
+   "entry": null,
+   "calls": [
+    "EmuquWatch Watch App/WatchLiveView.swift::var StartScreen.strapPairingLabel",
+    "EmuquWatch Watch App/WatchLiveView.swift::var StartScreen.directStrapButtonTint",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.hasSavedStrap"
+   ],
+   "reads": [
+    "mem:WatchSessionManager.displayOnlyMode",
+    "ud:WatchStrapConnector saved peripheral key"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "!displayOnlyMode || strap.hasSavedStrap",
+     "effect": "true: row shown; false: hidden"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "USERS_MANUAL says pair from Watch app -> Strap -> Scan, but the pairing row is hidden in display-only mode (the default) unless a strap is already saved, so a new user has no pairing entry.",
+     "evidence": [
+      "docs/USERS_MANUAL.md:1415",
+      "EmuquWatch Watch App/WatchLiveView.swift:251",
+      "EmuquWatch Watch App/WatchSessionManager.swift:112"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "380cb385515abafc",
+    "EmuquWatch Watch App/WatchLiveView.swift::var StartScreen.directStrapButtonTint": "8883ea630ce2813b",
+    "EmuquWatch Watch App/WatchLiveView.swift::var StartScreen.strapPairingLabel": "88b46c19a139a2ae",
+    "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.displayOnlyMode": "1a34b86867962727",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.hasSavedStrap": "fbad0ed2294343c8"
+   }
+  },
+  {
+   "key": "var StartScreen.strapPairingLabel",
+   "hash": "796b58651d468a73",
+   "does": "Pairing row label: antenna icon plus directStrapButtonLabel.",
+   "entry": null,
+   "calls": [
+    "EmuquWatch Watch App/WatchLiveView.swift::var StartScreen.directStrapButtonLabel"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchLiveView.swift::var StartScreen.directStrapButtonLabel": "17abfc8af41214b7"
+   }
+  },
+  {
+   "key": "var StartScreen.voiceChatButton",
+   "hash": "35c794e122b67da0",
+   "does": "Talk-to-AI button tinted by voice state and disabled while unreachable or a voice request is in flight.",
+   "entry": null,
+   "calls": [
+    "EmuquWatch Watch App/WatchLiveView.swift::func StartScreen.toggleVoiceChat()",
+    "EmuquWatch Watch App/WatchLiveView.swift::var StartScreen.voiceChatButtonLabel",
+    "EmuquWatch Watch App/WatchLiveView.swift::var StartScreen.voiceChatTint"
+   ],
+   "reads": [
+    "mem:WatchSessionManager.isReachable",
+    "mem:WatchSessionManager.voiceChatRequestInFlight"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "380cb385515abafc",
+    "EmuquWatch Watch App/WatchLiveView.swift::func StartScreen.toggleVoiceChat()": "2eb5a10110804284",
+    "EmuquWatch Watch App/WatchLiveView.swift::var StartScreen.voiceChatButtonLabel": "1a08f14d76843ae2",
+    "EmuquWatch Watch App/WatchLiveView.swift::var StartScreen.voiceChatTint": "8f14b9a2323b0232"
+   }
+  },
+  {
+   "key": "func StartScreen.toggleVoiceChat()",
+   "hash": "1d80dd2f79aa6f36",
+   "does": "Talk tap: requests the iPhone voice-chat toggle and plays a click haptic.",
+   "entry": "Button action on voiceChatButton",
+   "calls": [
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.requestVoiceChatToggle()",
+    "ext:WKInterfaceDevice.play"
+   ],
+   "reads": [],
+   "writes": [
+    "wc:startVoiceChat"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.requestVoiceChatToggle()": "cdb18b69b62cabbe"
+   }
+  },
+  {
+   "key": "var StartScreen.voiceChatButtonLabel",
+   "hash": "94cd7696bdb5d98d",
+   "does": "Talk button label: spinner while in flight else the state icon, plus voiceChatLabel.",
+   "entry": null,
+   "calls": [
+    "EmuquWatch Watch App/WatchLiveView.swift::var StartScreen.voiceChatIcon",
+    "EmuquWatch Watch App/WatchLiveView.swift::var StartScreen.voiceChatLabel"
+   ],
+   "reads": [
+    "mem:WatchSessionManager.voiceChatRequestInFlight"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "voiceChatRequestInFlight",
+     "effect": "true: ProgressView; false: Image(voiceChatIcon)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "380cb385515abafc",
+    "EmuquWatch Watch App/WatchLiveView.swift::var StartScreen.voiceChatIcon": "cd45a8b2a3e29bba",
+    "EmuquWatch Watch App/WatchLiveView.swift::var StartScreen.voiceChatLabel": "c2653b8752433a57"
+   }
+  },
+  {
+   "key": "var StartScreen.voiceChatLabel",
+   "hash": "1e95c3bb422d0b00",
+   "does": "Button text: \"Starting…\" while a request is in flight, else WatchSessionManager.voiceChatStateWord(voiceChatStateLabel) or \"Talk to AI\" for idle/unknown.",
+   "entry": null,
+   "calls": [
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.voiceChatStateWord(_:)"
+   ],
+   "reads": [
+    "mem:WatchSessionManager.voiceChatRequestInFlight",
+    "mem:WatchSessionManager.voiceChatStateLabel"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "voiceChatRequestInFlight",
+     "effect": "\"Starting…\""
+    },
+    {
+     "at": "+2",
+     "cond": "voiceChatStateWord returns nil",
+     "effect": "\"Talk to AI\""
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.voiceChatStateWord(_:)": "2cbf896ee505ce79"
+   }
+  },
+  {
+   "key": "var StartScreen.voiceChatIcon",
+   "hash": "a8779c3be232dc19",
+   "does": "SF Symbol for the voice state.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:WatchSessionManager.voiceChatStateLabel"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "listening",
+     "effect": "waveform.circle.fill"
+    },
+    {
+     "at": "+3",
+     "cond": "speaking",
+     "effect": "speaker.wave.3.fill"
+    },
+    {
+     "at": "+4",
+     "cond": "thinking",
+     "effect": "ellipsis.circle.fill"
+    },
+    {
+     "at": "+5",
+     "cond": "alert",
+     "effect": "exclamationmark.circle.fill"
+    },
+    {
+     "at": "+6",
+     "cond": "default",
+     "effect": "waveform.and.mic"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var StartScreen.voiceChatTint",
+   "hash": "faf7dbc7aa00f325",
+   "does": "Tint for the voice state.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:WatchSessionManager.voiceChatStateLabel"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "listening",
+     "effect": "green"
+    },
+    {
+     "at": "+3",
+     "cond": "speaking",
+     "effect": "pink"
+    },
+    {
+     "at": "+4",
+     "cond": "alert",
+     "effect": "orange"
+    },
+    {
+     "at": "+5",
+     "cond": "default",
+     "effect": "blue"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var StartScreen.directStrapButtonLabel",
+   "hash": "ae6a990da9c17d10",
+   "does": "Pairing row text from WatchStrapConnector.connectionState.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:WatchStrapConnector.connectionState"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".connected(name)",
+     "effect": "\"Strap: <name>\""
+    },
+    {
+     "at": "+3",
+     "cond": ".connecting(name)",
+     "effect": "\"Connecting <name>…\""
+    },
+    {
+     "at": "+4",
+     "cond": ".scanning",
+     "effect": "\"Searching…\""
+    },
+    {
+     "at": "+5",
+     "cond": ".poweredOff",
+     "effect": "\"BT off\""
+    },
+    {
+     "at": "+6",
+     "cond": ".unauthorized",
+     "effect": "\"BT not allowed\""
+    },
+    {
+     "at": "+7",
+     "cond": ".waitingForBluetooth",
+     "effect": "\"BT warming up\""
+    },
+    {
+     "at": "+8",
+     "cond": ".disconnected/.idle",
+     "effect": "\"Pair Strap to Watch\""
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad"
+   }
+  },
+  {
+   "key": "var StartScreen.strapIsConnected",
+   "hash": "d536e1ec49a13c82",
+   "does": "True when the Watch's own connector is .connected.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:WatchStrapConnector.connectionState"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "case .connected",
+     "effect": "true; else false"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad"
+   }
+  },
+  {
+   "key": "var StartScreen.effectiveStrapConnected",
+   "hash": "b0fdcd3192a3e0af",
+   "does": "Effective strap-connected flag: iPhone's mirrored phoneStrapConnected in display-only mode, the Watch connector's state in legacy mode.",
+   "entry": null,
+   "calls": [
+    "EmuquWatch Watch App/WatchLiveView.swift::var StartScreen.strapIsConnected"
+   ],
+   "reads": [
+    "mem:WatchSessionManager.displayOnlyMode",
+    "mem:WatchSessionManager.phoneStrapConnected"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "displayOnlyMode",
+     "effect": "true: phoneStrapConnected; false: strapIsConnected"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchLiveView.swift::var StartScreen.strapIsConnected": "45cfd7d6262559b7",
+    "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.displayOnlyMode": "1a34b86867962727"
+   }
+  },
+  {
+   "key": "var StartScreen.effectiveStrapHint",
+   "hash": "9aafe57d00bfd32d",
+   "does": "Accessibility hint for Start describing whether a strap (Watch-paired or iPhone-owned) will supply HR.",
+   "entry": null,
+   "calls": [
+    "EmuquWatch Watch App/WatchLiveView.swift::var StartScreen.effectiveStrapConnected"
+   ],
+   "reads": [
+    "mem:WatchSessionManager.displayOnlyMode",
+    "mem:WatchSessionManager.phoneStrapDeviceName"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "displayOnlyMode",
+     "effect": "false: legacy hint branch; true: continue"
+    },
+    {
+     "at": "+2",
+     "cond": "effectiveStrapConnected (legacy)",
+     "effect": "true: \"Strap paired to Watch — tap to start\"; false: wrist-sensor warning"
+    },
+    {
+     "at": "+6",
+     "cond": "effectiveStrapConnected (display-only)",
+     "effect": "false: \"iPhone has no strap connected…\"; true: continue"
+    },
+    {
+     "at": "+9",
+     "cond": "phoneStrapDeviceName ?? \"\"",
+     "effect": "name present: \" (<name>)\"; absent: empty"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchLiveView.swift::var StartScreen.effectiveStrapConnected": "46b0f08a33c50c17",
+    "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.displayOnlyMode": "1a34b86867962727"
+   }
+  },
+  {
+   "key": "var StartScreen.directStrapButtonTint",
+   "hash": "b7bd24468b7aff1d",
+   "does": "Pairing row tint by connector state.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:WatchStrapConnector.connectionState"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".connected",
+     "effect": "green"
+    },
+    {
+     "at": "+3",
+     "cond": ".connecting/.scanning",
+     "effect": "blue"
+    },
+    {
+     "at": "+4",
+     "cond": ".poweredOff/.unauthorized",
+     "effect": "orange"
+    },
+    {
+     "at": "+5",
+     "cond": "default (idle, waitingForBluetooth, disconnected)",
+     "effect": "gray"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad"
+   }
+  },
+  {
+   "key": "var StartScreen.reachabilityBanner",
+   "hash": "e69e48370fcb449b",
+   "does": "Ready row when reachable, otherwise the unreachable banner.",
+   "entry": null,
+   "calls": [
+    "EmuquWatch Watch App/WatchLiveView.swift::var StartScreen.phoneReadyRow",
+    "EmuquWatch Watch App/WatchLiveView.swift::var StartScreen.phoneUnreachableBanner"
+   ],
+   "reads": [
+    "mem:WatchSessionManager.isReachable"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "isReachable",
+     "effect": "true: phoneReadyRow; false: phoneUnreachableBanner"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchLiveView.swift::var StartScreen.phoneReadyRow": "a803e15cfbb46454",
+    "EmuquWatch Watch App/WatchLiveView.swift::var StartScreen.phoneUnreachableBanner": "9900217bc00cfc19"
+   }
+  },
+  {
+   "key": "var StartScreen.phoneReadyRow",
+   "hash": "696250517d4c5960",
+   "does": "Green iPhone icon with \"iPhone ready\".",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var StartScreen.phoneUnreachableBanner",
+   "hash": "ed116894b1a62ed0",
+   "does": "Orange banner: \"iPhone not reachable\" with advice to wake the iPhone and open Emuqu once.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var SportPickerView.body",
+   "hash": "d0ab888ebd60ac24",
+   "does": "List of sportOptions; tapping one sets the binding and dismisses.",
+   "entry": "SwiftUI body (NavigationLink destination)",
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:StartScreen.selectedSport"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var PickerRow.body",
+   "hash": "20c99ee9d4213249",
+   "does": "Label with a green checkmark when selected.",
+   "entry": "SwiftUI body",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "isSelected",
+     "effect": "true: checkmark shown; false: none"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var ZonePickerView.body",
+   "hash": "e21d01c6748b0a0f",
+   "does": "List of zoneOptions; tapping one sets the binding and dismisses.",
+   "entry": "SwiftUI body (NavigationLink destination)",
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:StartScreen.selectedZone"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var LiveMetricsScreen.body",
+   "hash": "008b531aa0238d61",
+   "does": "Live page: metrics while recording, else the connection-status view.",
+   "entry": "SwiftUI body",
+   "calls": [
+    "EmuquWatch Watch App/WatchLiveView.swift::var LiveMetricsScreen.metrics",
+    "EmuquWatch Watch App/WatchLiveView.swift::var LiveMetricsScreen.connectionStatusView"
+   ],
+   "reads": [
+    "mem:WatchSessionManager.isRecording"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "isRecording",
+     "effect": "true: metrics; false: connectionStatusView"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchLiveView.swift::var LiveMetricsScreen.connectionStatusView": "3dbc6f44e9cf3038",
+    "EmuquWatch Watch App/WatchLiveView.swift::var LiveMetricsScreen.metrics": "805d59edbb9dccc1"
+   }
+  },
+  {
+   "key": "var LiveMetricsScreen.metrics",
+   "hash": "5d99f7117f9c6e2f",
+   "does": "Metrics grid dimmed to 40% with a paused banner while paused, plus the workout-start error note at the bottom.",
+   "entry": null,
+   "calls": [
+    "EmuquWatch Watch App/WatchLiveView.swift::var LiveMetricsScreen.metricsGrid",
+    "EmuquWatch Watch App/WatchLiveView.swift::var LiveMetricsScreen.pausedBanner",
+    "EmuquWatch Watch App/WatchLiveView.swift::var LiveMetricsScreen.startErrorNote"
+   ],
+   "reads": [
+    "mem:WatchSessionManager.isPaused"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "isPaused",
+     "effect": "true: opacity 0.4; false: 1.0"
+    },
+    {
+     "at": "+4",
+     "cond": "isPaused",
+     "effect": "true: pausedBanner overlaid; false: none"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchLiveView.swift::var LiveMetricsScreen.metricsGrid": "6eb0c51a84551525",
+    "EmuquWatch Watch App/WatchLiveView.swift::var LiveMetricsScreen.pausedBanner": "67f4cbcc820e34b5",
+    "EmuquWatch Watch App/WatchLiveView.swift::var LiveMetricsScreen.startErrorNote": "b0d8d30b76b67f6f"
+   }
+  },
+  {
+   "key": "var LiveMetricsScreen.startErrorNote",
+   "hash": "0ec17c156176cb9b",
+   "does": "Orange note with WatchWorkoutManager.lastStartError when the Watch workout session failed to start.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:WatchWorkoutManager.lastStartError"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "lastStartError non-nil",
+     "effect": "true: text shown; false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var LiveMetricsScreen.pausedBanner",
+   "hash": "2aa7d1e734bd4016",
+   "does": "Yellow banner reading \"Auto-paused\" or \"Paused\".",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:WatchSessionManager.autoPaused"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "autoPaused",
+     "effect": "true: \"Auto-paused\"; false: \"Paused\""
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var LiveMetricsScreen.metricsGrid",
+   "hash": "4f5dc5e89182df54",
+   "does": "Stacks topBar, HR row, divider, pace/time, α1/distance and elevation rows.",
+   "entry": null,
+   "calls": [
+    "EmuquWatch Watch App/WatchLiveView.swift::var LiveMetricsScreen.topBar",
+    "EmuquWatch Watch App/WatchLiveView.swift::var LiveMetricsScreen.heartRateRow",
+    "EmuquWatch Watch App/WatchLiveView.swift::var LiveMetricsScreen.paceAndTimeRow",
+    "EmuquWatch Watch App/WatchLiveView.swift::var LiveMetricsScreen.alphaAndDistanceRow",
+    "EmuquWatch Watch App/WatchLiveView.swift::var LiveMetricsScreen.elevationRow"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchLiveView.swift::var LiveMetricsScreen.alphaAndDistanceRow": "b6a70a09e1e13711",
+    "EmuquWatch Watch App/WatchLiveView.swift::var LiveMetricsScreen.elevationRow": "14af590632fc10b2",
+    "EmuquWatch Watch App/WatchLiveView.swift::var LiveMetricsScreen.heartRateRow": "7411ddce7294218d",
+    "EmuquWatch Watch App/WatchLiveView.swift::var LiveMetricsScreen.paceAndTimeRow": "44dce006ac9bebe6",
+    "EmuquWatch Watch App/WatchLiveView.swift::var LiveMetricsScreen.topBar": "fe101ebdf3a61292"
+   }
+  },
+  {
+   "key": "var LiveMetricsScreen.heartRateRow",
+   "hash": "a2137c5e040d88a7",
+   "does": "Big HR number (displayedHeartRate, locale digits, 44 pt scaled, coloured by hrColor) with \"bpm\" and the sub-label.",
+   "entry": null,
+   "calls": [
+    "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.displayedHeartRate",
+    "EmuquWatch Watch App/WatchScaledFont.swift::func View.watchScaledFont(size:weight:design:monospacedDigit:relativeTo:)",
+    "EmuquWatch Watch App/WatchLiveView.swift::var LiveMetricsScreen.hrColor",
+    "EmuquWatch Watch App/WatchLiveView.swift::var LiveMetricsScreen.heartRateSubLabel"
+   ],
+   "reads": [
+    "mem:WatchSessionManager.displayedHeartRate"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "displayedHeartRate non-nil",
+     "effect": "nil: \"—\"; else formatted bpm"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3",
+    "EmuquWatch Watch App/WatchLiveView.swift::var LiveMetricsScreen.heartRateSubLabel": "4b5db96559c04cb5",
+    "EmuquWatch Watch App/WatchLiveView.swift::var LiveMetricsScreen.hrColor": "97cae96781c7017f",
+    "EmuquWatch Watch App/WatchScaledFont.swift::func View.watchScaledFont(size:weight:design:monospacedDigit:relativeTo:)": "3efbee99094eff6c",
+    "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.displayedHeartRate": "9809b375764d8eb6"
+   }
+  },
+  {
+   "key": "var LiveMetricsScreen.heartRateSubLabel",
+   "hash": "380bf7d01cfd1768",
+   "does": "\"<pct>% max\" in hrColor when displayedPercentOfMax exists (the shown number is the iPhone's), else \"peak <n>\" when peakHR > 0, else nothing.",
+   "entry": null,
+   "calls": [
+    "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.displayedPercentOfMax",
+    "EmuquWatch Watch App/WatchLiveView.swift::var LiveMetricsScreen.hrColor"
+   ],
+   "reads": [
+    "mem:WatchSessionManager.hrPercentOfMax",
+    "mem:WatchSessionManager.peakHR"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "hrPercentOfMax non-nil",
+     "effect": "true: percent label"
+    },
+    {
+     "at": "+6",
+     "cond": "peakHR > 0",
+     "effect": "true: peak label; false: empty"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.peakHR": "6e06787e1d321c6d",
+    "EmuquWatch Watch App/WatchLiveView.swift::var LiveMetricsScreen.hrColor": "97cae96781c7017f",
+    "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.displayedPercentOfMax": "fac1c963a25f1987"
+   }
+  },
+  {
+   "key": "var LiveMetricsScreen.paceAndTimeRow",
+   "hash": "a979c013ab6fa3b3",
+   "does": "Pace cell (paceDisplay or \"—\") and Time cell (formattedElapsed).",
+   "entry": null,
+   "calls": [
+    "EmuquWatch Watch App/WatchLiveView.swift::func LiveMetricsScreen.metricCell(label:value:alignment:)",
+    "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.formattedElapsed"
+   ],
+   "reads": [
+    "mem:WatchSessionManager.paceDisplay"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "paceDisplay non-nil",
+     "effect": "nil: \"—\""
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchLiveView.swift::func LiveMetricsScreen.metricCell(label:value:alignment:)": "7b9a871867eee0fe",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.paceDisplay(_:)": "52141efa8c0cbe2b",
+    "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.formattedElapsed": "4feff27b128f6e42"
+   }
+  },
+  {
+   "key": "var LiveMetricsScreen.alphaAndDistanceRow",
+   "hash": "d523b6bd8e283249",
+   "does": "Band-labelled α1 cell and distance cell.",
+   "entry": null,
+   "calls": [
+    "EmuquWatch Watch App/WatchLiveView.swift::func LiveMetricsScreen.metricCell(label:value:alignment:)",
+    "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.alpha1Label",
+    "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.distanceDisplay"
+   ],
+   "reads": [
+    "mem:WatchSessionManager.band"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchLiveView.swift::func LiveMetricsScreen.metricCell(label:value:alignment:)": "7b9a871867eee0fe",
+    "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.alpha1Label": "ccabb1d536a89904",
+    "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.distanceDisplay": "4cfefdfbeb73dc98"
+   }
+  },
+  {
+   "key": "var LiveMetricsScreen.elevationRow",
+   "hash": "bc5be8dbe28215d0",
+   "does": "Elevation cell, then cadence when present, else target zone when set, else nothing.",
+   "entry": null,
+   "calls": [
+    "EmuquWatch Watch App/WatchLiveView.swift::func LiveMetricsScreen.metricCell(label:value:alignment:)",
+    "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.elevationDisplay",
+    "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.cadenceDisplay"
+   ],
+   "reads": [
+    "mem:WatchSessionManager.targetZone"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "cadenceDisplay non-nil",
+     "effect": "true: Cad cell"
+    },
+    {
+     "at": "+6",
+     "cond": "targetZone non-nil",
+     "effect": "true: \"Z<n>\" Target cell; false: no right cell"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.targetZone": "c3e90b3ab0e837fa",
+    "EmuquWatch Watch App/WatchLiveView.swift::func LiveMetricsScreen.metricCell(label:value:alignment:)": "7b9a871867eee0fe",
+    "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.cadenceDisplay": "eed74cca263dc17d",
+    "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.elevationDisplay": "0f55ddad743b69ff"
+   }
+  },
+  {
+   "key": "var LiveMetricsScreen.topBar",
+   "hash": "0d4d89a4ba1be395",
+   "does": "Sport label and a green/orange reachability dot with matching accessibility label.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:WatchSessionManager.sportLabel",
+    "mem:WatchSessionManager.isReachable"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "isReachable",
+     "effect": "green : orange dot"
+    },
+    {
+     "at": "+9",
+     "cond": "isReachable",
+     "effect": "\"iPhone ready\" : \"iPhone not reachable\" a11y label"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.sportLabel(fromRaw:)": "a7f8b050f64db1bd"
+   }
+  },
+  {
+   "key": "var LiveMetricsScreen.hrColor",
+   "hash": "319c7af78c98e582",
+   "does": "Zone colour from WatchMessageDecoding.heartRateZone(displayedPercentOfMax): 1 blue, 2 green, 3 yellow, 4 orange, 5 red; .primary below 50 % or when a direct-strap reading is shown.",
+   "entry": null,
+   "calls": [
+    "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.displayedPercentOfMax",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.heartRateZone(percentOfMax:)"
+   ],
+   "reads": [
+    "mem:WatchSessionManager.hrPercentOfMax"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "displayedPercentOfMax and a zone exist",
+     "effect": "false: .primary"
+    },
+    {
+     "at": "+3",
+     "cond": "zone 1–5",
+     "effect": "blue/green/yellow/orange/red"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Zone buckets restated from iOS HRZone.classify (via WatchMessageDecoding.heartRateZone); the divergence below 50 % is fixed, but nothing pins the two tables together until the handed-off test lands.",
+     "evidence": [
+      "EmuquWatch Watch App/WatchMessageDecoding.swift:460",
+      "Emuqu/Sources/Views/HRZone.swift:37"
+     ],
+     "found": "second read; partly fixed b38"
+    }
+   ],
+   "deps": {
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.heartRateZone(percentOfMax:)": "13a56b3658a5be39",
+    "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.displayedPercentOfMax": "fac1c963a25f1987"
+   }
+  },
+  {
+   "key": "func LiveMetricsScreen.metricCell(label:value:alignment:)",
+   "hash": "615ec14d7724e93d",
+   "does": "Two-line cell: caption label over monospaced value, given alignment.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var LiveMetricsScreen.connectionStatusView",
+   "hash": "7a8c20bfb284e61f",
+   "does": "Not-recording view: reachability icon and title, current statusLine, and a hint.",
+   "entry": null,
+   "calls": [
+    "EmuquWatch Watch App/WatchLiveView.swift::var LiveMetricsScreen.connectionTitle",
+    "EmuquWatch Watch App/WatchLiveView.swift::var LiveMetricsScreen.connectionHint"
+   ],
+   "reads": [
+    "mem:WatchSessionManager.isReachable",
+    "mem:WatchSessionManager.statusLine"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "isReachable",
+     "effect": "iphone.radiowaves icon : iphone.slash"
+    },
+    {
+     "at": "+4",
+     "cond": "isReachable",
+     "effect": "green : orange"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchLiveView.swift::var LiveMetricsScreen.connectionHint": "e2e23d0e486eb168",
+    "EmuquWatch Watch App/WatchLiveView.swift::var LiveMetricsScreen.connectionTitle": "b67b83e4f1d66a85"
+   }
+  },
+  {
+   "key": "var LiveMetricsScreen.connectionTitle",
+   "hash": "573d49a8933c9325",
+   "does": "\"Waiting for workout\" when reachable, else \"iPhone not reachable\".",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:WatchSessionManager.isReachable"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "isReachable",
+     "effect": "true/false picks the title"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var LiveMetricsScreen.connectionHint",
+   "hash": "27f8d6ea11ec2140",
+   "does": "Hint to swipe to the Start page when reachable, else to open Emuqu on iPhone.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:WatchSessionManager.isReachable"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "isReachable",
+     "effect": "true: swipe hint; false: open-iPhone hint"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var PauseStopScreen.body",
+   "hash": "208f25b684826b82",
+   "does": "Header, the pause/resume and End controls (disabled while no workout is recording), and the status line.",
+   "entry": "SwiftUI body",
+   "calls": [
+    "EmuquWatch Watch App/WatchLiveView.swift::var PauseStopScreen.header",
+    "EmuquWatch Watch App/WatchLiveView.swift::var PauseStopScreen.controls"
+   ],
+   "reads": [
+    "mem:WatchSessionManager.isPaused",
+    "mem:WatchSessionManager.statusLine"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchLiveView.swift::var PauseStopScreen.controls": "0169b821e8357f83",
+    "EmuquWatch Watch App/WatchLiveView.swift::var PauseStopScreen.header": "d8846c284966b126"
+   }
+  },
+  {
+   "key": "var PauseStopScreen.controls",
+   "hash": "29288a5c1642b644",
+   "does": "Resume when paused else Pause, a divider, and End.",
+   "entry": null,
+   "calls": [
+    "EmuquWatch Watch App/WatchLiveView.swift::var PauseStopScreen.resumeButton",
+    "EmuquWatch Watch App/WatchLiveView.swift::var PauseStopScreen.pauseButton",
+    "EmuquWatch Watch App/WatchLiveView.swift::var PauseStopScreen.endButton"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "isPaused",
+     "effect": "resume else pause button"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchLiveView.swift::var PauseStopScreen.endButton": "94563d88ee8e6ad1",
+    "EmuquWatch Watch App/WatchLiveView.swift::var PauseStopScreen.pauseButton": "de70bf56ff039d68",
+    "EmuquWatch Watch App/WatchLiveView.swift::var PauseStopScreen.resumeButton": "cce56c2d4a5b49e6"
+   }
+  },
+  {
+   "key": "var PauseStopScreen.header",
+   "hash": "634b9a88311fd977",
+   "does": "Pause or play icon (yellow/green) with headerTitle.",
+   "entry": null,
+   "calls": [
+    "EmuquWatch Watch App/WatchLiveView.swift::var PauseStopScreen.headerTitle"
+   ],
+   "reads": [
+    "mem:WatchSessionManager.isPaused"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "isPaused",
+     "effect": "pause.circle.fill : play.circle.fill"
+    },
+    {
+     "at": "+3",
+     "cond": "isPaused",
+     "effect": "yellow : green"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchLiveView.swift::var PauseStopScreen.headerTitle": "900d6b9e99c4f639"
+   }
+  },
+  {
+   "key": "var PauseStopScreen.headerTitle",
+   "hash": "12309409b3b82a4c",
+   "does": "\"Waiting for workout\" when not recording; else \"Recording\", or \"Auto-paused\"/\"Paused\" when paused.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:WatchSessionManager.isPaused",
+    "mem:WatchSessionManager.autoPaused"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "!isRecording",
+     "effect": "\"Waiting for workout\""
+    },
+    {
+     "at": "+2",
+     "cond": "!isPaused",
+     "effect": "\"Recording\""
+    },
+    {
+     "at": "+3",
+     "cond": "autoPaused",
+     "effect": "\"Auto-paused\" else \"Paused\""
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var PauseStopScreen.resumeButton",
+   "hash": "73eb040e60e5e84b",
+   "does": "Resume button: requests resume and plays the start haptic.",
+   "entry": "Button action",
+   "calls": [
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.requestResumeWorkout()",
+    "EmuquWatch Watch App/WatchLiveView.swift::func PauseStopScreen.buttonLabel(icon:title:)",
+    "ext:WKInterfaceDevice.play"
+   ],
+   "reads": [],
+   "writes": [
+    "wc:resumeWorkoutFromWatch"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "380cb385515abafc",
+    "EmuquWatch Watch App/WatchLiveView.swift::func PauseStopScreen.buttonLabel(icon:title:)": "2bf0ee650473830f",
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.requestResumeWorkout()": "18362403a98cc7fd"
+   }
+  },
+  {
+   "key": "var PauseStopScreen.pauseButton",
+   "hash": "22eccb1fa6973f8a",
+   "does": "Pause button: requests pause and plays a click.",
+   "entry": "Button action",
+   "calls": [
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.requestPauseWorkout()",
+    "EmuquWatch Watch App/WatchLiveView.swift::func PauseStopScreen.buttonLabel(icon:title:)",
+    "ext:WKInterfaceDevice.play"
+   ],
+   "reads": [],
+   "writes": [
+    "wc:pauseWorkoutFromWatch"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "380cb385515abafc",
+    "EmuquWatch Watch App/WatchLiveView.swift::func PauseStopScreen.buttonLabel(icon:title:)": "2bf0ee650473830f",
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.requestPauseWorkout()": "88e6f14367e50c9f"
+   }
+  },
+  {
+   "key": "var PauseStopScreen.endButton",
+   "hash": "96b0eb06d361c3c6",
+   "does": "End button: captures reachability, requests stop, ends the Watch's own session immediately when the iPhone was unreachable, plays the stop haptic.",
+   "entry": "Button action",
+   "calls": [
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.requestStopWorkout()",
+    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.noteWristStop(phoneReachable:)",
+    "EmuquWatch Watch App/WatchLiveView.swift::func PauseStopScreen.buttonLabel(icon:title:)",
+    "ext:WKInterfaceDevice.play"
+   ],
+   "reads": [
+    "mem:WatchSessionManager.isReachable"
+   ],
+   "writes": [
+    "wc:stopWorkoutFromWatch",
+    "hk:HKWorkoutSession (stopped when unreachable)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "380cb385515abafc",
+    "EmuquWatch Watch App/WatchLiveView.swift::func PauseStopScreen.buttonLabel(icon:title:)": "2bf0ee650473830f",
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.requestStopWorkout()": "642fe097d25509c1",
+    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.noteWristStop(phoneReachable:)": "4747cd9e2c600e21"
+   }
+  },
+  {
+   "key": "func PauseStopScreen.buttonLabel(icon:title:)",
+   "hash": "efd01e411d9c64b0",
+   "does": "Full-width icon + title button label.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var CompletionScreen.body",
+   "hash": "8ae78f0f0d978c1c",
+   "does": "Completion page: saved header, Save & Done button, status line.",
+   "entry": "SwiftUI body",
+   "calls": [
+    "EmuquWatch Watch App/WatchLiveView.swift::var CompletionScreen.savedHeader",
+    "EmuquWatch Watch App/WatchLiveView.swift::var CompletionScreen.saveAndDoneButton"
+   ],
+   "reads": [
+    "mem:WatchSessionManager.statusLine"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchLiveView.swift::var CompletionScreen.saveAndDoneButton": "68fd9a9a402c8dd3",
+    "EmuquWatch Watch App/WatchLiveView.swift::var CompletionScreen.savedHeader": "b4fe6dc45a241b1b"
+   }
+  },
+  {
+   "key": "var CompletionScreen.savedHeader",
+   "hash": "7218886a353100fb",
+   "does": "Stop icon, \"Workout stopped\" and \"Tap Save & Done to dismiss the summary on both devices.\" — no claim that the iPhone saved it (it stops before finalizing).",
+   "entry": null,
+   "calls": [
+    "EmuquWatch Watch App/WatchScaledFont.swift::func View.watchScaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "The new body text key 'Tap Save & Done to dismiss the summary on both devices.' is not yet in Localizable.xcstrings (handoff b38); until it is, it shows in English in every language.",
+     "evidence": [
+      "EmuquWatch Watch App/WatchLiveView.swift:817"
+     ],
+     "found": "fix pass b38"
+    }
+   ],
+   "deps": {
+    "EmuquWatch Watch App/WatchScaledFont.swift::func View.watchScaledFont(size:weight:design:monospacedDigit:relativeTo:)": "3efbee99094eff6c"
+   }
+  },
+  {
+   "key": "var CompletionScreen.saveAndDoneButton",
+   "hash": "8b70e8ea75bf266d",
+   "does": "Save & Done button: acknowledges the finished workout to the iPhone (clearing justCompleted) and plays the success haptic.",
+   "entry": "Button action",
+   "calls": [
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.requestAcknowledgeFinished()",
+    "ext:WKInterfaceDevice.play"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:WatchSessionManager.justCompleted",
+    "wc:acknowledgeFinishedFromWatch"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "380cb385515abafc",
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.requestAcknowledgeFinished()": "1e2930a9d80a12e6"
+   }
+  }
+ ],
+ "deps": {}
+}

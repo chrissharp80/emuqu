@@ -91,9 +91,6 @@ final class AmbientLocationService: NSObject, @unchecked Sendable {
     /// `MainActor.assumeIsolated` from a Swift Concurrency thread
     /// (a real crash, not a hypothetical).
     private var _latestRoadContext: RoadGeocodingService.RoadContext?
-    /// Pending one-shot `currentCoordinate()` waiters, resumed by the
-    /// delegate callbacks. Guarded by `lock`.
-    private var oneShotContinuations: [CheckedContinuation<CLLocationCoordinate2D?, Never>] = []
 
     override private init() {
         super.init()
@@ -285,52 +282,28 @@ final class AmbientLocationService: NSObject, @unchecked Sendable {
         guard age <= maxAgeSec else { return nil }
         return loc
     }
-
-    func currentCoordinate(timeout: TimeInterval = 6) async -> CLLocationCoordinate2D? {
-        if let cached = cachedLocation(maxAgeSec: 6 * 3600) { return cached.coordinate }
-        let status = manager.authorizationStatus
-        guard status == .authorizedWhenInUse || status == .authorizedAlways else { return nil }
-        // Make sure updates are flowing (sync method that owns the
-        // CLLocationManager on main); the next fix lands in
-        // didUpdateLocations, which fans out to every one-shot waiter.
-        start()
-        return await withCheckedContinuation { (continuation: CheckedContinuation<CLLocationCoordinate2D?, Never>) in
-            lock.lock()
-            oneShotContinuations.append(continuation)
-            let isFirst = oneShotContinuations.count == 1
-            lock.unlock()
-            guard isFirst else { return }
-            DispatchQueue.main.asyncAfter(deadline: .now() + timeout) { [weak self] in
-                self?.resolveOneShots(with: self?.cachedLocation(maxAgeSec: 6 * 3600)?.coordinate)
-            }
-        }
-    }
-
-    /// Resume every pending one-shot waiter with `coord` (possibly nil).
-    func resolveOneShots(with coord: CLLocationCoordinate2D?) {
-        lock.lock()
-        let waiters = oneShotContinuations
-        oneShotContinuations.removeAll()
-        lock.unlock()
-        for waiter in waiters { waiter.resume(returning: coord) }
-    }
 }
 
 // MARK: - CLLocationManagerDelegate
 
 extension AmbientLocationService: CLLocationManagerDelegate {
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
-        let status = manager.authorizationStatus
         // If permission was just granted to a caller that asked for updates,
         // kick them off so the first fix lands without the user having to
         // leave + re-enter the app. Without a pending request, do nothing —
-        // see `_startRequested`.
-        if status == .authorizedWhenInUse || status == .authorizedAlways {
+        // see `_startRequested`. `.notDetermined` is not a refusal: iOS
+        // reports it once when the manager is created, which can land after
+        // `start()` has asked and is waiting on the prompt, so it must not
+        // cancel that request. Only a denial or restriction stops updates.
+        switch manager.authorizationStatus {
+        case .authorizedWhenInUse, .authorizedAlways:
             lock.lock()
             let requested = _startRequested
             lock.unlock()
             if requested { beginUpdates() }
-        } else {
+        case .notDetermined:
+            return
+        default:
             stop()
         }
     }
@@ -340,8 +313,6 @@ extension AmbientLocationService: CLLocationManagerDelegate {
         // Drop garbage fixes outright.
         guard loc.horizontalAccuracy > 0, loc.horizontalAccuracy < 500 else { return }
         let isNewer = store(loc)
-        // Satisfy any one-shot `currentCoordinate()` waiters.
-        resolveOneShots(with: loc.coordinate)
         // The geocoding service owns rate-limiting (25 m / 60 s); road name
         // only, see `refreshRoadContext`.
         if isNewer { refreshRoadContext(for: loc) }
@@ -349,8 +320,6 @@ extension AmbientLocationService: CLLocationManagerDelegate {
 
     func locationManager(_: CLLocationManager, didFailWithError _: Error) {
         // Common during a poor-fix interlude; the AI tools handle
-        // "no cached fix yet" gracefully. Don't leave one-shot waiters
-        // hanging — resume them with whatever we last had (often nil).
-        resolveOneShots(with: cachedLocation(maxAgeSec: 6 * 3600)?.coordinate)
+        // "no cached fix yet" gracefully, and the stream keeps running.
     }
 }

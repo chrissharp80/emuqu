@@ -1,0 +1,87 @@
+{
+ "file": "Emuqu/Sources/Services/RecoveryScoreFeedbackStore.swift",
+ "hash": "9289ac502f829155",
+ "role": "Legacy recovery-score feedback log: holds only the path earlier versions saved daily feedback to, so Delete All My Data can delete that file; nothing records or reads feedback any more.",
+ "types": [
+  "RecoveryScoreFeedbackStore: final class (@MainActor) — the legacy feedback file's location and its deletion"
+ ],
+ "state": [
+  "mem:RecoveryScoreFeedbackStore.shared",
+  "file:<AppGroup|Documents|tmp>/Feedback/recovery_score_feedback.json (written only by earlier versions; deleted by clearAll)"
+ ],
+ "toplevel": "No top-level code.",
+ "flags": [],
+ "units": [
+  {
+   "key": "init RecoveryScoreFeedbackStore()",
+   "hash": "a65c43df2770f7ed",
+   "does": "Private init: computes the legacy file URL. Reads nothing.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/RecoveryScoreFeedbackStore.swift::func RecoveryScoreFeedbackStore.storeURL()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RecoveryScoreFeedbackStore.swift::func RecoveryScoreFeedbackStore.storeURL()": "fb9e156bb9ae3f2a"
+   }
+  },
+  {
+   "key": "func RecoveryScoreFeedbackStore.storeURL()",
+   "hash": "6dd1561013e3cb22",
+   "does": "Picks the App Group container, else Documents, else tmp, and returns <base>/Feedback/recovery_score_feedback.json, where earlier versions saved the log. Creates nothing.",
+   "entry": null,
+   "calls": [
+    "ext:FileManager.containerURL(forSecurityApplicationGroupIdentifier:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "App Group container available",
+     "effect": "uses <group>/Feedback"
+    },
+    {
+     "at": "+6",
+     "cond": "Documents URL available",
+     "effect": "uses Documents/Feedback; otherwise tmp/Feedback"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4"
+   }
+  },
+  {
+   "key": "func RecoveryScoreFeedbackStore.clearAll()",
+   "hash": "269bc29ccb201795",
+   "does": "Deletes the legacy feedback file when it exists (failure logged through attempt). Called by DataPurgeService (Delete All My Data).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "ext:FileManager.removeItem(at:)"
+   ],
+   "reads": [
+    "file:<AppGroup|Documents|tmp>/Feedback/recovery_score_feedback.json (exists?)"
+   ],
+   "writes": [
+    "file:<AppGroup|Documents|tmp>/Feedback/recovery_score_feedback.json (deleted)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "file does not exist",
+     "effect": "return; nothing to delete"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -186,6 +186,7 @@ final class BreadcrumbRecorder: NSObject {
         activeTrail = nil
         lastCommittedFix = nil
         latestLocation = nil
+        latestHeading = nil
     }
 
     /// User-confirmed delete. Stops recording AND clears the trail
@@ -195,22 +196,6 @@ final class BreadcrumbRecorder: NSObject {
         AppDependencies.current.location.breadcrumbStore.clear()
         activeTrail = nil
         lastCommittedFix = nil
-    }
-
-    /// Annotate the active trail with a user-typed label or a resolved
-    /// origin address. Persists immediately.
-    func updateLabel(_ label: String?) {
-        guard var trail = activeTrail else { return }
-        trail.label = label
-        activeTrail = trail
-        AppDependencies.current.location.breadcrumbStore.save(trail)
-    }
-
-    func updateResolvedOriginLabel(_ resolved: String?) {
-        guard var trail = activeTrail else { return }
-        trail.resolvedOriginLabel = resolved
-        activeTrail = trail
-        AppDependencies.current.location.breadcrumbStore.save(trail)
     }
 
     // MARK: - Throttle gate
@@ -255,7 +240,9 @@ extension BreadcrumbRecorder: CLLocationManagerDelegate {
 
     /// A grant that answers the prompt `engage()` raised finishes that engage.
     /// A grant that arrives while a trail is already engaged starts the
-    /// streams that couldn't run before. A refusal drops the pending engage.
+    /// streams that couldn't run before. A refusal drops the pending engage,
+    /// and a revocation while engaged stops recording (the trail stays on
+    /// disk), so the screen does not show a recording that gets no fixes.
     @MainActor
     private func applyAuthorization(_ status: CLAuthorizationStatus, manager: CLLocationManager) {
         authorizationStatus = status
@@ -265,6 +252,10 @@ extension BreadcrumbRecorder: CLLocationManagerDelegate {
         pendingEngage = (nil, false)
         if pending.requested, granted, !isEngaged {
             engage(label: pending.label)
+            return
+        }
+        if isEngaged, !granted {
+            disengage()
             return
         }
         guard isEngaged, granted else { return }

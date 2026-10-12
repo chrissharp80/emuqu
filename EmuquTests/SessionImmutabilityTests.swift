@@ -143,8 +143,11 @@ final class SessionImmutabilityTests: XCTestCase {
         }
         let schedule = SleepSchedule(bedtimeHour: 22, bedtimeMinute: 0, sleepHours: 8.0)
         let archive = SessionArchive(directory: directory, sleepScheduleProvider: { schedule }, sessionMergeModeProvider: { .off })
+        // The tracker lives in the test's directory, never on the app's own
+        // HRVBaseline.json, and has no baseline-changed callback.
+        let tracker = BaselineTracker(baselineFile: directory.appendingPathComponent("HRVBaseline.json"))
         let service = SessionAcceptanceService(
-            archive: archive, healthKit: MockHealthKitService(), baselineTracker: BaselineTracker(), rawBackup: RawRRBackup(),
+            archive: archive, healthKit: MockHealthKitService(), baselineTracker: tracker, rawBackup: RawRRBackup(),
             onCloudSync: { _ in }, onCloudDelete: { _ in }
         )
         var night = session(quality: .insufficient)

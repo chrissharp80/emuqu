@@ -1,0 +1,1008 @@
+{
+ "file": "EmuquTests/RecoveryScoreCalculatorTests.swift",
+ "hash": "60c24e30e5349a7f",
+ "role": "XCTest suite for RecoveryScoreCalculator pure functions: z→percentile utility, the SWC-band zToRecoveryScore and its default ScoringParameters, Tier-1 HRV scoring with fallbacks and baseline-staleness penalty, Foster monotony/strain, readiness ACWR/capacity cases, ScoreBreakdown scoring-version stamping, and ScoreVerdict boundaries.",
+ "types": [
+  "RecoveryScoreCalculatorTests: class — XCTestCase for RecoveryScoreCalculator"
+ ],
+ "state": [],
+ "toplevel": "Computed helper properties defaultConfig (ScoringConfiguration, age 40, training+sleep on) and baselineStats (ln-mean log(40), SD 0.3, CV 6, HR 58±3, 30 days).",
+ "flags": [],
+ "units": [
+  {
+   "key": "var RecoveryScoreCalculatorTests.defaultConfig",
+   "hash": "e8dbbaf247111d88",
+   "does": "Computed fixture: ScoringConfiguration with training-load and sleep integration on, no training break, no missing-sleep penalty, age 40.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoringConfiguration(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoringConfiguration(from:)": "5bd1e51efadaa4a7"
+   }
+  },
+  {
+   "key": "var RecoveryScoreCalculatorTests.baselineStats",
+   "hash": "939dbc77d839aabf",
+   "does": "Computed fixture: RecoveryBaselineStats with lnRmssdMean log(40), SD 0.3, 7-day CV 6.0, mean HR 58 ±3, 30 days.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RecoveryScoreCalculatorTests.makeSleepData(totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:awakeMinutes:sleepEfficiency:)",
+   "hash": "75a064fd3f9c1fe5",
+   "does": "Test helper: HealthKit SleepData ending now with the given totals and stage minutes.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCalculatorTests.testZeroZScoreMapsToFifty()",
+   "hash": "4d6e74dc3834c89a",
+   "does": "Asserts zToPercentileScore(0) ≈ 50.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.zToPercentileScore(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.zToPercentileScore(_:)": "b893774b76a31442",
+    "EmuquTests/RecoveryScoreCalculatorTests.swift::func RecoveryScoreCalculatorTests.score(daysLater:)": "de8044afb6152451"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCalculatorTests.testPositiveOneZScoreMapsToEightyFour()",
+   "hash": "bd02ea2ad3ca893d",
+   "does": "Asserts zToPercentileScore(1) ≈ 84.1 ±0.5.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.zToPercentileScore(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.zToPercentileScore(_:)": "b893774b76a31442",
+    "EmuquTests/RecoveryScoreCalculatorTests.swift::func RecoveryScoreCalculatorTests.score(daysLater:)": "de8044afb6152451"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCalculatorTests.testNegativeOneZScoreMapsToSixteen()",
+   "hash": "e03ce34f87fab4eb",
+   "does": "Asserts zToPercentileScore(-1) ≈ 15.9 ±0.5.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.zToPercentileScore(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.zToPercentileScore(_:)": "b893774b76a31442",
+    "EmuquTests/RecoveryScoreCalculatorTests.swift::func RecoveryScoreCalculatorTests.score(daysLater:)": "de8044afb6152451"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCalculatorTests.testZScoreClampedAtThree()",
+   "hash": "149db01d23b4e723",
+   "does": "Asserts zToPercentileScore(5) equals the value at 3 (clamp).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.zToPercentileScore(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.zToPercentileScore(_:)": "b893774b76a31442"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCalculatorTests.testZScoreClampedAtNegativeThree()",
+   "hash": "45b65027800d3f45",
+   "does": "Asserts zToPercentileScore(-5) equals the value at -3 (clamp).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.zToPercentileScore(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.zToPercentileScore(_:)": "b893774b76a31442"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCalculatorTests.testRecoveryScoreAtBaseline()",
+   "hash": "66132f4972af4ea7",
+   "does": "Asserts zToRecoveryScore(0) = 72.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.zToRecoveryScore(_:parameters:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.interpolate(_:in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.interpolate(_:in:)": "075db2dc3aabc4cb",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.zToRecoveryScore(_:parameters:)": "2f5772bdaa1b8b54",
+    "EmuquTests/RecoveryScoreCalculatorTests.swift::func RecoveryScoreCalculatorTests.score(daysLater:)": "de8044afb6152451"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCalculatorTests.testRecoveryScoreWithinSWC()",
+   "hash": "d3862ca049babc52",
+   "does": "Asserts z = ±0.5 both score 72 (SWC deadband).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.zToRecoveryScore(_:parameters:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.interpolate(_:in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.interpolate(_:in:)": "075db2dc3aabc4cb",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.zToRecoveryScore(_:parameters:)": "2f5772bdaa1b8b54"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCalculatorTests.testRecoveryScoreAboveBaselinePlateaus()",
+   "hash": "dc3b6bc872e3b40b",
+   "does": "Asserts z = 1.5, 3 and 5 all score 90 (plateau).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.zToRecoveryScore(_:parameters:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.zToRecoveryScore(_:parameters:)": "2f5772bdaa1b8b54"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCalculatorTests.testRecoveryScoreBelowBaselineDropsSteeply()",
+   "hash": "9356deeb7f466410",
+   "does": "Asserts z = -1.5 → 25 and z = -3 → 5.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.zToRecoveryScore(_:parameters:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.interpolate(_:in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.interpolate(_:in:)": "075db2dc3aabc4cb",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.zToRecoveryScore(_:parameters:)": "2f5772bdaa1b8b54"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCalculatorTests.testRecoveryScoreFloorAndCeiling()",
+   "hash": "af49635d1ffa7f56",
+   "does": "Asserts z = -5 clamps to 5 and z = 5 to 90.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.zToRecoveryScore(_:parameters:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.zToRecoveryScore(_:parameters:)": "2f5772bdaa1b8b54"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCalculatorTests.testDefaultScoringParametersIsV2()",
+   "hash": "1dd7ef0fec8a8e11",
+   "does": "Asserts defaultScoringParameters version 'v2.2026-06-22' and the six (z, score) bands exactly.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "for (i, pair) in expected.enumerated()",
+     "effect": "asserts each band's z and score"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RecoveryScoreCalculatorTests.testZToRecoveryScoreParityWithExplicitDefaultParameters()",
+   "hash": "be461a38a1544ed4",
+   "does": "Asserts zToRecoveryScore with implicit and explicit default parameters agree at 11 z values.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.zToRecoveryScore(_:parameters:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.interpolate(_:in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for z in zs",
+     "effect": "compares implicit vs explicit result at each z"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.interpolate(_:in:)": "075db2dc3aabc4cb",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.zToRecoveryScore(_:parameters:)": "2f5772bdaa1b8b54"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCalculatorTests.testZToRecoveryScoreHonorsCustomParameters()",
+   "hash": "387ffb9764510a3b",
+   "does": "Asserts a custom 3-band parameter set is honoured (0→50, -3→0, 3→100, 1.5→75).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.zToRecoveryScore(_:parameters:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.interpolate(_:in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.interpolate(_:in:)": "075db2dc3aabc4cb",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.zToRecoveryScore(_:parameters:)": "2f5772bdaa1b8b54"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCalculatorTests.testRecoveryScoreAsymmetry()",
+   "hash": "585a1d84ade50f08",
+   "does": "Asserts the drop from z 0 to -1 exceeds the gain from z 0 to +1.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.zToRecoveryScore(_:parameters:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.interpolate(_:in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.interpolate(_:in:)": "075db2dc3aabc4cb",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.zToRecoveryScore(_:parameters:)": "2f5772bdaa1b8b54"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCalculatorTests.testTier1WithBaselineAboveAverage()",
+   "hash": "2a6c3788d8f69a9e",
+   "does": "Asserts Tier-1 score > 80 for RMSSD 55 (z ≈ +1.06) with HR at baseline and α1 0.85.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateTier1(rmssd:meanHR:dfaAlpha1:baselineStats:readiness:ansBalance:referenceDate:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.baselineNormalisedScore(rmssd:meanHR:dfaAlpha1:stats:ansBalance:referenceDate:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.zToRecoveryScore(_:parameters:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.interpolate(_:in:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.rhrAdjustment(meanHR:stats:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.dfaAlpha1Adjustment(_:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.cvAdjustment(_:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.ansBalanceAdjustment(_:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.baselineStalenessPenalty(stats:referenceDate:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+DetailForwarding.swift::func RecoveryScoreCalculator.baselineStalenessDays(baselineDate:referenceDate:)",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.baselineStalenessDays(baselineDate:referenceDate:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Comments describe baseline as 80 ('above baseline scores 80+', 'drops steeply from 80') but the v2 bands put baseline at 72; the bound passes on the band interpolation (~82) plus DFA bonus, so the stated reasoning is stale.",
+     "evidence": [
+      "EmuquTests/RecoveryScoreCalculatorTests.swift:234",
+      "EmuquTests/RecoveryScoreCalculatorTests.swift:244",
+      "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift:337"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+DetailForwarding.swift::func RecoveryScoreCalculator.baselineStalenessDays(baselineDate:referenceDate:)": "947dfa2d84d7c540",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.ansBalanceAdjustment(_:)": "c24879b45c062893",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.baselineNormalisedScore(rmssd:meanHR:dfaAlpha1:stats:ansBalance:referenceDate:)": "aaef5314cc54d379",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.baselineStalenessPenalty(stats:referenceDate:)": "cc52dd7b92d9d3e4",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateTier1(rmssd:meanHR:dfaAlpha1:baselineStats:readiness:ansBalance:referenceDate:)": "89cf0881d7057b9f",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.cvAdjustment(_:)": "4098c0951c0e136a",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.dfaAlpha1Adjustment(_:)": "689def0d1a18a3e0",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.rhrAdjustment(meanHR:stats:)": "0b1fd39e61da12f8",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.interpolate(_:in:)": "075db2dc3aabc4cb",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.zToRecoveryScore(_:parameters:)": "2f5772bdaa1b8b54",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.baselineStalenessDays(baselineDate:referenceDate:)": "f8094c87c7252f22",
+    "EmuquTests/RecoveryScoreCalculatorTests.swift::func RecoveryScoreCalculatorTests.score(daysLater:)": "de8044afb6152451",
+    "EmuquTests/RecoveryScoreCalculatorTests.swift::var RecoveryScoreCalculatorTests.baselineStats": "d722998ccbc4a807"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCalculatorTests.testTier1WithBaselineBelowAverage()",
+   "hash": "5650aae580cc3bff",
+   "does": "Asserts Tier-1 score < 80 for RMSSD 25 (z ≈ -1.57).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateTier1(rmssd:meanHR:dfaAlpha1:baselineStats:readiness:ansBalance:referenceDate:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.baselineNormalisedScore(rmssd:meanHR:dfaAlpha1:stats:ansBalance:referenceDate:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.zToRecoveryScore(_:parameters:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.interpolate(_:in:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.rhrAdjustment(meanHR:stats:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.dfaAlpha1Adjustment(_:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.cvAdjustment(_:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.ansBalanceAdjustment(_:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.baselineStalenessPenalty(stats:referenceDate:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+DetailForwarding.swift::func RecoveryScoreCalculator.baselineStalenessDays(baselineDate:referenceDate:)",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.baselineStalenessDays(baselineDate:referenceDate:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+DetailForwarding.swift::func RecoveryScoreCalculator.baselineStalenessDays(baselineDate:referenceDate:)": "947dfa2d84d7c540",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.ansBalanceAdjustment(_:)": "c24879b45c062893",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.baselineNormalisedScore(rmssd:meanHR:dfaAlpha1:stats:ansBalance:referenceDate:)": "aaef5314cc54d379",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.baselineStalenessPenalty(stats:referenceDate:)": "cc52dd7b92d9d3e4",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateTier1(rmssd:meanHR:dfaAlpha1:baselineStats:readiness:ansBalance:referenceDate:)": "89cf0881d7057b9f",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.cvAdjustment(_:)": "4098c0951c0e136a",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.dfaAlpha1Adjustment(_:)": "689def0d1a18a3e0",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.rhrAdjustment(meanHR:stats:)": "0b1fd39e61da12f8",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.interpolate(_:in:)": "075db2dc3aabc4cb",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.zToRecoveryScore(_:parameters:)": "2f5772bdaa1b8b54",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.baselineStalenessDays(baselineDate:referenceDate:)": "f8094c87c7252f22",
+    "EmuquTests/RecoveryScoreCalculatorTests.swift::func RecoveryScoreCalculatorTests.score(daysLater:)": "de8044afb6152451",
+    "EmuquTests/RecoveryScoreCalculatorTests.swift::var RecoveryScoreCalculatorTests.baselineStats": "d722998ccbc4a807"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCalculatorTests.testTier1FallbackToReadiness()",
+   "hash": "68bea7bc64cbd8d1",
+   "does": "With no baseline and readiness 7.0, asserts Tier-1 = 70.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateTier1(rmssd:meanHR:dfaAlpha1:baselineStats:readiness:ansBalance:referenceDate:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateTier1(rmssd:meanHR:dfaAlpha1:baselineStats:readiness:ansBalance:referenceDate:)": "89cf0881d7057b9f",
+    "EmuquTests/RecoveryScoreCalculatorTests.swift::func RecoveryScoreCalculatorTests.score(daysLater:)": "de8044afb6152451"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCalculatorTests.testTier1FallbackToAbsoluteThresholds()",
+   "hash": "a7290d4abca19709",
+   "does": "With no baseline or readiness, asserts RMSSD 50 maps to the absolute-threshold score 70.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateTier1(rmssd:meanHR:dfaAlpha1:baselineStats:readiness:ansBalance:referenceDate:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.absoluteRMSSDScore(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.absoluteRMSSDScore(_:)": "fdc70796780caa95",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateTier1(rmssd:meanHR:dfaAlpha1:baselineStats:readiness:ansBalance:referenceDate:)": "89cf0881d7057b9f",
+    "EmuquTests/RecoveryScoreCalculatorTests.swift::func RecoveryScoreCalculatorTests.score(daysLater:)": "de8044afb6152451"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCalculatorTests.testTier1NoData()",
+   "hash": "e0f1c6217a9a8faa",
+   "does": "With RMSSD 0 and no baseline/readiness, asserts the neutral 50.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateTier1(rmssd:meanHR:dfaAlpha1:baselineStats:readiness:ansBalance:referenceDate:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateTier1(rmssd:meanHR:dfaAlpha1:baselineStats:readiness:ansBalance:referenceDate:)": "89cf0881d7057b9f",
+    "EmuquTests/RecoveryScoreCalculatorTests.swift::func RecoveryScoreCalculatorTests.score(daysLater:)": "de8044afb6152451"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCalculatorTests.testTier1ClampedTo0To100()",
+   "hash": "961f3fb3a0919b74",
+   "does": "Asserts Tier-1 for RMSSD 5, HR 80, α1 1.5 stays within 0...100.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateTier1(rmssd:meanHR:dfaAlpha1:baselineStats:readiness:ansBalance:referenceDate:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.baselineNormalisedScore(rmssd:meanHR:dfaAlpha1:stats:ansBalance:referenceDate:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.zToRecoveryScore(_:parameters:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.rhrAdjustment(meanHR:stats:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.dfaAlpha1Adjustment(_:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.cvAdjustment(_:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.ansBalanceAdjustment(_:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.baselineStalenessPenalty(stats:referenceDate:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+DetailForwarding.swift::func RecoveryScoreCalculator.baselineStalenessDays(baselineDate:referenceDate:)",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.baselineStalenessDays(baselineDate:referenceDate:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Only asserts the 0...100 clamp that calculateTier1 applies with min/max; it cannot fail for finite inputs.",
+     "evidence": [
+      "EmuquTests/RecoveryScoreCalculatorTests.swift:283",
+      "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift:29"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+DetailForwarding.swift::func RecoveryScoreCalculator.baselineStalenessDays(baselineDate:referenceDate:)": "947dfa2d84d7c540",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.ansBalanceAdjustment(_:)": "c24879b45c062893",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.baselineNormalisedScore(rmssd:meanHR:dfaAlpha1:stats:ansBalance:referenceDate:)": "aaef5314cc54d379",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.baselineStalenessPenalty(stats:referenceDate:)": "cc52dd7b92d9d3e4",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateTier1(rmssd:meanHR:dfaAlpha1:baselineStats:readiness:ansBalance:referenceDate:)": "89cf0881d7057b9f",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.cvAdjustment(_:)": "4098c0951c0e136a",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.dfaAlpha1Adjustment(_:)": "689def0d1a18a3e0",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.rhrAdjustment(meanHR:stats:)": "0b1fd39e61da12f8",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.zToRecoveryScore(_:parameters:)": "2f5772bdaa1b8b54",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.baselineStalenessDays(baselineDate:referenceDate:)": "f8094c87c7252f22",
+    "EmuquTests/RecoveryScoreCalculatorTests.swift::var RecoveryScoreCalculatorTests.baselineStats": "d722998ccbc4a807"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCalculatorTests.testTier1StalenessPenaltyFollowsReferenceDate()",
+   "hash": "77d9778f972f581e",
+   "does": "With baseline last updated at a fixed date, asserts score is 72 at 2 days, exactly 10 lower at 14 days and 20 lower (cap) at 365 days, i.e. staleness follows referenceDate.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RecoveryScoreCalculatorTests.swift::func RecoveryScoreCalculatorTests.score(daysLater:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateTier1(rmssd:meanHR:dfaAlpha1:baselineStats:readiness:ansBalance:referenceDate:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.baselineNormalisedScore(rmssd:meanHR:dfaAlpha1:stats:ansBalance:referenceDate:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.zToRecoveryScore(_:parameters:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.interpolate(_:in:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.rhrAdjustment(meanHR:stats:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.dfaAlpha1Adjustment(_:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.cvAdjustment(_:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.ansBalanceAdjustment(_:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.baselineStalenessPenalty(stats:referenceDate:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+DetailForwarding.swift::func RecoveryScoreCalculator.baselineStalenessDays(baselineDate:referenceDate:)",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.baselineStalenessDays(baselineDate:referenceDate:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+DetailForwarding.swift::func RecoveryScoreCalculator.baselineStalenessDays(baselineDate:referenceDate:)": "947dfa2d84d7c540",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.ansBalanceAdjustment(_:)": "c24879b45c062893",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.baselineNormalisedScore(rmssd:meanHR:dfaAlpha1:stats:ansBalance:referenceDate:)": "aaef5314cc54d379",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.baselineStalenessPenalty(stats:referenceDate:)": "cc52dd7b92d9d3e4",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateTier1(rmssd:meanHR:dfaAlpha1:baselineStats:readiness:ansBalance:referenceDate:)": "89cf0881d7057b9f",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.cvAdjustment(_:)": "4098c0951c0e136a",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.dfaAlpha1Adjustment(_:)": "689def0d1a18a3e0",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.rhrAdjustment(meanHR:stats:)": "0b1fd39e61da12f8",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.interpolate(_:in:)": "075db2dc3aabc4cb",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.zToRecoveryScore(_:parameters:)": "2f5772bdaa1b8b54",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.baselineStalenessDays(baselineDate:referenceDate:)": "f8094c87c7252f22",
+    "EmuquTests/RecoveryScoreCalculatorTests.swift::func RecoveryScoreCalculatorTests.score(daysLater:)": "de8044afb6152451"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCalculatorTests.score(daysLater:)",
+   "hash": "cb7c7cf36ef99662",
+   "does": "Nested helper: Tier-1 score for RMSSD 40, HR 58, no α1 with referenceDate = lastDate + daysLater.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateTier1(rmssd:meanHR:dfaAlpha1:baselineStats:readiness:ansBalance:referenceDate:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.baselineNormalisedScore(rmssd:meanHR:dfaAlpha1:stats:ansBalance:referenceDate:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.zToRecoveryScore(_:parameters:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.interpolate(_:in:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.rhrAdjustment(meanHR:stats:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.dfaAlpha1Adjustment(_:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.cvAdjustment(_:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.ansBalanceAdjustment(_:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.baselineStalenessPenalty(stats:referenceDate:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+DetailForwarding.swift::func RecoveryScoreCalculator.baselineStalenessDays(baselineDate:referenceDate:)",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.baselineStalenessDays(baselineDate:referenceDate:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+DetailForwarding.swift::func RecoveryScoreCalculator.baselineStalenessDays(baselineDate:referenceDate:)": "947dfa2d84d7c540",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.ansBalanceAdjustment(_:)": "c24879b45c062893",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.baselineNormalisedScore(rmssd:meanHR:dfaAlpha1:stats:ansBalance:referenceDate:)": "aaef5314cc54d379",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.baselineStalenessPenalty(stats:referenceDate:)": "cc52dd7b92d9d3e4",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateTier1(rmssd:meanHR:dfaAlpha1:baselineStats:readiness:ansBalance:referenceDate:)": "89cf0881d7057b9f",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.cvAdjustment(_:)": "4098c0951c0e136a",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.dfaAlpha1Adjustment(_:)": "689def0d1a18a3e0",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.rhrAdjustment(meanHR:stats:)": "0b1fd39e61da12f8",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.interpolate(_:in:)": "075db2dc3aabc4cb",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.zToRecoveryScore(_:parameters:)": "2f5772bdaa1b8b54",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.baselineStalenessDays(baselineDate:referenceDate:)": "f8094c87c7252f22"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCalculatorTests.testTier1DeterministicForFixedReferenceDate()",
+   "hash": "afab7d2f29f93e04",
+   "does": "Asserts two Tier-1 calls with identical inputs and referenceDate return identical scores.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateTier1(rmssd:meanHR:dfaAlpha1:baselineStats:readiness:ansBalance:referenceDate:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.baselineNormalisedScore(rmssd:meanHR:dfaAlpha1:stats:ansBalance:referenceDate:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.zToRecoveryScore(_:parameters:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.interpolate(_:in:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.rhrAdjustment(meanHR:stats:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.dfaAlpha1Adjustment(_:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.cvAdjustment(_:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.ansBalanceAdjustment(_:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.baselineStalenessPenalty(stats:referenceDate:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+DetailForwarding.swift::func RecoveryScoreCalculator.baselineStalenessDays(baselineDate:referenceDate:)",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.baselineStalenessDays(baselineDate:referenceDate:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Determinism of a pure function with identical arguments is near-tautological; testTier1StalenessPenaltyFollowsReferenceDate already proves the date is injected.",
+     "evidence": [
+      "EmuquTests/RecoveryScoreCalculatorTests.swift:337"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+DetailForwarding.swift::func RecoveryScoreCalculator.baselineStalenessDays(baselineDate:referenceDate:)": "947dfa2d84d7c540",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.ansBalanceAdjustment(_:)": "c24879b45c062893",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.baselineNormalisedScore(rmssd:meanHR:dfaAlpha1:stats:ansBalance:referenceDate:)": "aaef5314cc54d379",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.baselineStalenessPenalty(stats:referenceDate:)": "cc52dd7b92d9d3e4",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateTier1(rmssd:meanHR:dfaAlpha1:baselineStats:readiness:ansBalance:referenceDate:)": "89cf0881d7057b9f",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.cvAdjustment(_:)": "4098c0951c0e136a",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.dfaAlpha1Adjustment(_:)": "689def0d1a18a3e0",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.rhrAdjustment(meanHR:stats:)": "0b1fd39e61da12f8",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.interpolate(_:in:)": "075db2dc3aabc4cb",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.zToRecoveryScore(_:parameters:)": "2f5772bdaa1b8b54",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.baselineStalenessDays(baselineDate:referenceDate:)": "f8094c87c7252f22"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCalculatorTests.testFosterMonotonyStrainNeedsTraining()",
+   "hash": "4d3b8359e88842e9",
+   "does": "Asserts fosterMonotonyStrain returns nil for an empty TRIMP dictionary.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Training.swift::func RecoveryScoreCalculator.fosterMonotonyStrain(dailyTrimp:referenceDate:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Training.swift::func RecoveryScoreCalculator.cappedMonotony(of:sum:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Training.swift::func RecoveryScoreCalculator.cappedMonotony(of:sum:)": "adea3d310f1d8fc6",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Training.swift::func RecoveryScoreCalculator.fosterMonotonyStrain(dailyTrimp:referenceDate:)": "afd78f8aece889c0"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCalculatorTests.testFosterMonotonyStrainVariedTraining()",
+   "hash": "2b009c10a7ddcbaf",
+   "does": "Builds 7 days of varied TRIMP keyed from today's start of day and asserts monotony < 2.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Training.swift::func RecoveryScoreCalculator.fosterMonotonyStrain(dailyTrimp:referenceDate:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Training.swift::func RecoveryScoreCalculator.cappedMonotony(of:sum:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "for (i, load) in loads.enumerated()",
+     "effect": "keys load i at today - i days"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Keys are computed from Date() in the test while fosterMonotonyStrain uses its own Date() default; a run spanning midnight shifts the 7-day window by one day relative to the fixture.",
+     "evidence": [
+      "EmuquTests/RecoveryScoreCalculatorTests.swift:351",
+      "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Training.swift:26"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Training.swift::func RecoveryScoreCalculator.cappedMonotony(of:sum:)": "adea3d310f1d8fc6",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Training.swift::func RecoveryScoreCalculator.fosterMonotonyStrain(dailyTrimp:referenceDate:)": "afd78f8aece889c0",
+    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCalculatorTests.testFosterMonotonyStrainMonotonousTraining()",
+   "hash": "39398c8eb5c77d20",
+   "does": "Builds 7 identical 100-TRIMP days and asserts monotony > 2 (capped when SD is 0).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Training.swift::func RecoveryScoreCalculator.fosterMonotonyStrain(dailyTrimp:referenceDate:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Training.swift::func RecoveryScoreCalculator.cappedMonotony(of:sum:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "for i in 0..<7",
+     "effect": "keys 100 TRIMP at today - i days"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Training.swift::func RecoveryScoreCalculator.cappedMonotony(of:sum:)": "adea3d310f1d8fc6",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Training.swift::func RecoveryScoreCalculator.fosterMonotonyStrain(dailyTrimp:referenceDate:)": "afd78f8aece889c0",
+    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCalculatorTests.testReadinessAdvisoryZoneSoftens()",
+   "hash": "59dde8838278751a",
+   "does": "CTL 50, ATL 40, ACWR 1.4, recovery 90: asserts 60 < readiness < 85.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeAcuteFatigue(todayTrimp:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeBaseReadiness(ctl:atl:acuteFatigue:rawAcuteFatigue:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.mapCapacityRatioToReadiness(_:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyACWRModifier(_:acuteChronicRatio:ctl:recoveryScore:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.dampenedACWRPenalty(acr:ctl:recoveryScore:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyFreshnessBonus(_:morningATL:atl:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyRecoveryModulation(_:recoveryScore:ctl:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyACWRModifier(_:acuteChronicRatio:ctl:recoveryScore:)": "af43b21bcbbeaaaa",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyFreshnessBonus(_:morningATL:atl:)": "e88756532c3a791e",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyRecoveryModulation(_:recoveryScore:ctl:)": "09f5a5e0dc237a38",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "dadd07d5df986633",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeAcuteFatigue(todayTrimp:recentWorkoutLoads:)": "c6894f9bcbb37dd6",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeBaseReadiness(ctl:atl:acuteFatigue:rawAcuteFatigue:)": "510a4cb6f29ffc87",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.dampenedACWRPenalty(acr:ctl:recoveryScore:)": "31f46ca54792db88",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.mapCapacityRatioToReadiness(_:)": "75d9c9855af3f587",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "088bd81c4054cfaa"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCalculatorTests.testReadinessDangerZoneContinuousPenalty()",
+   "hash": "27a729193a26571e",
+   "does": "CTL 50, ATL 40, ACWR 1.6, recovery 90: asserts readiness ≈ 80.55 ±0.5 (rescue-capped 10 % penalty then 30 % uplift), < 85 and > 70.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeAcuteFatigue(todayTrimp:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeBaseReadiness(ctl:atl:acuteFatigue:rawAcuteFatigue:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.mapCapacityRatioToReadiness(_:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyACWRModifier(_:acuteChronicRatio:ctl:recoveryScore:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.dampenedACWRPenalty(acr:ctl:recoveryScore:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyFreshnessBonus(_:morningATL:atl:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyRecoveryModulation(_:recoveryScore:ctl:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Comment points to 'RecoveryScoreCalculator+Readiness.applyACWRModifier'; that code now lives in ReadinessScoring.swift.",
+     "evidence": [
+      "EmuquTests/RecoveryScoreCalculatorTests.swift:396",
+      "Emuqu/Sources/Analysis/ReadinessScoring.swift:257"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyACWRModifier(_:acuteChronicRatio:ctl:recoveryScore:)": "af43b21bcbbeaaaa",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyFreshnessBonus(_:morningATL:atl:)": "e88756532c3a791e",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyRecoveryModulation(_:recoveryScore:ctl:)": "09f5a5e0dc237a38",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "dadd07d5df986633",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeAcuteFatigue(todayTrimp:recentWorkoutLoads:)": "c6894f9bcbb37dd6",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeBaseReadiness(ctl:atl:acuteFatigue:rawAcuteFatigue:)": "510a4cb6f29ffc87",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.dampenedACWRPenalty(acr:ctl:recoveryScore:)": "31f46ca54792db88",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.mapCapacityRatioToReadiness(_:)": "75d9c9855af3f587",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "088bd81c4054cfaa"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCalculatorTests.testReadinessDrivenByCapacityRatio()",
+   "hash": "2c827f7745f9134e",
+   "does": "CTL 40, ATL 30, recovery 95: asserts 80 < readiness <= 100.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeAcuteFatigue(todayTrimp:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeBaseReadiness(ctl:atl:acuteFatigue:rawAcuteFatigue:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.mapCapacityRatioToReadiness(_:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyACWRModifier(_:acuteChronicRatio:ctl:recoveryScore:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyFreshnessBonus(_:morningATL:atl:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyRecoveryModulation(_:recoveryScore:ctl:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Comment says readiness is 'independent of recovery score' but applyRecoveryModulation always blends toward recovery (here 86.25 → ~88.9); the upper <= 100 assertion is the clamp.",
+     "evidence": [
+      "EmuquTests/RecoveryScoreCalculatorTests.swift:435",
+      "Emuqu/Sources/Analysis/ReadinessScoring.swift:310"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyACWRModifier(_:acuteChronicRatio:ctl:recoveryScore:)": "af43b21bcbbeaaaa",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyFreshnessBonus(_:morningATL:atl:)": "e88756532c3a791e",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyRecoveryModulation(_:recoveryScore:ctl:)": "09f5a5e0dc237a38",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "dadd07d5df986633",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeAcuteFatigue(todayTrimp:recentWorkoutLoads:)": "c6894f9bcbb37dd6",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeBaseReadiness(ctl:atl:acuteFatigue:rawAcuteFatigue:)": "510a4cb6f29ffc87",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.mapCapacityRatioToReadiness(_:)": "75d9c9855af3f587",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "088bd81c4054cfaa"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCalculatorTests.testReadinessOverloadedAthlete()",
+   "hash": "bfc9ddbf930846a5",
+   "does": "CTL 40, ATL 55, recovery 90: asserts readiness < 60.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeAcuteFatigue(todayTrimp:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeBaseReadiness(ctl:atl:acuteFatigue:rawAcuteFatigue:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.mapCapacityRatioToReadiness(_:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyACWRModifier(_:acuteChronicRatio:ctl:recoveryScore:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyFreshnessBonus(_:morningATL:atl:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyRecoveryModulation(_:recoveryScore:ctl:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyACWRModifier(_:acuteChronicRatio:ctl:recoveryScore:)": "af43b21bcbbeaaaa",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyFreshnessBonus(_:morningATL:atl:)": "e88756532c3a791e",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyRecoveryModulation(_:recoveryScore:ctl:)": "09f5a5e0dc237a38",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "dadd07d5df986633",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeAcuteFatigue(todayTrimp:recentWorkoutLoads:)": "c6894f9bcbb37dd6",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeBaseReadiness(ctl:atl:acuteFatigue:rawAcuteFatigue:)": "510a4cb6f29ffc87",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.mapCapacityRatioToReadiness(_:)": "75d9c9855af3f587",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "088bd81c4054cfaa"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCalculatorTests.testReadinessFreshnessGainFromDissipation()",
+   "hash": "946827800a67c963",
+   "does": "Asserts morning ATL 60 → 55 yields higher readiness than no morningATL (CTL 50, recovery 90).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeAcuteFatigue(todayTrimp:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeBaseReadiness(ctl:atl:acuteFatigue:rawAcuteFatigue:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.mapCapacityRatioToReadiness(_:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyACWRModifier(_:acuteChronicRatio:ctl:recoveryScore:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyFreshnessBonus(_:morningATL:atl:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyRecoveryModulation(_:recoveryScore:ctl:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Identical inputs and assertion to ReadinessCalculationTests.testATLDissipationBonus.",
+     "evidence": [
+      "EmuquTests/ReadinessCalculationTests+Decay.swift:103"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyACWRModifier(_:acuteChronicRatio:ctl:recoveryScore:)": "af43b21bcbbeaaaa",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyFreshnessBonus(_:morningATL:atl:)": "e88756532c3a791e",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyRecoveryModulation(_:recoveryScore:ctl:)": "09f5a5e0dc237a38",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "dadd07d5df986633",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeAcuteFatigue(todayTrimp:recentWorkoutLoads:)": "c6894f9bcbb37dd6",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeBaseReadiness(ctl:atl:acuteFatigue:rawAcuteFatigue:)": "510a4cb6f29ffc87",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.mapCapacityRatioToReadiness(_:)": "75d9c9855af3f587",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "088bd81c4054cfaa"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCalculatorTests.testReadinessStrainIncreasesEffectiveLoad()",
+   "hash": "16571f66fc828050",
+   "does": "CTL 40, ATL 30, TRIMP 100, recovery 90: asserts readiness < 75.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeAcuteFatigue(todayTrimp:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeBaseReadiness(ctl:atl:acuteFatigue:rawAcuteFatigue:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.mapCapacityRatioToReadiness(_:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyACWRModifier(_:acuteChronicRatio:ctl:recoveryScore:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyFreshnessBonus(_:morningATL:atl:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyRecoveryModulation(_:recoveryScore:ctl:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyACWRModifier(_:acuteChronicRatio:ctl:recoveryScore:)": "af43b21bcbbeaaaa",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyFreshnessBonus(_:morningATL:atl:)": "e88756532c3a791e",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyRecoveryModulation(_:recoveryScore:ctl:)": "09f5a5e0dc237a38",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "dadd07d5df986633",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeAcuteFatigue(todayTrimp:recentWorkoutLoads:)": "c6894f9bcbb37dd6",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeBaseReadiness(ctl:atl:acuteFatigue:rawAcuteFatigue:)": "510a4cb6f29ffc87",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.mapCapacityRatioToReadiness(_:)": "75d9c9855af3f587",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "088bd81c4054cfaa"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCalculatorTests.testReadinessACWRSuppression()",
+   "hash": "2929c58be5b19d9b",
+   "does": "CTL = ATL = 40, recovery 90: asserts ACWR 1.6 gives lower readiness than ACWR 1.0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeAcuteFatigue(todayTrimp:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeBaseReadiness(ctl:atl:acuteFatigue:rawAcuteFatigue:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.mapCapacityRatioToReadiness(_:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyACWRModifier(_:acuteChronicRatio:ctl:recoveryScore:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.dampenedACWRPenalty(acr:ctl:recoveryScore:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyFreshnessBonus(_:morningATL:atl:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyRecoveryModulation(_:recoveryScore:ctl:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyACWRModifier(_:acuteChronicRatio:ctl:recoveryScore:)": "af43b21bcbbeaaaa",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyFreshnessBonus(_:morningATL:atl:)": "e88756532c3a791e",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyRecoveryModulation(_:recoveryScore:ctl:)": "09f5a5e0dc237a38",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "dadd07d5df986633",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeAcuteFatigue(todayTrimp:recentWorkoutLoads:)": "c6894f9bcbb37dd6",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeBaseReadiness(ctl:atl:acuteFatigue:rawAcuteFatigue:)": "510a4cb6f29ffc87",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.dampenedACWRPenalty(acr:ctl:recoveryScore:)": "31f46ca54792db88",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.mapCapacityRatioToReadiness(_:)": "75d9c9855af3f587",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "088bd81c4054cfaa"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCalculatorTests.testFreshBreakdownCarriesTheCurrentScoringVersion()",
+   "hash": "6f3f32c2eb553346",
+   "does": "Asserts a freshly built ScoreBreakdown carries ScoringVersion.current.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(compositeScore:tier:factors:penalties:spo2PenaltyApplied:scoringVersion:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(compositeScore:tier:factors:penalties:spo2PenaltyApplied:scoringVersion:)": "6d045d2ab75f0630"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCalculatorTests.testLegacyBreakdownDecodesAsUnversionedNotAsCurrent()",
+   "hash": "e0b4519e6f6aee3e",
+   "does": "Asserts decoding a breakdown without scoringVersion yields ScoringVersion.unversioned (not current) and keeps compositeScore 68.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(from:)": "64e9bc9bc5ab879d"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCalculatorTests.testVersionSurvivesAnEncodeDecodeRoundTrip()",
+   "hash": "0b51c8f1181a521f",
+   "does": "Asserts a ScoreBreakdown encode/decode round trip keeps ScoringVersion.current.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(compositeScore:tier:factors:penalties:spo2PenaltyApplied:scoringVersion:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(compositeScore:tier:factors:penalties:spo2PenaltyApplied:scoringVersion:)": "6d045d2ab75f0630",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(from:)": "64e9bc9bc5ab879d"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCalculatorTests.testScoreVerdictBoundaries()",
+   "hash": "58ae7c2388b5d6d4",
+   "does": "Asserts ScoreVerdict boundaries on the rounded score: 90+ excellent, 75 good, 60 fair, 45 payAttention, 30 low, below veryLow, and 74.6 rounds to good.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/ScoreVerdict.swift::init ScoreVerdict(score:)",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.clampedDisplayScore(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.clampedDisplayScore(_:)": "0e3e974933bc5204",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::init ScoreVerdict(score:)": "89445abed2b3e6c9"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -1,0 +1,70 @@
+{
+ "file": "Emuqu/Sources/Collection/HealthSampleFactory.swift",
+ "hash": "8c6bec3ae6afcfa2",
+ "role": "Single construction point for HKQuantitySample/HKCategorySample that returns nil instead of letting HealthKit raise an uncatchable ObjC exception for non-finite values or backwards intervals.",
+ "types": [
+  "HealthSampleFactory: enum — static sample builders"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func HealthSampleFactory.isValidInterval(start:end:)",
+   "hash": "7c8ae73b3dcd325c",
+   "does": "True when both dates have finite reference intervals and end >= start.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)",
+   "hash": "bf0d2f6800f5fa3a",
+   "does": "Returns an HKQuantitySample for value/unit over start...end, or nil when value is not finite or the interval is invalid.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.isValidInterval(start:end:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "value not finite or interval invalid",
+     "effect": "returns nil; otherwise constructs the sample"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.isValidInterval(start:end:)": "874c8ebb1f52e1a5"
+   }
+  },
+  {
+   "key": "func HealthSampleFactory.categorySample(type:value:start:end:metadata:)",
+   "hash": "1621681bb60f86cb",
+   "does": "Returns an HKCategorySample over start...end, or nil for an invalid interval.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.isValidInterval(start:end:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "interval invalid",
+     "effect": "returns nil; otherwise constructs the sample"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.isValidInterval(start:end:)": "874c8ebb1f52e1a5"
+   }
+  }
+ ],
+ "deps": {}
+}

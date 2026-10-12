@@ -1,0 +1,44 @@
+{
+ "file": "Emuqu/Sources/Collection/WorkoutMotion.swift",
+ "hash": "faf2e9e70699860a",
+ "role": "@Observable sub-object of WorkoutRecorder holding live motion metrics (distance, elevation gain, live track, steps, cadence, power, foot-pod flag) so map/stat views do not re-render on HR beats.",
+ "types": [
+  "WorkoutMotion: class (@Observable, @MainActor) — motion/GPS/pedometer/foot-pod live metrics"
+ ],
+ "state": [
+  "mem:WorkoutMotion.distanceMeters",
+  "mem:WorkoutMotion.elevationGainMeters",
+  "mem:WorkoutMotion.liveTrack",
+  "mem:WorkoutMotion.stepCount",
+  "mem:WorkoutMotion.cadenceStepsPerMin",
+  "mem:WorkoutMotion.powerWatts",
+  "mem:WorkoutMotion.footPodActive"
+ ],
+ "toplevel": "Stored defaults all zero/empty/nil/false. Instance is WorkoutRecorder.motion (WorkoutRecorder.swift:62); writers are the ticker (mirrorMotionAndPowerSensors) and reset().",
+ "flags": [],
+ "units": [
+  {
+   "key": "func WorkoutMotion.reset()",
+   "hash": "fa3fbf123076807f",
+   "does": "Sets distanceMeters 0, elevationGainMeters 0, liveTrack [], stepCount 0, cadenceStepsPerMin nil, powerWatts nil, footPodActive false. Called by resetRecorderStateAfterStop (WorkoutRecorder+Stop.swift:231).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:WorkoutMotion.distanceMeters",
+    "mem:WorkoutMotion.elevationGainMeters",
+    "mem:WorkoutMotion.liveTrack",
+    "mem:WorkoutMotion.stepCount",
+    "mem:WorkoutMotion.cadenceStepsPerMin",
+    "mem:WorkoutMotion.powerWatts",
+    "mem:WorkoutMotion.footPodActive"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func stepCount(samples:)": "6c00c4d3ab2ac3d3"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -28,7 +28,8 @@ extension AnalysisSummaryGenerator {
     // ring and the summary title show, so the steps never contradict them.
     var actionableSteps: [String] {
         let score = headlineScore
-        if let readiness = currentReadiness, score >= HRVThresholds.scoreAdequateRecovery, readiness < score - 15, todayTrimp >= 20 {
+        if let readiness = currentReadiness, score >= HRVThresholds.scoreAdequateRecovery,
+           readiness < score - StepThresholds.postExerciseReadinessDrop, todayTrimp >= StepThresholds.postExerciseMinTrimp {
             return postExerciseSteps(readiness: readiness, recoveryScore: score)
         }
         var steps: [String] = []
@@ -38,6 +39,27 @@ extension AnalysisSummaryGenerator {
         appendScoreSteps(&steps, score: score, gates: gates)
         appendFeelingSteps(&steps, score: score)
         return steps
+    }
+
+    /// The cut points the steps use that are particular to them; the shared
+    /// ones live in `HRVThresholds`.
+    private enum StepThresholds {
+        /// Readiness this many points under the morning score, after a
+        /// session (`postExerciseMinTrimp`), swaps in post-exercise steps.
+        static let postExerciseReadinessDrop = 15.0
+        static let postExerciseMinTrimp = 20.0
+        /// Tonight's RMSSD this many percent over the recent average, at a
+        /// score of at least `highRelativeHRVMinScore`, earns the trend push.
+        static let highRelativeHRVPercent = 15.0
+        static let highRelativeHRVMinScore = 70.0
+        /// The score at which the morning feeling is set against good HRV.
+        static let feelingHRVGoodScore = 65.0
+        /// Sleep efficiency (percent) at which an unstable window still
+        /// allows moderate to high intensity.
+        static let unstableWindowEfficiency = 90.0
+        /// Readiness under these after a session marks it heavy / moderate.
+        static let heavySessionReadiness = 30.0
+        static let moderateSessionReadiness = 50.0
     }
 
     /// The signals that decide whether "push today" is safe advice.
@@ -56,8 +78,14 @@ extension AnalysisSummaryGenerator {
         let load: TrainingAdviceGate.Assessment
         let hasUnstableWindow: Bool
         let hasFatigueSignal: Bool
-        let hasSympatheticDominance: Bool
+        let hasRaisedLFHF: Bool
         let hasStrongVagalTone: Bool
+
+        /// Something keeps the advice at moderate rather than high intensity:
+        /// a load reason, weak vagal tone, a fatigue signal or short sleep.
+        var capsAtModerate: Bool {
+            cumulativeLoadElevated || loadHoldReason != nil || !hasStrongVagalTone || hasFatigueSignal || isShortSleep
+        }
 
         /// The gate says to ease off: a sharp load increase or heavy
         /// accumulated fatigue.
@@ -75,7 +103,7 @@ extension AnalysisSummaryGenerator {
         let signals = hrvSignals()
         let load = adviceLoad()
         let shouldNotPush = sleep.isShortSleep || signals.hasUnstableWindow || signals.hasFatigueSignal
-            || signals.hasSympatheticDominance || !isConsolidatedWindow || load.level != .clear
+            || signals.hasRaisedLFHF || !isConsolidatedWindow || load.level != .clear
         return PushGates(
             rmssd: signals.rmssd, stress: signals.stress,
             lfhf: signals.lfhf, dfa: signals.dfa,
@@ -88,7 +116,7 @@ extension AnalysisSummaryGenerator {
             load: load,
             hasUnstableWindow: signals.hasUnstableWindow,
             hasFatigueSignal: signals.hasFatigueSignal,
-            hasSympatheticDominance: signals.hasSympatheticDominance,
+            hasRaisedLFHF: signals.hasRaisedLFHF,
             hasStrongVagalTone: signals.hasStrongVagalTone
         )
     }
@@ -112,13 +140,15 @@ extension AnalysisSummaryGenerator {
         let hasStrongVagalTone: Bool
         let hasUnstableWindow: Bool
         let hasFatigueSignal: Bool
-        let hasSympatheticDominance: Bool
+        /// LF/HF above 3.0 with weak vagal tone: a position of the ratio, not
+        /// a measure of sympathetic activation (Billman 2013).
+        let hasRaisedLFHF: Bool
     }
 
     // Additional gates for "push" recommendations:
     // - windowCV > 0.08 (8%) indicates unstable HR during analysis window
     // - dfaAlpha1 > 1.35 indicates clear fatigue (1.2-1.35 is borderline — not a gate when vagal tone is strong)
-    // - lfhf > 3.0 with weak vagal tone indicates strong sympathetic activation
+    // - lfhf > 3.0 with weak vagal tone: the ratio well above its resting range
     private func hrvSignals() -> HRVSignals {
         let rmssd = result.timeDomain.rmssd
         let stress = result.ansMetrics?.stressIndex ?? 150
@@ -128,7 +158,7 @@ extension AnalysisSummaryGenerator {
         let hasStrongVagalTone = result.timeDomain.pnn50 > HRVThresholds.pnn50Moderate && rmssd >= HRVThresholds.rmssdModerate
         let hasUnstableWindow = windowCV > HRVThresholds.windowUnstableCVThreshold
         let hasFatigueSignal = hasStrongVagalTone ? dfa > HRVThresholds.dfaAlpha1ClearlyElevated : dfa > HRVThresholds.dfaAlpha1Fatigue
-        let hasSympatheticDominance = hasStrongVagalTone ? false : lfhf > HRVThresholds.lfHfSympatheticDominance
+        let hasRaisedLFHF = hasStrongVagalTone ? false : lfhf > HRVThresholds.lfHfSympatheticDominance
         return HRVSignals(
             rmssd: rmssd,
             stress: stress,
@@ -137,7 +167,7 @@ extension AnalysisSummaryGenerator {
             hasStrongVagalTone: hasStrongVagalTone,
             hasUnstableWindow: hasUnstableWindow,
             hasFatigueSignal: hasFatigueSignal,
-            hasSympatheticDominance: hasSympatheticDominance
+            hasRaisedLFHF: hasRaisedLFHF
         )
     }
 
@@ -160,8 +190,6 @@ extension AnalysisSummaryGenerator {
     }
 
     private func appendTrendSteps(_ steps: inout [String], score: Double, gates: PushGates) {
-        // shouldNotPush: any of these signals indicates the HRV represents capacity, not readiness
-        // Trend-aware recommendations
         guard stats.hasData else { return }
         let rmssdPct = ((gates.rmssd - stats.avgRMSSD) / stats.avgRMSSD) * 100
 
@@ -171,7 +199,11 @@ extension AnalysisSummaryGenerator {
         if let trend = stats.trend7Day, trend > 0 {
             steps.append(String(localized: "Your improving trend suggests your current routine is working well", bundle: NarrativeLanguage.bundle))
         }
-        if rmssdPct > 15, score >= 70 {
+        // From a well-recovered score up, `appendScoreSteps` gives the push
+        // (or the reason it is held) itself; saying it here as well put the
+        // same verdict in the list twice. Below it, only a blocked reason.
+        if rmssdPct > StepThresholds.highRelativeHRVPercent, score >= StepThresholds.highRelativeHRVMinScore,
+           score < HRVThresholds.scoreWellRecovered {
             appendHighRelativeHRVSteps(&steps, gates: gates)
         }
 
@@ -180,12 +212,14 @@ extension AnalysisSummaryGenerator {
         }
     }
 
+    /// Below a well-recovered score the morning never offers a hard day
+    /// (`TrainingAdviceGate.allowsPush`), however far HRV sits over the
+    /// average: a jump that large can also follow heavy training
+    /// (parasympathetic saturation, Plews 2012). So the high relative HRV
+    /// earns only the reason it is capacity rather than readiness, when
+    /// there is one.
     private func appendHighRelativeHRVSteps(_ steps: inout [String], gates: PushGates) {
-        guard gates.shouldNotPush else {
-            // Consolidated: sustained plateau + stable HR.
-            steps.append(String(localized: "This is a great day to push yourself — your recovery pattern held steady through the night", bundle: NarrativeLanguage.bundle))
-            return
-        }
+        guard gates.shouldNotPush else { return }
         appendHighHRVBlockedReason(&steps, gates: gates)
     }
 
@@ -209,32 +243,32 @@ extension AnalysisSummaryGenerator {
     private func appendHighHRVTodayReason(_ steps: inout [String], gates: PushGates) {
         let (isShortSleep, isConsolidated) = (gates.isShortSleep, gates.isConsolidated)
         let hasUnstableWindow = gates.hasUnstableWindow
-        let (hasFatigueSignal, hasSympatheticDominance) = (gates.hasFatigueSignal, gates.hasSympatheticDominance)
-        if !isConsolidated, !hasUnstableWindow, !hasFatigueSignal, !hasSympatheticDominance, !isShortSleep {
+        let (hasFatigueSignal, hasRaisedLFHF) = (gates.hasFatigueSignal, gates.hasRaisedLFHF)
+        if !isConsolidated, !hasUnstableWindow, !hasFatigueSignal, !hasRaisedLFHF, !isShortSleep {
             steps.append(String(localized: "Good HRV shows recovery capacity, but the pattern wasn't sustained — moderate load is safer", bundle: NarrativeLanguage.bundle))
         } else if isShortSleep {
             steps.append(String(localized: "High HRV shows good capacity, but short sleep limits how much load you can handle", bundle: NarrativeLanguage.bundle))
         } else if hasUnstableWindow {
-            if (sleep.sleepEfficiency ?? 0) >= 90 {
+            if (sleep.sleepEfficiency ?? 0) >= StepThresholds.unstableWindowEfficiency {
                 steps.append(String(localized: "Good HRV with some HR variability during sleep — moderate to high intensity should be fine", bundle: NarrativeLanguage.bundle))
             } else {
                 steps.append(String(localized: "Good HRV, but variable HR during sleep suggests recovery wasn't fully consolidated — moderate intensity", bundle: NarrativeLanguage.bundle))
             }
         } else if hasFatigueSignal {
             steps.append(String(localized: "Good HRV numbers, but heart rhythm patterns suggest underlying fatigue — don't overdo it", bundle: NarrativeLanguage.bundle))
-        } else if hasSympatheticDominance {
-            steps.append(String(localized: "HRV looks good but nervous system is still activated — ease into the day", bundle: NarrativeLanguage.bundle))
+        } else if hasRaisedLFHF {
+            steps.append(String(localized: "Your LF/HF ratio is above its usual resting range — deep breathing or a gentle walk may help you wind down", bundle: NarrativeLanguage.bundle))
         }
     }
 
+    /// Low-load nudges, from `loadReading`: the same live-first source the
+    /// push gate reads, and the ratio only once the chronic load qualifies it.
     private func appendTrainingLoadSteps(_ steps: inout [String]) {
-        // Training load recommendations
-        if let training = trainingContext ?? result.trainingContext {
-            if let acr = training.acuteChronicRatio, acr < TrainingConstants.ACR.detraining {
-                steps.append(String(localized: "Your training load is low — try adding a walk, light jog, or any movement today to rebuild your base", bundle: NarrativeLanguage.bundle))
-            } else if training.ctl < RecoveryScoreConstants.Readiness.ctlThreshold, training.atl < RecoveryScoreConstants.Readiness.ctlThreshold {
-                steps.append(String(localized: "Even a 20-minute walk will help — your body scores better when it's regularly active", bundle: NarrativeLanguage.bundle))
-            }
+        guard let load = loadReading else { return }
+        if let acr = load.qualifiedACWR, acr < TrainingConstants.ACR.detraining {
+            steps.append(String(localized: "Your training load is low — try adding a walk, light jog, or any movement today to rebuild your base", bundle: NarrativeLanguage.bundle))
+        } else if load.isVeryLowActivity {
+            steps.append(String(localized: "Even a 20-minute walk will help — your body scores better when it's regularly active", bundle: NarrativeLanguage.bundle))
         }
     }
 
@@ -272,8 +306,7 @@ extension AnalysisSummaryGenerator {
         // doesn't see "Great score with some HR variability —
         // you're in good shape for moderate to high intensity"
         // alongside a hidden ACWR 1.99.
-        if gates.cumulativeLoadElevated || gates.loadHoldReason != nil || !gates.hasStrongVagalTone
-            || gates.hasFatigueSignal || gates.isShortSleep {
+        if gates.capsAtModerate {
             steps.append(String(localized: "Consider moderate activity rather than high intensity", bundle: NarrativeLanguage.bundle))
         }
     }
@@ -286,27 +319,30 @@ extension AnalysisSummaryGenerator {
     // here looks at acute-vs-chronic load.
     private func appendBlockedPushReason(_ steps: inout [String], gates: PushGates) {
         let (cumulativeLoadElevated, hasUnstableWindow) = (gates.cumulativeLoadElevated, gates.hasUnstableWindow)
-        let (hasFatigueSignal, hasSympatheticDominance) = (gates.hasFatigueSignal, gates.hasSympatheticDominance)
+        let (hasFatigueSignal, hasRaisedLFHF) = (gates.hasFatigueSignal, gates.hasRaisedLFHF)
         let sleepFormatted = gates.sleepFormatted
         if cumulativeLoadElevated {
             steps.append(String(localized: "Great morning HRV, but recent training is well above your usual range — keep today easy or moderate and let acute load settle before the next quality session.", bundle: NarrativeLanguage.bundle))
         } else if let hold = gates.loadHoldReason {
             steps.append(hold)
-        } else if !gates.isConsolidated && !hasUnstableWindow && !hasFatigueSignal && !hasSympatheticDominance {
+        } else if !gates.isConsolidated && !hasUnstableWindow && !hasFatigueSignal && !hasRaisedLFHF && !gates.isShortSleep {
             steps.append(String(localized: "Excellent recovery capacity detected, but pattern wasn't held long enough for full readiness", bundle: NarrativeLanguage.bundle))
         } else if gates.isShortSleep {
             steps.append(String(localized: "Strong metrics show good capacity, but short sleep (\(sleepFormatted)) is reason to hold something back", bundle: NarrativeLanguage.bundle))
         } else if hasUnstableWindow {
-            appendUnstableWindowStep(&steps)
+            appendUnstableWindowStep(&steps, capsAtModerate: gates.capsAtModerate)
         } else if hasFatigueSignal {
             steps.append(String(localized: "Strong HRV capacity but heart rhythm patterns suggest accumulated fatigue — ease into the day", bundle: NarrativeLanguage.bundle))
-        } else if hasSympatheticDominance {
-            steps.append(String(localized: "Good recovery capacity but elevated LF/HF ratio — your nervous system is still activated", bundle: NarrativeLanguage.bundle))
+        } else if hasRaisedLFHF {
+            steps.append(String(localized: "Your LF/HF ratio is above its usual resting range — deep breathing or a gentle walk may help you wind down", bundle: NarrativeLanguage.bundle))
         }
     }
 
-    private func appendUnstableWindowStep(_ steps: inout [String]) {
-        if (sleep.sleepEfficiency ?? 0) >= 90 {
+    /// "Moderate to high intensity" only when nothing caps the advice at
+    /// moderate: `appendCapacityWithoutReadinessSteps` follows a capped night
+    /// with "Consider moderate activity", and the two must not disagree.
+    private func appendUnstableWindowStep(_ steps: inout [String], capsAtModerate: Bool) {
+        if (sleep.sleepEfficiency ?? 0) >= StepThresholds.unstableWindowEfficiency, !capsAtModerate {
             steps.append(String(localized: "Great recovery score with some HR variability — you're in good shape for moderate to high intensity", bundle: NarrativeLanguage.bundle))
         } else {
             steps.append(String(localized: "Good overall score, but variable HR during sleep suggests recovery wasn't fully consolidated", bundle: NarrativeLanguage.bundle))
@@ -369,7 +405,7 @@ extension AnalysisSummaryGenerator {
     // When tags are present, branch to tag-specific advice.
     private func appendFeelingSteps(_ steps: inout [String], score: Double) {
         guard let feeling = session.morningFeeling else { return }
-        let hrvGood = score >= 65
+        let hrvGood = score >= StepThresholds.feelingHRVGoodScore
         if feeling <= 2 {
             let advice = feelBadAdvice(hrvGood: hrvGood, tags: session.morningFeelingTags ?? [], feeling: feeling)
             steps.insert(contentsOf: advice, at: 0)
@@ -437,8 +473,8 @@ extension AnalysisSummaryGenerator {
     /// How much of today's capacity the session consumed, and what that means
     /// for the rest of the day.
     private func sessionCostSteps(readiness: Double, label: String) -> [String] {
-        if readiness < 30 { return heavySessionSteps(label: label) }
-        if readiness < 50 { return moderateSessionSteps() }
+        if readiness < StepThresholds.heavySessionReadiness { return heavySessionSteps(label: label) }
+        if readiness < StepThresholds.moderateSessionReadiness { return moderateSessionSteps() }
         return PostExerciseCopy.lightSession(label: label)
     }
 
@@ -482,14 +518,13 @@ enum PostExerciseCopy {
         }
     }
 
-    /// Still some capacity left.
+    /// Still some capacity left. Reached only at readiness 50 or more
+    /// (`sessionCostSteps`), where the label is "Ready" (7.0+ of 10) or
+    /// "Moderate" (4.5+), so those are the only two sentences.
     static func lightSession(label: String) -> [String] {
-        let used = switch label {
-        case "Ready": String(localized: "You've used some capacity today — readiness is now ready", bundle: NarrativeLanguage.bundle)
-        case "Moderate": String(localized: "You've used some capacity today — readiness is now moderate", bundle: NarrativeLanguage.bundle)
-        case "Fatigued": String(localized: "You've used some capacity today — readiness is now fatigued", bundle: NarrativeLanguage.bundle)
-        default: String(localized: "You've used some capacity today — readiness is now rest", bundle: NarrativeLanguage.bundle)
-        }
+        let used = label == "Ready"
+            ? String(localized: "You've used some capacity today — readiness is now ready", bundle: NarrativeLanguage.bundle)
+            : String(localized: "You've used some capacity today — readiness is now moderate", bundle: NarrativeLanguage.bundle)
         return [used, String(localized: "A light session later is possible if you feel good, but listen to your body", bundle: NarrativeLanguage.bundle)]
     }
 }

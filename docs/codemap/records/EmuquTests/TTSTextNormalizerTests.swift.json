@@ -1,0 +1,522 @@
+{
+ "file": "EmuquTests/TTSTextNormalizerTests.swift",
+ "hash": "dc82cd09a6fe4ac3",
+ "role": "XCTest suite pinning TTSTextNormalizer pronunciation rules for the AI Coach voice: domain abbreviation expansion, pace-string expansion (\"8:45/mi\" → \"eight forty-five per mile\"), conversational year reading with numeric/unit context rejection, the composed normalize() pipeline, and stripForDisplay pass-through.",
+ "types": [
+  "TTSTextNormalizerTests: class — XCTestCase over TTSTextNormalizer static functions"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func TTSTextNormalizerTests.testExpandsBPMOnly()",
+   "hash": "095ec4cb54e97e30",
+   "does": "Asserts 'Your HR is 142 BPM.' expands only BPM to 'B P M' and leaves HR.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandDomainAbbreviations(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandDomainAbbreviations(_:)": "7727ef5d1e310593"
+   }
+  },
+  {
+   "key": "func TTSTextNormalizerTests.testExpandsHRV()",
+   "hash": "271ef949181399a6",
+   "does": "Asserts 'HRV' expands to 'H R V'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandDomainAbbreviations(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandDomainAbbreviations(_:)": "7727ef5d1e310593"
+   }
+  },
+  {
+   "key": "func TTSTextNormalizerTests.testExpandsVO2()",
+   "hash": "096b34897da49664",
+   "does": "Asserts 'VO2' expands to 'V O two'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandDomainAbbreviations(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandDomainAbbreviations(_:)": "7727ef5d1e310593"
+   }
+  },
+  {
+   "key": "func TTSTextNormalizerTests.testExpandsAlpha1Variants()",
+   "hash": "e41792b4e9dafc99",
+   "does": "Asserts 'α1' and 'alpha-1' expand to 'alpha one'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandDomainAbbreviations(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandDomainAbbreviations(_:)": "7727ef5d1e310593"
+   }
+  },
+  {
+   "key": "func TTSTextNormalizerTests.testExpandsZoneAbbreviations()",
+   "hash": "7c4e202621e7aac7",
+   "does": "Asserts Z2 → 'zone two' and Z1/Z3 → 'zone one'/'zone three'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandDomainAbbreviations(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandDomainAbbreviations(_:)": "7727ef5d1e310593"
+   }
+  },
+  {
+   "key": "func TTSTextNormalizerTests.testExpandsTrainingLoadAbbreviations()",
+   "hash": "2b7ef0dbb3421422",
+   "does": "Asserts TSB/ATL/CTL expand to spaced letters and numbers are kept.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandDomainAbbreviations(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandDomainAbbreviations(_:)": "7727ef5d1e310593"
+   }
+  },
+  {
+   "key": "func TTSTextNormalizerTests.testAbbreviationsRespectWordBoundaries()",
+   "hash": "a1af45533211bd7c",
+   "does": "Asserts 'HRVtraining' is not expanded (word boundary).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandDomainAbbreviations(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandDomainAbbreviations(_:)": "7727ef5d1e310593"
+   }
+  },
+  {
+   "key": "func TTSTextNormalizerTests.testPaceWithSlashMile()",
+   "hash": "9f0c0043009b0070",
+   "does": "Asserts '8:45/mi' → 'eight forty-five per mile'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandPaceStrings(_:)",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandPaces(in:pattern:)",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.unitWordFor(_:)",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.numberAsWords(_:)",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.secsAsWords(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandPaceStrings(_:)": "2f666bc746f61c13",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandPaces(in:pattern:)": "3862ff24ff77b225",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.numberAsWords(_:)": "9b21c8d6b15c0595",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.secsAsWords(_:)": "6620e74665c1f428",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.unitWordFor(_:)": "09bafd21dd3b0d3b"
+   }
+  },
+  {
+   "key": "func TTSTextNormalizerTests.testPaceWithSlashKm()",
+   "hash": "10cf78a5ec7d4f53",
+   "does": "Asserts '5:30/km' → 'five thirty per kilometer'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandPaceStrings(_:)",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandPaces(in:pattern:)",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.unitWordFor(_:)",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.numberAsWords(_:)",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.secsAsWords(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandPaceStrings(_:)": "2f666bc746f61c13",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandPaces(in:pattern:)": "3862ff24ff77b225",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.numberAsWords(_:)": "9b21c8d6b15c0595",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.secsAsWords(_:)": "6620e74665c1f428",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.unitWordFor(_:)": "09bafd21dd3b0d3b"
+   }
+  },
+  {
+   "key": "func TTSTextNormalizerTests.testPaceWithMinSlashMile()",
+   "hash": "365e45e3454f74cc",
+   "does": "Asserts '8:45 min/mi' → 'eight forty-five per mile'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandPaceStrings(_:)",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandPaces(in:pattern:)",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.unitWordFor(_:)",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.numberAsWords(_:)",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.secsAsWords(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandPaceStrings(_:)": "2f666bc746f61c13",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandPaces(in:pattern:)": "3862ff24ff77b225",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.numberAsWords(_:)": "9b21c8d6b15c0595",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.secsAsWords(_:)": "6620e74665c1f428",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.unitWordFor(_:)": "09bafd21dd3b0d3b"
+   }
+  },
+  {
+   "key": "func TTSTextNormalizerTests.testPaceWithPerMile()",
+   "hash": "54ab4cbd151919dc",
+   "does": "Asserts '8:45 per mile' → 'eight forty-five per mile'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandPaceStrings(_:)",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandPaces(in:pattern:)",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.unitWordFor(_:)",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.numberAsWords(_:)",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.secsAsWords(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandPaceStrings(_:)": "2f666bc746f61c13",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandPaces(in:pattern:)": "3862ff24ff77b225",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.numberAsWords(_:)": "9b21c8d6b15c0595",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.secsAsWords(_:)": "6620e74665c1f428",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.unitWordFor(_:)": "09bafd21dd3b0d3b"
+   }
+  },
+  {
+   "key": "func TTSTextNormalizerTests.testPaceWithSingleDigitSeconds()",
+   "hash": "54bba12db76dbf2c",
+   "does": "Asserts '8:05/mi' → 'eight oh five per mile'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandPaceStrings(_:)",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandPaces(in:pattern:)",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.unitWordFor(_:)",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.numberAsWords(_:)",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.secsAsWords(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandPaceStrings(_:)": "2f666bc746f61c13",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandPaces(in:pattern:)": "3862ff24ff77b225",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.numberAsWords(_:)": "9b21c8d6b15c0595",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.secsAsWords(_:)": "6620e74665c1f428",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.unitWordFor(_:)": "09bafd21dd3b0d3b"
+   }
+  },
+  {
+   "key": "func TTSTextNormalizerTests.testPaceWithFlatSeconds()",
+   "hash": "4c10f2d30ae9b94d",
+   "does": "Asserts '8:00/mi' → 'eight flat per mile'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandPaceStrings(_:)",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandPaces(in:pattern:)",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.unitWordFor(_:)",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.numberAsWords(_:)",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.secsAsWords(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandPaceStrings(_:)": "2f666bc746f61c13",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandPaces(in:pattern:)": "3862ff24ff77b225",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.numberAsWords(_:)": "9b21c8d6b15c0595",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.secsAsWords(_:)": "6620e74665c1f428",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.unitWordFor(_:)": "09bafd21dd3b0d3b"
+   }
+  },
+  {
+   "key": "func TTSTextNormalizerTests.testBareTimeWithoutUnitIsUntouched()",
+   "hash": "179ed212513b0caf",
+   "does": "Asserts a bare '8:45' with no unit is left unchanged.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandPaceStrings(_:)",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandPaces(in:pattern:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandPaceStrings(_:)": "2f666bc746f61c13",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandPaces(in:pattern:)": "3862ff24ff77b225"
+   }
+  },
+  {
+   "key": "func TTSTextNormalizerTests.testYear2026IsTwentyTwentySix()",
+   "hash": "c60c7cc3874f3815",
+   "does": "Asserts expandYears('Started in 2026') → 'twenty twenty-six'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandYears(_:)",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.spokenYear(_:)",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.numberAsWords(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandYears(_:)": "adce142074b83cbb",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.numberAsWords(_:)": "9b21c8d6b15c0595",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.spokenYear(_:)": "ba3ef96723d1e579"
+   }
+  },
+  {
+   "key": "func TTSTextNormalizerTests.testYear2003IsTwoThousandThree()",
+   "hash": "da208f4f2b65d797",
+   "does": "Asserts 2003 → 'two thousand three'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandYears(_:)",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.spokenYear(_:)",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.numberAsWords(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandYears(_:)": "adce142074b83cbb",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.numberAsWords(_:)": "9b21c8d6b15c0595",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.spokenYear(_:)": "ba3ef96723d1e579"
+   }
+  },
+  {
+   "key": "func TTSTextNormalizerTests.testYear1990IsNineteenNinety()",
+   "hash": "e90274438fafa623",
+   "does": "Asserts 1990 → 'nineteen ninety'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandYears(_:)",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.spokenYear(_:)",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.numberAsWords(_:)",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.splitCenturyYear(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandYears(_:)": "adce142074b83cbb",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.numberAsWords(_:)": "9b21c8d6b15c0595",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.splitCenturyYear(_:)": "6b1aa816642a9172",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.spokenYear(_:)": "ba3ef96723d1e579"
+   }
+  },
+  {
+   "key": "func TTSTextNormalizerTests.testYear1900IsNineteenHundred()",
+   "hash": "cad6f43d1b606133",
+   "does": "Asserts 1900 → 'nineteen hundred'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandYears(_:)",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.spokenYear(_:)",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.numberAsWords(_:)",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.splitCenturyYear(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandYears(_:)": "adce142074b83cbb",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.numberAsWords(_:)": "9b21c8d6b15c0595",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.splitCenturyYear(_:)": "6b1aa816642a9172",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.spokenYear(_:)": "ba3ef96723d1e579"
+   }
+  },
+  {
+   "key": "func TTSTextNormalizerTests.testYearWithSingleDigitSecondHalf()",
+   "hash": "f7cc50d9f0eb196a",
+   "does": "Asserts 1903 → 'nineteen oh three'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandYears(_:)",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.spokenYear(_:)",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.numberAsWords(_:)",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.splitCenturyYear(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandYears(_:)": "adce142074b83cbb",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.numberAsWords(_:)": "9b21c8d6b15c0595",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.splitCenturyYear(_:)": "6b1aa816642a9172",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.spokenYear(_:)": "ba3ef96723d1e579"
+   }
+  },
+  {
+   "key": "func TTSTextNormalizerTests.testCountWithAUnitIsNotReadAsAYear()",
+   "hash": "bb4ccb2ea642c6b0",
+   "does": "Asserts '1205 steps' and '2050 kcal' stay numeric (unit lookahead) while 'Since 2019 you've' becomes 'twenty nineteen'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandYears(_:)",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.spokenYear(_:)",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.numberAsWords(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandYears(_:)": "adce142074b83cbb",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.numberAsWords(_:)": "9b21c8d6b15c0595",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.spokenYear(_:)": "ba3ef96723d1e579"
+   }
+  },
+  {
+   "key": "func TTSTextNormalizerTests.testYearInsideNumericContextIsUntouched()",
+   "hash": "8d436e14ad066cbd",
+   "does": "Asserts '$1990', '1990.5' and '12,1990' are left unchanged.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandYears(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Inline comments misstate why each case passes: '$' IS in the lookbehind reject list [\\d.,:$] (comment says it is not), and '12,1990' is rejected by the ',' lookbehind, not by 'followed by digit'.",
+     "evidence": [
+      "EmuquTests/TTSTextNormalizerTests.swift:179",
+      "EmuquTests/TTSTextNormalizerTests.swift:187",
+      "Emuqu/Sources/Assistant/TTSTextNormalizer.swift:226"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandYears(_:)": "adce142074b83cbb"
+   }
+  },
+  {
+   "key": "func TTSTextNormalizerTests.testFiveDigitNumberIsNotAYear()",
+   "hash": "8a9857423ccad99e",
+   "does": "Asserts the 5-digit '12500' is not treated as a year.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandYears(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandYears(_:)": "adce142074b83cbb"
+   }
+  },
+  {
+   "key": "func TTSTextNormalizerTests.testNormalizePipelineHandlesMixedText()",
+   "hash": "82b5ea1c17c756db",
+   "does": "Runs normalize() on a mixed AI line and asserts the spoken string contains 'twenty twenty-six', 'eight forty-five per mile', 'lyve workout' (PhoneticOverrides homograph) and 'zone two'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.normalize(_:english:)",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandDomainAbbreviations(_:)",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandPaceStrings(_:)",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandPaces(in:pattern:)",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.unitWordFor(_:)",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.numberAsWords(_:)",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.secsAsWords(_:)",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandYears(_:)",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.spokenYear(_:)",
+    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.speechAttributedString(_:english:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.speechAttributedString(_:english:)": "250478156c42fdea",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandDomainAbbreviations(_:)": "7727ef5d1e310593",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandPaceStrings(_:)": "2f666bc746f61c13",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandPaces(in:pattern:)": "3862ff24ff77b225",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandYears(_:)": "0af40a877b83c6f9",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.normalize(_:english:)": "20d908ba10262b6a",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.numberAsWords(_:)": "9b21c8d6b15c0595",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.secsAsWords(_:)": "6620e74665c1f428",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.spokenYear(_:)": "46c6bdebb33c2be9",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.unitWordFor(_:)": "09bafd21dd3b0d3b"
+   }
+  },
+  {
+   "key": "func TTSTextNormalizerTests.testStripForDisplayPreservesAIText()",
+   "hash": "3f84a4ed7098e7e5",
+   "does": "Asserts stripForDisplay leaves 'Your live HR is 142 BPM.' unchanged (no respellings or expansions).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.stripForDisplay(_:)",
+    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.stripForDisplay(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "TTSTextNormalizer.stripForDisplay has no production caller: grep of Emuqu/ for \"TTSTextNormalizer.\" finds only normalize at VoiceConversationController+Speech.swift:52; the test pins a test-only forwarder to PhoneticOverrides.stripForDisplay.",
+     "evidence": [
+      "EmuquTests/TTSTextNormalizerTests.swift:230",
+      "Emuqu/Sources/Assistant/TTSTextNormalizer.swift:62",
+      "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift:52"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.stripForDisplay(_:)": "119339496bdd7dc0",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.stripForDisplay(_:)": "14a6332b55c37a20"
+   }
+  }
+ ],
+ "deps": {}
+}

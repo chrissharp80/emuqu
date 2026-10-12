@@ -1,0 +1,86 @@
+{
+ "file": "Emuqu/Sources/Assistant/Views/PrefabQuestionChips.swift",
+ "hash": "60432b4e5bfb0c91",
+ "role": "Horizontal scroller of suggested-question chips above the chat input; used by AssistantChatSupport.prefabChips (AssistantChatSupport.swift:113-120), enabled by composerState.canSend.",
+ "types": [
+  "PrefabQuestionChips: struct — SwiftUI View with onSelect closure and isEnabled flag"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "var PrefabQuestionChips.body",
+   "hash": "fa2461571b83d415",
+   "does": "Horizontal ScrollView without indicators containing chipRow padded 12pt.",
+   "entry": "SwiftUI body.",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/PrefabQuestionChips.swift::var PrefabQuestionChips.chipRow"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/PrefabQuestionChips.swift::var PrefabQuestionChips.chipRow": "a338a81b6cf0957a"
+   }
+  },
+  {
+   "key": "var PrefabQuestionChips.chipRow",
+   "hash": "4f8b8eae11db7931",
+   "does": "HStack of one chip per PrefabQuestion.allCases.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/PrefabQuestionChips.swift::func PrefabQuestionChips.chip(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/PrefabQuestionChips.swift::func PrefabQuestionChips.chip(_:)": "d3bfe91608829ecc"
+   }
+  },
+  {
+   "key": "func PrefabQuestionChips.chip(_:)",
+   "hash": "5e5f987c5efe1a96",
+   "does": "Button calling onSelect(question); disabled and at 50% opacity when isEnabled is false.",
+   "entry": "Button tap by user.",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/PrefabQuestionChips.swift::func PrefabQuestionChips.chipLabel(_:)",
+    "closure:onSelect — set by AssistantChatSupport.prefabChips to onSendPrefab(question)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "isEnabled",
+     "effect": "opacity 1; when false opacity 0.5 (and .disabled(true) on line 32)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/PrefabQuestionChips.swift::func PrefabQuestionChips.chipLabel(_:)": "120d7a32143c4663"
+   }
+  },
+  {
+   "key": "func PrefabQuestionChips.chipLabel(_:)",
+   "hash": "1a2a95bd898a3a81",
+   "does": "Capsule-filled callout text of question.label with a 44pt minimum tap height.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/PrefabQuestions.swift::var PrefabQuestion.label"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/PrefabQuestions.swift::var PrefabQuestion.label": "c2c9d349009b0c69",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  }
+ ],
+ "deps": {}
+}

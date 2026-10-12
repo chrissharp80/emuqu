@@ -66,16 +66,9 @@ struct CloudHealthScrubCoordinator {
         Self.legacyKeys.forEach(defaults.removeObject(forKey:))
     }
 
-    /// Repair v1 damage first: v1 hollowed `uploadedSessionIds` wholesale,
-    /// leaving the entire archive looking pending. Only the developer's own
-    /// device ever ran a v1 build, and on it every archived session already
-    /// existed remotely, so re-marking everything uploaded restores the
-    /// truthful state.
+    /// Snapshot the uploaded set as the list. Async for its callers' sake;
+    /// it reads and writes only `UserDefaults` and the in-memory state.
     private func initialize() async {
-        if defaults.bool(forKey: "FlowRecovery.cloudkit.hkSanitizeReupload.v1.done") {
-            for entry in manager.archive.entries { manager.state.markUploaded(entry.sessionId) }
-            await manager.state.saveSyncStateAsync()
-        }
         let snapshot = manager.state.uploadedSessionIds.map(\.uuidString)
         defaults.set(snapshot, forKey: Self.remainingKey)
         defaults.set(true, forKey: Self.initializedKey)
@@ -109,13 +102,19 @@ struct CloudHealthScrubCoordinator {
     // MARK: - iCloud Sync off
 
     /// Rewrite the next batch in place. The caller has checked that an iCloud
-    /// account is available.
+    /// account is available. The pass stops at the first id to retry, which
+    /// moves to the end of the list.
     func scrubInPlace() async {
         var remaining = await remainingIds()
         var handled = 0
         while handled < Self.batchSize, let idString = remaining.first {
-            guard await scrub(idString) == .finished else { break }
             remaining.removeFirst()
+            guard await scrub(idString) == .finished else {
+                // To the back of the list: a record that keeps failing does
+                // not hold up every id after it on every later pass.
+                remaining.append(idString)
+                break
+            }
             handled += 1
         }
         defaults.set(remaining, forKey: Self.remainingKey)
@@ -143,9 +142,14 @@ struct CloudHealthScrubCoordinator {
     /// Replace the record's payload with its own contents stripped, or delete
     /// it when the session came out of Apple Health whole. The record keeps
     /// its edit stamp, so no device takes it for a newer copy.
+    ///
+    /// Only a tombstone (`isDeleted == 1`) is a deleted session; a session
+    /// restored from the Trash carries `TrashRestoreCoordinator.restoredMarker`
+    /// (-1) and is rewritten like any live one. A tombstone an older build
+    /// left its payload on has the payload removed.
     private func rewrite(_ record: CKRecord, sessionId: UUID) async throws -> Outcome {
-        guard (record["isDeleted"] as? Int64 ?? 0) == 0,
-              let session = await Self.storedSession(in: record) else { return .finished }
+        if (record["isDeleted"] as? Int64) == 1 { return try await clearTombstonePayload(record) }
+        guard let session = await Self.storedSession(in: record) else { return .finished }
         if CloudSessionPayload.isHealthKitSourced(session) {
             try await manager.privateDB.deleteRecord(withID: record.recordID)
             manager.state.markLocalOnly(sessionId)
@@ -153,13 +157,40 @@ struct CloudHealthScrubCoordinator {
             await manager.state.saveSyncStateAsync()
             return .finished
         }
-        record["sessionData"] = try await Task.detached(priority: .utility) {
-            try CloudKitSyncManager.sessionAsset(for: session)
+        try await saveStripped(session, over: record)
+        return .finished
+    }
+
+    /// Writes the record as this build's builder would (`buildSessionRecord`):
+    /// the stripped payload, and none of the plaintext fields older builds
+    /// added (`recoveryScore`, `meanRMSSD`, `sessionType`), which the sync-on
+    /// overwrite clears too. Its `isDeleted` value (0, or the restore marker)
+    /// and its edit stamp stay as they are.
+    private func saveStripped(_ session: HRVSession, over record: CKRecord) async throws {
+        let zoneID = manager.zoneID
+        let recordType = manager.recordType
+        let rebuilt = try await Task.detached(priority: .utility) {
+            try CloudKitSyncManager.buildSessionRecord(from: session, zoneID: zoneID, recordTypeName: recordType)
         }.value
-        defer { manager.cleanupTempAsset(for: record) }
+        defer { manager.cleanupTempAsset(for: rebuilt) }
+        let kept: Set<String> = ["isDeleted", CloudKitSessionFreshness.modifiedAtField]
+        for key in record.allKeys() where rebuilt[key] == nil && !kept.contains(key) {
+            record[key] = nil
+        }
+        for key in rebuilt.allKeys() where !kept.contains(key) {
+            record[key] = rebuilt[key]
+        }
         // A save that loses to another device's newer save throws
         // `.serverRecordChanged`; the id stays listed and the next pass
         // fetches that newer copy.
+        try await manager.privateDB.save(record)
+    }
+
+    /// A tombstone holds no recording; one still carrying a payload has it
+    /// removed.
+    private func clearTombstonePayload(_ record: CKRecord) async throws -> Outcome {
+        guard record["sessionData"] != nil else { return .finished }
+        record["sessionData"] = nil
         try await manager.privateDB.save(record)
         return .finished
     }

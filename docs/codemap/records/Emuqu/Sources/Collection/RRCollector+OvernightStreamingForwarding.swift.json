@@ -1,0 +1,152 @@
+{
+ "file": "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift",
+ "hash": "0a4edec48979e6fb",
+ "role": "RRCollector forwarders to a freshly-built OvernightStreamingCoordinator so external call sites keep the collector API.",
+ "types": [
+  "RRCollector: extension — overnight streaming forwarders"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "var RRCollector.overnightStreaming",
+   "hash": "8613187183db75ea",
+   "does": "Returns a new OvernightStreamingCoordinator holding the collector (built per access).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RRCollector.isVeritySenseDevice(_:)",
+   "hash": "e2ffad9e7fb4dbaa",
+   "does": "Forwards to OvernightStreamingCoordinator.isVeritySenseDevice.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::var RRCollector.overnightStreaming",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.isVeritySenseDevice(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.isVeritySenseDevice(_:)": "654bdc90704c86ea",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::var RRCollector.overnightStreaming": "1de92bef61865565"
+   }
+  },
+  {
+   "key": "func RRCollector.failSession(from:)",
+   "hash": "9e00de14b5663495",
+   "does": "Forwards to OvernightStreamingCoordinator.failSession.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::var RRCollector.overnightStreaming",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.failSession(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.failSession(from:)": "a1259206f8112010",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::var RRCollector.overnightStreaming": "1de92bef61865565"
+   }
+  },
+  {
+   "key": "func RRCollector.startOvernightStreaming(sessionType:useDeviceInternalBackup:)",
+   "hash": "4cfdb0dd3bbbaf3e",
+   "does": "Forwards to OvernightStreamingCoordinator.startOvernightStreaming (called from RecordView+Actions and tests).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::var RRCollector.overnightStreaming",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.startOvernightStreaming(sessionType:useDeviceInternalBackup:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.startOvernightStreaming(sessionType:useDeviceInternalBackup:)": "55027bd0a099d6d0",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::var RRCollector.overnightStreaming": "1de92bef61865565"
+   }
+  },
+  {
+   "key": "func RRCollector.startOvernightStreamingTimer()",
+   "hash": "df533a3ebaa0baa6",
+   "does": "Forwards to startOvernightStreamingTimer (used by resume).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::var RRCollector.overnightStreaming",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.startOvernightStreamingTimer()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.startOvernightStreamingTimer()": "f176b46876f2d530",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::var RRCollector.overnightStreaming": "1de92bef61865565"
+   }
+  },
+  {
+   "key": "func RRCollector.mergeParentSessionData(data:)",
+   "hash": "a39a63aa1071a295",
+   "does": "Forwards to mergeParentSessionData (used by pause).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::var RRCollector.overnightStreaming",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.mergeParentSessionData(data:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.mergeParentSessionData(data:)": "87a587c8120166f1",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::var RRCollector.overnightStreaming": "1de92bef61865565"
+   }
+  },
+  {
+   "key": "func RRCollector.stopOvernightStreaming()",
+   "hash": "39fffcf3409fd323",
+   "does": "Forwards to stopOvernightStreaming (RecordView Stop, RRCollector+Streaming).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::var RRCollector.overnightStreaming",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.stopOvernightStreaming()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.stopOvernightStreaming()": "58ce1d84a7650bdc",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::var RRCollector.overnightStreaming": "1de92bef61865565"
+   }
+  },
+  {
+   "key": "func RRCollector.backupStreamingData(_:sessionId:)",
+   "hash": "476cde2e2840f3c7",
+   "does": "Forwards to backupStreamingData (RRCollector+Streaming).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::var RRCollector.overnightStreaming",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.backupStreamingData(_:sessionId:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.backupStreamingData(_:sessionId:)": "b5f412729bf4241c",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::var RRCollector.overnightStreaming": "1de92bef61865565"
+   }
+  }
+ ],
+ "deps": {}
+}

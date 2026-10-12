@@ -1,0 +1,2194 @@
+{
+ "file": "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift",
+ "hash": "8eba6cbdff173785",
+ "role": "Interpretation half of AnalysisSummaryGenerator: HRV band (personal vs age-adjusted), the 0-100 diagnostic score, headline title/icon, 'What This Means' explanation, probable causes, key findings and trend insight sentences; plus ExplanationCopy (per-band paragraph builders).",
+ "types": [
+  "AnalysisSummaryGenerator: extension — interpretation/findings/insights",
+  "AnalysisSummaryGenerator.DiagnosticPoints: enum (private) — point weights per band",
+  "ExplanationCopy: enum — 'What This Means' paragraph builders per RMSSDCategory",
+  "ExplanationCopy.Inputs: struct — preformatted values the builders read",
+  "AnalysisSummaryGenerator.RecentAverageRatio: enum (private) — 1.15 excellent reading, 1.1 excellent HRV, 0.95 good HRV against the recent average",
+  "AnalysisSummaryGenerator.AverageBand: enum — wellAbove/above/consistent/below/wellBelow, tonight's RMSSD against the recent average",
+  "AnalysisSummaryGenerator.Deviation: enum — above/below a reference past a threshold",
+  "AnalysisSummaryGenerator.LoadReading: struct — acwr/ctl/atl from the live snapshot or the frozen context, with the ctl-qualified ratio and the very-low-activity test"
+ ],
+ "state": [],
+ "toplevel": "DiagnosticPoints constants: base 50; RMSSD excellent 40/good 30/fair 20/reduced 10/low -10; stress low 20/normal 15/elevated 10/high 0/very high -15; LF/HF optimal 20/parasympathetic 15/moderate 5/sympathetic -10; DFA optimal 20; ANS balance +15/+10/-5/-15. Max raw total 165 and min -40 before clamping to 0...100. RecentAverageRatio (1.15/1.1/0.95) and notableSleepChangePercent (25) name the narrative's ratio cut points. The findings and the trend insight share one band decision per judgement (averageBand, deviation, personalBaselinePercent).",
+ "flags": [
+  {
+   "kind": "silent-failure",
+   "sev": "low",
+   "text": "The cause rules still take stress index, LF/HF and DFA α1 as numbers, so causeContext passes a missing marker as a resting value (stress 150, LF/HF 1.0, DFA 1.0); MetricBasedCauseDetector's dehydration rule (stress > 180 with LF/HF < 2.0) can then fire, and say 'without a strong sympathetic shift', for a night with no LF/HF at all. Good/excellent and the explanation no longer use the substitutes. Fixing the rest needs CauseDetectionContext's three markers optional and the strategies to skip a rule whose marker is missing.",
+   "evidence": [
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift:243",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift:244",
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift:248",
+    "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift:67"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "var AnalysisSummaryGenerator.ageAdjustedInterpretation",
+   "hash": "0d3047aa472ab2ea",
+   "does": "Maps biologicalSex (.male/.female, else nil) to AgeAdjustedHRV.Sex and returns AgeAdjustedHRV.interpret for tonight's RMSSD, userAge and sex.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVThresholds.swift::func AgeAdjustedHRV.interpret(rmssd:age:sex:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "biologicalSex == .male",
+     "effect": ".male"
+    },
+    {
+     "at": "+3",
+     "cond": "== .female",
+     "effect": ".female"
+    },
+    {
+     "at": "+4",
+     "cond": "== .other",
+     "effect": "nil (sex-neutral norms)"
+    },
+    {
+     "at": "+5",
+     "cond": "nil",
+     "effect": "nil (sex-neutral norms)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVThresholds.swift::func AgeAdjustedHRV.interpret(rmssd:age:sex:)": "d0a2214abeefe3bd"
+   }
+  },
+  {
+   "key": "var AnalysisSummaryGenerator.hrvCategory",
+   "hash": "fb3c99d07c19f10d",
+   "does": "HRV band: personalCategory(ratio rmssd/canonicalBaselineRMSSD) when a positive canonical baseline exists, else the age-adjusted population category.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.ageAdjustedInterpretation",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.personalCategory(ratio:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "canonicalBaselineRMSSD nil or <= 0",
+     "effect": "population ageAdjustedInterpretation.category; else personal ratio band"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.personalCategory(ratio:)": "dc4d1279a4428011",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.ageAdjustedInterpretation": "dee9ae5bcf6af988",
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.category(_:caller:file:line:)": "315f6413360002af"
+   }
+  },
+  {
+   "key": "func AnalysisSummaryGenerator.personalCategory(ratio:)",
+   "hash": "7a2a68198ba2798c",
+   "does": "Bands a ratio to baseline: >=1.15 excellent, >=0.85 good, >=0.70 fair, >=0.60 reduced, else low.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "ratio >= rmssdRatioOptimalHigh (1.15)",
+     "effect": ".excellent"
+    },
+    {
+     "at": "+3",
+     "cond": "ratio >= 0.85",
+     "effect": ".good"
+    },
+    {
+     "at": "+4",
+     "cond": "ratio >= 0.70",
+     "effect": ".fair"
+    },
+    {
+     "at": "+5",
+     "cond": "ratio >= 0.60",
+     "effect": ".reduced; else .low"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func ExplanationCopy.excellent(_:)": "32ef5872d3b536c5",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func ExplanationCopy.fair(_:)": "a5fefa381c71f597",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func ExplanationCopy.good(_:)": "c6b63e41e15ce7ec",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func ExplanationCopy.low(_:)": "0dbc3b9bab439012",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func ExplanationCopy.reduced(_:)": "8e46ce259322fee9"
+   }
+  },
+  {
+   "key": "func AnalysisSummaryGenerator.computeDiagnosticScore()",
+   "hash": "8d7769029f91802d",
+   "does": "Diagnostic score: 50 + RMSSD band points + stress-index points + LF/HF points + 20 if DFA α1 in [0.75,1.0] + ANS balance points, clamped to 0...100.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.hrvCategory",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.rmssdPoints(_:)",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.stressIndexPoints(_:)",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.lfHfPoints(_:)",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.ansBalancePoints(sns:pns:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "dfaAlpha1 present and within [0.75, 1.0]",
+     "effect": "+20; else +0 (nil DFA gets nothing)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "hack",
+     "sev": "low",
+     "text": "Weights sum far above the range (max raw 165): a 'good' band (30) with normal stress (15) and in-range LF/HF (20) already clamps at 100, so the score cannot distinguish most decent nights; it becomes headlineScore whenever a session has no recovery score.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift:49",
+      "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift:51",
+      "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift:76",
+      "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift:119"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.ansBalancePoints(sns:pns:)": "3d2f337d218d5e87",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.lfHfPoints(_:)": "ae6c48cf33c0482c",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.rmssdPoints(_:)": "2256b43a7a680d73",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.stressIndexPoints(_:)": "6df600aaa50abd7a",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.hrvCategory": "7adaaf60352c31f6",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb"
+   }
+  },
+  {
+   "key": "func AnalysisSummaryGenerator.rmssdPoints(_:)",
+   "hash": "fdf913f0e0459340",
+   "does": "Points per RMSSD category: 40/30/20/10/-10.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "excellent",
+     "effect": "40"
+    },
+    {
+     "at": "+3",
+     "cond": "good",
+     "effect": "30"
+    },
+    {
+     "at": "+4",
+     "cond": "fair",
+     "effect": "20"
+    },
+    {
+     "at": "+5",
+     "cond": "reduced",
+     "effect": "10"
+    },
+    {
+     "at": "+6",
+     "cond": "low",
+     "effect": "-10"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AnalysisSummaryGenerator.ansBalancePoints(sns:pns:)",
+   "hash": "01d7cec302dd3764",
+   "does": "ANS balance points from pns-sns: >=1.0 → +15, >=0 → +10, >=-1.0 → -5, else -15; 0 when either index missing.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "sns or pns nil",
+     "effect": "return 0; else compute balance"
+    },
+    {
+     "at": "+3",
+     "cond": "balance >= 1.0",
+     "effect": "+15"
+    },
+    {
+     "at": "+6",
+     "cond": "balance >= 0",
+     "effect": "+10"
+    },
+    {
+     "at": "+7",
+     "cond": "balance >= -1.0",
+     "effect": "-5; else -15"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AnalysisSummaryGenerator.compositeHeadlineScore",
+   "hash": "d57f4208e41aed18",
+   "does": "Recovery score 0-100 for the headline: session.scoreBreakdown.compositeScore, else session.recoveryScore×10, else nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "scoreBreakdown nil ('??')",
+     "effect": "fall back to recoveryScore*10; nil if that is also nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.scoreBreakdown(result:session:inputs:training:useBaselineHRV:)": "245c2d41dcd0a692"
+   }
+  },
+  {
+   "key": "var AnalysisSummaryGenerator.headlineScore",
+   "hash": "16d30cfbcb4ee2a6",
+   "does": "headline score: compositeHeadlineScore, else the generator's lazily computed diagnosticScore (computeDiagnosticScore() run once).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.compositeHeadlineScore",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.computeDiagnosticScore()"
+   ],
+   "reads": [
+    "mem:AnalysisSummaryGenerator.diagnosticScore (lazy)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no recovery score ('??')",
+     "effect": "diagnostic score used instead (different scale semantics on the same ScoreVerdict ladder)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.computeDiagnosticScore()": "eaf5b56cd571bf90",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.compositeHeadlineScore": "bfbc2646ec19b5ad"
+   }
+  },
+  {
+   "key": "var AnalysisSummaryGenerator.headlineVerdict",
+   "hash": "35f7fa6907b8b99c",
+   "does": "ScoreVerdict for headlineScore.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.headlineScore",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::init ScoreVerdict(score:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.headlineScore": "10743c82fc14b619",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::init ScoreVerdict(score:)": "89445abed2b3e6c9"
+   }
+  },
+  {
+   "key": "var AnalysisSummaryGenerator.analysisTitle",
+   "hash": "43025ed0f4452130",
+   "does": "Headline title: verdict's English word when NarrativeLanguage.isEnglish, else its localized word.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.headlineVerdict",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.word",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.localizedWord"
+   ],
+   "reads": [
+    "mem:NarrativeLanguage.isEnglish"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+0",
+     "cond": "NarrativeLanguage.isEnglish",
+     "effect": "English word (assistant context); else localizedWord"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.headlineVerdict": "908114f964c51c9d",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.localizedWord": "36e143abcc4cadb1",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.word": "e60a9c87b899ea3d"
+   }
+  },
+  {
+   "key": "var AnalysisSummaryGenerator.diagnosticIcon",
+   "hash": "3b6d587a6de67258",
+   "does": "Headline SF Symbol name from the verdict.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.headlineVerdict",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.glyphName"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.headlineVerdict": "908114f964c51c9d",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.glyphName": "a6ccfed84ddc0ce9"
+   }
+  },
+  {
+   "key": "var AnalysisSummaryGenerator.analysisExplanation",
+   "hash": "f43adbe92bd48a61",
+   "does": "'What This Means' paragraph: dispatches on hrvCategory to the matching ExplanationCopy builder with explanationInputs.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.explanationInputs",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.hrvCategory",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func ExplanationCopy.low(_:)",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func ExplanationCopy.reduced(_:)",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func ExplanationCopy.excellent(_:)",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func ExplanationCopy.good(_:)",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func ExplanationCopy.fair(_:)"
+   ],
+   "reads": [
+    "mem:NarrativeLanguage.isEnglish"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "low",
+     "effect": "ExplanationCopy.low"
+    },
+    {
+     "at": "+4",
+     "cond": "reduced",
+     "effect": "ExplanationCopy.reduced"
+    },
+    {
+     "at": "+5",
+     "cond": "excellent",
+     "effect": "ExplanationCopy.excellent"
+    },
+    {
+     "at": "+6",
+     "cond": "good",
+     "effect": "ExplanationCopy.good"
+    },
+    {
+     "at": "+7",
+     "cond": "fair",
+     "effect": "ExplanationCopy.fair"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func ExplanationCopy.excellent(_:)": "32ef5872d3b536c5",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func ExplanationCopy.fair(_:)": "a5fefa381c71f597",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func ExplanationCopy.good(_:)": "c6b63e41e15ce7ec",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func ExplanationCopy.low(_:)": "0dbc3b9bab439012",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func ExplanationCopy.reduced(_:)": "8e46ce259322fee9",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.explanationInputs": "165ff7d3e6d1dd6e",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.hrvCategory": "7adaaf60352c31f6"
+   }
+  },
+  {
+   "key": "var AnalysisSummaryGenerator.explanationInputs",
+   "hash": "d0366d6c84fc1646",
+   "does": "Gathers formatted RMSSD, the stress index, LF/HF and DFA α1 as measured (nil when the night produced none), age note, sleep flags, awake minutes, formatted sleep and the sleep context sentence.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.hoursMinutes(_:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.integer(_:)",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.populationAgePhrase",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.sleepContextNote(sleepFormatted:)",
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::var AnalysisSleepInput.isShortSleep",
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::var AnalysisSleepInput.isGoodSleep",
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::var AnalysisSleepInput.isFragmented"
+   ],
+   "reads": [
+    "mem:NarrativeLanguage.isEnglish"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "canonicalBaselineRMSSD == nil (?:) and populationAgePhrase nil (??)",
+     "effect": "no canonical baseline → ' (<age phrase>)' or '' when no age; canonical baseline → '' (age note dropped)"
+    },
+    {
+     "at": "+12",
+     "cond": "result.isConsolidated nil ('?? false')",
+     "effect": "treated as not consolidated"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::var AnalysisSleepInput.isFragmented": "9be0a2ac3cd93216",
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::var AnalysisSleepInput.isGoodSleep": "77fddba22b4b8546",
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::var AnalysisSleepInput.isShortSleep": "d971dbe731a9e976",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.sleepContextNote(sleepFormatted:)": "2a3ac0693da42dd3",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.populationAgePhrase": "b8a2548258b888b2",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "5814b8c071cb8591",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.totalSleepMinutes(in:)": "89a73025d946f183",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.hoursMinutes(_:)": "eda0d1f34fbebee1",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.integer(_:)": "e447648b612c9e97",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)": "2a4b8a54e9a27938",
+    "EmuquTests/RecoveryBlockClassificationTests.swift::func RecoveryBlockClassificationTests.isConsolidated(_:)": "8f7224c0359ecb0f"
+   }
+  },
+  {
+   "key": "var AnalysisSummaryGenerator.populationAgePhrase",
+   "hash": "bb50a7b8873befde",
+   "does": "Population age phrase for the age-adjusted category; nil when the interpretation has no ageContext (no age given).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.ageAdjustedInterpretation",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func ExplanationCopy.agePhrase(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "ageContext nil",
+     "effect": "nil; else ExplanationCopy.agePhrase(category)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func ExplanationCopy.agePhrase(_:)": "3ab48d798cb99fc9",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.ageAdjustedInterpretation": "dee9ae5bcf6af988",
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.category(_:caller:file:line:)": "315f6413360002af"
+   }
+  },
+  {
+   "key": "func AnalysisSummaryGenerator.sleepContextNote(sleepFormatted:)",
+   "hash": "ffd9ecbfdbaeea76",
+   "does": "One sleep sentence: short sleep, else fragmented, else low efficiency (<75%); nil when no sleep or none applies.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::var AnalysisSleepInput.isShortSleep",
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::var AnalysisSleepInput.isFragmented",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.integer(_:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
+   ],
+   "reads": [
+    "mem:NarrativeLanguage.isEnglish"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "totalSleepMinutes <= 0",
+     "effect": "nil"
+    },
+    {
+     "at": "+2",
+     "cond": "isShortSleep (<300 min)",
+     "effect": "short-sleep sentence"
+    },
+    {
+     "at": "+5",
+     "cond": "isFragmented (>30 min awake)",
+     "effect": "fragmented sentence with awake minutes"
+    },
+    {
+     "at": "+9",
+     "cond": "sleepEfficiency nil or >= 75",
+     "effect": "nil; else low-efficiency sentence with rounded percent"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::var AnalysisSleepInput.isFragmented": "9be0a2ac3cd93216",
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::var AnalysisSleepInput.isShortSleep": "d971dbe731a9e976",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "5814b8c071cb8591",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.totalSleepMinutes(in:)": "89a73025d946f183",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.integer(_:)": "e447648b612c9e97",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "func AnalysisSummaryGenerator.isGoodReading(rmssd:)",
+   "hash": "95aaeb40fbc21bf8",
+   "does": "True when RMSSD is good the way hrvCategory judges it (isGoodRMSSD) and otherMarkersAreSettled (stress, LF/HF and DFA α1 all measured and none raised).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.isGoodRMSSD(_:)",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.otherMarkersAreSettled"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.isGoodRMSSD(_:)": "8f47ea85479829cb",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.otherMarkersAreSettled": "d0fd4af103634770"
+   }
+  },
+  {
+   "key": "var AnalysisSummaryGenerator.otherMarkersAreSettled",
+   "hash": "d1bc40e1febcf8a7",
+   "does": "True only when the stress index, LF/HF and DFA α1 are all present and stress < 200, LF/HF < 2.5 and DFA α1 < 1.2. A missing marker makes it false, so a reading without one never counts as good or excellent.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "any of stressIndex, lfHfRatio, dfaAlpha1 is nil",
+     "effect": "returns false"
+    },
+    {
+     "at": "+4",
+     "cond": "stress < 200 && lfhf < 2.5 && dfa < 1.2",
+     "effect": "returns that conjunction"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb"
+   }
+  },
+  {
+   "key": "func AnalysisSummaryGenerator.isGoodRMSSD(_:)",
+   "hash": "180f46bbae32aa21",
+   "does": "RMSSD good: >= 0.85×canonical baseline when one exists, else >= 40 ms absolute.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "canonical baseline nil or <= 0",
+     "effect": "absolute rule rmssd >= 40; else ratio rule"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AnalysisSummaryGenerator.probableCauses",
+   "hash": "5590f497903f72a5",
+   "does": "Top-3 probable causes from CauseDetector over causeContext, converted to ProbableCause.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.causeContext",
+    "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::init CauseDetector()",
+    "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::func CauseDetector.detectCauses(in:limit:)",
+    "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::func DetectedCause.toProbableCause()",
+    "dyn:CauseDetectionStrategy.detectCauses → Emuqu/Sources/Analysis/CauseDetection/PositiveCauseDetector.swift:6|Emuqu/Sources/Analysis/CauseDetection/SevereCauseDetector.swift::func SevereCauseDetector.detectCauses(in:)|Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func TagBasedCauseDetector.detectCauses(in:)|Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift::func SleepCauseDetector.detectCauses(in:)|Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.detectCauses(in:)|Emuqu/Sources/Analysis/CauseDetection/PatternCauseDetector.swift::func PatternCauseDetector.detectCauses(in:)"
+   ],
+   "reads": [
+    "mem:NarrativeLanguage.isEnglish"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.causeContext": "0de6b08e92fdb7c7",
+    "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::func CauseDetector.detectCauses(in:limit:)": "6025cccfd6936fef",
+    "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::func DetectedCause.toProbableCause()": "94d41e0150b4c95c",
+    "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::init CauseDetector()": "9b0715b9d956b9ce"
+   }
+  },
+  {
+   "key": "var AnalysisSummaryGenerator.causeContext",
+   "hash": "73c0022aba766cfc",
+   "does": "Builds CauseDetectionContext: RMSSD, stress/LF-HF/DFA (a missing one passed as the resting value 150/1.0/1.0 the rules expect as a number), pNN50, isGoodReading(rmssd:), isExcellentReading (stats.hasData, rmssd > 1.15×avgRMSSD and otherMarkersAreSettled), tags, trend stats, sleep, sleep trend, session and earlier sessions.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.isGoodReading(rmssd:)",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.otherMarkersAreSettled",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.computeTrendStats(referenceDate:)"
+   ],
+   "reads": [
+    "mem:AnalysisSummaryGenerator.stats"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "stats.hasData && rmssd > 1.15×avgRMSSD",
+     "effect": "isExcellent; the context flag also needs otherMarkersAreSettled"
+    },
+    {
+     "at": "+5",
+     "cond": "stressIndex nil ('?? 150')",
+     "effect": "150 passed to the rules (no longer used for good/excellent)"
+    },
+    {
+     "at": "+6",
+     "cond": "lfHfRatio nil ('?? 1.0')",
+     "effect": "1.0 passed to the rules"
+    },
+    {
+     "at": "+7",
+     "cond": "dfaAlpha1 nil ('?? 1.0')",
+     "effect": "1.0 passed to the rules"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.isGoodReading(rmssd:)": "a553c84c2cc0efa5",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.otherMarkersAreSettled": "d0fd4af103634770",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.computeTrendStats(referenceDate:)": "583f5ff464eed5db",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb"
+   }
+  },
+  {
+   "key": "var AnalysisSummaryGenerator.keyFindings",
+   "hash": "17ec2d30829e8329",
+   "does": "Key findings list: trend/baseline findings, age/band finding (given previous findings), stress, LF/HF, heart rhythm, window quality, beat variation, sleep, sleep trend (with isGoodHRV) and training load findings.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.trendAndBaselineFindings",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.ageAdjustedFindings(existingFindings:)",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.stressFindings",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.ansBalanceFindings",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.heartRhythmFindings",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.windowQualityFindings",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.beatVariationFindings",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.sleepFindings",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.sleepTrendFindings(isGoodHRV:)",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.isGoodHRV",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.trainingLoadFindings"
+   ],
+   "reads": [
+    "mem:AnalysisSummaryGenerator.stats",
+    "mem:NarrativeLanguage.isEnglish"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.ageAdjustedFindings(existingFindings:)": "a90f5ce8e9290cb2",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.sleepTrendFindings(isGoodHRV:)": "324fa92996141049",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.ansBalanceFindings": "da29aff82eef8d31",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.beatVariationFindings": "4a4c37543db46c33",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.heartRhythmFindings": "9ba28c2457f8b693",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.isGoodHRV": "e9c458af11809b6d",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.sleepFindings": "d9eb66e6a83607b5",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.stressFindings": "aacfa351cc3bc365",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.trainingLoadFindings": "41b4fc9c5bc9f494",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.trendAndBaselineFindings": "99e76c93ef7e4435",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.windowQualityFindings": "a775ec5430b7e3dc"
+   }
+  },
+  {
+   "key": "var AnalysisSummaryGenerator.isGoodHRV",
+   "hash": "516a31cdc765f17e",
+   "does": "Good HRV for the sleep lines: isGoodRMSSD (>= 0.85× canonical baseline, else >= 40 ms) or, with trend stats, RMSSD >= 0.95× the recent average.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.isGoodRMSSD(_:)"
+   ],
+   "reads": [
+    "mem:AnalysisSummaryGenerator.stats"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.isGoodRMSSD(_:)": "8f47ea85479829cb"
+   }
+  },
+  {
+   "key": "func AnalysisSummaryGenerator.averageBand(_:)",
+   "hash": "9a76a98c72cad2b0",
+   "does": "Band of a percent difference from the recent average: > 20 wellAbove, > 10 above, < -20 wellBelow, < -10 below, |pct| < 10 consistent, nil at exactly ±10.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "percent > 20",
+     "effect": ".wellAbove"
+    },
+    {
+     "at": "+2",
+     "cond": "percent > 10",
+     "effect": ".above"
+    },
+    {
+     "at": "+3",
+     "cond": "percent < -20",
+     "effect": ".wellBelow"
+    },
+    {
+     "at": "+4",
+     "cond": "percent < -10",
+     "effect": ".below"
+    },
+    {
+     "at": "+5",
+     "cond": "|percent| < 10",
+     "effect": ".consistent; else nil (exactly ±10)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AnalysisSummaryGenerator.deviation(_:beyond:)",
+   "hash": "963daf6915f5686b",
+   "does": "Which side of a reference a difference falls once past the threshold: .above when > threshold, .below when < -threshold, else nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "difference > threshold",
+     "effect": ".above"
+    },
+    {
+     "at": "+2",
+     "cond": "difference < -threshold",
+     "effect": ".below; else nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AnalysisSummaryGenerator.personalBaselinePercent(rmssd:)",
+   "hash": "c6cbfcdb786ba4e6",
+   "does": "Percent difference of rmssd from the 5-night personal baseline (stats.baselineRMSSD); nil when the canonical baseline is present or the personal one is missing or <= 0.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AnalysisSummaryGenerator.stats"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "canonical baseline present, or baselineRMSSD nil/<=0",
+     "effect": "nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AnalysisSummaryGenerator.trendAndBaselineFindings",
+   "hash": "bdc8567f942f6534",
+   "does": "Trend findings (needs stats): percent vs avgRMSSD sentence, personal 5-night baseline sentence, 7-day trend sentence and resting-HR sentence concatenated.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.recentAverageFindings(rmssdPct:)",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.personalBaselineFindings(rmssd:)",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.sevenDayTrendFindings",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.restingHRFindings"
+   ],
+   "reads": [
+    "mem:AnalysisSummaryGenerator.stats"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "!stats.hasData",
+     "effect": "[]; else the four sub-lists"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.personalBaselineFindings(rmssd:)": "012352afaf225640",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.recentAverageFindings(rmssdPct:)": "bc1e1200b3bf3cb0",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.restingHRFindings": "c7268ff31cb661fa",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.sevenDayTrendFindings": "282bba64d50189ea"
+   }
+  },
+  {
+   "key": "func AnalysisSummaryGenerator.recentAverageFindings(rmssdPct:)",
+   "hash": "747487ae54e878ce",
+   "does": "One sentence on RMSSD vs the recent average by averageBand: wellAbove → the trend card's 'well above your average… read a jump this large alongside how you feel and your recent training' (no 'excellent recovery'), above → good recovery, wellBelow → may be compromised, below → below usual range; consistent or edge → none.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.averageBand(_:)"
+   ],
+   "reads": [
+    "mem:NarrativeLanguage.isEnglish"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "averageBand(rmssdPct)",
+     "effect": "switch on the band"
+    },
+    {
+     "at": "+3",
+     "cond": ".wellAbove",
+     "effect": "well-above, read-alongside-training sentence"
+    },
+    {
+     "at": "+5",
+     "cond": ".above",
+     "effect": "above sentence"
+    },
+    {
+     "at": "+7",
+     "cond": ".wellBelow",
+     "effect": "significantly below sentence"
+    },
+    {
+     "at": "+9",
+     "cond": ".below",
+     "effect": "below sentence"
+    },
+    {
+     "at": "+11",
+     "cond": ".consistent or nil",
+     "effect": "[]"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.averageBand(_:)": "ecfaefb4fdaff943",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)": "2a4b8a54e9a27938",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "func AnalysisSummaryGenerator.personalBaselineFindings(rmssd:)",
+   "hash": "8fc7f1b4fce5f6fd",
+   "does": "Personal-baseline sentence (only without canonical baseline, via personalBaselinePercent): more than 15% above or below the 5-night baseline.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.personalBaselinePercent(rmssd:)",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.deviation(_:beyond:)"
+   ],
+   "reads": [
+    "mem:NarrativeLanguage.isEnglish"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "personalBaselinePercent nil",
+     "effect": "[]"
+    },
+    {
+     "at": "+3",
+     "cond": "deviation beyond 15%",
+     "effect": "above → great-shape sentence; below → below sentence; nil → []"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.deviation(_:beyond:)": "e0228c71ccf571b8",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.personalBaselinePercent(rmssd:)": "25ccd39e8bde88d8",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)": "2a4b8a54e9a27938",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "var AnalysisSummaryGenerator.sevenDayTrendFindings",
+   "hash": "4d6445839a971428",
+   "does": "7-day trend sentence via deviation(trend7Day, beyond: 0): improving when > 0, decline when < 0.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.deviation(_:beyond:)"
+   ],
+   "reads": [
+    "mem:NarrativeLanguage.isEnglish"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "trend7Day nil",
+     "effect": "[]"
+    },
+    {
+     "at": "+3",
+     "cond": "deviation(trend, beyond: 0)",
+     "effect": "above → improving; below → decline; nil → [] (0 cannot occur since trend7Day is nil unless the verdict moved)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.deviation(_:beyond:)": "e0228c71ccf571b8",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)": "2a4b8a54e9a27938",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "var AnalysisSummaryGenerator.restingHRFindings",
+   "hash": "21d0f3f21db5703f",
+   "does": "Resting-HR sentence via deviation(meanHR − avgHR, beyond: 5): elevated when more than 5 bpm above, lower when more than 5 below.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.deviation(_:beyond:)"
+   ],
+   "reads": [
+    "mem:NarrativeLanguage.isEnglish"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "deviation(hrDiff, beyond: 5)",
+     "effect": "above → elevated; below → lower; nil → []"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.deviation(_:beyond:)": "e0228c71ccf571b8",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)": "2a4b8a54e9a27938",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "func AnalysisSummaryGenerator.ageAdjustedFindings(existingFindings:)",
+   "hash": "9e8986e073e8817b",
+   "does": "Band finding: when other findings exist, only 'This reading is <age phrase>' (population band, no canonical baseline) or nothing; when none, 'HRV is <band> at X ms' by hrvCategory with optional age suffix.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.populationAgePhrase",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.hrvCategory",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
+   ],
+   "reads": [
+    "mem:NarrativeLanguage.isEnglish"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "canonicalBaselineRMSSD == nil",
+     "effect": "agePhrase = populationAgePhrase; else nil"
+    },
+    {
+     "at": "+2",
+     "cond": "existingFindings non-empty",
+     "effect": "return age-phrase sentence or [] (when agePhrase nil); else band sentence"
+    },
+    {
+     "at": "+3",
+     "cond": "agePhrase nil ('?? []')",
+     "effect": "[]"
+    },
+    {
+     "at": "+6",
+     "cond": "agePhrase nil ('?? \"\"')",
+     "effect": "no suffix"
+    },
+    {
+     "at": "+8",
+     "cond": "excellent",
+     "effect": "'HRV is excellent at…'"
+    },
+    {
+     "at": "+9",
+     "cond": "good",
+     "effect": "'HRV is good at…'"
+    },
+    {
+     "at": "+10",
+     "cond": "fair",
+     "effect": "'HRV is fair at…'"
+    },
+    {
+     "at": "+11",
+     "cond": "reduced",
+     "effect": "'HRV is reduced at…'"
+    },
+    {
+     "at": "+12",
+     "cond": "low",
+     "effect": "'HRV is low at…'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func ExplanationCopy.agePhrase(_:)": "3ab48d798cb99fc9",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.hrvCategory": "7adaaf60352c31f6",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.populationAgePhrase": "b8a2548258b888b2",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)": "2a4b8a54e9a27938",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "var AnalysisSummaryGenerator.stressFindings",
+   "hash": "44c8c31d779a07ca",
+   "does": "Stress index sentence: >300 high, >150 elevated, >50 normal, else low.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.integer(_:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
+   ],
+   "reads": [
+    "mem:NarrativeLanguage.isEnglish"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "stressIndex nil",
+     "effect": "[]"
+    },
+    {
+     "at": "+3",
+     "cond": "> 300",
+     "effect": "high"
+    },
+    {
+     "at": "+5",
+     "cond": "> 150",
+     "effect": "elevated"
+    },
+    {
+     "at": "+7",
+     "cond": "> 50",
+     "effect": "normal; else low"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.integer(_:)": "e447648b612c9e97",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "var AnalysisSummaryGenerator.ansBalanceFindings",
+   "hash": "4650cbed0a88cd0a",
+   "does": "LF/HF sentence: >3.0 high (softened when pNN50 > 25 and RMSSD >= 40), <0.5 low, within [0.8,1.5] usual range, otherwise none.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
+   ],
+   "reads": [
+    "mem:NarrativeLanguage.isEnglish"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "lfHfRatio nil",
+     "effect": "[]"
+    },
+    {
+     "at": "+5",
+     "cond": "ratio > 3.0",
+     "effect": "high-ratio sentence"
+    },
+    {
+     "at": "+6",
+     "cond": "strong vagal tone",
+     "effect": "'common sleep-stage variation'; else 'above usual resting range — deep breathing…'"
+    },
+    {
+     "at": "+11",
+     "cond": "ratio < 0.5",
+     "effect": "low ratio sentence"
+    },
+    {
+     "at": "+13",
+     "cond": "0.8 <= ratio <= 1.5",
+     "effect": "usual range sentence; else [] (0.5-0.8 and 1.5-3.0 silent)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "var AnalysisSummaryGenerator.heartRhythmFindings",
+   "hash": "dbb558ae27813775",
+   "does": "DFA α1 sentence: >1.35 accumulated fatigue; >1.2 fatigue unless strong vagal tone; [0.75,1.0] in reference range; [0.60,0.75) less organized; else none.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
+   ],
+   "reads": [
+    "mem:NarrativeLanguage.isEnglish"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "dfaAlpha1 nil",
+     "effect": "[]"
+    },
+    {
+     "at": "+5",
+     "cond": "alpha > 1.35",
+     "effect": "accumulated-fatigue sentence"
+    },
+    {
+     "at": "+7",
+     "cond": "alpha > 1.2",
+     "effect": "fatigue branch"
+    },
+    {
+     "at": "+8",
+     "cond": "strong vagal tone",
+     "effect": "'within normal variation'; else 'carrying some fatigue'"
+    },
+    {
+     "at": "+13",
+     "cond": "0.75 <= alpha <= 1.0",
+     "effect": "reference-range sentence"
+    },
+    {
+     "at": "+15",
+     "cond": "0.60 <= alpha < 0.75",
+     "effect": "less-organized sentence; else [] (1.0-1.2 and <0.60 silent)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "var AnalysisSummaryGenerator.windowQualityFindings",
+   "hash": "c09f1978d4f05f5e",
+   "does": "Window-quality caveat when result.isOrganizedRecovery is false: DFA <0.65 'didn't settle', >1.15 'signs of fatigue', otherwise 'not fully consolidated'; no DFA → 'no deep recovery window'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
+   ],
+   "reads": [
+    "mem:NarrativeLanguage.isEnglish"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "isOrganizedRecovery nil ('?? true')",
+     "effect": "nil treated as organized → no caveat"
+    },
+    {
+     "at": "+2",
+     "cond": "organized",
+     "effect": "[]"
+    },
+    {
+     "at": "+4",
+     "cond": "dfaAlpha1 present",
+     "effect": "DFA-specific sentences; else 'No deep recovery window' sentence"
+    },
+    {
+     "at": "+5",
+     "cond": "alpha < 0.65",
+     "effect": "didn't-settle sentence"
+    },
+    {
+     "at": "+7",
+     "cond": "alpha > 1.15",
+     "effect": "fatigue sentence; else not-consolidated sentence"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.isOrganizedRecovery": "4179ba1b72db50c1",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "var AnalysisSummaryGenerator.beatVariationFindings",
+   "hash": "06aedf915f1e61f3",
+   "does": "pNN50 sentence: <5 very low variation, >30 strong variation, else none.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
+   ],
+   "reads": [
+    "mem:NarrativeLanguage.isEnglish"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "pnn50 < 5",
+     "effect": "very low sentence"
+    },
+    {
+     "at": "+4",
+     "cond": "pnn50 > 30",
+     "effect": "strong sentence; else []"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "var AnalysisSummaryGenerator.sleepFindings",
+   "hash": "737bb98944a7b354",
+   "does": "Sleep findings (duration + efficiency) when sleep was recorded.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.sleepDurationFindings",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.sleepEfficiencyFindings"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "totalSleepMinutes <= 0",
+     "effect": "[]; else both lists"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.sleepDurationFindings": "d6ccaa52e39b39a0",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.sleepEfficiencyFindings": "6e7a03480cdb60e5",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.totalSleepMinutes(in:)": "89a73025d946f183"
+   }
+  },
+  {
+   "key": "var AnalysisSummaryGenerator.sleepDurationFindings",
+   "hash": "a23e5f6fad18c342",
+   "does": "Sleep duration sentence: <300 min → remarkable (HRV > 1.1×avg) / solid (isGoodHRV) / short-sleep-factor; >=420 min with HRV > 1.1×avg → great combo; else none.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.isGoodHRV"
+   ],
+   "reads": [
+    "mem:AnalysisSummaryGenerator.stats",
+    "mem:NarrativeLanguage.isEnglish"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "total < 300 min",
+     "effect": "short-sleep branch"
+    },
+    {
+     "at": "+4",
+     "cond": "isExcellentHRV (stats and rmssd > 1.1×avg)",
+     "effect": "remarkable sentence"
+    },
+    {
+     "at": "+6",
+     "cond": "isGoodHRV",
+     "effect": "solid sentence; else 'Short sleep… likely a major factor in reduced HRV'"
+    },
+    {
+     "at": "+10",
+     "cond": ">= 420 min and excellent HRV",
+     "effect": "great-combo sentence; else []"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.isGoodHRV": "e9c458af11809b6d",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.totalSleepMinutes(in:)": "89a73025d946f183",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)": "2a4b8a54e9a27938",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "var AnalysisSummaryGenerator.sleepEfficiencyFindings",
+   "hash": "8f63a23c422c81a6",
+   "does": "Sleep efficiency sentence: >=92% nearly uninterrupted; <75% with >360 min in bed → low efficiency with awake minutes; else none.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.integer(_:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
+   ],
+   "reads": [
+    "mem:NarrativeLanguage.isEnglish"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "sleepEfficiency nil",
+     "effect": "[]"
+    },
+    {
+     "at": "+3",
+     "cond": "efficiency >= 92",
+     "effect": "nearly-uninterrupted sentence"
+    },
+    {
+     "at": "+5",
+     "cond": "efficiency < 75 and inBed > 360",
+     "effect": "low-efficiency sentence; else []"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "5814b8c071cb8591",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.integer(_:)": "e447648b612c9e97",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "func AnalysisSummaryGenerator.sleepTrendFindings(isGoodHRV:)",
+   "hash": "d89d8981404eeae3",
+   "does": "Sleep trend findings when sleep recorded and >=3 trend nights: direction sentence plus tonight-vs-average sentence (percent diff 0 when average is 0).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.trendDirectionFindings(_:isGoodHRV:)",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.tonightVsAverageFindings(_:avgHours:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no sleep, no sleepTrend or nightsAnalyzed < 3",
+     "effect": "[]"
+    },
+    {
+     "at": "+4",
+     "cond": "averageSleepMinutes > 0",
+     "effect": "percent difference; else 0 (no tonight-vs-average line)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.tonightVsAverageFindings(_:avgHours:)": "ebb2c9df56318cd9",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.trendDirectionFindings(_:isGoodHRV:)": "88251bfe13bc8ddd",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.isGoodHRV": "e9c458af11809b6d",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.totalSleepMinutes(in:)": "89a73025d946f183"
+   }
+  },
+  {
+   "key": "func AnalysisSummaryGenerator.trendDirectionFindings(_:isGoodHRV:)",
+   "hash": "7715ace439dec760",
+   "does": "Direction sentence by trends.trend: declining always; improving only when isGoodHRV; stable only when avg >= 7 h and isGoodHRV; insufficient none.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
+   ],
+   "reads": [
+    "mem:NarrativeLanguage.isEnglish"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "declining",
+     "effect": "trending-down sentence"
+    },
+    {
+     "at": "+6",
+     "cond": "improving",
+     "effect": "sentence if isGoodHRV else []"
+    },
+    {
+     "at": "+7",
+     "cond": "isGoodHRV (improving)",
+     "effect": "improving sentence; else []"
+    },
+    {
+     "at": "+8",
+     "cond": "stable",
+     "effect": "sentence if avgHours >= 7 and isGoodHRV"
+    },
+    {
+     "at": "+9",
+     "cond": "avgHours >= 7 && isGoodHRV",
+     "effect": "consistent-sleep sentence; else []"
+    },
+    {
+     "at": "+10",
+     "cond": "insufficient",
+     "effect": "[]"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.isGoodHRV": "e9c458af11809b6d",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)": "2a4b8a54e9a27938",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "func AnalysisSummaryGenerator.tonightVsAverageFindings(_:avgHours:)",
+   "hash": "04386e5b5566ae9c",
+   "does": "Tonight-vs-average sentence when |diff| > notableSleepChangePercent (25%): above-average or below-average.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.integer(_:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
+   ],
+   "reads": [
+    "mem:NarrativeLanguage.isEnglish"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "|diff| <= 25%",
+     "effect": "[]"
+    },
+    {
+     "at": "+4",
+     "cond": "diff > 25%",
+     "effect": "above sentence; else below sentence with average hours"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.totalSleepMinutes(in:)": "89a73025d946f183",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.integer(_:)": "e447648b612c9e97",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)": "2a4b8a54e9a27938",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "var AnalysisSummaryGenerator.trainingLoadFindings",
+   "hash": "92e69738c1aa172b",
+   "does": "Training-load finding from loadReading (live snapshot first, else caller's or result's frozen context — the push gate's source): with a ctl-qualified ACR, <0.8 below usual, >1.5 jumped sharply, >1.3 above usual, else none; without one, ctl and atl both under ctlThreshold → very low activity.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.loadReading",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.LoadReading.qualifiedACWR",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.LoadReading.isVeryLowActivity"
+   ],
+   "reads": [
+    "mem:NarrativeLanguage.isEnglish"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "loadReading nil (no live snapshot and no context)",
+     "effect": "[]"
+    },
+    {
+     "at": "+2",
+     "cond": "qualifiedACWR present",
+     "effect": "ACR bands; else very-low-activity check"
+    },
+    {
+     "at": "+3",
+     "cond": "acr < 0.8",
+     "effect": "below-usual sentence"
+    },
+    {
+     "at": "+5",
+     "cond": "acr > 1.5",
+     "effect": "jumped-sharply sentence"
+    },
+    {
+     "at": "+7",
+     "cond": "acr > 1.3",
+     "effect": "above-usual sentence; else [] (0.8-1.3)"
+    },
+    {
+     "at": "+10",
+     "cond": "no qualified ACR and isVeryLowActivity",
+     "effect": "very-low-activity sentence; else []"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.LoadReading.isVeryLowActivity": "5b1bcb70f6de95c1",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.LoadReading.qualifiedACWR": "ad522612766ac35d",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.loadReading": "ddd01d7f070cf614",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "var AnalysisSummaryGenerator.LoadReading.qualifiedACWR",
+   "hash": "2ac395d2d27877f0",
+   "does": "The acute:chronic ratio when present, finite and ctl >= RecoveryScoreConstants.Readiness.ctlThreshold (the qualification TrainingAdviceGate applies); else nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "acwr nil, not finite, or ctl below ctlThreshold",
+     "effect": "nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AnalysisSummaryGenerator.LoadReading.isVeryLowActivity",
+   "hash": "434ff47829236128",
+   "does": "True when both ctl and atl are below RecoveryScoreConstants.Readiness.ctlThreshold.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AnalysisSummaryGenerator.loadReading",
+   "hash": "ac09a934eec88471",
+   "does": "LoadReading from liveLoadSnapshot (acwr/ctl/atl) when the caller captured one, else from trainingContext ?? result.trainingContext (acuteChronicRatio/ctl/atl); nil when neither exists.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::var TrainingContext.acuteChronicRatio"
+   ],
+   "reads": [
+    "mem:AnalysisSummaryGenerator.liveLoadSnapshot"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "liveLoadSnapshot present",
+     "effect": "reading from the live snapshot"
+    },
+    {
+     "at": "+2",
+     "cond": "no caller or result training context",
+     "effect": "nil; else reading from the frozen context"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::var TrainingContext.acuteChronicRatio": "bab331587abdd3ff",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+   }
+  },
+  {
+   "key": "var AnalysisSummaryGenerator.trendInsight",
+   "hash": "cd12b6d22134af84",
+   "does": "Trend paragraph: 'Record more sessions' without stats; else RMSSD-vs-average, baseline, resting HR, stress and 7-day trend insights joined, plus a 'trends will become more accurate' line when fewer than 7 sessions.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.rmssdAverageInsights(rmssdPct:)",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.rmssdBaselineInsights(currentRMSSD:)",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.restingHRInsights",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.stressInsights",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.sevenDayTrendInsights",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
+   ],
+   "reads": [
+    "mem:AnalysisSummaryGenerator.stats",
+    "mem:NarrativeLanguage.isEnglish"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "!stats.hasData",
+     "effect": "'Record more sessions to see trends.'"
+    },
+    {
+     "at": "+9",
+     "cond": "sessionCount < 7",
+     "effect": "append accuracy note; else nothing"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "trendInsight is consumed only by the assistant context (ContextBuilder.swift:212); the screen shows TrendComparisonCard.trendInsight, a near-copy with different copy for a >20% rise and different average fallbacks, so the assistant and the card can state different trend sentences for the same night.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift:525",
+      "Emuqu/Sources/Assistant/Context/ContextBuilder.swift:212",
+      "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift:226",
+      "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift:256"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.rmssdAverageInsights(rmssdPct:)": "62dfeed7e0106bce",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.rmssdBaselineInsights(currentRMSSD:)": "f07a88cd30ad3bc0",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.restingHRInsights": "fdcc0fce553da86c",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.sevenDayTrendInsights": "130cf34a39882ac9",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.stressInsights": "1dcf6b12130a928a",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "func AnalysisSummaryGenerator.rmssdAverageInsights(rmssdPct:)",
+   "hash": "1c97f8bbfb180734",
+   "does": "RMSSD vs average insight by averageBand: consistent, wellAbove (the trend card's read-alongside-training sentence, not 'excellent recovery'), above, wellBelow, below; nil band (exactly ±10) → none.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.averageBand(_:)"
+   ],
+   "reads": [
+    "mem:NarrativeLanguage.isEnglish"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "averageBand(rmssdPct)",
+     "effect": "switch on the band"
+    },
+    {
+     "at": "+3",
+     "cond": ".consistent",
+     "effect": "consistent sentence"
+    },
+    {
+     "at": "+5",
+     "cond": ".wellAbove",
+     "effect": "well-above sentence"
+    },
+    {
+     "at": "+7",
+     "cond": ".above",
+     "effect": "above sentence"
+    },
+    {
+     "at": "+9",
+     "cond": ".wellBelow",
+     "effect": "significantly below"
+    },
+    {
+     "at": "+11",
+     "cond": ".below",
+     "effect": "below"
+    },
+    {
+     "at": "+13",
+     "cond": "nil",
+     "effect": "[]"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.averageBand(_:)": "ecfaefb4fdaff943",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)": "2a4b8a54e9a27938",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "func AnalysisSummaryGenerator.rmssdBaselineInsights(currentRMSSD:)",
+   "hash": "1eecb740615ded67",
+   "does": "Personal-baseline insight (only without canonical baseline, via personalBaselinePercent): more than 15% below / above.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.personalBaselinePercent(rmssd:)",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.deviation(_:beyond:)"
+   ],
+   "reads": [
+    "mem:NarrativeLanguage.isEnglish"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "personalBaselinePercent nil",
+     "effect": "[]"
+    },
+    {
+     "at": "+3",
+     "cond": "deviation beyond 15%",
+     "effect": "below → below sentence; above → great-shape sentence; nil → []"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.deviation(_:beyond:)": "e0228c71ccf571b8",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.personalBaselinePercent(rmssd:)": "25ccd39e8bde88d8",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)": "2a4b8a54e9a27938",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "var AnalysisSummaryGenerator.restingHRInsights",
+   "hash": "3d336af9f86ad6ad",
+   "does": "Resting HR insight via deviation(meanHR − avgHR, beyond: 5): elevated or lower.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.deviation(_:beyond:)"
+   ],
+   "reads": [
+    "mem:NarrativeLanguage.isEnglish"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "deviation(hrDiff, beyond: 5)",
+     "effect": "switch"
+    },
+    {
+     "at": "+3",
+     "cond": ".above",
+     "effect": "elevated sentence"
+    },
+    {
+     "at": "+6",
+     "cond": ".below",
+     "effect": "lower sentence"
+    },
+    {
+     "at": "+8",
+     "cond": "nil",
+     "effect": "[]"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.deviation(_:beyond:)": "e0228c71ccf571b8",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)": "2a4b8a54e9a27938",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "var AnalysisSummaryGenerator.stressInsights",
+   "hash": "0e308b6901179234",
+   "does": "Stress insight when tonight's stress > 1.3×period average and > 200.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
+   ],
+   "reads": [
+    "mem:NarrativeLanguage.isEnglish"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "stress or avgStress nil, or stress <= 1.3×avg, or stress <= 200",
+     "effect": "[]; else elevated-stress sentence"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "var AnalysisSummaryGenerator.sevenDayTrendInsights",
+   "hash": "ccbf148d94e67033",
+   "does": "7-day trend insight via deviation(trend7Day, beyond: 0): improving (>0) or decline (<0).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.deviation(_:beyond:)"
+   ],
+   "reads": [
+    "mem:NarrativeLanguage.isEnglish"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "trend7Day nil",
+     "effect": "[]"
+    },
+    {
+     "at": "+3",
+     "cond": "deviation(trend, beyond: 0)",
+     "effect": "above → improving; below → decline; nil → []"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.deviation(_:beyond:)": "e0228c71ccf571b8",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)": "2a4b8a54e9a27938",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "func AnalysisSummaryGenerator.stressIndexPoints(_:)",
+   "hash": "65657ba0596928d3",
+   "does": "Stress index points: <100 → 20, <150 → 15, <200 → 10, <300 → 0, else -15; nil → 0.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "nil",
+     "effect": "0"
+    },
+    {
+     "at": "+2",
+     "cond": "< 100",
+     "effect": "20"
+    },
+    {
+     "at": "+3",
+     "cond": "< 150",
+     "effect": "15"
+    },
+    {
+     "at": "+4",
+     "cond": "< 200",
+     "effect": "10"
+    },
+    {
+     "at": "+5",
+     "cond": "< 300",
+     "effect": "0; else -15"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AnalysisSummaryGenerator.lfHfPoints(_:)",
+   "hash": "0836b36ecef5b4f2",
+   "does": "LF/HF points: [0.5,2.0] → 20, <0.5 → 15, <=3.0 → 5, else -10; nil → 0.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "nil",
+     "effect": "0"
+    },
+    {
+     "at": "+2",
+     "cond": "0.5 <= ratio <= 2.0",
+     "effect": "20"
+    },
+    {
+     "at": "+6",
+     "cond": "ratio < 0.5",
+     "effect": "15"
+    },
+    {
+     "at": "+9",
+     "cond": "ratio <= 3.0",
+     "effect": "5; else -10"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ExplanationCopy.agePhrase(_:)",
+   "hash": "f49b76c4f589b767",
+   "does": "Mid-sentence population age phrase per category.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
+   ],
+   "reads": [
+    "mem:NarrativeLanguage.isEnglish"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "excellent",
+     "effect": "well above average"
+    },
+    {
+     "at": "+3",
+     "cond": "good",
+     "effect": "above average"
+    },
+    {
+     "at": "+4",
+     "cond": "fair",
+     "effect": "typical"
+    },
+    {
+     "at": "+5",
+     "cond": "reduced",
+     "effect": "below average"
+    },
+    {
+     "at": "+6",
+     "cond": "low",
+     "effect": "significantly below average"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "func ExplanationCopy.low(_:)",
+   "hash": "66ae9d18d8056f06",
+   "does": "Low-band paragraph: opening; short sleep → short-sleep explanation only; else reason by a measured stress > 300, a measured LF/HF > 3.0, or generic suppressed-parasympathetic text (also when those markers are missing), plus sleep context.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func ExplanationCopy.join(_:)",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func ExplanationCopy.exceeds(_:_:)"
+   ],
+   "reads": [
+    "mem:NarrativeLanguage.isEnglish"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "isShortSleep",
+     "effect": "return opening + short-sleep sentence (no sleepContext)"
+    },
+    {
+     "at": "+5",
+     "cond": "exceeds(stress, 300) (false when nil)",
+     "effect": "high-stress reason"
+    },
+    {
+     "at": "+7",
+     "cond": "exceeds(lfhf, 3.0) (false when nil)",
+     "effect": "LF/HF reason; else generic suppressed-parasympathetic reason"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::var AnalysisSleepInput.isShortSleep": "d971dbe731a9e976",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func ExplanationCopy.exceeds(_:_:)": "c8a9eb070f0dcedb",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func ExplanationCopy.join(_:)": "44db094e1fa8b906",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "func ExplanationCopy.reduced(_:)",
+   "hash": "32d7fadd807cb7a0",
+   "does": "Reduced-band paragraph: short sleep → sentence; fragmented → sentence; else reason by a measured DFA > 1.2, a measured stress > 200 or generic, plus sleep context.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func ExplanationCopy.join(_:)",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func ExplanationCopy.exceeds(_:_:)"
+   ],
+   "reads": [
+    "mem:NarrativeLanguage.isEnglish"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "isShortSleep",
+     "effect": "short-sleep sentence"
+    },
+    {
+     "at": "+5",
+     "cond": "isFragmented",
+     "effect": "fragmented sentence"
+    },
+    {
+     "at": "+8",
+     "cond": "exceeds(dfa, 1.2) (false when nil)",
+     "effect": "reduced-complexity reason"
+    },
+    {
+     "at": "+10",
+     "cond": "exceeds(stress, 200) (false when nil)",
+     "effect": "elevated-stress reason; else generic reason"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::var AnalysisSleepInput.isFragmented": "9be0a2ac3cd93216",
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::var AnalysisSleepInput.isShortSleep": "d971dbe731a9e976",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func ExplanationCopy.exceeds(_:_:)": "c8a9eb070f0dcedb",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func ExplanationCopy.join(_:)": "44db094e1fa8b906",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "5814b8c071cb8591",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "func ExplanationCopy.excellent(_:)",
+   "hash": "2900116474074963",
+   "does": "Excellent-band paragraph: good sleep + not fragmented + consolidated → fully ready; short sleep → capacity caveat; not consolidated → not sustained; else the neutral beat-to-beat sentence. No autonomic-balance verdict.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func ExplanationCopy.join(_:)"
+   ],
+   "reads": [
+    "mem:NarrativeLanguage.isEnglish"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "isGoodSleep, !isFragmented, isConsolidated",
+     "effect": "'fully ready for demands'"
+    },
+    {
+     "at": "+4",
+     "cond": "isShortSleep",
+     "effect": "capacity-not-green-light"
+    },
+    {
+     "at": "+6",
+     "cond": "!isConsolidated",
+     "effect": "not sustained; else neutral beat-to-beat sentence"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::var AnalysisSleepInput.isFragmented": "9be0a2ac3cd93216",
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::var AnalysisSleepInput.isShortSleep": "d971dbe731a9e976",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func ExplanationCopy.join(_:)": "44db094e1fa8b906",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5",
+    "EmuquTests/RecoveryBlockClassificationTests.swift::func RecoveryBlockClassificationTests.isConsolidated(_:)": "8f7224c0359ecb0f"
+   }
+  },
+  {
+   "key": "func ExplanationCopy.good(_:)",
+   "hash": "38686fad99c0fc7f",
+   "does": "Good-band paragraph: good unfragmented sleep → well-positioned; short sleep → better-sleep sentence; else only the sleep context note (fragmented or low-efficiency sleep, or nothing). No autonomic-balance verdict.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func ExplanationCopy.join(_:)"
+   ],
+   "reads": [
+    "mem:NarrativeLanguage.isEnglish"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "isGoodSleep and !isFragmented",
+     "effect": "opening + well-positioned"
+    },
+    {
+     "at": "+5",
+     "cond": "isShortSleep",
+     "effect": "opening + better sleep"
+    },
+    {
+     "at": "+8",
+     "cond": "otherwise",
+     "effect": "opening + sleepContext (or opening alone when nil)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::var AnalysisSleepInput.isFragmented": "9be0a2ac3cd93216",
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::var AnalysisSleepInput.isShortSleep": "d971dbe731a9e976",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func ExplanationCopy.join(_:)": "44db094e1fa8b906",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "func ExplanationCopy.fair(_:)",
+   "hash": "2d8d1d3a4606ebb4",
+   "does": "Fair-band paragraph: short sleep → opening + short-sleep sentence; else opening + sleep context note. Nothing is read off LF/HF.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func ExplanationCopy.join(_:)"
+   ],
+   "reads": [
+    "mem:NarrativeLanguage.isEnglish"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "isShortSleep",
+     "effect": "short-sleep sentence"
+    },
+    {
+     "at": "+5",
+     "cond": "otherwise",
+     "effect": "opening + sleepContext (or opening alone when nil)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::var AnalysisSleepInput.isShortSleep": "d971dbe731a9e976",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func ExplanationCopy.join(_:)": "44db094e1fa8b906",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "func ExplanationCopy.exceeds(_:_:)",
+   "hash": "855a7fa62879e711",
+   "does": "True when the marker is present and above the threshold; false when it is nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "marker nil",
+     "effect": "false"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ExplanationCopy.join(_:)",
+   "hash": "05779fb6365204b1",
+   "does": "Joins the non-nil sentences with a space.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

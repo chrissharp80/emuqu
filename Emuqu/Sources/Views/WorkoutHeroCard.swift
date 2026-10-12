@@ -119,8 +119,8 @@ struct WorkoutHeroCard: View {
     /// --- α1 band pill (colored, communicates effort regime) ---
     @ViewBuilder
     private var alpha1BandPill: some View {
-        if let band = dominantAlpha1Band, band != .unknown {
-            bandPill(band: band)
+        if let band = dominantAlpha1Band, let colors = bandColors(band) {
+            bandPill(band: band, colors: colors)
         }
     }
 
@@ -133,39 +133,31 @@ struct WorkoutHeroCard: View {
         }
     }
 
-    private func bandPill(band: LiveDFAAnalyzer.Band) -> some View {
-        let (color, label) = bandAppearance(band)
-        return HStack(spacing: 6) {
-            Circle().fill(color).frame(width: 8, height: 8)
-            Text(label.uppercased())
+    /// Worded with `Band.localizedLabel`, the label the live badge, the Watch
+    /// and the narratives use, so the summary never names the band differently.
+    private func bandPill(band: LiveDFAAnalyzer.Band, colors: (fill: Color, text: Color)) -> some View {
+        HStack(spacing: 6) {
+            Circle().fill(colors.fill).frame(width: 8, height: 8)
+            Text(band.localizedLabel.uppercased())
                 .font(.caption.weight(.bold))
                 .tracking(1)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
-        .foregroundStyle(bandTextColor(band))
-        .background(color.opacity(0.14))
+        .foregroundStyle(colors.text)
+        .background(colors.fill.opacity(0.14))
         .clipShape(Capsule())
     }
 
-    /// The fill colours are too light for words on a light card (yellow on a
-    /// 14% yellow wash fails contrast), so the label takes the darkened text
-    /// variant of the same hue.
-    private func bandTextColor(_ band: LiveDFAAnalyzer.Band) -> Color {
+    /// The band's theme hue for the dot and wash, and the darkened text
+    /// variant of the same hue for the words (the fill on a 14% wash of
+    /// itself fails contrast). Nil for `.unknown`, which gets no pill.
+    private func bandColors(_ band: LiveDFAAnalyzer.Band) -> (fill: Color, text: Color)? {
         switch band {
-        case .belowAeT: AppTheme.sageText
-        case .nearAeT: AppTheme.softGoldText
-        case .aboveVT2: AppTheme.terracottaText
-        case .unknown: AppTheme.textTertiary
-        }
-    }
-
-    private func bandAppearance(_ band: LiveDFAAnalyzer.Band) -> (Color, String) {
-        switch band {
-        case .belowAeT: (AppTheme.sage, String(localized: "Easy · Below Aerobic Threshold", bundle: LanguageManager.appBundle))
-        case .nearAeT: (.yellow, String(localized: "Threshold · Near LT1", bundle: LanguageManager.appBundle))
-        case .aboveVT2: (Color(red: 0.90, green: 0.35, blue: 0.35), String(localized: "Very Hard · Above LT2", bundle: LanguageManager.appBundle))
-        case .unknown: (AppTheme.textTertiary, String(localized: "α1 unavailable", bundle: LanguageManager.appBundle))
+        case .belowAeT: return (fill: AppTheme.sage, text: AppTheme.sageText)
+        case .nearAeT: return (fill: AppTheme.softGold, text: AppTheme.softGoldText)
+        case .aboveVT2: return (fill: AppTheme.terracotta, text: AppTheme.terracottaText)
+        case .unknown: return nil
         }
     }
 
@@ -203,19 +195,26 @@ struct WorkoutHeroCard: View {
     }
 
     /// A route's extent in degrees of latitude, with longitude converted to
-    /// the same ground distance at the route's mid-latitude.
+    /// the same ground distance at the route's mid-latitude. A route spanning
+    /// more than 180° of raw longitude crosses the ±180° meridian, so its
+    /// western longitudes are shifted by +360° to measure it across, not round
+    /// the globe.
     private struct TraceBounds {
         let minLat: Double
         let minLon: Double
         let lonScale: Double
         let width: Double
         let height: Double
+        let crossesAntimeridian: Bool
 
         init?(_ coordinates: [CLLocationCoordinate2D]) {
             let lats = coordinates.map(\.latitude)
-            let lons = coordinates.map(\.longitude)
+            let raw = coordinates.map(\.longitude)
+            let crosses = (raw.max() ?? 0) - (raw.min() ?? 0) > 180
+            let lons = crosses ? raw.map { $0 < 0 ? $0 + 360 : $0 } : raw
             guard let minLat = lats.min(), let maxLat = lats.max(),
                   let minLon = lons.min(), let maxLon = lons.max() else { return nil }
+            crossesAntimeridian = crosses
             self.minLat = minLat
             self.minLon = minLon
             lonScale = cos((minLat + maxLat) / 2 * .pi / 180)
@@ -223,8 +222,12 @@ struct WorkoutHeroCard: View {
             height = maxLat - minLat
         }
 
-        func x(_ c: CLLocationCoordinate2D) -> Double { (c.longitude - minLon) * lonScale }
+        func x(_ c: CLLocationCoordinate2D) -> Double { (unwrappedLongitude(of: c) - minLon) * lonScale }
         func y(_ c: CLLocationCoordinate2D) -> Double { c.latitude - minLat }
+
+        private func unwrappedLongitude(of c: CLLocationCoordinate2D) -> Double {
+            crossesAntimeridian && c.longitude < 0 ? c.longitude + 360 : c.longitude
+        }
     }
 
     /// A workout that just ended reads "now", not "in 0 seconds": the end date

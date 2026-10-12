@@ -1,0 +1,106 @@
+{
+ "file": "Emuqu/Sources/Views/RecoveryScoreCharts.swift",
+ "hash": "6a9cd9776c9f0441",
+ "role": "Declares the RecoveryScoreCharts value type (inputs + bindings for the overnight HRV/HR charts of RecoveryScoreDetailView) and the RecoveryScoreDetailView extension that builds it from live view state and forwards the chart views and series builders. Chart bodies live in RecoveryScoreDetailView+Charts.swift.",
+ "types": [
+  "RecoveryScoreCharts: struct (@MainActor, not a View) — chart inputs and @Binding back-channels",
+  "extension RecoveryScoreDetailView — forwarders"
+ ],
+ "state": [
+  "RecoveryScoreCharts stored lets: session, result, onReanalyzeAt closure, hrChartSeries, rmssdChartSeries, organizedZoneRanges, recordingStartMs/EndMs, analysisWindowDateRange",
+  "@Binding: hrHoverDate, hrvHoverDate, previewWindowMs, selectedWindowSegment, segmentBeforePick, restoringSegment, windowChangedHere, isReanalyzing, didCompleteInitialLoad, fallbackHRSamples (all RecoveryScoreDetailView @State)"
+ ],
+ "toplevel": "Struct declaration with memberwise init only; doc says it is deliberately not a View so SwiftUI identity/@State stay with RecoveryScoreDetailView.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var RecoveryScoreDetailView.charts",
+   "hash": "ed32007011c295ab",
+   "does": "Builds a fresh RecoveryScoreCharts from the view's current properties and @State bindings on every access.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:RecoveryScoreDetailView.@State (hover dates, preview window, segment, reanalysis flags, fallbackHRSamples)"
+   ],
+   "writes": [
+    "mem:RecoveryScoreDetailView.@State via bindings"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.analysisWindowDateRange": "b3491324cc43dfb3",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.recordingEndMs": "6a93f7f5417923a7",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.recordingStartMs": "77dfbabbc87e6644"
+   }
+  },
+  {
+   "key": "func RecoveryScoreDetailView.buildRMSSDSeries(series:flags:sessionStartDate:)",
+   "hash": "60df847cb263792d",
+   "does": "Static forwarder to RecoveryScoreCharts.buildRMSSDSeries.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func RecoveryScoreCharts.buildRMSSDSeries(series:flags:sessionStartDate:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func RecoveryScoreCharts.buildRMSSDSeries(series:flags:sessionStartDate:)": "483fc07fa929c744"
+   }
+  },
+  {
+   "key": "func RecoveryScoreDetailView.buildHRSeries(series:flags:sessionStartDate:fallbackHRSamples:)",
+   "hash": "5c415a8bfbc17c3d",
+   "does": "Static forwarder to RecoveryScoreCharts.buildHRSeries.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func RecoveryScoreCharts.buildHRSeries(series:flags:sessionStartDate:fallbackHRSamples:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func RecoveryScoreCharts.buildHRSeries(series:flags:sessionStartDate:fallbackHRSamples:)": "c5c362e0bc0933e0"
+   }
+  },
+  {
+   "key": "var RecoveryScoreDetailView.hrvOvernightChart",
+   "hash": "12c7d02970bbb7ff",
+   "does": "Forwards to charts.hrvOvernightChart.",
+   "entry": "SwiftUI view-tree evaluation of RecoveryScoreDetailView (RecoveryScoreDetailView.swift:304)",
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreCharts.swift::var RecoveryScoreDetailView.charts",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::var RecoveryScoreCharts.hrvOvernightChart"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecoveryScoreCharts.swift::var RecoveryScoreDetailView.charts": "a35fd6add99f8b42",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::var RecoveryScoreCharts.hrvOvernightChart": "2ae50725bd9d8bc2"
+   }
+  },
+  {
+   "key": "var RecoveryScoreDetailView.heartRateOvernightChart",
+   "hash": "62d186ab50f5d5cd",
+   "does": "Forwards to charts.heartRateOvernightChart.",
+   "entry": "SwiftUI view-tree evaluation of RecoveryScoreDetailView (RecoveryScoreDetailView.swift:305)",
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreCharts.swift::var RecoveryScoreDetailView.charts",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::var RecoveryScoreCharts.heartRateOvernightChart"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecoveryScoreCharts.swift::var RecoveryScoreDetailView.charts": "a35fd6add99f8b42",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::var RecoveryScoreCharts.heartRateOvernightChart": "8232317f2d8bef2e"
+   }
+  }
+ ],
+ "deps": {}
+}

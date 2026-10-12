@@ -329,7 +329,7 @@ Inputs:
 - CTL and ATL;
 - anchorATL, the freshness anchor;
 - ACWR (`ACR` in the code);
-- only when todayTrimp > 0, the resolved loads of workouts in the last 72 h, with the hours since each.
+- the resolved loads of workouts in the last 72 h that fall on or after the start of the morning reading's calendar day (earlier workouts are carried by the frozen morning ATL), with the hours since each.
 
 On rest days ATL already carries yesterday's load, and the freshness bonus handles dissipation.
 
@@ -364,7 +364,7 @@ On rest days ATL already carries yesterday's load, and the freshness bonus handl
 
 ATL_m and CTL_m come from the frozen snapshot, or are 0 if it is missing. The freshness anchor is ATL_m, except at f = 1, where ATL_eff is used and the bonus collapses to 0.
 
-**Other rules.** Without training metrics, readiness equals the recovery score. When the gap to the morning score is at least 3 points, the narrative says training "pulled readiness down" or rest "lifted" it.
+**Other rules.** Without training metrics, readiness equals the recovery score. When readiness differs by at least 3 points from the morning-anchor readiness (the model at the frozen morning ATL/CTL with no training), the narrative says training "pulled readiness down" or rest "lifted" it.
 
 **Why it works.** Readiness asks whether there is capacity for more load today. ATL/CTL answers this relative to what the user is accustomed to. ATL updates once a day, so the 72 h acute term (τ = 24 h) makes this morning's session count now and fade over about a day. Below CTL 3.2 the ratio is numerically unstable, so a strain branch takes over. The ACWR penalty is scaled by CTL/50 because the ratio is unstable at low chronic load [14]. It is capped at 10% when recovery is at least 70, so a ratio cannot overrule a good morning HRV-based recovery score. The blend is asymmetric for the same reason. An optimistic load model is only partly trusted, and less so at low CTL; a pessimistic one is lifted modestly. Freezing the morning value makes history reproducible, and interpolating from it keeps the live figure continuous at acceptance.
 
@@ -569,7 +569,7 @@ The confidence is min(0.85, 0.4 + 0.15·n) for n retained earlier runs, or 0.4 w
 *Earliest dated record:* flow-recovery b0967a8, 2026-05-12 (first form: 0.95 × best NP; read-time power TSS); emuqu 554540f, 2026-10-03 (current form: rolling 20-minute window with 90% coverage).
 
 **N11 (Section 3.5.1). A training-readiness score combines a capacity-ratio map with an acute-fatigue term, a low-CTL branch, a damped ACWR penalty, a freshness bonus and an asymmetric blend with the morning recovery score.** The steps are:
-- **Acute fatigue.** A 72 h exponentially decaying term (τ = 24 h, weight 0.30, used only on days with training) is added to ATL inside a piecewise capacity-ratio map.
+- **Acute fatigue.** A 72 h exponentially decaying term (τ = 24 h, weight 0.30, over workouts since the start of the morning reading's day) is added to ATL inside a piecewise capacity-ratio map.
 - **Low-CTL branch.** Below a CTL of 3.2, the score switches to a strain branch.
 - **ACWR penalty.** Any penalty above an ACWR of 1.3 is scaled by min(CTL/50, 1) and capped at 10% when the morning recovery score is at least 70.
 - **Freshness.** A capped bonus is added for ATL dissipated since the morning.
@@ -628,7 +628,7 @@ The confidence is min(0.85, 0.4 + 0.15·n) for n retained earlier runs, or 0.4 w
 
 On 2026-10-08 a separate reimplementation was checked on public PhysioNet recordings [20]. The cross-implementation report, `Tools/validation/RESULTS.md`, gives its full method and results. The methods were reimplemented in Python from the Swift source at e028039. A port's results were accepted as the app's only after the port reproduced the app's own unit-test expectations.
 
-**Port fidelity.** Across eight test suites, 114 of 114 cases were reproduced. These include DFAAnalysisTests (15 of 15), DFAReferenceValidationTests (9 of 9) and LiveDFAAnalyzerTests (19 of 19). On the seeded known-exponent processes (white, 1/f and Brownian noise, 4096 samples), the port reproduces the app's measured α1 values exactly.
+**Port fidelity.** The eight test suites the ports cover hold 128 test functions at e028039; the ports reproduce 111 of them, plus three cross-checks (α1 values quoted in a DFAReferenceValidationTests comment, a Welch-PSD comparison against SciPy, and a stale value quoted in an HRVReferenceValidationTests comment), and all 114 of those cases matched (`Tools/validation/test_ports_output.txt`). DFAAnalysisTests: 15 of 15. DFAReferenceValidationTests: 8 of 8. LiveDFAAnalyzerTests: 19 of 21 — the port covers the RR cleaning, correction counts and rejection thresholds, but not `testAlpha1IsNotProducedBeforeTheWindowIsFull` or `testAlpha1IsProducedOnceTheWindowIsFull`, so the live window-fill gate of §3.1 is verified only by the Swift tests. Also not reproduced: 8 of 36 HRVSleepStageClassifierTests, 4 of 14 TimeDomainTests and 3 of 9 HRVReferenceValidationTests. On the seeded known-exponent processes (white, 1/f and Brownian noise, 4096 samples), the port reproduces the app's measured α1 values exactly.
 
 **Artifact correction (nsr2db).** The test windows were 1,080 artifact-free 120 s windows from 54 records of the PhysioNet Normal Sinus Rhythm RR Interval Database (nsr2db; 24-hour ambulatory Holter recordings) [20], with clean α1 of 1.20 ± 0.28. They received premature ectopic beats with a compensatory pause, or missed beats, at fixed rates, following the design of Rogers et al. [5]. Each window had three seeded placements, giving 3,240 trials per artifact type and rate.
 
@@ -1003,7 +1003,7 @@ live(Rrec, morning, liveM, now):
   f = clamp((now - morning.end)/24h, 0, 1)
   ATLe = ATL_m + (liveM.ATL - ATL_m)*f; CTLe = CTL_m + (liveM.CTL - CTL_m)*f
   anchor = ATLe if f >= 1 else ATL_m
-  loads = recent72h(liveM) if liveM.todayTrimp > 0 else nil
+  loads = [L in recent72h(liveM) if L.h <= hours since startOfDay(morning.end)] or nil
   return readiness(Rrec, liveM.todayTrimp, CTLe, ATLe, anchor, ATLe/CTLe if CTLe>0 else nil, loads)
 frozen(Rrec, ATL, CTL) = readiness(Rrec, 0, CTL, ATL, ATL, ATL/CTL if CTL>0 else nil, nil) / 10
 

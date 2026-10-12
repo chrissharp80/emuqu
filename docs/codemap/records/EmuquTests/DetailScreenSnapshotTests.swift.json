@@ -1,0 +1,213 @@
+{
+ "file": "EmuquTests/DetailScreenSnapshotTests.swift",
+ "hash": "bbfd678d32af7a2c",
+ "role": "Snapshot tests for the result detail screens (RecoveryScoreDetailView, HRVDetailV2View, SleepDetailV2View with and without HealthKit sleep/vitals), all with baselineStats nil, using SnapshotFixtures anchored dates.",
+ "types": [
+  "DetailScreenSnapshotTests: class (XCTestCase, @MainActor)"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func DetailScreenSnapshotTests.hosted(_:)",
+   "hash": "03523df01252ab86",
+   "does": "Wraps a view in a NavigationStack with a fresh RRCollector(), SettingsManager.shared, StoreKitManager.shared and a new ArchiveSignal in the environment.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:backgroundAudioManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)",
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::init ArchiveSignal(center:)"
+   ],
+   "reads": [
+    "mem:SettingsManager.shared",
+    "mem:StoreKitManager.shared"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::init ArchiveSignal(center:)": "649db20a5b80e648",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()": "cee8619a3d38e814",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)": "77db749d2e74b6b0",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:backgroundAudioManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)": "ab46982b96b81c2c",
+    "EmuquTests/BigScreenSnapshotTests.swift::func BigScreenSnapshotTests.environment(_:)": "fe0869f551e25b93"
+   }
+  },
+  {
+   "key": "var DetailScreenSnapshotTests.recent",
+   "hash": "66e8d35e152e7f51",
+   "does": "Five overnight fixture sessions at day offsets −1…−5 from the fixture anchor.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.overnightSession(dayOffset:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.overnightSession(dayOffset:)": "3dba07231f9145b1"
+   }
+  },
+  {
+   "key": "func DetailScreenSnapshotTests.testRecoveryScoreDetailRenders()",
+   "hash": "9aefc263d1cdc349",
+   "does": "Renders RecoveryScoreDetailView for the fixture session/result with 5 recent sessions, nil baseline, 6 total sessions; compares to 'detail-recovery-score'.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DetailScreenSnapshotTests.swift::func DetailScreenSnapshotTests.hosted(_:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:backgroundAudioManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)",
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::init ArchiveSignal(center:)",
+    "EmuquTests/DetailScreenSnapshotTests.swift::var DetailScreenSnapshotTests.recent",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.overnightSession(dayOffset:)",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.analysisResult()",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.body"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/<name>.raw"
+   ],
+   "writes": [
+    "file:EmuquTests/__Snapshots__/<name>.raw (written by assertSnapshot when SNAPSHOT_RECORD=1 or the reference is missing; the test then fails)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::init ArchiveSignal(center:)": "649db20a5b80e648",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()": "cee8619a3d38e814",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)": "77db749d2e74b6b0",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:backgroundAudioManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)": "ab46982b96b81c2c",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::init RecoveryScoreDetailView(session:result:recentSessions:baselineStats:totalSessionCount:onReanalyze:onReanalyzeAt:)": "c6edb2ba34b25dab",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.body": "87d0076b5c3cbf84",
+    "EmuquTests/DetailScreenSnapshotTests.swift::func DetailScreenSnapshotTests.hosted(_:)": "ac04dd2f89ec5570",
+    "EmuquTests/DetailScreenSnapshotTests.swift::var DetailScreenSnapshotTests.recent": "680bc775d50f8b3a",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.analysisResult()": "c6360e6fb9ef3864",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.overnightSession(dayOffset:)": "3dba07231f9145b1",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  },
+  {
+   "key": "func DetailScreenSnapshotTests.testHRVDetailRenders()",
+   "hash": "950546472c2d79dc",
+   "does": "Renders HRVDetailV2View for the fixture session/result, nil baseline; compares to 'detail-hrv'.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DetailScreenSnapshotTests.swift::func DetailScreenSnapshotTests.hosted(_:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:backgroundAudioManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)",
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::init ArchiveSignal(center:)",
+    "EmuquTests/DetailScreenSnapshotTests.swift::var DetailScreenSnapshotTests.recent",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.overnightSession(dayOffset:)",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.analysisResult()",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/HRVDetailV2View.swift::var HRVDetailV2View.body"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/<name>.raw"
+   ],
+   "writes": [
+    "file:EmuquTests/__Snapshots__/<name>.raw (written by assertSnapshot when SNAPSHOT_RECORD=1 or the reference is missing; the test then fails)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::init ArchiveSignal(center:)": "649db20a5b80e648",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()": "cee8619a3d38e814",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)": "77db749d2e74b6b0",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:backgroundAudioManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)": "ab46982b96b81c2c",
+    "Emuqu/Sources/Views/HRVDetailV2View.swift::var HRVDetailV2View.body": "4f7b9cc23b79b62d",
+    "EmuquTests/DetailScreenSnapshotTests.swift::func DetailScreenSnapshotTests.hosted(_:)": "ac04dd2f89ec5570",
+    "EmuquTests/DetailScreenSnapshotTests.swift::var DetailScreenSnapshotTests.recent": "680bc775d50f8b3a",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.analysisResult()": "c6360e6fb9ef3864",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.overnightSession(dayOffset:)": "3dba07231f9145b1",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  },
+  {
+   "key": "func DetailScreenSnapshotTests.testSleepDetailRenders()",
+   "hash": "974a959ba0d10952",
+   "does": "Renders SleepDetailV2View with fixture sleep data and vitals, Celsius, 7.5 h typical sleep, age 38; compares to 'detail-sleep'.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::init SleepDetailV2View(session:sleepData:recoveryVitals:recentSessions:temperatureUnit:typicalSleepHours:userAge:onAdjust:)",
+    "EmuquTests/DetailScreenSnapshotTests.swift::func DetailScreenSnapshotTests.hosted(_:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:backgroundAudioManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)",
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::init ArchiveSignal(center:)",
+    "EmuquTests/DetailScreenSnapshotTests.swift::var DetailScreenSnapshotTests.recent",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.overnightSession(dayOffset:)",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.sleepData()",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.recoveryVitals()",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.body"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/<name>.raw"
+   ],
+   "writes": [
+    "file:EmuquTests/__Snapshots__/<name>.raw (written by assertSnapshot when SNAPSHOT_RECORD=1 or the reference is missing; the test then fails)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::init ArchiveSignal(center:)": "649db20a5b80e648",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()": "cee8619a3d38e814",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)": "77db749d2e74b6b0",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:backgroundAudioManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)": "ab46982b96b81c2c",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::init SleepDetailV2View(session:sleepData:recoveryVitals:recentSessions:temperatureUnit:typicalSleepHours:userAge:onAdjust:)": "27e634743a0cb13b",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.body": "7fc5e6563f4a6715",
+    "EmuquTests/DetailScreenSnapshotTests.swift::func DetailScreenSnapshotTests.hosted(_:)": "ac04dd2f89ec5570",
+    "EmuquTests/DetailScreenSnapshotTests.swift::var DetailScreenSnapshotTests.recent": "680bc775d50f8b3a",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.overnightSession(dayOffset:)": "3dba07231f9145b1",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.recoveryVitals()": "6b42d93fc6f07dd7",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.sleepData()": "f3d2e3e8542e2fab",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  },
+  {
+   "key": "func DetailScreenSnapshotTests.testSleepDetailWithoutHealthKitRenders()",
+   "hash": "d5f266a5767d65df",
+   "does": "Renders SleepDetailV2View with nil sleep data and nil vitals; compares to 'detail-sleep-no-healthkit'.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::init SleepDetailV2View(session:sleepData:recoveryVitals:recentSessions:temperatureUnit:typicalSleepHours:userAge:onAdjust:)",
+    "EmuquTests/DetailScreenSnapshotTests.swift::func DetailScreenSnapshotTests.hosted(_:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:backgroundAudioManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)",
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::init ArchiveSignal(center:)",
+    "EmuquTests/DetailScreenSnapshotTests.swift::var DetailScreenSnapshotTests.recent",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.overnightSession(dayOffset:)",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.body"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/<name>.raw"
+   ],
+   "writes": [
+    "file:EmuquTests/__Snapshots__/<name>.raw (written by assertSnapshot when SNAPSHOT_RECORD=1 or the reference is missing; the test then fails)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::init ArchiveSignal(center:)": "649db20a5b80e648",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()": "cee8619a3d38e814",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)": "77db749d2e74b6b0",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:backgroundAudioManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)": "ab46982b96b81c2c",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::init SleepDetailV2View(session:sleepData:recoveryVitals:recentSessions:temperatureUnit:typicalSleepHours:userAge:onAdjust:)": "27e634743a0cb13b",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.body": "7fc5e6563f4a6715",
+    "EmuquTests/DetailScreenSnapshotTests.swift::func DetailScreenSnapshotTests.hosted(_:)": "ac04dd2f89ec5570",
+    "EmuquTests/DetailScreenSnapshotTests.swift::var DetailScreenSnapshotTests.recent": "680bc775d50f8b3a",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.overnightSession(dayOffset:)": "3dba07231f9145b1",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  }
+ ],
+ "deps": {}
+}

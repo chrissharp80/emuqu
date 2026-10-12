@@ -1,0 +1,494 @@
+{
+ "file": "Emuqu/Sources/Analysis/ScoreFactorFacts.swift",
+ "hash": "5e578190ca19a7e0",
+ "role": "Codable numbers behind a factor's detail line so the line can be re-rendered in the current app language and temperature unit; unknown kinds fall back to the stored detail text.",
+ "types": [
+  "ScoreFactorFacts: struct (Codable) — hrv/sleep/vitals/note facts",
+  "ScoreFactorFacts.Note: enum — numberless lines (hrvNoBaseline, hrvNoBaselineUsingReadiness, hrvNoReading, hrvNoReadingUsingReadiness, hrvWithAssessment, noSleepData, noVitals)",
+  "ScoreFactorFacts.HRV: struct — rmssd, z, base score, stored adjustments",
+  "ScoreFactorFacts.StoredAdjustment: struct — kind string + points/days",
+  "ScoreFactorFacts.Adjustment: enum — typed HRV adjustments",
+  "ScoreFactorFacts.Sleep: struct — sleep sentence inputs",
+  "ScoreFactorFacts.Vitals: struct — per-vital readings and sub-scores",
+  "RecoveryScoreCalculator.ScoreFactor: extension — displayDetail"
+ ],
+ "state": [
+  "archive:ScoreFactorFacts Codable (inside ScoreFactor.facts of persisted ScoreBreakdown)",
+  "mem:ScoreFactorFacts.Adjustment.fixedKinds"
+ ],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "fragile",
+   "sev": "low",
+   "text": "Adjustment phrases hardcode the point values '(+5)', '(−5)', '(−3)' instead of reading dfaOptimalBonus/dfaFatiguePenalty/dfaIrregularPenalty/cvFlatPenalty/cvErraticPenalty, and only the kind is stored, so any constant change makes the shown adjustments disagree with the score (including for historical records).",
+   "evidence": [
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift:169",
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift:170",
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift:171",
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift:172",
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift:173",
+    "Emuqu/Sources/Utilities/Constants+RecoveryScore.swift:27"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "init ScoreFactorFacts(hrv:)",
+   "hash": "ce80150f14c8e23b",
+   "does": "Facts holding HRV.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "init ScoreFactorFacts(sleep:)",
+   "hash": "015e91e1596da5d3",
+   "does": "Facts holding Sleep.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "init ScoreFactorFacts(vitals:)",
+   "hash": "7aaf48d52f80fa64",
+   "does": "Facts holding Vitals.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "init ScoreFactorFacts(note:)",
+   "hash": "59b78197c5fb38b9",
+   "does": "Facts holding a Note raw value.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ScoreFactorFacts.line(temperatureUnit:)",
+   "hash": "92c74596646484d9",
+   "does": "Re-renders the line: hrv line, sleep line, vitals line in temperatureUnit, or known Note text; nil for unknown note.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::var ScoreFactorFacts.HRV.line",
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::var ScoreFactorFacts.Sleep.line",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.vitalsLine(_:temperatureUnit:)",
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::var ScoreFactorFacts.Note.text"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "hrv present",
+     "effect": "returns hrv.line (may be nil for unknown adjustment)"
+    },
+    {
+     "at": "+2",
+     "cond": "sleep present",
+     "effect": "returns sleep.line"
+    },
+    {
+     "at": "+3",
+     "cond": "vitals present",
+     "effect": "returns VitalsScoring.vitalsLine; else note text or nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::var ScoreFactorFacts.HRV.line": "1de79986aedb065d",
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::var ScoreFactorFacts.Note.text": "e1d316e2213c2af0",
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::var ScoreFactorFacts.Sleep.line": "f1d0284d60f6119f",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.vitalsLine(_:temperatureUnit:)": "5f0b8f7a0cbca219"
+   }
+  },
+  {
+   "key": "var ScoreFactorFacts.Note.text",
+   "hash": "1cbe99f714312fa7",
+   "does": "Localised text for each Note case (NarrativeLanguage). The two hrvNoReading cases' keys are not yet in the string catalog, so they show the English key until it is added.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "hrvNoBaseline",
+     "effect": "'No baseline yet'"
+    },
+    {
+     "at": "+4",
+     "cond": "hrvNoBaselineUsingReadiness",
+     "effect": "'No baseline yet (using readiness score)'"
+    },
+    {
+     "at": "+6",
+     "cond": "hrvNoReading",
+     "effect": "'No usable HRV reading'"
+    },
+    {
+     "at": "+8",
+     "cond": "hrvNoReadingUsingReadiness",
+     "effect": "'No usable HRV reading (using readiness score)'"
+    },
+    {
+     "at": "+10",
+     "cond": "hrvWithAssessment",
+     "effect": "'Baseline HRV + your assessment…'"
+    },
+    {
+     "at": "+12",
+     "cond": "noSleepData",
+     "effect": "'No sleep data'"
+    },
+    {
+     "at": "+14",
+     "cond": "noVitals",
+     "effect": "'No overnight vitals captured'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "init ScoreFactorFacts.HRV(rmssd:z:baseScore:adjustments:)",
+   "hash": "931071667d5e2def",
+   "does": "HRV facts init storing adjustments in stored form.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::var ScoreFactorFacts.Adjustment.stored"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::var ScoreFactorFacts.Adjustment.stored": "d3fb0bea9b942831"
+   }
+  },
+  {
+   "key": "var ScoreFactorFacts.HRV.line",
+   "hash": "6fd36cbcd2731fea",
+   "does": "HRV sentence from stored facts; nil if any adjustment kind is unknown.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::init ScoreFactorFacts.Adjustment(stored:)",
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::func ScoreFactorFacts.HRV.sentence(rmssd:z:baseScore:adjustments:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "all adjustments decoded",
+     "effect": "false returns nil (falls back to stored detail)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::func ScoreFactorFacts.HRV.sentence(rmssd:z:baseScore:adjustments:)": "fa5f3ed91833edb1",
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::init ScoreFactorFacts.Adjustment(stored:)": "f55333f85cc6f34c"
+   }
+  },
+  {
+   "key": "func ScoreFactorFacts.HRV.sentence(rmssd:z:baseScore:adjustments:)",
+   "hash": "9b354857189beea2",
+   "does": "Builds the HRV sentence via ScoreDetailBuilder.hrvBaseClause and hrvDetailSentence.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.hrvDetailSentence(base:adjustments:)",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.hrvBaseClause(rmssd:z:baseScore:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.integer(_:)",
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::var ScoreFactorFacts.Adjustment.phrase"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.hrvBaseClause(rmssd:z:baseScore:)": "42c14aa27c04a14a",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.hrvDetailSentence(base:adjustments:)": "5009617203591521",
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::var ScoreFactorFacts.Adjustment.phrase": "3bd588632bd78891",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.integer(_:)": "e447648b612c9e97",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)": "2a4b8a54e9a27938"
+   }
+  },
+  {
+   "key": "init ScoreFactorFacts.Adjustment(stored:)",
+   "hash": "517a203e9abe6089",
+   "does": "Decodes a StoredAdjustment into Adjustment; nil for unknown kind or missing points/days.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "kind in fixedKinds",
+     "effect": "returns fixed case"
+    },
+    {
+     "at": "+5",
+     "cond": "points present",
+     "effect": "nil returns nil"
+    },
+    {
+     "at": "+7",
+     "cond": "kind restingHR",
+     "effect": "restingHR(points)"
+    },
+    {
+     "at": "+8",
+     "cond": "kind autonomicBalance",
+     "effect": "autonomicBalance(points)"
+    },
+    {
+     "at": "+9",
+     "cond": "kind staleBaseline",
+     "effect": "needs days"
+    },
+    {
+     "at": "+10",
+     "cond": "days present",
+     "effect": "nil returns nil"
+    },
+    {
+     "at": "+12",
+     "cond": "default",
+     "effect": "unknown kind returns nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::var ScoreFactorFacts.Adjustment.stored": "d3fb0bea9b942831",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::var TrendAnalyzer.TimePeriod.days": "36f2819ab6740ce8"
+   }
+  },
+  {
+   "key": "var ScoreFactorFacts.Adjustment.stored",
+   "hash": "604cf9f6c48727fb",
+   "does": "Encodes Adjustment as StoredAdjustment kind/points/days.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "restingHR",
+     "effect": "kind restingHR + points"
+    },
+    {
+     "at": "+3",
+     "cond": "autonomicBalance",
+     "effect": "kind + points"
+    },
+    {
+     "at": "+4",
+     "cond": "staleBaseline",
+     "effect": "kind + points + days"
+    },
+    {
+     "at": "+5",
+     "cond": "alphaBalanced",
+     "effect": "kind only"
+    },
+    {
+     "at": "+6",
+     "cond": "alphaStrained",
+     "effect": "kind only"
+    },
+    {
+     "at": "+7",
+     "cond": "alphaReduced",
+     "effect": "kind only"
+    },
+    {
+     "at": "+8",
+     "cond": "variabilityFlat",
+     "effect": "kind only"
+    },
+    {
+     "at": "+9",
+     "cond": "variabilityErratic",
+     "effect": "kind only"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var ScoreFactorFacts.Adjustment.phrase",
+   "hash": "209bf74d185d6bb3",
+   "does": "Localised lowercase phrase per adjustment kind.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::func ScoreFactorFacts.Adjustment.restingHRPhrase(_:)",
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::func ScoreFactorFacts.Adjustment.autonomicBalancePhrase(_:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.integer(_:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "restingHR",
+     "effect": "restingHRPhrase"
+    },
+    {
+     "at": "+3",
+     "cond": "autonomicBalance",
+     "effect": "autonomicBalancePhrase"
+    },
+    {
+     "at": "+4",
+     "cond": "staleBaseline",
+     "effect": "baseline data is N days old (−P)"
+    },
+    {
+     "at": "+6",
+     "cond": "alphaBalanced",
+     "effect": "(+5) phrase"
+    },
+    {
+     "at": "+7",
+     "cond": "alphaStrained",
+     "effect": "(−5) phrase"
+    },
+    {
+     "at": "+8",
+     "cond": "alphaReduced",
+     "effect": "(−3) phrase"
+    },
+    {
+     "at": "+9",
+     "cond": "variabilityFlat",
+     "effect": "(−5) phrase"
+    },
+    {
+     "at": "+10",
+     "cond": "variabilityErratic",
+     "effect": "(−3) phrase"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::func ScoreFactorFacts.Adjustment.autonomicBalancePhrase(_:)": "ff838739bc528435",
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::func ScoreFactorFacts.Adjustment.restingHRPhrase(_:)": "00780c5e840a2156",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.integer(_:)": "e447648b612c9e97",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "func ScoreFactorFacts.Adjustment.restingHRPhrase(_:)",
+   "hash": "d30315673a554a9c",
+   "does": "Resting HR phrase: lower than usual (+N) when points>0, else higher than usual (N).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.integer(_:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "points > 0",
+     "effect": "lower vs higher wording"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.integer(_:)": "e447648b612c9e97",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "func ScoreFactorFacts.Adjustment.autonomicBalancePhrase(_:)",
+   "hash": "3e160a00c0bf3abe",
+   "does": "Autonomic balance phrase: toward rest when points>0, else toward stress.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.integer(_:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "points > 0",
+     "effect": "rest vs stress wording"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.integer(_:)": "e447648b612c9e97",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "var ScoreFactorFacts.Sleep.line",
+   "hash": "6bc38e10491df61e",
+   "does": "Sleep sentence via ScoreDetailBuilder.sleepSentence with SleepDetailInputs.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.sleepSentence(score:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.sleepSentence(score:_:)": "2d23031604e9c6d8"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCalculator.ScoreFactor.displayDetail(temperatureUnit:)",
+   "hash": "9f0f826636d52adc",
+   "does": "Detail line to display: facts re-rendered in current language/unit, else stored detail.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::func ScoreFactorFacts.line(temperatureUnit:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "facts?.line ?? detail",
+     "effect": "nil facts or unknown kinds → stored detail text (scoring-time language)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::func ScoreFactorFacts.line(temperatureUnit:)": "5dc63fdee94207d7"
+   }
+  }
+ ],
+ "deps": {}
+}

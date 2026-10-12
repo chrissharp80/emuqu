@@ -1,0 +1,1067 @@
+{
+ "file": "EmuquTests/PolarConnectionLifecycleTests.swift",
+ "hash": "ba81ffcd907af36e",
+ "role": "XCTest suite for the strap connection lifecycle through StrapLinkCoordinator.apply: what a BLE drop preserves (identity while streaming, on-device recording) and clears (live readings, readiness, link tasks), drops for other devices / duplicate drops, lost pairing, reconnect window, link restoration counting, explicit disconnect/cancel/reconnect no-ops, feature readiness and waiters, not-ready retry, live HR ingestion, and stalled-feed health evaluation.",
+ "types": [
+  "PolarConnectionLifecycleTests: class — @MainActor XCTestCase over PolarManager / StrapLinkCoordinator / StrapReadiness"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "test-defect",
+   "sev": "low",
+   "text": "The linkedManager doc says managers are 'built without the pairing store so tests do not write to the shared App Group defaults', but PolarManager.init() calls loadKnownDevices()/loadLastConnectedTime(), which read SharedUserDefaults.appGroup and can migrate legacy keys from standard defaults into it; tests therefore start from the host's saved straps (testReconnectingWithNoKnownDeviceDoesNotEnterConnecting has to reset knownDevices by hand).",
+   "evidence": [
+    "EmuquTests/PolarConnectionLifecycleTests.swift:16",
+    "EmuquTests/PolarConnectionLifecycleTests.swift:23",
+    "Emuqu/Sources/Collection/PolarManager.swift:497",
+    "Emuqu/Sources/Collection/StrapPairingStore.swift:31",
+    "EmuquTests/PolarConnectionLifecycleTests.swift:263"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)",
+   "hash": "02b3186c90370f5e",
+   "does": "Helper: PolarManager with a test-set H10 link, readiness linked with heartRate and h10Recording ready, feed live, optionally streaming state, on-device recording, battery 88, firmware 5.1.5, HR 54.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.setConnectedDeviceForTesting(id:type:)",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkEstablished()",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.markReady(_:)",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.prepareStreamingStateForTesting(startTime:cumulativeMs:existingPoints:)"
+   ],
+   "reads": [
+    "ud:knownDevices / lastConnectedTime (SharedUserDefaults.appGroup, read by PolarManager.init → StrapPairingStore.load)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+11",
+     "cond": "streaming",
+     "effect": "prepareStreamingStateForTesting() puts the manager in session buffering; else not streaming"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.prepareStreamingStateForTesting(startTime:cumulativeMs:existingPoints:)": "b9e93cd94ab7e8e5",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.setConnectedDeviceForTesting(id:type:)": "119fb2afbb3f1150",
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "b9f281895be22d44",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.batteryLevel": "ddfd0bc6b3d69f3b",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "80cfea9a213f0e16",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.recordingState": "34578c85458fe930",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkEstablished()": "f32f3e5777f67ce6",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.markReady(_:)": "45143fd6e7249273"
+   }
+  },
+  {
+   "key": "func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)",
+   "hash": "f9ee7e475dd58347",
+   "does": "Helper: applies a .disconnected(deviceId, loss) event (default connectionLost) through manager.link.apply.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.linkDropped(deviceId:loss:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "de045b193f014cc0",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.linkDropped(deviceId:loss:)": "69a514c1cd0e0a30"
+   }
+  },
+  {
+   "key": "func PolarConnectionLifecycleTests.testADropWhileStreamingPreservesTheDeviceIdentityForReconnect()",
+   "hash": "c8d021bc1661982f",
+   "does": "Asserts a drop while streaming keeps connectedDeviceId/type and isStreaming.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.linkDropped(deviceId:loss:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.respondToDrop(deviceId:loss:wasLinked:wasStreaming:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.consumeDeliberateDrop(deviceId:wasStreaming:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.clearLinkReadings(preserveDeviceIdentity:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.pairingLost(reason:wasStreaming:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requestReconnect(to:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.armReconnectDeadline()",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkLost()"
+   ],
+   "reads": [
+    "ud:knownDevices / lastConnectedTime (SharedUserDefaults.appGroup, read by PolarManager.init → StrapPairingStore.load)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "f529498b78d90b9d",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "de045b193f014cc0",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.armReconnectDeadline()": "67923149557f7cc1",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.clearLinkReadings(preserveDeviceIdentity:)": "79ac3fbef873a2c4",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.consumeDeliberateDrop(deviceId:wasStreaming:)": "b03404ab8b294224",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.linkDropped(deviceId:loss:)": "69a514c1cd0e0a30",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.pairingLost(reason:wasStreaming:)": "bfd9069a8236c292",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requestReconnect(to:)": "d38954781d1c766d",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.respondToDrop(deviceId:loss:wasLinked:wasStreaming:)": "fcd578b8f96321fd",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkLost()": "928a22bc76f7f04a",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "13c88f99e05e0173",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)": "87d52061366d02b0"
+   }
+  },
+  {
+   "key": "func PolarConnectionLifecycleTests.testADropWhileIdleClearsTheDeviceIdentity()",
+   "hash": "4b32b50df209e802",
+   "does": "Asserts a drop while idle clears connectedDeviceId and type.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.linkDropped(deviceId:loss:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.respondToDrop(deviceId:loss:wasLinked:wasStreaming:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.consumeDeliberateDrop(deviceId:wasStreaming:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.clearLinkReadings(preserveDeviceIdentity:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.pairingLost(reason:wasStreaming:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requestReconnect(to:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.armReconnectDeadline()",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkLost()"
+   ],
+   "reads": [
+    "ud:knownDevices / lastConnectedTime (SharedUserDefaults.appGroup, read by PolarManager.init → StrapPairingStore.load)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "f529498b78d90b9d",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "de045b193f014cc0",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.armReconnectDeadline()": "67923149557f7cc1",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.clearLinkReadings(preserveDeviceIdentity:)": "79ac3fbef873a2c4",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.consumeDeliberateDrop(deviceId:wasStreaming:)": "b03404ab8b294224",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.linkDropped(deviceId:loss:)": "69a514c1cd0e0a30",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.pairingLost(reason:wasStreaming:)": "bfd9069a8236c292",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requestReconnect(to:)": "d38954781d1c766d",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.respondToDrop(deviceId:loss:wasLinked:wasStreaming:)": "fcd578b8f96321fd",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkLost()": "928a22bc76f7f04a",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "13c88f99e05e0173",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)": "87d52061366d02b0"
+   }
+  },
+  {
+   "key": "func PolarConnectionLifecycleTests.testADropNeverClearsTheDeviceRecordingState()",
+   "hash": "9a67b9e85e544ccd",
+   "does": "Asserts for streaming and idle that a drop leaves isRecordingOnDevice true and recordingState .recording.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.linkDropped(deviceId:loss:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.respondToDrop(deviceId:loss:wasLinked:wasStreaming:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.consumeDeliberateDrop(deviceId:wasStreaming:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.clearLinkReadings(preserveDeviceIdentity:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.pairingLost(reason:wasStreaming:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requestReconnect(to:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.armReconnectDeadline()",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkLost()"
+   ],
+   "reads": [
+    "ud:knownDevices / lastConnectedTime (SharedUserDefaults.appGroup, read by PolarManager.init → StrapPairingStore.load)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for streaming in [true,false]",
+     "effect": "builds a manager in each mode, drops, asserts"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "80cfea9a213f0e16",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.recordingState": "34578c85458fe930",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "de045b193f014cc0",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.armReconnectDeadline()": "67923149557f7cc1",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.clearLinkReadings(preserveDeviceIdentity:)": "79ac3fbef873a2c4",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.consumeDeliberateDrop(deviceId:wasStreaming:)": "b03404ab8b294224",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.linkDropped(deviceId:loss:)": "69a514c1cd0e0a30",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.pairingLost(reason:wasStreaming:)": "bfd9069a8236c292",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requestReconnect(to:)": "d38954781d1c766d",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.respondToDrop(deviceId:loss:wasLinked:wasStreaming:)": "fcd578b8f96321fd",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkLost()": "928a22bc76f7f04a",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "13c88f99e05e0173",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)": "87d52061366d02b0"
+   }
+  },
+  {
+   "key": "func PolarConnectionLifecycleTests.testADropClearsEveryLiveLinkReading()",
+   "hash": "01167306b0928e5f",
+   "does": "Asserts for streaming and idle that a drop sets disconnected, nils battery/firmware/HR, clears software-revision flag, sets feed .waitingForStrap and no health warning.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.linkDropped(deviceId:loss:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.respondToDrop(deviceId:loss:wasLinked:wasStreaming:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.consumeDeliberateDrop(deviceId:wasStreaming:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.clearLinkReadings(preserveDeviceIdentity:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.pairingLost(reason:wasStreaming:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requestReconnect(to:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.armReconnectDeadline()",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkLost()"
+   ],
+   "reads": [
+    "ud:knownDevices / lastConnectedTime (SharedUserDefaults.appGroup, read by PolarManager.init → StrapPairingStore.load)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for streaming in [true,false]",
+     "effect": "builds a manager in each mode, drops, asserts"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.connectionHealthWarning": "ce99aae80ced5580",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.batteryLevel": "ddfd0bc6b3d69f3b",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "de045b193f014cc0",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.armReconnectDeadline()": "67923149557f7cc1",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.clearLinkReadings(preserveDeviceIdentity:)": "79ac3fbef873a2c4",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.consumeDeliberateDrop(deviceId:wasStreaming:)": "b03404ab8b294224",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.linkDropped(deviceId:loss:)": "69a514c1cd0e0a30",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.pairingLost(reason:wasStreaming:)": "bfd9069a8236c292",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requestReconnect(to:)": "d38954781d1c766d",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.respondToDrop(deviceId:loss:wasLinked:wasStreaming:)": "fcd578b8f96321fd",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkLost()": "928a22bc76f7f04a",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "13c88f99e05e0173",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)": "87d52061366d02b0"
+   }
+  },
+  {
+   "key": "func PolarConnectionLifecycleTests.testADropClearsFeatureReadiness()",
+   "hash": "effcf9b22a6fa7a2",
+   "does": "Asserts a drop clears h10Recording/heartRate readiness and isLinked.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.linkDropped(deviceId:loss:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.respondToDrop(deviceId:loss:wasLinked:wasStreaming:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.consumeDeliberateDrop(deviceId:wasStreaming:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.clearLinkReadings(preserveDeviceIdentity:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.pairingLost(reason:wasStreaming:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requestReconnect(to:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.armReconnectDeadline()",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkLost()",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.isH10RecordingFeatureReady",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.isHrStreamingReady"
+   ],
+   "reads": [
+    "ud:knownDevices / lastConnectedTime (SharedUserDefaults.appGroup, read by PolarManager.init → StrapPairingStore.load)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.isH10RecordingFeatureReady": "46fd0435b4ce29ba",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.isHrStreamingReady": "5069cf4670583679",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "de045b193f014cc0",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.armReconnectDeadline()": "67923149557f7cc1",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.clearLinkReadings(preserveDeviceIdentity:)": "79ac3fbef873a2c4",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.consumeDeliberateDrop(deviceId:wasStreaming:)": "b03404ab8b294224",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.linkDropped(deviceId:loss:)": "69a514c1cd0e0a30",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.pairingLost(reason:wasStreaming:)": "bfd9069a8236c292",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requestReconnect(to:)": "d38954781d1c766d",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.respondToDrop(deviceId:loss:wasLinked:wasStreaming:)": "fcd578b8f96321fd",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkLost()": "928a22bc76f7f04a",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "13c88f99e05e0173",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)": "87d52061366d02b0"
+   }
+  },
+  {
+   "key": "func PolarConnectionLifecycleTests.testADropCancelsTheLinksTasks()",
+   "hash": "397d61fd65da29df",
+   "does": "Asserts a drop cancels and nils linkRuntime.feedTask and healthTask.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.linkDropped(deviceId:loss:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.respondToDrop(deviceId:loss:wasLinked:wasStreaming:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.consumeDeliberateDrop(deviceId:wasStreaming:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.clearLinkReadings(preserveDeviceIdentity:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.pairingLost(reason:wasStreaming:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requestReconnect(to:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.armReconnectDeadline()",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkLost()"
+   ],
+   "reads": [
+    "ud:knownDevices / lastConnectedTime (SharedUserDefaults.appGroup, read by PolarManager.init → StrapPairingStore.load)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "de045b193f014cc0",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.armReconnectDeadline()": "67923149557f7cc1",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.clearLinkReadings(preserveDeviceIdentity:)": "79ac3fbef873a2c4",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.consumeDeliberateDrop(deviceId:wasStreaming:)": "b03404ab8b294224",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.linkDropped(deviceId:loss:)": "69a514c1cd0e0a30",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.pairingLost(reason:wasStreaming:)": "bfd9069a8236c292",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requestReconnect(to:)": "d38954781d1c766d",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.respondToDrop(deviceId:loss:wasLinked:wasStreaming:)": "fcd578b8f96321fd",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkLost()": "928a22bc76f7f04a",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "13c88f99e05e0173",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)": "87d52061366d02b0"
+   }
+  },
+  {
+   "key": "func PolarConnectionLifecycleTests.testADropForAnotherDeviceIsIgnored()",
+   "hash": "e30b76b4c6b35c45",
+   "does": "Asserts a drop for a different device id leaves the link, connection state and battery untouched.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.linkDropped(deviceId:loss:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.respondToDrop(deviceId:loss:wasLinked:wasStreaming:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.consumeDeliberateDrop(deviceId:wasStreaming:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.clearLinkReadings(preserveDeviceIdentity:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.pairingLost(reason:wasStreaming:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requestReconnect(to:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.armReconnectDeadline()",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkLost()"
+   ],
+   "reads": [
+    "ud:knownDevices / lastConnectedTime (SharedUserDefaults.appGroup, read by PolarManager.init → StrapPairingStore.load)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.batteryLevel": "ddfd0bc6b3d69f3b",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "de045b193f014cc0",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.armReconnectDeadline()": "67923149557f7cc1",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.clearLinkReadings(preserveDeviceIdentity:)": "79ac3fbef873a2c4",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.consumeDeliberateDrop(deviceId:wasStreaming:)": "b03404ab8b294224",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.linkDropped(deviceId:loss:)": "69a514c1cd0e0a30",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.pairingLost(reason:wasStreaming:)": "bfd9069a8236c292",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requestReconnect(to:)": "d38954781d1c766d",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.respondToDrop(deviceId:loss:wasLinked:wasStreaming:)": "fcd578b8f96321fd",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkLost()": "928a22bc76f7f04a",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "13c88f99e05e0173",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)": "87d52061366d02b0"
+   }
+  },
+  {
+   "key": "func PolarConnectionLifecycleTests.testASecondDropForTheSameLinkIsANoOp()",
+   "hash": "e2e34107702b9b51",
+   "does": "Asserts a second drop after the link is gone does not clear the battery level set in between.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.linkDropped(deviceId:loss:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.respondToDrop(deviceId:loss:wasLinked:wasStreaming:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.consumeDeliberateDrop(deviceId:wasStreaming:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.clearLinkReadings(preserveDeviceIdentity:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.pairingLost(reason:wasStreaming:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requestReconnect(to:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.armReconnectDeadline()",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkLost()"
+   ],
+   "reads": [
+    "ud:knownDevices / lastConnectedTime (SharedUserDefaults.appGroup, read by PolarManager.init → StrapPairingStore.load)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.batteryLevel": "ddfd0bc6b3d69f3b",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "de045b193f014cc0",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.armReconnectDeadline()": "67923149557f7cc1",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.clearLinkReadings(preserveDeviceIdentity:)": "79ac3fbef873a2c4",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.consumeDeliberateDrop(deviceId:wasStreaming:)": "b03404ab8b294224",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.linkDropped(deviceId:loss:)": "69a514c1cd0e0a30",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.pairingLost(reason:wasStreaming:)": "bfd9069a8236c292",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requestReconnect(to:)": "d38954781d1c766d",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.respondToDrop(deviceId:loss:wasLinked:wasStreaming:)": "fcd578b8f96321fd",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkLost()": "928a22bc76f7f04a",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "13c88f99e05e0173",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)": "87d52061366d02b0"
+   }
+  },
+  {
+   "key": "func PolarConnectionLifecycleTests.testALostPairingEndsTheSessionsWaitAndSurfacesAnError()",
+   "hash": "44e6e9d798114a0a",
+   "does": "Asserts a pairingLost drop while streaming sets reconnectExhausted, lastError .pairingLost and no reconnect target.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.linkDropped(deviceId:loss:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.respondToDrop(deviceId:loss:wasLinked:wasStreaming:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.consumeDeliberateDrop(deviceId:wasStreaming:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.clearLinkReadings(preserveDeviceIdentity:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.pairingLost(reason:wasStreaming:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requestReconnect(to:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.armReconnectDeadline()",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkLost()"
+   ],
+   "reads": [
+    "ud:knownDevices / lastConnectedTime (SharedUserDefaults.appGroup, read by PolarManager.init → StrapPairingStore.load)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "lastError is not PolarError.pairingLost",
+     "effect": "XCTFail and return; else asserts reconnect target nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "9f997d8c7612d204",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "de045b193f014cc0",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.armReconnectDeadline()": "67923149557f7cc1",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.clearLinkReadings(preserveDeviceIdentity:)": "79ac3fbef873a2c4",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.consumeDeliberateDrop(deviceId:wasStreaming:)": "b03404ab8b294224",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.linkDropped(deviceId:loss:)": "69a514c1cd0e0a30",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.pairingLost(reason:wasStreaming:)": "bfd9069a8236c292",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requestReconnect(to:)": "d38954781d1c766d",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.respondToDrop(deviceId:loss:wasLinked:wasStreaming:)": "fcd578b8f96321fd",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkLost()": "928a22bc76f7f04a",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "13c88f99e05e0173",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)": "87d52061366d02b0"
+   }
+  },
+  {
+   "key": "func PolarConnectionLifecycleTests.testAnOrdinaryDropDuringASessionIsChased()",
+   "hash": "23e7fabf233e1b07",
+   "does": "Asserts an ordinary drop while streaming sets reconnectTargetId to the strap, arms a deadline task, and is not yet exhausted.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.linkDropped(deviceId:loss:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.respondToDrop(deviceId:loss:wasLinked:wasStreaming:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.consumeDeliberateDrop(deviceId:wasStreaming:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.clearLinkReadings(preserveDeviceIdentity:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.pairingLost(reason:wasStreaming:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requestReconnect(to:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.armReconnectDeadline()",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkLost()"
+   ],
+   "reads": [
+    "ud:knownDevices / lastConnectedTime (SharedUserDefaults.appGroup, read by PolarManager.init → StrapPairingStore.load)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "de045b193f014cc0",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.armReconnectDeadline()": "67923149557f7cc1",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.clearLinkReadings(preserveDeviceIdentity:)": "79ac3fbef873a2c4",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.consumeDeliberateDrop(deviceId:wasStreaming:)": "b03404ab8b294224",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.linkDropped(deviceId:loss:)": "69a514c1cd0e0a30",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.pairingLost(reason:wasStreaming:)": "bfd9069a8236c292",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requestReconnect(to:)": "d38954781d1c766d",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.respondToDrop(deviceId:loss:wasLinked:wasStreaming:)": "fcd578b8f96321fd",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkLost()": "928a22bc76f7f04a",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "13c88f99e05e0173",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)": "87d52061366d02b0"
+   }
+  },
+  {
+   "key": "func PolarConnectionLifecycleTests.testEndingTheSessionCancelsTheReconnectWindow()",
+   "hash": "b0f441c53c7c40aa",
+   "does": "Asserts stopStreaming after a drop cancels the reconnect deadline task.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.linkDropped(deviceId:loss:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.respondToDrop(deviceId:loss:wasLinked:wasStreaming:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.consumeDeliberateDrop(deviceId:wasStreaming:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.clearLinkReadings(preserveDeviceIdentity:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.pairingLost(reason:wasStreaming:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requestReconnect(to:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.armReconnectDeadline()",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkLost()",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.stopStreaming()",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.sessionEnded()"
+   ],
+   "reads": [
+    "ud:knownDevices / lastConnectedTime (SharedUserDefaults.appGroup, read by PolarManager.init → StrapPairingStore.load)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.stopStreaming()": "61f032bd39cc3856",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "de045b193f014cc0",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.armReconnectDeadline()": "67923149557f7cc1",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.clearLinkReadings(preserveDeviceIdentity:)": "79ac3fbef873a2c4",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.consumeDeliberateDrop(deviceId:wasStreaming:)": "b03404ab8b294224",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.linkDropped(deviceId:loss:)": "69a514c1cd0e0a30",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.pairingLost(reason:wasStreaming:)": "bfd9069a8236c292",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requestReconnect(to:)": "d38954781d1c766d",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.respondToDrop(deviceId:loss:wasLinked:wasStreaming:)": "fcd578b8f96321fd",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.sessionEnded()": "664cc74a2baade67",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkLost()": "928a22bc76f7f04a",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "13c88f99e05e0173",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)": "87d52061366d02b0"
+   }
+  },
+  {
+   "key": "func PolarConnectionLifecycleTests.testTheLinkReturningDuringASessionIsCounted()",
+   "hash": "5c8906a575807f6e",
+   "does": "After a streaming drop, applies .connected for the same strap (saving/restoring app-group knownDevices and lastConnectedTime) and asserts reconnect count 1, deadline/target cleared, readiness generation +1, feed .settingUp.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.linkDropped(deviceId:loss:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.respondToDrop(deviceId:loss:wasLinked:wasStreaming:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.consumeDeliberateDrop(deviceId:wasStreaming:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.clearLinkReadings(preserveDeviceIdentity:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.pairingLost(reason:wasStreaming:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requestReconnect(to:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.armReconnectDeadline()",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkLost()",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.linkEstablished(deviceId:name:peripheralId:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.clearPreviousLink()",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.adoptConnectedDevice(deviceId:name:deviceType:)",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkEstablished()",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.addKnownDevice(id:name:deviceType:)",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.saveLastConnectedTime()",
+    "Emuqu/Sources/Collection/StrapPairingStore.swift::func StrapPairingStore.saveLastConnectedTime(_:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.startHealthWatch(generation:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.scheduleReadinessSettle(generation:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.startRecordingStatusCheck(generation:deviceId:deviceType:)"
+   ],
+   "reads": [
+    "ud:knownDevices / lastConnectedTime (SharedUserDefaults.appGroup, read by PolarManager.init → StrapPairingStore.load)"
+   ],
+   "writes": [
+    "ud:knownDevices (SharedUserDefaults.appGroup; restored by defer)",
+    "ud:lastConnectedTime (SharedUserDefaults.appGroup; restored by defer)"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "The .connected event also runs loadBatteryUsageStateIfNeeded and starts the feed, health watch, readiness settle and recording-status tasks against the real (unconfigured) SDK path; only the two pairing keys are restored afterwards, and the started tasks are left running when the test ends.",
+     "evidence": [
+      "EmuquTests/PolarConnectionLifecycleTests.swift:193",
+      "Emuqu/Sources/Collection/StrapLinkCoordinator.swift:102",
+      "Emuqu/Sources/Collection/StrapLinkCoordinator.swift:105",
+      "Emuqu/Sources/Collection/StrapLinkCoordinator.swift:143"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.addKnownDevice(id:name:deviceType:)": "4bed6dca8bc38afe",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.saveLastConnectedTime()": "517d927205f23f1b",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.adoptConnectedDevice(deviceId:name:deviceType:)": "603b84e4dca60635",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "de045b193f014cc0",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.armReconnectDeadline()": "67923149557f7cc1",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.clearLinkReadings(preserveDeviceIdentity:)": "79ac3fbef873a2c4",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.clearPreviousLink()": "12668b8fcdd71786",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.consumeDeliberateDrop(deviceId:wasStreaming:)": "b03404ab8b294224",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.linkDropped(deviceId:loss:)": "69a514c1cd0e0a30",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.linkEstablished(deviceId:name:peripheralId:)": "d88a396dbe5fd8ef",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.pairingLost(reason:wasStreaming:)": "bfd9069a8236c292",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requestReconnect(to:)": "d38954781d1c766d",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.respondToDrop(deviceId:loss:wasLinked:wasStreaming:)": "fcd578b8f96321fd",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.scheduleReadinessSettle(generation:)": "f6665ab43fb81c6d",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.startHealthWatch(generation:)": "d41ec27987bbc07f",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.startRecordingStatusCheck(generation:deviceId:deviceType:)": "f63ca7f2e815b614",
+    "Emuqu/Sources/Collection/StrapPairingStore.swift::func StrapPairingStore.saveLastConnectedTime(_:)": "64f3f69a5962040d",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkEstablished()": "f32f3e5777f67ce6",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkLost()": "928a22bc76f7f04a",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var SharedUserDefaults.appGroup": "d4cc3511c4681e6c",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "13c88f99e05e0173",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)": "87d52061366d02b0"
+   }
+  },
+  {
+   "key": "func PolarConnectionLifecycleTests.testAnExplicitDisconnectClearsIdentityButNotTheDeviceRecording()",
+   "hash": "213309fa778fc05b",
+   "does": "Asserts an explicit disconnect while idle clears identity, pending id, link and sets disconnected, but keeps on-device recording state.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)",
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.disconnect()",
+    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.disconnect()",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.noteUserDisconnect()"
+   ],
+   "reads": [
+    "ud:knownDevices / lastConnectedTime (SharedUserDefaults.appGroup, read by PolarManager.init → StrapPairingStore.load)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.disconnect()": "4bf10c09b5a18571",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "f529498b78d90b9d",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "80cfea9a213f0e16",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.recordingState": "34578c85458fe930",
+    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.disconnect()": "7e08aaa2301e6fe9",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.noteUserDisconnect()": "c9008851c9f63c04",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)": "87d52061366d02b0"
+   }
+  },
+  {
+   "key": "func PolarConnectionLifecycleTests.testTheCallbackAfterAnExplicitDisconnectIsNotChased()",
+   "hash": "69474479de95ac8c",
+   "does": "Asserts the drop callback after an explicit disconnect sets no reconnect target and consumes userDisconnectRequested.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)",
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.disconnect()",
+    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.disconnect()",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.noteUserDisconnect()",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.linkDropped(deviceId:loss:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.respondToDrop(deviceId:loss:wasLinked:wasStreaming:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.consumeDeliberateDrop(deviceId:wasStreaming:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.clearLinkReadings(preserveDeviceIdentity:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.pairingLost(reason:wasStreaming:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requestReconnect(to:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.armReconnectDeadline()",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkLost()"
+   ],
+   "reads": [
+    "ud:knownDevices / lastConnectedTime (SharedUserDefaults.appGroup, read by PolarManager.init → StrapPairingStore.load)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.disconnect()": "4bf10c09b5a18571",
+    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.disconnect()": "7e08aaa2301e6fe9",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "de045b193f014cc0",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.armReconnectDeadline()": "67923149557f7cc1",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.clearLinkReadings(preserveDeviceIdentity:)": "79ac3fbef873a2c4",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.consumeDeliberateDrop(deviceId:wasStreaming:)": "b03404ab8b294224",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.linkDropped(deviceId:loss:)": "69a514c1cd0e0a30",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.noteUserDisconnect()": "c9008851c9f63c04",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.pairingLost(reason:wasStreaming:)": "bfd9069a8236c292",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requestReconnect(to:)": "d38954781d1c766d",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.respondToDrop(deviceId:loss:wasLinked:wasStreaming:)": "fcd578b8f96321fd",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkLost()": "928a22bc76f7f04a",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "13c88f99e05e0173",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)": "87d52061366d02b0"
+   }
+  },
+  {
+   "key": "func PolarConnectionLifecycleTests.testDisconnectingWhenNotConnectedChangesNothing()",
+   "hash": "b5db8babfa9fe21f",
+   "does": "Asserts disconnect with nothing connected leaves on-device recording state unchanged.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()",
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.disconnect()",
+    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.disconnect()",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.noteUserDisconnect()"
+   ],
+   "reads": [
+    "ud:knownDevices / lastConnectedTime (SharedUserDefaults.appGroup, read by PolarManager.init → StrapPairingStore.load)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.disconnect()": "4bf10c09b5a18571",
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "b9f281895be22d44",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "80cfea9a213f0e16",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.recordingState": "34578c85458fe930",
+    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.disconnect()": "7e08aaa2301e6fe9",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.noteUserDisconnect()": "c9008851c9f63c04"
+   }
+  },
+  {
+   "key": "func PolarConnectionLifecycleTests.testCancellingOutsideAConnectionAttemptIsANoOp()",
+   "hash": "ac99ba9cf68241ee",
+   "does": "Asserts cancelConnection while connected leaves the connection and device id intact.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)",
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.cancelConnection()",
+    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.cancelConnection()"
+   ],
+   "reads": [
+    "ud:knownDevices / lastConnectedTime (SharedUserDefaults.appGroup, read by PolarManager.init → StrapPairingStore.load)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.cancelConnection()": "1fcd3ad7af42afb8",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
+    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.cancelConnection()": "21a13298cbe81f01",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)": "87d52061366d02b0"
+   }
+  },
+  {
+   "key": "func PolarConnectionLifecycleTests.testCancellingWithNoPendingDeviceIsANoOp()",
+   "hash": "ca898bc2963a3557",
+   "does": "Asserts cancelConnection in .connecting with no pending device leaves state .connecting.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()",
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.cancelConnection()",
+    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.cancelConnection()"
+   ],
+   "reads": [
+    "ud:knownDevices / lastConnectedTime (SharedUserDefaults.appGroup, read by PolarManager.init → StrapPairingStore.load)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.cancelConnection()": "1fcd3ad7af42afb8",
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "b9f281895be22d44",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
+    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.cancelConnection()": "21a13298cbe81f01"
+   }
+  },
+  {
+   "key": "func PolarConnectionLifecycleTests.testReconnectingWithNoKnownDeviceDoesNotEnterConnecting()",
+   "hash": "d677af783ee1da91",
+   "does": "With knownDevices emptied, asserts connectToLastDevice stays disconnected with no pending id.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()",
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.connectToLastDevice()",
+    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.connectToLastDevice()"
+   ],
+   "reads": [
+    "ud:knownDevices / lastConnectedTime (SharedUserDefaults.appGroup, read by PolarManager.init → StrapPairingStore.load)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.connectToLastDevice()": "fd314598290b94f0",
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "b9f281895be22d44",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
+    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.connectToLastDevice()": "2e5cadca2d052366"
+   }
+  },
+  {
+   "key": "func PolarConnectionLifecycleTests.testAFeatureReportForTheLinkedStrapMarksItReady()",
+   "hash": "99c5e9aba8122031",
+   "does": "Asserts a featureReady event for the linked strap marks onlineStreaming ready.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.featureReported(deviceId:feature:)",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.isReady(_:)"
+   ],
+   "reads": [
+    "ud:knownDevices / lastConnectedTime (SharedUserDefaults.appGroup, read by PolarManager.init → StrapPairingStore.load)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "de045b193f014cc0",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.featureReported(deviceId:feature:)": "1589776135af0e26",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.isReady(_:)": "57a325be71abe337",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)": "87d52061366d02b0"
+   }
+  },
+  {
+   "key": "func PolarConnectionLifecycleTests.testAFeatureReportForAnotherStrapIsIgnored()",
+   "hash": "afc0ff85f5c8c972",
+   "does": "Asserts a featureReady event for another strap is ignored.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.featureReported(deviceId:feature:)",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.isReady(_:)"
+   ],
+   "reads": [
+    "ud:knownDevices / lastConnectedTime (SharedUserDefaults.appGroup, read by PolarManager.init → StrapPairingStore.load)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "de045b193f014cc0",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.featureReported(deviceId:feature:)": "1589776135af0e26",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.isReady(_:)": "57a325be71abe337",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)": "87d52061366d02b0"
+   }
+  },
+  {
+   "key": "func PolarConnectionLifecycleTests.testASummaryWithoutAFeatureLeavesItUnconfirmed()",
+   "hash": "4764ae734e75398a",
+   "does": "Applies a readiness summary (heartRate ready, offlineRecording unavailable) and asserts heartRate .ready, offlineRecording .unavailable, h10Recording .unconfirmed; isUsable true for h10Recording, false for offlineRecording.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.setConnectedDeviceForTesting(id:type:)",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkEstablished()",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.summaryReported(deviceId:ready:unavailable:)",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.applySummary(ready:unavailable:)",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.waitOutcome(for:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.isUsable(_:)"
+   ],
+   "reads": [
+    "ud:knownDevices / lastConnectedTime (SharedUserDefaults.appGroup, read by PolarManager.init → StrapPairingStore.load)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.setConnectedDeviceForTesting(id:type:)": "119fb2afbb3f1150",
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "b9f281895be22d44",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "de045b193f014cc0",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.isUsable(_:)": "b2f3b44958720987",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.summaryReported(deviceId:ready:unavailable:)": "ebacd74b96cc3611",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.applySummary(ready:unavailable:)": "cce209df7497c9ab",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkEstablished()": "f32f3e5777f67ce6",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.waitOutcome(for:)": "2575c6416a310633"
+   }
+  },
+  {
+   "key": "func PolarConnectionLifecycleTests.testAWaiterResumesWhenTheFeatureIsReported()",
+   "hash": "ce5e19e4991be962",
+   "does": "Starts awaitFeature(.h10Recording, 30 s) in a task, yields, applies featureReady, and asserts the waiter returns .ready.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.setConnectedDeviceForTesting(id:type:)",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkEstablished()",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.awaitFeature(_:until:while:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.featureReported(deviceId:feature:)"
+   ],
+   "reads": [
+    "ud:knownDevices / lastConnectedTime (SharedUserDefaults.appGroup, read by PolarManager.init → StrapPairingStore.load)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.setConnectedDeviceForTesting(id:type:)": "119fb2afbb3f1150",
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "b9f281895be22d44",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "de045b193f014cc0",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.awaitFeature(_:until:while:)": "84a3137fadf0dfa1",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.featureReported(deviceId:feature:)": "1589776135af0e26",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkEstablished()": "f32f3e5777f67ce6"
+   }
+  },
+  {
+   "key": "func PolarConnectionLifecycleTests.testAWaiterTimesOutWithoutALink()",
+   "hash": "e8c2b15c22d8d95a",
+   "does": "Asserts awaitFeature without a link returns .timedOut after 50 ms.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.awaitFeature(_:until:while:)"
+   ],
+   "reads": [
+    "ud:knownDevices / lastConnectedTime (SharedUserDefaults.appGroup, read by PolarManager.init → StrapPairingStore.load)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "b9f281895be22d44",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.awaitFeature(_:until:while:)": "84a3137fadf0dfa1"
+   }
+  },
+  {
+   "key": "func PolarConnectionLifecycleTests.testANotReadyRefusalIsRetriedAndSuccessConfirmsTheFeature()",
+   "hash": "f7b55091715b5ac1",
+   "does": "With readiness settled without summary, runs whenFeatureUsable whose first attempt throws featureNotReady and second returns 42; asserts value 42, 2 attempts, and h10Recording confirmed ready.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.setConnectedDeviceForTesting(id:type:)",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkEstablished()",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.settleWithoutSummary()",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.whenFeatureUsable(_:until:while:perform:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.confirm(_:onGeneration:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.awaitUsable(_:until:while:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.pauseBeforeRetrying(after:refusals:deadline:while:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.isUsable(_:)",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.confirm(_:)"
+   ],
+   "reads": [
+    "ud:knownDevices / lastConnectedTime (SharedUserDefaults.appGroup, read by PolarManager.init → StrapPairingStore.load)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "attempts == 1",
+     "effect": "throws PolarError.featureNotReady; later attempts return 42"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.setConnectedDeviceForTesting(id:type:)": "119fb2afbb3f1150",
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "b9f281895be22d44",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.awaitUsable(_:until:while:)": "f00874484dcd919f",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.confirm(_:onGeneration:)": "2eabbe53ec158c27",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.isUsable(_:)": "b2f3b44958720987",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.pauseBeforeRetrying(after:refusals:deadline:while:)": "a2e9860706470928",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.whenFeatureUsable(_:until:while:perform:)": "6d979db556d6e7c2",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.confirm(_:)": "7675e635229c9a03",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.isReady(_:)": "57a325be71abe337",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkEstablished()": "f32f3e5777f67ce6",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.settleWithoutSummary()": "e36111b9f64a69b7"
+   }
+  },
+  {
+   "key": "func PolarConnectionLifecycleTests.testAnOperationsOwnErrorIsNotRetried()",
+   "hash": "f5ceb1bc3f47896a",
+   "does": "Asserts an operation error other than featureNotReady (noRecordingFound) propagates after one attempt.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.setConnectedDeviceForTesting(id:type:)",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkEstablished()",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.markReady(_:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.whenFeatureUsable(_:until:while:perform:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.isUsable(_:)"
+   ],
+   "reads": [
+    "ud:knownDevices / lastConnectedTime (SharedUserDefaults.appGroup, read by PolarManager.init → StrapPairingStore.load)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+13",
+     "cond": "whenFeatureUsable throws",
+     "effect": "goes to catch; reaching the line after the call means no throw and XCTFail"
+    },
+    {
+     "at": "+14",
+     "cond": "error is not PolarError.noRecordingFound",
+     "effect": "XCTFail and return; else asserts attempts == 1"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.setConnectedDeviceForTesting(id:type:)": "119fb2afbb3f1150",
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "b9f281895be22d44",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.isUsable(_:)": "b2f3b44958720987",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.whenFeatureUsable(_:until:while:perform:)": "20ed6612da7db880",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkEstablished()": "f32f3e5777f67ce6",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.markReady(_:)": "45143fd6e7249273"
+   }
+  },
+  {
+   "key": "func PolarConnectionLifecycleTests.testASampleWithoutASessionUpdatesTheLiveReadingOnly()",
+   "hash": "29c01a8c34e8cf79",
+   "does": "With no session, ingesting an HR sample sets currentHeartRate 71 and feed .live without buffering beats.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.ingestHeartRate(_:receivedAt:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.noteSample(at:)"
+   ],
+   "reads": [
+    "ud:knownDevices / lastConnectedTime (SharedUserDefaults.appGroup, read by PolarManager.init → StrapPairingStore.load)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.ingestHeartRate(_:receivedAt:)": "a4128b4165979968",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.streamedRRPoints": "e1584f9930f839e0",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.noteSample(at:)": "58dda9f6dac9b2d9",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)": "87d52061366d02b0"
+   }
+  },
+  {
+   "key": "func PolarConnectionLifecycleTests.testHeartRateWithoutRRStillUpdatesTheLiveReading()",
+   "hash": "a5d93c1c79df821e",
+   "does": "While streaming, an HR sample without RR updates currentHeartRate 63 and buffers no beats.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.ingestHeartRate(_:receivedAt:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.noteSample(at:)"
+   ],
+   "reads": [
+    "ud:knownDevices / lastConnectedTime (SharedUserDefaults.appGroup, read by PolarManager.init → StrapPairingStore.load)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.ingestHeartRate(_:receivedAt:)": "a4128b4165979968",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.streamedRRPoints": "e1584f9930f839e0",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.noteSample(at:)": "58dda9f6dac9b2d9",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)": "87d52061366d02b0"
+   }
+  },
+  {
+   "key": "func PolarConnectionLifecycleTests.testEvaluatingHealthOnAStalledFeedResubscribesFirst()",
+   "hash": "e3e623181dbe0a2c",
+   "does": "With last sample 60 s old on a link settled 290 s ago, asserts evaluateFeedHealth sets feed .stalled, the health warning, and lastResubscribeAt = now.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.evaluateFeedHealth(now:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.feedHealthInputs(now:)"
+   ],
+   "reads": [
+    "ud:knownDevices / lastConnectedTime (SharedUserDefaults.appGroup, read by PolarManager.init → StrapPairingStore.load)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.connectionHealthWarning": "ce99aae80ced5580",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.evaluateFeedHealth(now:)": "3f6ce13ce782fe73",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.feedHealthInputs(now:)": "36707389ac58d215",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.linkedManager(deviceId:streaming:recordingOnDevice:)": "87d52061366d02b0"
+   }
+  }
+ ],
+ "deps": {}
+}

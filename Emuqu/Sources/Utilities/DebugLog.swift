@@ -37,6 +37,11 @@ final class DebugLogger {
     @ObservationIgnored private let persistentBox: OSAllocatedUnfairLock<Bool>
 
     private(set) var entries: [LogEntry] = []
+    /// Lock-backed copy of `entries` for `exportLogs`, which runs off the main
+    /// actor. With Persistent Logging off nothing reaches disk, so the export
+    /// is built from this copy. Every change to `entries` goes through
+    /// `mutateRingBuffer`, which applies it to both.
+    @ObservationIgnored private let exportBuffer = OSAllocatedUnfairLock<[LogEntry]>(initialState: [])
     private(set) var errorCatalog: [LogEntry] = []
 
     nonisolated static let significantLogPosted = Notification.Name("DebugLogger.SignificantLog")
@@ -105,14 +110,7 @@ final class DebugLogger {
     /// so extensions write to the same file, then Documents, then the temporary
     /// directory.
     nonisolated private static func resolveLogFileURL() -> URL {
-        if let container = FileManager.default.containerURL(
-            forSecurityApplicationGroupIdentifier: AppConfig.appGroupIdentifier
-        ) {
-            return container.appendingPathComponent("debug_log.txt")
-        }
-        let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
-            ?? FileManager.default.temporaryDirectory
-        return documents.appendingPathComponent("debug_log.txt")
+        AppConfig.sharedContainerURL().appendingPathComponent("debug_log.txt")
     }
 
     /// Not `.complete`. The log file MUST be writable while the
@@ -233,13 +231,31 @@ final class DebugLogger {
     /// runs only when the oldest entry has actually aged out.
     private func appendToRingBuffer(_ batch: [LogEntry]) {
         let sevenDaysAgo = Date().addingTimeInterval(-7 * 24 * 60 * 60)
-        if let oldest = entries.first, oldest.timestamp < sevenDaysAgo {
-            entries.removeAll { $0.timestamp < sevenDaysAgo }
+        let cap = Self.maxMemoryEntries
+        mutateRingBuffer { buffer in
+            Self.append(batch, to: &buffer, droppingOlderThan: sevenDaysAgo, cap: cap)
         }
-        entries.append(contentsOf: batch)
-        if entries.count > Self.maxMemoryEntries {
-            entries.removeFirst(entries.count - Self.maxMemoryEntries)
+    }
+
+    /// One ring-buffer step: drop entries older than `cutoff` (only scanned
+    /// when the oldest has aged out), append `batch`, keep the newest `cap`.
+    nonisolated private static func append(
+        _ batch: [LogEntry], to buffer: inout [LogEntry], droppingOlderThan cutoff: Date, cap: Int
+    ) {
+        if let oldest = buffer.first, oldest.timestamp < cutoff {
+            buffer.removeAll { $0.timestamp < cutoff }
         }
+        buffer.append(contentsOf: batch)
+        if buffer.count > cap {
+            buffer.removeFirst(buffer.count - cap)
+        }
+    }
+
+    /// Applies one change to `entries` and to its lock-backed export copy, so
+    /// the two always hold the same lines.
+    private func mutateRingBuffer(_ change: @Sendable (inout [LogEntry]) -> Void) {
+        change(&entries)
+        exportBuffer.withLock { change(&$0) }
     }
 
     /// Worth waking the Diagnostics badge for.
@@ -304,7 +320,13 @@ final class DebugLogger {
     /// Throwing calls: the legacy `write(_:)` raises an uncatchable exception
     /// on a full disk. NSLog on failure, for the reason `createLogFile` gives.
     nonisolated private func append(_ data: Data) {
-        guard let handle = try? FileHandle(forWritingTo: logFileURL) else { return }
+        let handle: FileHandle
+        do {
+            handle = try FileHandle(forWritingTo: logFileURL)
+        } catch {
+            NSLog("[DebugLog] opening the log file failed, batch dropped: %@", error.localizedDescription)
+            return
+        }
         do {
             try handle.seekToEnd()
             try handle.write(contentsOf: data)
@@ -360,8 +382,9 @@ final class DebugLogger {
     }
 
     /// Health-metric names. `baseline` and `readiness` are included because
-    /// they name a health value in our logs.
-    nonisolated private static let metricPattern = #"(?:RMSSD|SDNN|pNN50|HRV|RHR|resting\s*HR|heart\s*rate|HR|alpha1|DFA|SpO2|respiratory\s*rate|respiration|temperature|wrist\s*temp|breath|composite|recovery\s*score|readiness|sleep\s*score|baseline|TSB|ATL|CTL|hrTSS|TRIMP)"#
+    /// they name a health value in our logs. `\w*score` covers bare `score=`
+    /// and camel-case names such as `frozenScore=` (recovery-score values).
+    nonisolated private static let metricPattern = #"(?:RMSSD|SDNN|pNN50|HRV|RHR|resting\s*HR|heart\s*rate|HR|alpha1|DFA|SpO2|respiratory\s*rate|respiration|temperature|wrist\s*temp|breath|composite|recovery\s*score|readiness|sleep\s*score|\w*score|baseline|TSB|ATL|CTL|hrTSS|TRIMP)"#
 
     nonisolated private static let unitPattern = #"(?:\s*(?:ms|bpm|BPM|%|°[CF]|min|h|points?))?"#
 
@@ -467,7 +490,8 @@ final class DebugLogger {
     /// entry was already flushed from this run, so it is dropped as a duplicate.
     private func prependLoaded(_ loaded: [LogEntry]) {
         let older = entries.first.map { first in loaded.filter { $0.timestamp < first.timestamp } } ?? loaded
-        entries = Array((older + entries).suffix(Self.maxMemoryEntries))
+        let cap = Self.maxMemoryEntries
+        mutateRingBuffer { buffer in buffer = Array((older + buffer).suffix(cap)) }
     }
 
     /// Parse one persisted line back into a LogEntry, or nil when it doesn't
@@ -504,7 +528,7 @@ final class DebugLogger {
     /// lines into a new log file and Recent Problems kept listing pre-wipe
     /// messages.
     func clear() {
-        entries.removeAll()
+        mutateRingBuffer { $0.removeAll() }
         errorCatalog.removeAll()
         pendingLines.withLock { $0.removeAll() }
         pendingEntries.withLock { $0.removeAll() }
@@ -525,7 +549,11 @@ final class DebugLogger {
     /// synchronous flush cannot deadlock. Without it the export read the file
     /// before the timer's next flush and left out up to five seconds of the
     /// newest lines — the ones describing whatever the user just saw.
+    ///
+    /// With Persistent Logging off nothing is written to disk, so the export
+    /// comes from the in-memory ring buffer instead.
     nonisolated func exportLogs() -> String {
+        guard persistentBox.withLock({ $0 }) else { return exportMemoryLogs() }
         flushToDiskSync()
         // Read directly from disk for completeness — memory may be a subset
         let diskContent = (try? String(contentsOf: logFileURL, encoding: .utf8)) ?? ""
@@ -535,17 +563,30 @@ final class DebugLogger {
         // allocations, multi-second hang on main thread). A single pass
         // count of "\n" chars is O(n) without allocations.
         let entryCount = diskContent.reduce(0) { $0 + ($1 == "\n" ? 1 : 0) }
-        return Self.exportHeader(entryCount: entryCount) + diskContent
+        let source = "log file (trimmed by size, up to 2 MB)"
+        return Self.exportHeader(entryCount: entryCount, source: source) + diskContent
     }
 
-    nonisolated private static func exportHeader(entryCount: Int) -> String {
+    /// The in-memory ring buffer (last 7 days, at most `maxMemoryEntries`)
+    /// plus the entries not yet moved into it, scrubbed like the disk path.
+    nonisolated private func exportMemoryLogs() -> String {
+        let buffered = exportBuffer.withLock { $0 }
+        let pending = pendingEntries.withLock { $0 }
+        let lines = (buffered + pending).map { Self.scrubPHI($0.formatted) }
+        let body = lines.isEmpty ? "" : lines.joined(separator: "\n") + "\n"
+        let source = "in-memory buffer, last 7 days (Persistent Logging is off)"
+        return Self.exportHeader(entryCount: lines.count, source: source) + body
+    }
+
+    nonisolated private static func exportHeader(entryCount: Int, source: String) -> String {
         """
-        Emuqu Debug Log (Last 7 Days)
+        Emuqu Debug Log
         Exported: \(Date())
         Device: \(DeviceInfo.model)
         iOS: \(DeviceInfo.systemVersion)
-        App Version: \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown")
-        Build: \(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "Unknown")
+        App Version: \(Bundle.main.appVersion)
+        Build: \(Bundle.main.appBuild)
+        Source: \(source)
         Entries: \(entryCount)
         ========================================
 
@@ -554,7 +595,7 @@ final class DebugLogger {
 
     func exportErrorCatalog() -> String {
         let header = """
-        Emuqu Error Catalog (Permanent)
+        Emuqu Error Catalog (Since App Launch)
         Exported: \(Date())
         Device: \(DeviceInfo.model)
         iOS: \(DeviceInfo.systemVersion)

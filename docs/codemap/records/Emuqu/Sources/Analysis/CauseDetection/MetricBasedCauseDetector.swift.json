@@ -1,0 +1,421 @@
+{
+ "file": "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift",
+ "hash": "ecd4b865e323b24e",
+ "role": "Strategy that, for non-good readings, flags multi-day HRV decline / elevated resting HR patterns (hedged 'illness' rules), untagged stress, possible sleep debt, training load and dehydration from tonight's metrics, recent overnight sessions and trend stats.",
+ "types": [
+  "MetricBasedCauseDetector: class (CauseDetectionStrategy)",
+  "IllnessSignals: private struct — consecutive declines, total decline %, HR elevated flag and increase"
+ ],
+ "state": [
+  "mem:MetricBasedCauseDetector.highStressIndex=250, lowHRVStressIndex=220, dehydrationStressIndex=180, trainingLoadDFAAlpha1=1.1, maxNightGap=36 h (private static)"
+ ],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func MetricBasedCauseDetector.detectCauses(in:)",
+   "hash": "24ba1830f62eb8b5",
+   "does": "Returns [] for good readings; else concatenates illness, untagged-stress, sleep-debt, training-load and dehydration causes.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.detectPossibleIllness(in:)",
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.detectUntaggedStress(in:)",
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.detectPossibleSleepDebt(in:)",
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.detectTrainingLoad(in:)",
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.detectDehydration(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "good or excellent reading",
+     "effect": "returns [] (unreachable through CauseDetector, which already diverts good readings)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.isGoodReading(rmssd:)": "a553c84c2cc0efa5",
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.detectDehydration(in:)": "f30e4a6b3c5f2599",
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.detectPossibleIllness(in:)": "9530485de38653f4",
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.detectPossibleSleepDebt(in:)": "6e090fea2a971972",
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.detectTrainingLoad(in:)": "b2b61a3feddabf71",
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.detectUntaggedStress(in:)": "1a945727e143b16a"
+   }
+  },
+  {
+   "key": "func MetricBasedCauseDetector.detectPossibleIllness(in:)",
+   "hash": "495bf824b6ce2a38",
+   "does": "Unless the system illness tag is selected (Set.containsSystemTag), computes illness signals and returns the first of strong / moderate / weak pattern causes, or none.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func Set.containsSystemTag(_:)",
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.detectIllnessPattern(in:)",
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.strongIllnessCause(context:signals:)",
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.moderateIllnessCause(context:signals:)",
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.weakIllnessCause(context:signals:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "illness tag selected",
+     "effect": "returns []"
+    },
+    {
+     "at": "+4",
+     "cond": "strong pattern",
+     "effect": "returns it"
+    },
+    {
+     "at": "+5",
+     "cond": "moderate pattern",
+     "effect": "returns it"
+    },
+    {
+     "at": "+6",
+     "cond": "weak pattern",
+     "effect": "returns it; else []"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.detectIllnessPattern(in:)": "e23e94ab12f81db9",
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.moderateIllnessCause(context:signals:)": "fd3551e343fc7908",
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.strongIllnessCause(context:signals:)": "3181910061c6a903",
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.weakIllnessCause(context:signals:)": "2c5448e0bd7f9535",
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func Set.containsSystemTag(_:)": "162913d7968f4344"
+   }
+  },
+  {
+   "key": "func MetricBasedCauseDetector.strongIllnessCause(context:signals:)",
+   "hash": "499587913b536a15",
+   "does": "'Sustained HRV Decline' (moderateHigh, weight 0.72) when >= 3 consecutive declines, RMSSD < rmssdGood and stress > stressIndexElevated.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle",
+    "ext:String(localized:bundle:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "declines >= 3 and rmssd < rmssdGood and stress > elevated",
+     "effect": "returns cause; else nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.consecutiveDeclines(from:at:in:)": "c92efb2c814c8b07",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)": "2a4b8a54e9a27938",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "func MetricBasedCauseDetector.moderateIllnessCause(context:signals:)",
+   "hash": "7b06364064752eb5",
+   "does": "'Sustained HRV and Resting-HR Shift' or 'Multi-Day HRV Decline' (moderateHigh, 0.72) when >= 2 declines and (RMSSD < rmssdReduced or HR elevated).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle",
+    "ext:String(localized:bundle:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "declines >= 2 and (rmssd < rmssdReduced or hrElevated)",
+     "effect": "continues; else nil"
+    },
+    {
+     "at": "+7",
+     "cond": "hrElevated",
+     "effect": "explanation mentions +bpm; else HRV-only text"
+    },
+    {
+     "at": "+13",
+     "cond": "hrElevated",
+     "effect": "title 'Sustained HRV and Resting-HR Shift'; else 'Multi-Day HRV Decline'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.consecutiveDeclines(from:at:in:)": "c92efb2c814c8b07",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)": "2a4b8a54e9a27938",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "func MetricBasedCauseDetector.weakIllnessCause(context:signals:)",
+   "hash": "107e56d2f3072aa1",
+   "does": "Single-signal fallbacks: very low HRV + stress > highStressIndex (250) → immune-response cause; HR elevated + stress elevated + RMSSD < good → elevated RHR cause; RMSSD < reduced + stress > lowHRVStressIndex (220) → 'Low HRV with Elevated Stress Index' (0.45).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.immuneResponseCause()",
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.elevatedRestingHRCause(signals:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle",
+    "ext:String(localized:bundle:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "rmssd < rmssdLow and stress > 250",
+     "effect": "immuneResponseCause"
+    },
+    {
+     "at": "+9",
+     "cond": "hrElevated and stress > elevated and rmssd < good",
+     "effect": "elevatedRestingHRCause"
+    },
+    {
+     "at": "+14",
+     "cond": "rmssd < rmssdReduced and stress > 220",
+     "effect": "low-HRV cause; else nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.elevatedRestingHRCause(signals:)": "7f83779283c82c4c",
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.immuneResponseCause()": "6cf0b158ff735020",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "func MetricBasedCauseDetector.immuneResponseCause()",
+   "hash": "9ee0506f0fa79f65",
+   "does": "'Very Low HRV with High Stress Index' (high, 0.75).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle",
+    "ext:String(localized:bundle:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "func MetricBasedCauseDetector.elevatedRestingHRCause(signals:)",
+   "hash": "6ae8e8f9b25e659f",
+   "does": "'Elevated Resting HR' (moderate, 0.55) with the bpm increase.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle",
+    "ext:String(localized:bundle:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)": "2a4b8a54e9a27938",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "func MetricBasedCauseDetector.detectIllnessPattern(in:)",
+   "hash": "9a0fc2a2b6d1842a",
+   "does": "Filters recentSessions to complete, analysed, HRV-reliable overnight sessions newest-first; with >= 2 counts consecutive nightly declines from tonight (dated by context.session.startDate) and HR elevation vs trendStats.avgHR. hrElevated is cleared when SevereCauseDetector.elevatedHRWithLowHRV reports the same resting-HR rise, so it is not reported twice.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates",
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.consecutiveDeclines(from:at:in:)",
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.hrElevation(context:)",
+    "Emuqu/Sources/Analysis/CauseDetection/SevereCauseDetector.swift::func SevereCauseDetector.elevatedHRWithLowHRV(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "fewer than 2 qualifying sessions",
+     "effect": "returns zero signals (no illness pattern possible)"
+    },
+    {
+     "at": "+15",
+     "cond": "severe detector reports Elevated HR + Low HRV",
+     "effect": "hrElevated false (moderate falls back to the HRV-only variant; weak RHR cause does not fire)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.consecutiveDeclines(from:at:in:)": "c92efb2c814c8b07",
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.hrElevation(context:)": "912431a7f2b47a46",
+    "Emuqu/Sources/Analysis/CauseDetection/SevereCauseDetector.swift::func SevereCauseDetector.elevatedHRWithLowHRV(in:)": "89b9ef71a9897e4c",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "030630d0c2004d4f"
+   }
+  },
+  {
+   "key": "func MetricBasedCauseDetector.consecutiveDeclines(from:at:in:)",
+   "hash": "9da9953f24c48eba",
+   "does": "Walks up to 6 newest-first sessions back from tonight's RMSSD/date, counting nights whose RMSSD is above the newer one by the decline threshold (newer < older × 0.95) and summing the % drop; stops at the first night that is not a decline, has no RMSSD, or started more than maxNightGap (36 h) before the newer reading (a gap, not a consecutive night).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "no RMSSD, gap > 36 h, or not a decline",
+     "effect": "break"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func MetricBasedCauseDetector.hrElevation(context:)",
+   "hash": "2bd44aed6e4b32e2",
+   "does": "HR elevation = tonight's mean HR − trendStats.avgHR; elevated when above hrElevationThreshold; (false, 0) without trend data, avgHR <= 0 or no tonight HR.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::var CauseDetectionContext.currentHR"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "no trend data, avgHR <= 0 or currentHR nil",
+     "effect": "(false, 0)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::var CauseDetectionContext.currentHR": "4c3a7898e9bb7b17"
+   }
+  },
+  {
+   "key": "func MetricBasedCauseDetector.detectUntaggedStress(in:)",
+   "hash": "daeaa35635151f45",
+   "does": "'Unidentified Stress' (moderateHigh, 0.65) when the system stressed tag isn't selected and LF/HF > sympathetic-dominance and stress > elevated.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func Set.containsSystemTag(_:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle",
+    "ext:String(localized:bundle:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "stressed tag selected",
+     "effect": "returns []"
+    },
+    {
+     "at": "+8",
+     "cond": "LF/HF high and stress elevated",
+     "effect": "adds cause"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func Set.containsSystemTag(_:)": "162913d7968f4344",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "func MetricBasedCauseDetector.detectPossibleSleepDebt(in:)",
+   "hash": "7a48ab0160c44677",
+   "does": "'Possible Sleep Debt' (moderate, 0.55) when the system poor-sleep tag isn't selected, sleep not good, RMSSD < reduced and DFA α1 > high-variability threshold.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func Set.containsSystemTag(_:)",
+    "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::var CauseDetectionContext.isGoodSleep",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle",
+    "ext:String(localized:bundle:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "poorSleep tag or good sleep",
+     "effect": "returns []"
+    },
+    {
+     "at": "+9",
+     "cond": "rmssd < reduced and dfa > threshold",
+     "effect": "adds cause"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::var CauseDetectionContext.isGoodSleep": "151e5f65fe74347e",
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func Set.containsSystemTag(_:)": "162913d7968f4344",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "func MetricBasedCauseDetector.detectTrainingLoad(in:)",
+   "hash": "377d9c3459e5e90b",
+   "does": "'Accumulated Training Load' (lowModerate, 0.4) when the system post-exercise tag isn't selected and RMSSD < good, pNN50 < low, DFA α1 > trainingLoadDFAAlpha1 (1.1).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func Set.containsSystemTag(_:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle",
+    "ext:String(localized:bundle:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "postExercise tag selected",
+     "effect": "returns []"
+    },
+    {
+     "at": "+8",
+     "cond": "all three metric conditions",
+     "effect": "adds cause"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func Set.containsSystemTag(_:)": "162913d7968f4344",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "func MetricBasedCauseDetector.detectDehydration(in:)",
+   "hash": "6f93c4f4538a4b62",
+   "does": "'Dehydration or Fasting' (lowModerate, 0.35) when RMSSD < good, stress > dehydrationStressIndex (180) and LF/HF < optimal upper bound.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle",
+    "ext:String(localized:bundle:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "conditions met",
+     "effect": "adds cause; else []"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  }
+ ],
+ "deps": {}
+}

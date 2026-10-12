@@ -4,41 +4,36 @@ import SwiftUI
 /// session, combining recovery score with current day's accumulated load.
 struct TrainingReadinessCard: View {
     let recoveryScore: Double
-    let dayTrimp: Double
     let trainingContext: TrainingContext?
-    /// Explicit morning ATL for fatigue dissipation bonus. When provided, the
-    /// difference between this value and the context's ATL drives the freshness
-    /// gain. Pass the snapshot (through-yesterday) ATL here when the context
-    /// already has the today-stepped ATL applied.
-    var snapshotATL: Double?
+    /// The load the shared training advice gate reads for the label and the
+    /// message. The caller passes the same load the recovery card above reads
+    /// (`TrainingAdviceGate.Load.preferring(live:frozen:)`), so a live load
+    /// that differs from the frozen context cannot make the two cards give
+    /// contradicting advice.
+    let adviceLoad: TrainingAdviceGate.Load?
     /// Frozen readiness (0-10 scale) from acceptance. When provided, the card
     /// displays this value directly instead of recomputing from training metrics.
     /// This ensures history always matches the dashboard's acceptance-time value.
     var frozenReadiness: Double?
 
-    /// The load the shared training advice gate reads for the label and
-    /// the message, so the two cannot contradict each other.
-    private var adviceLoad: TrainingAdviceGate.Load? {
-        trainingContext.map { TrainingAdviceGate.Load(context: $0) }
-    }
-
     private func label(_ readiness: Double) -> String {
         ReadinessScoring.displayReadinessLabel(for: readiness, load: adviceLoad)
     }
 
-    /// Readiness on 0-10 scale (frozen or computed)
+    /// Readiness on 0-10 scale (frozen or computed). The recompute is the
+    /// morning one: no TRIMP yet today and the context's ATL as the morning
+    /// ATL, so no fatigue-dissipation gain.
     private var computedReadiness: Double {
         if let frozen = frozenReadiness { return frozen }
         let ctl = trainingContext?.ctl ?? 0
         let atlVal = trainingContext?.atl ?? 0
-        let acrVal = trainingContext?.acuteChronicRatio
         let r100 = RecoveryScoreCalculator.calculateReadiness(
             recoveryScore: recoveryScore,
-            todayTrimp: dayTrimp,
+            todayTrimp: 0,
             ctl: ctl,
             atl: atlVal,
-            morningATL: snapshotATL ?? atlVal,
-            acuteChronicRatio: acrVal
+            morningATL: atlVal,
+            acuteChronicRatio: trainingContext?.acuteChronicRatio
         )
         return RecoveryScoreCalculator.toTenScale(r100)
     }

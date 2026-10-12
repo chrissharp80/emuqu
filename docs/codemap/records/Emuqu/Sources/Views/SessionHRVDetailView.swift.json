@@ -1,0 +1,570 @@
+{
+ "file": "Emuqu/Sources/Views/SessionHRVDetailView.swift",
+ "hash": "32d4427ba9532bb5",
+ "role": "Single-session HRV detail screen (pushed from the morning results HRV card) showing RMSSD hero, HR stats, peak capacity, HR chart, tachogram, Poincaré plot, frequency bands and LF/HF row; also declares LFHFRatioRow.",
+ "types": [
+  "SessionHRVDetailView: struct (View) — session HRV drill-in screen; inputs session, result, recentSessions (default [])",
+  "LFHFRatioRow: struct (View) — LF/HF ratio readout plus dominant-band label"
+ ],
+ "state": [
+  "SessionHRVDetailView.session: let HRVSession",
+  "SessionHRVDetailView.result: let HRVAnalysisResult",
+  "SessionHRVDetailView.recentSessions: var [HRVSession] = []",
+  "SessionHRVDetailView.baselineStats: var BaselineTracker.RecoveryBaselineStats? (nil unless the caller passes it)",
+  "LFHFRatioRow.fd: let FrequencyDomainMetrics"
+ ],
+ "toplevel": "Stored-property defaults only (recentSessions = []). Memberwise init used by MorningResultsView.hrvDetailLink (MorningResultsView.swift:302) and RemainingScreenSnapshotTests.testSessionHRVDetailRenders.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var SessionHRVDetailView.body",
+   "hash": "b16ee3fd650be5e8",
+   "does": "Screen root: ScrollView of detailSections with padding, app background, inline nav title 'HRV Analysis'.",
+   "entry": "SwiftUI View.body; pushed by NavigationLink in MorningResultsView.hrvDetailLink (MorningResultsView.swift:300) and hosted by RemainingScreenSnapshotTests.testSessionHRVDetailRenders",
+   "calls": [
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.detailSections"
+   ],
+   "reads": [
+    "mem:LanguageManager.shared.bundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.detailSections": "a737eb00fdae899e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "053cc91a5a90d115"
+   }
+  },
+  {
+   "key": "var SessionHRVDetailView.detailSections",
+   "hash": "6d047d4e49a0488f",
+   "does": "VStack of summary sections then chart sections.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.summarySections",
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.chartSections"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.chartSections": "01f17b6797808ec7",
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.summarySections": "95a1c05b3cbe78ac"
+   }
+  },
+  {
+   "key": "var SessionHRVDetailView.summarySections",
+   "hash": "34d3281d4ac71caf",
+   "does": "Hero RMSSD, HR stats row, then optional peak capacity card, HR chart (non-overnight), and trend section (overnight with recent sessions).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.hrvHeroSection",
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.hrStatsRow",
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.heartRateChartSection",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.trendSection",
+    "dyn:View.body → Emuqu/Sources/Views/PeakCapacityCard.swift:11"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "result.peakCapacity non-nil",
+     "effect": "true: PeakCapacityCard(capacity:, showInfoButton: true); false: omitted"
+    },
+    {
+     "at": "+14",
+     "cond": "session.sessionType != .overnight",
+     "effect": "true: heartRateChartSection shown; false (overnight): omitted"
+    },
+    {
+     "at": "+19",
+     "cond": "sessionType == .overnight and recentSessions non-empty",
+     "effect": "true: trendSection; false: omitted (non-overnight sessions never get trend rows)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.peakCapacity(from:)": "7f3278f31052cc1b",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.trendSection": "0ac239358656f90b",
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.heartRateChartSection": "352bdca0a57c8196",
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.hrStatsRow": "ac9871964160a803",
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.hrvHeroSection": "408e4a4d04814404"
+   }
+  },
+  {
+   "key": "var SessionHRVDetailView.chartSections",
+   "hash": "10c45da56c02f1ee",
+   "does": "Tachogram, Poincaré plot, frequency section when frequency-domain data exists, then the full metrics grid.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.tachogramSection",
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.poincarePlotSection",
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.frequencySection",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.metricsGridSection"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "result.frequencyDomain != nil",
+     "effect": "true: frequencySection; false: omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.metricsGridSection": "966875ed4c5af78b",
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.frequencySection": "046a147fd6d3348d",
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.poincarePlotSection": "8f0eba8fc1575518",
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.tachogramSection": "1f0aaee87e5ffe47"
+   }
+  },
+  {
+   "key": "var SessionHRVDetailView.hrvHeroSection",
+   "hash": "49214eb6ea8f1be0",
+   "does": "Card with large RMSSD value, 'RMSSD' caption and HRV category label.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.heroRMSSDValue",
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.heroRMSSDCaption",
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.heroHRVLabel"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.heroHRVLabel": "1dbd8fcfce30e95c",
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.heroRMSSDCaption": "8b891540e28ed3ed",
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.heroRMSSDValue": "392927b9900fe67d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e"
+   }
+  },
+  {
+   "key": "var SessionHRVDetailView.hrvBaseline",
+   "hash": "b7c7b2088d21e32e",
+   "does": "The RMSSD baseline exp(lnRmssdMean) from baselineStats, or nil when none was passed.",
+   "entry": "SwiftUI evaluates it as part of the parent view's body",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var SessionHRVDetailView.heroRMSSDValue",
+   "hash": "759ee269aa7c3a6a",
+   "does": "Large RMSSD %.0f (scaled 56pt bold) coloured by AppTheme.hrvTextColor against hrvBaseline (absolute cut-offs when nil) with 'ms' suffix.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)",
+    "Emuqu/Sources/Views/Theme.swift::func AppTheme.hrvTextColor(_:baseline:)",
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.hrvBaseline"
+   ],
+   "reads": [
+    "mem:LanguageManager.shared.bundle",
+    "mem:LanguageManager.shared.locale"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.hrvBaseline": "8abb9f4ca10fe916",
+    "Emuqu/Sources/Views/Theme.swift::func AppTheme.hrvTextColor(_:baseline:)": "e01f4a9836c9dbad",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var SessionHRVDetailView.heroRMSSDCaption",
+   "hash": "e994995564066897",
+   "does": "Tracked caption 'RMSSD'.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:LanguageManager.shared.bundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var SessionHRVDetailView.heroHRVLabel",
+   "hash": "403e79a6380fa534",
+   "does": "Pill showing AppTheme.hrvLabel(rmssd, baseline: hrvBaseline) with hrvTextColor text over hrvColor 15% background; rates against the scoring baseline when baselineStats was passed, absolute thresholds otherwise.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::func AppTheme.hrvLabel(_:baseline:)",
+    "Emuqu/Sources/Views/Theme.swift::func AppTheme.hrvTextColor(_:baseline:)",
+    "Emuqu/Sources/Views/Theme.swift::func AppTheme.hrvColor(_:baseline:)",
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.hrvBaseline"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.hrvBaseline": "8abb9f4ca10fe916",
+    "Emuqu/Sources/Views/Theme.swift::func AppTheme.hrvColor(_:baseline:)": "9902e2d11d133ee2",
+    "Emuqu/Sources/Views/Theme.swift::func AppTheme.hrvLabel(_:baseline:)": "fddd02dc7436d16d",
+    "Emuqu/Sources/Views/Theme.swift::func AppTheme.hrvTextColor(_:baseline:)": "e01f4a9836c9dbad"
+   }
+  },
+  {
+   "key": "var SessionHRVDetailView.hrStatsRow",
+   "hash": "997d19dc8d53bd5f",
+   "does": "Four stat tiles: Min, Avg, Max HR (bpm) and SDNN (ms).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::func SessionHRVDetailView.hrStatCard(title:value:unit:color:)",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.bpmUnit",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.msUnit"
+   ],
+   "reads": [
+    "mem:LanguageManager.shared.bundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.bpmUnit": "6595c34d5af5cd9b",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.msUnit": "72e78014b19a0321",
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::func SessionHRVDetailView.hrStatCard(title:value:unit:color:)": "6f2c5b1384c330af",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sdnnColor": "1e7f13f4bbfc48ae"
+   }
+  },
+  {
+   "key": "func SessionHRVDetailView.hrStatCard(title:value:unit:color:)",
+   "hash": "a5d2c59f1fa777ed",
+   "does": "Tile with title and value %.0f in given colour plus unit.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:LanguageManager.shared.locale"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sectionTint": "6c53c4c95f5cb401",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var SessionHRVDetailView.heartRateChartSection",
+   "hash": "6d01364c19a07d51",
+   "does": "Card 'Heart Rate Over Time' with a rounded min-max bpm label (minHRRounded / maxHRRounded, matching the %.0f stat tiles) and a 150pt HeartRateChartView whose accessibility value uses the same rounded range and rounded mean.",
+   "entry": null,
+   "calls": [
+    "dyn:View.body → Emuqu/Sources/Views/MorningResultsCharts.swift:348",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenCard()",
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.minHRRounded",
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.maxHRRounded"
+   ],
+   "reads": [
+    "mem:LanguageManager.shared.bundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.maxHRRounded": "ffa37ad35a026935",
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.minHRRounded": "f2696b46254ed7e5",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenCard()": "d0ad0fd7fe9ef4fb",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.terracottaText": "6a18b5025ee3e850",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+   }
+  },
+  {
+   "key": "var SessionHRVDetailView.minHRRounded",
+   "hash": "384ad7158b5a3df0",
+   "does": "result.timeDomain.minHR rounded to the nearest whole bpm.",
+   "entry": "SwiftUI evaluates it as part of the parent view's body",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var SessionHRVDetailView.maxHRRounded",
+   "hash": "883dd7b307f75a74",
+   "does": "result.timeDomain.maxHR rounded to the nearest whole bpm.",
+   "entry": "SwiftUI evaluates it as part of the parent view's body",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var SessionHRVDetailView.tachogramSection",
+   "hash": "f00fdb330dbb9f4b",
+   "does": "Card 'Heart Rate Variability'/'RR Intervals' with 120pt TachogramView and accessibility value of Int-truncated RMSSD/SDNN.",
+   "entry": null,
+   "calls": [
+    "dyn:View.body → Emuqu/Sources/Views/MorningResultsCharts.swift:142",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenCard()"
+   ],
+   "reads": [
+    "mem:LanguageManager.shared.bundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenCard()": "d0ad0fd7fe9ef4fb",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var SessionHRVDetailView.poincarePlotSection",
+   "hash": "04f42ec0f2d3283d",
+   "does": "Poincaré card: header, plot, legend.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.poincareHeader",
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.poincarePlot",
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.poincareLegend",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenCard()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.poincareHeader": "c4f9b9e5af4f2f8a",
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.poincareLegend": "ee5ff1f9a4a25519",
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.poincarePlot": "f4c420aa6bfe0db4",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenCard()": "d0ad0fd7fe9ef4fb"
+   }
+  },
+  {
+   "key": "var SessionHRVDetailView.poincareHeader",
+   "hash": "b225e5be914aae1c",
+   "does": "Title 'Poincaré Plot' with SD1/SD2 values (%.1f ms).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:LanguageManager.shared.bundle",
+    "mem:LanguageManager.shared.locale"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var SessionHRVDetailView.poincarePlot",
+   "hash": "10a56cf493d005f9",
+   "does": "250pt PoincarePlotView with accessibility SD1/SD2 summary.",
+   "entry": null,
+   "calls": [
+    "dyn:View.body → Emuqu/Sources/Views/MorningResultsCharts.swift:39"
+   ],
+   "reads": [
+    "mem:LanguageManager.shared.bundle",
+    "mem:LanguageManager.shared.locale"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "var SessionHRVDetailView.poincareLegend",
+   "hash": "9f8dfbd7ecadb40e",
+   "does": "HStack of SD1 and SD2 legends.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.sd1Legend",
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.sd2Legend"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.sd1Legend": "b017d35c53f03a57",
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.sd2Legend": "7e3b29dc7436ac47"
+   }
+  },
+  {
+   "key": "var SessionHRVDetailView.sd1Legend",
+   "hash": "9032f84e1757406e",
+   "does": "Primary-colour dot, 'SD1', 'Short-term variability'.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:LanguageManager.shared.bundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var SessionHRVDetailView.sd2Legend",
+   "hash": "1177944c328a6357",
+   "does": "Dusty-rose dot, 'SD2', 'Long-term variability'.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:LanguageManager.shared.bundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var SessionHRVDetailView.frequencySection",
+   "hash": "afe0a5a4b7e23f78",
+   "does": "Card titled 'Frequency Analysis' containing lfHfRatioSection.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.lfHfRatioSection",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenCard()"
+   ],
+   "reads": [
+    "mem:LanguageManager.shared.bundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.lfHfRatioSection": "2f855257654ecc85",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenCard()": "d0ad0fd7fe9ef4fb",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+   }
+  },
+  {
+   "key": "var SessionHRVDetailView.lfHfRatioSection",
+   "hash": "4d13821dad8cbea3",
+   "does": "Frequency band bars (100pt) and LF/HF ratio row when frequency-domain data exists.",
+   "entry": null,
+   "calls": [
+    "dyn:View.body → Emuqu/Sources/Views/MorningResultsCharts.swift:254",
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var LFHFRatioRow.body"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "result.frequencyDomain non-nil",
+     "effect": "true: FrequencyBandsView + LFHFRatioRow; false: nothing (unreachable in practice: caller chartSections already gates on frequencyDomain != nil)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var LFHFRatioRow.body": "fadc8646fee95a91"
+   }
+  },
+  {
+   "key": "var LFHFRatioRow.body",
+   "hash": "6f255f432432290f",
+   "does": "Row with ratio readout on the left and dominant-band label on the right.",
+   "entry": "SwiftUI View.body of LFHFRatioRow, instantiated by lfHfRatioSection",
+   "calls": [
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var LFHFRatioRow.ratioReadout",
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var LFHFRatioRow.balanceSection"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var LFHFRatioRow.balanceSection": "ad26775fd2fbaab7",
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var LFHFRatioRow.ratioReadout": "250d284684bc53ce"
+   }
+  },
+  {
+   "key": "var LFHFRatioRow.ratioReadout",
+   "hash": "200b50b9c0952964",
+   "does": "'LF/HF Ratio' caption over ratio %.2f, or an em dash when lfHfRatio is nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:LanguageManager.shared.bundle",
+    "mem:LanguageManager.shared.locale"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "fd.lfHfRatio ?? fallback",
+     "effect": "non-nil: formatted %.2f; nil: '—'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var LFHFRatioRow.balanceSection",
+   "hash": "5473795812983e1b",
+   "does": "'Dominant band' caption over AppTheme.balanceInterpretation (HF-dominant <0.5, Mixed <2.0, LF-dominant, or —) coloured by balanceColor.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::func AppTheme.balanceInterpretation(_:)",
+    "Emuqu/Sources/Views/Theme.swift::func AppTheme.balanceColor(_:)"
+   ],
+   "reads": [
+    "mem:LanguageManager.shared.bundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::func AppTheme.balanceColor(_:)": "214aa5361f3f1e3a",
+    "Emuqu/Sources/Views/Theme.swift::func AppTheme.balanceInterpretation(_:)": "e13865938e62e18b",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -1,0 +1,75 @@
+{
+ "file": "Emuqu/Sources/Import/ActivityBoutResolver.swift",
+ "hash": "f70ef041e4af6662",
+ "role": "Pure resolver that finds when an activity bout ended from passive HealthKit activity windows (exercise minutes or steps), used to reconstruct a workout whose recording crashed and left no HKWorkout.",
+ "types": [
+  "ActivityBoutResolver: enum — namespace with end(ofBoutStartingAt:activity:maxGap:maxDuration:) and its filter helper"
+ ],
+ "state": [
+  "mem:ActivityBoutResolver.defaultMaxGap (static let 600 s)",
+  "mem:ActivityBoutResolver.maxBoutDuration (static let 21600 s, also used by HealthWorkoutImporter+Rebuild:156 as search window)"
+ ],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func ActivityBoutResolver.end(ofBoutStartingAt:activity:maxGap:maxDuration:)",
+   "hash": "93c67b91923509f2",
+   "does": "Walks usable activity windows in start order from `start`, extending a cursor to each window's end (clamped to start+maxDuration) until a window begins more than maxGap after the cursor; returns the cursor if any window extended it, else nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Import/ActivityBoutResolver.swift::func ActivityBoutResolver.usable(_:after:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "for each usable sample (sorted by start)",
+     "effect": "iterates"
+    },
+    {
+     "at": "+12",
+     "cond": "sample starts more than maxGap after cursor",
+     "effect": "true: break — the bout ended at cursor; false: continue processing"
+    },
+    {
+     "at": "+13",
+     "cond": "sample.end > cursor",
+     "effect": "false: skip (window entirely covered); true: extend"
+    },
+    {
+     "at": "+16",
+     "cond": "cursor reached the 6 h ceiling",
+     "effect": "true: break (bout capped at maxDuration); false: continue"
+    },
+    {
+     "at": "+18",
+     "cond": "moved (?:)",
+     "effect": "true: returns cursor; false: returns nil (no activity at all after start, or the first usable window starts more than maxGap after start — a later, separate bout)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/ActivityBoutResolver.swift::func ActivityBoutResolver.usable(_:after:)": "38434c4667fbcfa2"
+   }
+  },
+  {
+   "key": "func ActivityBoutResolver.usable(_:after:)",
+   "hash": "c0a954e81f1fbbab",
+   "does": "Filters windows to those with value > 0, ending after start and with positive duration, sorted by start.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Import/HealthSampleWindow.swift::var HealthSampleWindow.duration"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/HealthSampleWindow.swift::var HealthSampleWindow.duration": "eb1d4f3b8568285b"
+   }
+  }
+ ],
+ "deps": {}
+}

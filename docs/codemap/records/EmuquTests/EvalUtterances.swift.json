@@ -1,0 +1,197 @@
+{
+ "file": "EmuquTests/EvalUtterances.swift",
+ "hash": "59607327c52a2255",
+ "role": "Routing-evaluation fixture and tests: EvalUtterances holds 24 hand-labelled utterances in three slices (6 real failure-mode, 8 short adversarial, 10 boundary) with ground-truth CapabilityClassifier.Requirement flags; RouterEvalTests grades CapabilityClassifier.shared against them with per-slice floors (80/70/75%), a zero-misroute gate for medical-refusal utterances, and a catalog-size check.",
+ "types": [
+  "EvalUtterances: enum — catalog namespace",
+  "EvalUtterances.Slice: enum — real/adversarial/boundary",
+  "EvalUtterances.Utterance: struct — text, slice, expected Requirement, note",
+  "RouterEvalTests: class (XCTestCase, @MainActor)"
+ ],
+ "state": [
+  "EvalUtterances.sliceA / sliceB / sliceC / all (static lets, 6 + 8 + 10 = 24 utterances)"
+ ],
+ "toplevel": "Static catalog literals; `all` concatenates the three slices.",
+ "flags": [
+  {
+   "kind": "test-defect",
+   "sev": "low",
+   "text": "CapabilityClassifier.classify takes the embedding path when AppDependencies' SmartProviderRouter can embed (NLContextualEmbedding assets present) and the keyword heuristic otherwise, so the same catalog is graded against two different classifiers depending on the simulator's downloaded assets; the per-slice floors (5/6, 6/8, 8/10) absorb some of that variance.",
+   "evidence": [
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift:137",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift:164",
+    "EmuquTests/EvalUtterances.swift:292"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Slice C's comment says medical-refusal utterances 'must NOT route to deterministic intent', but nothing in RouterEvalTests checks DeterministicIntent for them (the medical gate checks MedicalQueryGuard and CapabilityClassifier only).",
+   "evidence": [
+    "EmuquTests/EvalUtterances.swift:175",
+    "EmuquTests/EvalUtterances.swift:314"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func EvalUtterances.req(tools:web:depth:speculation:)",
+   "hash": "ee27e6300c86ee02",
+   "does": "Builds a CapabilityClassifier.Requirement from four booleans (tools, web, depth, speculation), all defaulting false.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RouterEvalTests.testCapabilityCorrectnessByGate()",
+   "hash": "fce18b889363e926",
+   "does": "Classifies every catalog utterance, tallies pass/fail per slice (exact Requirement equality), prints failures, and asserts pass ratios ≥ 0.80 (real), 0.70 (adversarial), 0.75 (boundary).",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.isLikelyEnglish(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.embed(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::let CapabilityClassifier.prototypeCentroids",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.embeddingClassify(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.keywordHeuristic(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.asksToEmail(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.cosineSimilarity(_:_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::var CapabilityClassifier.Requirement.debugSummary",
+    "EmuquTests/EvalUtterances.swift::func RouterEvalTests.ratio(_:)"
+   ],
+   "reads": [
+    "mem:AppDependencies.current.providers.smartProviderRouter (embedder)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "for each utterance",
+     "effect": "classifies and buckets it"
+    },
+    {
+     "at": "+10",
+     "cond": "actual == expected",
+     "effect": "true: pass += 1; false: fail += 1 and a diagnostic line is recorded"
+    },
+    {
+     "at": "+16",
+     "cond": "u.note.map ?? \"\"",
+     "effect": "no note → nothing appended to the diagnostic"
+    },
+    {
+     "at": "+33",
+     "cond": "for each slice with failures",
+     "effect": "prints a header line"
+    },
+    {
+     "at": "+35",
+     "cond": "for each failure line",
+     "effect": "prints it"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.DescribedDetail.note(_:)": "a76e785a36f0e4e6",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.asksToEmail(_:)": "f46307606349eab9",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)": "67f299962bb530f2",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.cosineSimilarity(_:_:)": "644b9d7baad9bdb0",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.embed(_:)": "ab993c103face060",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.embeddingClassify(_:)": "598ed05d4c3d5227",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.isLikelyEnglish(_:)": "415ee598e877b051",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.keywordHeuristic(_:)": "bcb34519a50b7349",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::let CapabilityClassifier.prototypeCentroids": "7a9ea8ae197b11fb",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::var CapabilityClassifier.Requirement.debugSummary": "7635398939270bf7",
+    "EmuquTests/EvalUtterances.swift::func RouterEvalTests.ratio(_:)": "080b99961f098c17"
+   }
+  },
+  {
+   "key": "func RouterEvalTests.testZeroMisrouteOnMedicalRefusalUtterances()",
+   "hash": "aa1757b32046fa09",
+   "does": "Selects catalog utterances MedicalQueryGuard.classify flags (asserts at least 2), and for each asserts MedicalQueryGuard.evaluate is not .proceed and the classifier output equals the expected (zero-flag) Requirement.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.evaluate(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.isLikelyEnglish(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.embed(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::let CapabilityClassifier.prototypeCentroids",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.embeddingClassify(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.keywordHeuristic(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.asksToEmail(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.cosineSimilarity(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "for each medical utterance",
+     "effect": "asserts refusal and exact routing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.asksToEmail(_:)": "f46307606349eab9",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)": "67f299962bb530f2",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.cosineSimilarity(_:_:)": "644b9d7baad9bdb0",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.embed(_:)": "ab993c103face060",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.embeddingClassify(_:)": "598ed05d4c3d5227",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.isLikelyEnglish(_:)": "415ee598e877b051",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.keywordHeuristic(_:)": "bcb34519a50b7349",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::let CapabilityClassifier.prototypeCentroids": "7a9ea8ae197b11fb",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "7e13e63b0e68cfdb",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.evaluate(_:)": "209910bab182d4ea"
+   }
+  },
+  {
+   "key": "func RouterEvalTests.testCatalogIsPopulated()",
+   "hash": "38bfa29a53a7f404",
+   "does": "Asserts all.count equals the sum of the three slices and that slices have at least 6, 6 and 10 entries.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "The first assertion is a tautology: `all` is defined as sliceA + sliceB + sliceC, so its count always equals the sum.",
+     "evidence": [
+      "EmuquTests/EvalUtterances.swift:244",
+      "EmuquTests/EvalUtterances.swift:338"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func RouterEvalTests.ratio(_:)",
+   "hash": "abe77fac9d945a22",
+   "does": "Returns pass/(pass+fail) for a bucket, 0 when empty.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "total > 0",
+     "effect": "false: returns 0 (an empty slice fails its floor); true: the ratio"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

@@ -17,8 +17,8 @@ final class ComposerState {
 
     /// Update only if the value actually changes. Without this guard
     /// the observable would still publish on identical values
-    /// (Combine's observable doesn't dedupe), defeating the
-    /// optimization.
+    /// (an `@Observable` property notifies on every assignment, equal
+    /// or not), defeating the optimization.
     func update(canSend newValue: Bool) {
         if canSend != newValue { canSend = newValue }
     }
@@ -69,9 +69,13 @@ final class AssistantViewModel {
     /// Per-turn safe-to-speak cursor keyed by turn ID. Voice TTS reads only
     /// up to `speakableTextCursor[turn.id]` characters of the turn's text;
     /// characters past that may still be revised or discarded if a tool_use
-    /// block arrives in the current round. The cursor advances ONLY at round
-    /// boundaries where the round emitted text and NO tool_use — i.e. the
-    /// text has passed the "will the model call a tool?" decision point.
+    /// block arrives in the current round. The cursor advances at the end of
+    /// a round that emitted text and NO tool_use, and — for voice latency —
+    /// mid-stream at each published sentence until the round's first tool_use
+    /// arrives (`StreamTextBuffer.flush`). A sentence spoken that way can turn
+    /// out to precede a tool call; `StreamTextBuffer.rewindToRoundStart` then
+    /// pulls the cursor back with the text and the voice controller re-syncs
+    /// its own spoken position, so the next round is spoken from its start.
     ///
     /// Chat UI still sees text stream live (it reads `turns[idx].text`); only
     /// TTS waits for this cursor to avoid speaking lines the model then
@@ -118,9 +122,8 @@ final class AssistantViewModel {
     let factsStore: UserFactsStore
 
     /// Per-conversation routing state. Tracks the
-    /// currently-locked tier, turn count (for the 3-turn settling
-    /// window), and the running summary embedding (topic-shift
-    /// detection). Reset by `clearConversation()`.
+    /// currently-locked tier and the turn count (for the 3-turn settling
+    /// window). Reset by `clearConversation()`.
     let sessionState = RoutingSessionState()
 
     @ObservationIgnored var streamTask: Task<Void, Never>?
@@ -163,7 +166,7 @@ final class AssistantViewModel {
             archive: AppDependencies.current.storage.sessionArchive,
             settings: { AppDependencies.current.app.settingsManager.settingsSnapshot }
         )
-        // CompactToolRouter exposes 21 read tools + up to 16 action
+        // CompactToolRouter exposes 21 read tools + up to 18 action
         // tools instead of one tool per fact-catalog entry (~212).
         // The model picks fewer, well-described tools; the underlying
         // resolvers stay granular. See CompactToolRouter.swift.
@@ -185,7 +188,7 @@ final class AssistantViewModel {
     /// keeping the first `cap` entries, in `ToolRetriever`'s order (ranked by
     /// relevance once the schema outgrows the retriever's target). When `cap`
     /// is nil or `tools.count <= cap`, returns the input unchanged — the
-    /// compact schema (21 read tools plus up to 16 action tools) is under
+    /// compact schema (21 read tools plus up to 18 action tools) is under
     /// every provider's cap.
     static func trimTools(_ tools: [ToolSpec], to cap: Int?) -> [ToolSpec] {
         guard let cap, tools.count > cap, cap > 0 else { return tools }
@@ -304,20 +307,6 @@ final class AssistantViewModel {
 
     // MARK: - Public API
 
-    var canSend: Bool {
-        // Not `registry.activeProvider.isAvailable`,
-        // which hits Keychain via APIKeyStore on every read. The
-        // chat input bar reads `canSend` 3-4 times per render
-        // (.disabled, send-button color, prefab chip enabled);
-        // re-rendering on every keystroke would mean ~12 Keychain hits
-        // per character typed. Reads the published cache instead; the
-        // registry refreshes it on key/active-provider changes.
-        !isStreaming && registry.activeProviderAvailable
-    }
-
-    /// Pre-fill the input with a question/topic. Used by Dashboard ✨ Ask AI affordances.
-    var pendingDraft: String?
-
     /// Whether anything may go to a model: the AI Assistant switch is on and
     /// the AI notice has been accepted. The Flo tab and Get Me Back ask for
     /// the notice first; the workout screen's voice bar and the coach's
@@ -346,7 +335,9 @@ final class AssistantViewModel {
     /// Pending message awaiting per-provider consent. The view owns the
     /// presentation; this view-model just holds the text + voice flag so
     /// the user doesn't have to retype after accepting the sheet.
-    var pendingConsentRequest: (provider: ProviderID, text: String, fromVoice: Bool)?
+    /// `regenerate` marks a request held by `regenerateLast()`: accepting
+    /// re-runs the regeneration instead of sending `text` as a new message.
+    var pendingConsentRequest: (provider: ProviderID, text: String, fromVoice: Bool, regenerate: Bool)?
 
     /// Send a free-form user message. `fromVoice` flags the next dispatch()
     /// so the system prompt includes the voice overlay (1–3 sentences, no
@@ -367,7 +358,9 @@ final class AssistantViewModel {
     /// Third-party providers must have explicit
     /// per-provider consent before their first PHI/PII payload leaves
     /// the device. Apple Intelligence is on-device and exempt; the
-    /// five hosted providers each prompt once.
+    /// five hosted providers each prompt once. A voice question the
+    /// deterministic shortcut answers on the device needs no consent, so
+    /// that shortcut runs before the consent check.
     @discardableResult
     func send(text: String, fromVoice: Bool = false) -> SendOutcome {
         AppDependencies.current.app.keyboardPerfSignpost.event("AssistantViewModel.send.entry")
@@ -379,13 +372,13 @@ final class AssistantViewModel {
             errorMessage = Self.unavailableMessage(for: registry.activeProvider.id)
             return .rejectedNoProvider
         }
+        if fromVoice, !isStreaming, servedDeterministically(trimmed) { return .dispatched }
         let activeProvider = registry.activeProvider.id
         if AppDependencies.current.providers.providerConsentTracker.requiresConsent(activeProvider) {
-            pendingConsentRequest = (provider: activeProvider, text: trimmed, fromVoice: fromVoice)
+            pendingConsentRequest = (provider: activeProvider, text: trimmed, fromVoice: fromVoice, regenerate: false)
             return .requiresConsent(activeProvider)
         }
         if isStreaming { return queueBehindStream(trimmed, fromVoice: fromVoice) }
-        if fromVoice, servedDeterministically(trimmed) { return .dispatched }
         dispatchToProvider(trimmed, fromVoice: fromVoice)
         return .dispatched
     }
@@ -448,7 +441,9 @@ final class AssistantViewModel {
     /// path because users typing tend to ask multi-part questions
     /// that the deterministic path would over-truncate.
     /// `DeterministicIntentTests` checks the patterns with example-based
-    /// assertions; there is no measured precision gate.
+    /// assertions; there is no measured precision gate. Not used while a
+    /// stream is in flight: the voice send queues behind it instead, so the
+    /// answer lands after the reply it follows.
     private func servedDeterministically(_ trimmed: String) -> Bool {
         let context = DeterministicIntent.MatchContext(
             now: Date(),
@@ -472,7 +467,10 @@ final class AssistantViewModel {
 
     /// AFM prewarm lives here, not in init (see the init note). Idempotent,
     /// detached at .utility, so this only kicks off the load on
-    /// first send of the session. By the time the LLM call
+    /// first send of the session. Only with Apple Intelligence selected and
+    /// outside Deep: a cloud pick always answers with that cloud
+    /// (`TurnRouter`), so loading the on-device model would only contend
+    /// with the keyboard. By the time the LLM call
     /// actually fires (after fact-registry build + system prompt
     /// composition, ~50-200 ms) the model is partway loaded.
     /// Apple's `prewarm()` returns immediately and warms in the
@@ -482,8 +480,7 @@ final class AssistantViewModel {
         store.save(turns)
         nextSendIsVoice = fromVoice
         let mode = AppDependencies.current.app.settingsManager.settings.routingMode
-        let activeIsApple = registry.activeProvider.id == .apple
-        if mode != .deep, mode != .manual || activeIsApple {
+        if registry.activeProvider.id == .apple, mode != .deep {
             AppleFoundationProvider.prewarm()
         }
         AppDependencies.current.app.keyboardPerfSignpost.event("AssistantViewModel.send.beforeDispatch")
@@ -504,19 +501,27 @@ final class AssistantViewModel {
     }
 
     /// Called by the per-provider consent sheet when the user accepts.
-    /// Records the acknowledgement and re-issues the pending send.
+    /// Records the acknowledgement and re-issues the pending send, or the
+    /// pending regeneration.
     @discardableResult
     func acknowledgeConsentAndContinue() -> SendOutcome {
         guard let pending = pendingConsentRequest else { return .rejectedEmpty }
         AppDependencies.current.providers.providerConsentTracker.acknowledge(pending.provider)
         pendingConsentRequest = nil
+        guard !pending.regenerate else {
+            regenerateLast()
+            return .dispatched
+        }
         return send(text: pending.text, fromVoice: pending.fromVoice)
     }
 
     /// Called by the per-provider consent sheet when the user declines.
     /// Drops the pending message, hands a typed one back to the input bar
     /// (`ComposerState.returnedDraft`), and surfaces an info-level error so
-    /// the user knows nothing was sent.
+    /// the user knows nothing was sent. A declined regeneration changed
+    /// nothing (the previous reply is still in place), so there is no draft
+    /// to hand back. A voice message is not put in the input bar: the user
+    /// spoke it and declined to share it.
     ///
     /// No-op when nothing is pending: dismissing the sheet after Accept
     /// writes nil through the sheet's item binding, which lands here after
@@ -524,7 +529,7 @@ final class AssistantViewModel {
     func cancelPendingConsent() {
         guard let pending = pendingConsentRequest else { return }
         pendingConsentRequest = nil
-        if !pending.fromVoice { composerState.returnedDraft = pending.text }
+        if !pending.fromVoice, !pending.regenerate { composerState.returnedDraft = pending.text }
         errorMessage = String(localized: "Message not sent — you must agree to share data with this provider before its first message.", bundle: LanguageManager.appBundle)
     }
 
@@ -537,7 +542,8 @@ final class AssistantViewModel {
     /// prefix changes unexpectedly. Purely diagnostic.
     var lastCatalogHash: String?
 
-    /// Debug-build byte-identity check on the cacheable prefix. When the
+    /// Byte-identity check on the cacheable prefix, in every build (not
+    /// only Debug); drift is logged as a warning. When the
     /// schema hash changes turn-to-turn, it means SOMETHING in the tool
     /// catalog shifted — usually benign (availability range crossed a
     /// month boundary, a new session was recorded bumping hasData for an
@@ -595,6 +601,7 @@ final class AssistantViewModel {
         cancel()
         turns = []
         errorMessage = nil
+        pendingConsentRequest = nil
         priorSummary = nil
         summarizedThroughTurnID = nil
         speakableTextCursor = [:]
@@ -603,6 +610,7 @@ final class AssistantViewModel {
         sessionState.currentTier = .quick
         sessionState.turnCount = 0
         store.clear()
+        Self.removeChatExports()
         // UserDefaults writes block on synchronous disk sync — push off main.
         Task.detached(priority: .utility) {
             UserDefaults.standard.removeObject(forKey: Self.summaryKey)
@@ -616,9 +624,13 @@ final class AssistantViewModel {
     /// native share sheet opens instantly instead of the UIActivityViewController
     /// cold-start path, which can hang 1–2 seconds (and up to a minute when
     /// the extension scan is cold — see shareRow in FitnessTabView).
+    ///
+    /// Earlier exports are deleted first, so at most one copy of the chat
+    /// sits in the temporary directory; `clearConversation()` deletes that one.
     func exportConversation() -> URL? {
         guard !turns.isEmpty else { return nil }
-        let filename = "EmuquChat-\(Int(Date().timeIntervalSince1970)).md"
+        Self.removeChatExports()
+        let filename = "\(Self.chatExportPrefix)\(Int(Date().timeIntervalSince1970)).md"
         let url = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
         do {
             try conversationMarkdown().write(to: url, atomically: true, encoding: .utf8)
@@ -629,6 +641,23 @@ final class AssistantViewModel {
             // export produced no file.
             debugLog("[Assistant] exportConversation write failed: \(error.localizedDescription)", level: .warning)
             return nil
+        }
+    }
+
+    private static let chatExportPrefix = "EmuquChat-"
+
+    /// Delete every chat export (`EmuquChat-*.md`) left in the temporary
+    /// directory. Failures are logged; a leftover file is retried next time.
+    static func removeChatExports() {
+        let fileManager = FileManager.default
+        let directory = fileManager.temporaryDirectory
+        do {
+            let names = try fileManager.contentsOfDirectory(atPath: directory.path)
+            for name in names where name.hasPrefix(chatExportPrefix) && name.hasSuffix(".md") {
+                try fileManager.removeItem(at: directory.appendingPathComponent(name))
+            }
+        } catch {
+            debugLog("[Assistant] removing old chat exports failed: \(error.localizedDescription)", level: .warning)
         }
     }
 
@@ -654,8 +683,13 @@ final class AssistantViewModel {
     /// Re-run the last assistant turn against the current question/context.
     /// Useful when the answer was bad or the user switched models and wants
     /// the new model's take.
+    ///
+    /// Runs `send`'s own gates first: nothing happens while Flo is off, and
+    /// when the selected provider still needs consent the request is held
+    /// for the consent sheet BEFORE the old reply is removed, so declining
+    /// leaves the conversation as it was.
     func regenerateLast() {
-        guard !isStreaming else { return }
+        guard !isStreaming, !refusedWhileFloIsOff() else { return }
         // Find the last assistant turn and drop it.
         guard let lastAssistantIndex = turns.lastIndex(where: { $0.role == .assistant }) else { return }
         // A reply the app gave on the device — the crisis line, a medical
@@ -664,9 +698,20 @@ final class AssistantViewModel {
         guard !turns[lastAssistantIndex].localOnly else { return }
         // Must have a user turn before it to regenerate from.
         guard lastAssistantIndex > 0, turns[lastAssistantIndex - 1].role == .user else { return }
+        guard !holdRegenerationForConsent(userText: turns[lastAssistantIndex - 1].text) else { return }
         turns.remove(at: lastAssistantIndex)
         store.save(turns)
         dispatch()
+    }
+
+    /// True, with the consent sheet requested, when the selected provider has
+    /// no data-sharing consent yet. Routing only moves a turn to a consented
+    /// provider, so the selected one is the only one that can need it.
+    private func holdRegenerationForConsent(userText: String) -> Bool {
+        let active = registry.activeProvider.id
+        guard AppDependencies.current.providers.providerConsentTracker.requiresConsent(active) else { return false }
+        pendingConsentRequest = (provider: active, text: userText, fromVoice: false, regenerate: true)
+        return true
     }
 
     /// Add a turn's text (or any string) to the cross-session memory store.

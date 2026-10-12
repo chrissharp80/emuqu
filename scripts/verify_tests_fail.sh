@@ -51,7 +51,7 @@ FILTER="${1:-}"
 PROJECT="Emuqu.xcodeproj"
 SCHEME="Emuqu"
 DERIVED="${MUTATION_DERIVED_DATA:-build/MutationDerivedData}"
-PASS=0; FAIL=0; SKIP=0
+PASS=0; FAIL=0; SKIP=0; INVALID=0
 
 DEST="$(./scripts/select_simulator_destination.sh "$SCHEME" "$PROJECT")"
 if [[ -z "$DEST" ]]; then
@@ -96,28 +96,66 @@ run_suite() {
     return 1
 }
 
+# The suite must be green before the mutation, or a red afterwards proves
+# nothing about the mutation. Returns 0 when green; otherwise prints the SKIP
+# line, counts it, and returns 1.
+baseline_green() {
+    local name="$1" suite="$2" baseline
+    run_suite "$suite"; baseline=$?
+    # One retry: these are usually transient, and a build failure must not be
+    # recorded as evidence about the tests either way.
+    if (( baseline == 2 )); then run_suite "$suite"; baseline=$?; fi
+    (( baseline == 0 )) && return 0
+    if (( baseline == 2 )); then
+        printf "  \033[33mSKIP\033[0m  %-30s BUILD failed (not a test result)\n" "$name"
+    else
+        printf "  \033[33mSKIP\033[0m  %-30s %s was already red\n" "$name" "$suite"
+    fi
+    SKIP=$((SKIP + 1)); return 1
+}
+
+# Did the last run's compile fail in the mutated file itself?
+mutation_broke_build() {
+    grep -E ':[0-9]+:[0-9]+: error:' "$BACKUP_DIR/run.log" | grep -qF "/$1:"
+}
+
+# Runs the suite against the applied mutation and prints how it was judged:
+# 1 = tests failed, 0 = tests passed, 3 = the mutated file does not compile,
+# 2 = the build failed for some other reason on two attempts.
+#
+# Only 1 is a catch. A mutation that does not compile is reported red by
+# xcodebuild without a single test asserting anything; counting that as
+# "caught" is how a case reads PASS for a suite that was never exercised.
+mutated_result() {
+    local suite="$1" file="$2" code
+    run_suite "$suite"; code=$?
+    if (( code == 2 )) && ! mutation_broke_build "$file"; then
+        run_suite "$suite"; code=$?
+    fi
+    if (( code == 2 )) && mutation_broke_build "$file"; then code=3; fi
+    echo "$code"
+}
+
+report_mutation() {
+    local name="$1" suite="$2" code="$3"
+    case "$code" in
+        1) printf "  \033[32mPASS\033[0m  %-30s %s caught it\n" "$name" "$suite"
+           PASS=$((PASS + 1)) ;;
+        0) printf "  \033[31mFAIL\033[0m  %-30s SURVIVED — %s asserts nothing about this\n" "$name" "$suite"
+           FAIL=$((FAIL + 1)) ;;
+        3) printf "  \033[31mFAIL\033[0m  %-30s the mutation does not compile — fix the mutation\n" "$name"
+           INVALID=$((INVALID + 1)) ;;
+        *) printf "  \033[33mSKIP\033[0m  %-30s BUILD failed after the mutation (not a test result)\n" "$name"
+           SKIP=$((SKIP + 1)) ;;
+    esac
+}
+
 # mutate <name> <suite> <file> <python mutation>
 mutate() {
-    local name="$1" suite="$2" file="$3" script="$4"
+    local name="$1" suite="$2" file="$3" script="$4" code
 
     if [[ -n "$FILTER" && "$name" != *"$FILTER"* ]]; then return; fi
-
-    # The suite must be green before the mutation, or a red afterwards proves
-    # nothing about the mutation.
-    run_suite "$suite"; local baseline=$?
-    if (( baseline == 2 )); then
-        # One retry: these are usually transient, and a build failure must not
-        # be recorded as evidence about the tests either way.
-        run_suite "$suite"; baseline=$?
-    fi
-    if (( baseline != 0 )); then
-        if (( baseline == 2 )); then
-            printf "  \033[33mSKIP\033[0m  %-30s BUILD failed (not a test result)\n" "$name"
-        else
-            printf "  \033[33mSKIP\033[0m  %-30s %s was already red\n" "$name" "$suite"
-        fi
-        SKIP=$((SKIP + 1)); return
-    fi
+    baseline_green "$name" "$suite" || return
 
     backup "$file"
     if ! python3 -c "$script" 2>/dev/null; then
@@ -125,16 +163,9 @@ mutate() {
         restore_all; SKIP=$((SKIP + 1)); return
     fi
 
-    run_suite "$suite"; local code=$?
+    code="$(mutated_result "$suite" "$file")"
     restore_all
-
-    if (( code != 0 )); then
-        printf "  \033[32mPASS\033[0m  %-30s %s caught it\n" "$name" "$suite"
-        PASS=$((PASS + 1))
-    else
-        printf "  \033[31mFAIL\033[0m  %-30s SURVIVED — %s asserts nothing about this\n" "$name" "$suite"
-        FAIL=$((FAIL + 1))
-    fi
+    report_mutation "$name" "$suite" "$code"
 }
 
 echo "Mutating production behaviour; each mutation must be caught."
@@ -164,8 +195,6 @@ mutate "recovery_label_inverted" "EmuquTests/RecoveryScoreCalculatorTests" \
     "Emuqu/Sources/Models/ScoreVerdict.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Models/ScoreVerdict.swift');s=p.read_text();o='        case 90...100: self = .excellent';assert s.count(o)==1;p.write_text(s.replace(o,'        case 91...100: self = .excellent'))"
 
-# The branch that decides whether a session is written encrypted. If nothing
-# asserts on it, the encrypted write can silently regress to a plaintext fallback.
 # The import path converts HealthKit sleep boundaries into recording offsets.
 # A bare `Int64(seconds * 1000)` here TRAPS on a non-finite or out-of-range
 # date — and its inputs are dates parsed from a user-supplied file. Removing
@@ -194,13 +223,13 @@ mutate "gps_negative_accuracy_reads_good" "EmuquTests/GPSAccuracyLevelTests" \
 # read as hard. Widening the rejection threshold is the quiet way to break that.
 mutate "dfa_ectopic_threshold_widened" "EmuquTests/LiveDFAAnalyzerTests" \
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift');s=p.read_text();o='let ectopicRatio: Double = 0.20';assert s.count(o)==1;p.write_text(s.replace(o,'let ectopicRatio: Double = 0.50'))"
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift');s=p.read_text();o='let ectopicRatio = HRVThresholds.ectopicThresholdPercent';assert s.count(o)==1;p.write_text(s.replace(o,'let ectopicRatio = 0.50'))"
 
 # Scrubbing genuine beat-to-beat variation flattens alpha-1 the other way, so
 # the lower bound matters as much as the upper one.
 mutate "dfa_cleans_normal_variation" "EmuquTests/LiveDFAAnalyzerTests" \
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift');s=p.read_text();o='let ectopicRatio: Double = 0.20';assert s.count(o)==1;p.write_text(s.replace(o,'let ectopicRatio: Double = 0.05'))"
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift');s=p.read_text();o='let ectopicRatio = HRVThresholds.ectopicThresholdPercent';assert s.count(o)==1;p.write_text(s.replace(o,'let ectopicRatio = 0.05'))"
 
 # The route-TRIMP "whole loop" test is a BAND. As a floor with no upper bound,
 # `max` below it is unreachable and every user who runs past their saved route
@@ -282,12 +311,12 @@ mutate "resting_hr_accepts_implausible" "EmuquTests/EffectiveSettingsTests" \
 # it were ridden steadily.
 mutate "normalized_power_not_fourth_power" "EmuquTests/NormalizedPowerTests" \
     "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift');s=p.read_text();o='        let fourths = windowMeans.map { pow(' + chr(36) + '0, 4) }';assert s.count(o)==1;p.write_text(s.replace(o,'        let fourths = windowMeans.map { pow(' + chr(36) + '0, 2) }'))"
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift');s=p.read_text();o='windowMeans.reduce(0) { ' + chr(36) + '0 + pow(' + chr(36) + '1, 4) }';assert s.count(o)==1;p.write_text(s.replace(o,'windowMeans.reduce(0) { ' + chr(36) + '0 + pow(' + chr(36) + '1, 2) }'))"
 
 # The 30-second window is what separates a sustained surge from sample noise.
 mutate "normalized_power_window_shrunk" "EmuquTests/NormalizedPowerTests" \
     "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift');s=p.read_text();o='            let mean = slice.reduce(0, +) / 30.0';assert s.count(o)==1;p.write_text(s.replace(o,'            let mean = slice.reduce(0, +) / 10.0'))"
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift');s=p.read_text();o='reduce(0, +) / 30.0 }';assert s.count(o)==1;p.write_text(s.replace(o,'reduce(0, +) / 10.0 }'))"
 
 # The overnight merge offset re-anchors every beat of a child segment onto its
 # parent's clock. Truncating instead of rounding loses a millisecond off each
@@ -334,6 +363,8 @@ mutate "healthkit_energy_ignores_body_mass" "EmuquTests/HealthKitWorkoutExportTe
     "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/HealthKitWorkoutExport.swift');o='mlOxygenPerKgPerMET * bodyWeightKg * minutes';assert (s:=p.read_text()).count(o)==1;p.write_text(s.replace(o,'mlOxygenPerKgPerMET * 75.0 * minutes'))"
 
+# The branch that decides whether a session is written encrypted. If nothing
+# asserts on it, the encrypted write can silently regress to a plaintext fallback.
 mutate "plaintext_write_undetected" "EmuquTests/PendingEncryptionLedgerTests" \
     "Emuqu/Sources/Storage/Archive+PendingEncryption.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Storage/Archive+PendingEncryption.swift');s=p.read_text();o='return [.atomic, .completeFileProtection]';assert s.count(o)==1;p.write_text(s.replace(o,'return [.atomic, .completeFileProtectionUntilFirstUserAuthentication]'))"
@@ -517,7 +548,7 @@ mutate "zone_label_uses_session_peak_as_denominator" "EmuquTests/WorkoutMileMark
 # a 60 bpm sentinel biases the RHR z-score the recovery score is built on.
 mutate "stored_hr_fabricates_a_sentinel" "EmuquTests/TimeDomainTests" \
     "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/TimeDomainAnalysis.swift');s=p.read_text();o='        guard !hrValues.isEmpty else { return nil }';assert s.count(o)==1;p.write_text(s.replace(o,'        guard !hrValues.isEmpty else { return statistics(of: [60]) }'))"
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/TimeDomainAnalysis.swift');s=p.read_text();o='        guard !hrValues.isEmpty, hrValues.count == cleanBeats else { return nil }';assert s.count(o)==1;p.write_text(s.replace(o,'        guard !hrValues.isEmpty, hrValues.count == cleanBeats else { return statistics(of: [60]) }'))"
 
 # The classifier's SDNN is POPULATION variance (divisor N) on purpose, kept
 # out of `Statistics` because that offers only the sample form (N-1). The two
@@ -697,7 +728,7 @@ mutate "ppi_error_cap_relaxed" "EmuquTests/StrapPPIFilterTests" \
 # that does not advance stacks the whole recording at t=0.
 mutate "ppi_timeline_does_not_advance" "EmuquTests/StrapPPIFilterTests" \
     "Emuqu/Sources/Collection/StrapPPIFilter.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/StrapPPIFilter.swift');s=p.read_text();o='            cumulativeMs += Int64(interval)';assert s.count(o)==1;p.write_text(s.replace(o,'            cumulativeMs += 0'))"
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/StrapPPIFilter.swift');s=p.read_text();o='            beatMs += Int64(interval)';assert s.count(o)==1;p.write_text(s.replace(o,'            beatMs += 0'))"
 
 # The H10 keeps ONE exercise file. Starting a second recording abandons the
 # first, and the night already on the strap is gone. `isRecordingOnDevice` is
@@ -784,7 +815,7 @@ mutate "maxhr_floor_removed" "EmuquTests/MaxHeartRateTests" \
 # A max HR the user measured in a lab must beat the population estimate.
 mutate "maxhr_user_entry_ignored" "EmuquTests/MaxHeartRateTests" \
     "Emuqu/Sources/Analysis/MaxHeartRate.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/MaxHeartRate.swift');s=p.read_text();o='        if let userEntered, userEntered >= minimumUserEntered { return userEntered }';assert s.count(o)==1;p.write_text(s.replace(o,'        if let userEntered, userEntered >= minimumUserEntered, birthday == nil { return userEntered }'))"
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/MaxHeartRate.swift');s=p.read_text();o='        if let userEntered, userEntered >= minimumUserEntered { return min(userEntered, maximumUserEntered) }';assert s.count(o)==1;p.write_text(s.replace(o,'        if let userEntered, userEntered >= minimumUserEntered, birthday == nil { return min(userEntered, maximumUserEntered) }'))"
 
 # A workout that bounced between the phone and the Watch has interleaved
 # timestamps. Out of order, successive differences become enormous — and
@@ -878,7 +909,7 @@ mutate "crash_stack_drops_nested_frames" "EmuquTests/MetricKitCrashStackTests" \
 # `Int(Double.nan)` traps. Dropping the finiteness guard publishes NaN.
 mutate "pedometer_publishes_unvalidated_distance" "EmuquTests/PedometerSampleTests" \
     "Emuqu/Sources/Collection/WorkoutPedometer.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/WorkoutPedometer.swift');s=p.read_text();o='guard let meters = rawDistanceMeters, meters.isFinite, meters >= 0 else { return nil }';assert s.count(o)==1;p.write_text(s.replace(o,'guard let meters = rawDistanceMeters else { return nil }'))"
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/WorkoutPedometer.swift');s=p.read_text();o='guard let meters = rawDistanceMeters, meters.isFinite, meters >= 0,'+chr(10)+'              meters <= Self.maximumPlausibleMeters else { return nil }';assert s.count(o)==1;p.write_text(s.replace(o,'guard let meters = rawDistanceMeters else { return nil }'))"
 
 # CMPedometer reports cadence in steps per SECOND; every display in the app is
 # steps per minute. Dropping the conversion under-reports cadence 60x.
@@ -900,10 +931,13 @@ mutate "import_ignores_indoor_workouts" "EmuquTests/HealthWorkoutImporterTests" 
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Import/HealthWorkoutImporter.swift');s=p.read_text();o='        case .running: return isIndoor ? .treadmill : .run';assert s.count(o)==1;p.write_text(s.replace(o,'        case .running: return .run'))"
 
 # A HealthKit step sample is a count over a window. A zero-length window makes
-# the division `inf`, and the cadence chart converts with `Int(...)`.
+# the division `inf`, and the cadence chart converts with `Int(...)`; a window
+# that ends before it starts makes it negative. Dropping the window check lets
+# the backwards window through as a negative cadence (the zero-length one is
+# still stopped by the later `isFinite` guard).
 mutate "import_cadence_divides_by_zero_window" "EmuquTests/HealthWorkoutImporterTests" \
     "Emuqu/Sources/Import/HealthWorkoutImporter.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Import/HealthWorkoutImporter.swift');s=p.read_text();o='            guard seconds > 0, sample.value >= 0 else { return nil }';assert s.count(o)==1;p.write_text(s.replace(o,'            guard sample.count >= 0 else { return nil }'))"
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Import/HealthWorkoutImporter.swift');s=p.read_text();o='            guard seconds > 0, sample.value >= 0 else { return nil }';assert s.count(o)==1;p.write_text(s.replace(o,'            guard sample.value >= 0 else { return nil }'))"
 
 # Emuqu has no swim, no elliptical and no yoga. Falling back to a plausible
 # neighbour files a workout under a label that is simply wrong and then hands it
@@ -975,12 +1009,18 @@ mutate "settings_roundtrip_drops_a_field" "EmuquTests/UserSettingsDecodeContract
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Models/UserSettings+Codable.swift');s=p.read_text();o='        baselineRMSSD = Self.optional(Double.self, .baselineRMSSD, from: container)\n';assert s.count(o)==1;p.write_text(s.replace(o,''))"
 
 echo
-echo "  $PASS caught, $FAIL survived, $SKIP skipped"
+echo "  $PASS caught, $FAIL survived, $INVALID did not compile, $SKIP skipped"
 # A SKIP means the mutation was never applied or the suite could not be run —
 # in either case that mutation was NOT verified. Treating skips as success is
 # the same "reports clean while measuring nothing" failure this whole script
 # exists to catch, so they fail the run.
-if (( FAIL != 0 || SKIP != 0 )); then
+# A mutation that does not compile was never seen by a test either.
+if (( FAIL != 0 || SKIP != 0 || INVALID != 0 )); then
+    if (( INVALID != 0 )); then
+        echo
+        echo "  $INVALID mutation(s) do not compile, so no test was asked about them."
+        echo "  That is a bug in the mutation: rewrite it to change behaviour, not syntax."
+    fi
     if (( SKIP != 0 )); then
         echo
         echo "  $SKIP mutation(s) were NOT verified. A skip is not a pass."

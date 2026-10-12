@@ -58,19 +58,24 @@ enum StrapPPIFilter {
 
     /// A recording's accepted intervals as a beat series.
     ///
-    /// The timeline advances **only across accepted beats**: a rejected
-    /// interval contributes no elapsed time, so `t_ms` measures accumulated
-    /// good beats rather than wall clock. That is the behaviour the offline
-    /// path has always had and it is preserved here deliberately — it is also
-    /// why the window selector translates through `wallClockMs` rather than
-    /// trusting `t_ms` across gaps.
+    /// `t_ms` advances **only across accepted beats**: a rejected interval
+    /// contributes no beat time, so `t_ms` measures accumulated good beats.
+    /// That is the behaviour the offline path has always had and it is
+    /// preserved here deliberately. Real time is carried beside it: each
+    /// beat's `wallClockMs` is the time since the recording began, every
+    /// interval counted, accepted or not. The window selector and the sleep
+    /// boundaries read `wallClockMs ?? t_ms`, and the break check between
+    /// beats compares wall clocks, so a stretch of rejected intervals no
+    /// longer pulls the rest of the night earlier.
     static func rrPoints(from samples: [StrapPPISample]) -> [RRPoint] {
         var points: [RRPoint] = []
-        var cumulativeMs: Int64 = 0
+        var beatMs: Int64 = 0
+        var elapsedMs: Int64 = 0
         for sample in samples {
+            defer { elapsedMs += Int64(max(0, sample.ppInMs)) }
             guard let interval = acceptedInterval(sample) else { continue }
-            points.append(RRPoint(t_ms: cumulativeMs, rr_ms: interval))
-            cumulativeMs += Int64(interval)
+            points.append(RRPoint(t_ms: beatMs, rr_ms: interval, wallClockMs: elapsedMs))
+            beatMs += Int64(interval)
         }
         return points
     }

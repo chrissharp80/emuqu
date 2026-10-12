@@ -1,0 +1,105 @@
+{
+ "file": "Emuqu/Sources/Utilities/Errors.swift",
+ "hash": "5bbd5598c82ff0a1",
+ "role": "Defines PipelineError (HRV analysis failure categories with log descriptions) and the attempt/sleepQuietly helpers that replace try? with a logged swallow.",
+ "types": [
+  "PipelineError: enum (Error, LocalizedError) — analysis pipeline failure kinds"
+ ],
+ "state": [],
+ "toplevel": "Free functions attempt<T> and sleepQuietly.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var PipelineError.errorDescription",
+   "hash": "8231f9c9c1a24e45",
+   "does": "Returns a short English description per PipelineError case with the session UUID's first 8 chars; healthKitFetchFailed appends the underlying error's localizedDescription.",
+   "entry": "LocalizedError witness; read via error.localizedDescription in HRVAnalysisPipeline+Metrics.swift:134",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "noRRSeries",
+     "effect": "'No RR series for session …'"
+    },
+    {
+     "at": "+4",
+     "cond": "timeDomainFailed",
+     "effect": "'Time domain analysis failed … window [s-e]'"
+    },
+    {
+     "at": "+6",
+     "cond": "nonlinearFailed",
+     "effect": "'Nonlinear analysis failed …'"
+    },
+    {
+     "at": "+8",
+     "cond": "windowSelectionFailed",
+     "effect": "'Window selection returned no result …'"
+    },
+    {
+     "at": "+10",
+     "cond": "insufficientRange",
+     "effect": "'Invalid window range …'"
+    },
+    {
+     "at": "+12",
+     "cond": "healthKitFetchFailed",
+     "effect": "'Apple Health <op> failed for session …: <underlying.localizedDescription>'"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func attempt(_:file:line:_:)",
+   "hash": "d7f0fae356414019",
+   "does": "Runs a throwing closure, returning its value or nil; on throw logs '[operation] failed: …' at .warning attributed to the caller.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:DebugLogger.pendingLines"
+   ],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "body throws",
+     "effect": "logs at .warning (lands in Recent Problems) and returns nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func sleepQuietly(_:context:file:line:)",
+   "hash": "245db3beeacb9a50",
+   "does": "Awaits Task.sleep(nanoseconds:); on cancellation logs '[Sleep] interrupted during <context>' at .info and returns normally.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:Task.sleep"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "sleep throws (CancellationError)",
+     "effect": "logged, swallowed; caller continues as if the sleep completed"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "9b0181db6472cf0d"
+   }
+  }
+ ],
+ "deps": {}
+}

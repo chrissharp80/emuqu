@@ -1,0 +1,47 @@
+{
+ "file": "docs/adr/006-swift-6-strict-concurrency.md",
+ "hash": "e3b0c44298fc1c14",
+ "role": "ADR 006: the project compiles in Swift 6 language mode with complete strict concurrency in every configuration; check_strict_concurrency_enabled.sh guards the setting and the unchecked-Sendable allowlist counts escapes.",
+ "types": [],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "§ ADR 006 — Swift 6 language mode is the concurrency gate",
+   "hash": "8da63f97fd7c2a33",
+   "does": "Claims Swift 6 mode + SWIFT_STRICT_CONCURRENCY=complete in all eight configurations, check_strict_concurrency_enabled.sh fails CI if any leaves it, escape count fell from 30 to .ci/unchecked_sendable_budget.txt, and lists the remaining escapes (StrapAPI, WhisperKit feeder, AmbientLocationService, ActiveRouteSession, backups, SessionArchive, BaselineTracker, ConversationStore, SystemDiagnosticsManager, KeyboardPerfSignpost); background readers must use settingsSnapshot. Verified: project.pbxproj has 8 'SWIFT_VERSION = 6.0' and 8 'SWIFT_STRICT_CONCURRENCY = complete' lines and 2 warnings-as-errors; budget 14 equals the 14 real annotations.",
+   "entry": null,
+   "calls": [
+    "scripts/check_strict_concurrency_enabled.sh::fn fail",
+    ".github/workflows/ci.yml::step strict-concurrency/Strict concurrency is switched on",
+    ".github/workflows/ci.yml::step lint-and-budgets/Unchecked Sendable guard",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settingsSnapshot"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "The ADR's enumeration of what remains omits three of the 14 escapes the gate counts: BreadcrumbStore (@unchecked Sendable), WorkoutStartCue.announceSynthesizer (nonisolated(unsafe)) and WCReplyBox (@unchecked Sendable).",
+     "evidence": [
+      "docs/adr/006-swift-6-strict-concurrency.md:37",
+      "Emuqu/Sources/Services/BreadcrumbStore.swift:142",
+      "Emuqu/Sources/Collection/WorkoutStartCue.swift:47",
+      "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift:439"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    ".github/workflows/ci.yml::step lint-and-budgets/Unchecked Sendable guard": "da0366fd78467749",
+    ".github/workflows/ci.yml::step strict-concurrency/Strict concurrency is switched on": "7dd78ff65eb72412",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settingsSnapshot": "599269848673b93a",
+    "scripts/check_strict_concurrency_enabled.sh::fn fail": "a02e4dd485c8c8e2"
+   }
+  }
+ ],
+ "deps": {}
+}

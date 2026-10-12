@@ -1,9 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# The roots and budget files are relative; from another directory the roots
+# would hold no files and both counts would read 0.
+cd "$(dirname "$0")/.."
+
 # Fixed-point fonts in the view layer.
 #
-# `.font(.system(size: N))` does not respond to the user's text-size setting.
+# `.font(.system(size: N))`, `Font.system(size: N)` held in a variable or
+# passed through a helper, and the same call split across lines all do not respond to the user's text-size setting.
 # At AX5 the surrounding text grows and those numbers stay put, which breaks
 # layout and leaves the largest figures on screen rendered at their smallest
 # size for exactly the users who enlarged their text.
@@ -66,6 +71,11 @@ import re
 
 root = sys.argv[1]
 
+# A missing root walks nothing and would read as a clean count of 0.
+if not os.path.isdir(root):
+    sys.stderr.write("check_fixed_font_budget: source root not found: " + root + "\n")
+    sys.exit(66)
+
 # COUNT ONLY A NUMERIC LITERAL ARGUMENT.
 #
 # Counting the substring `.font(.system(size:` regardless of the argument
@@ -80,13 +90,19 @@ root = sys.argv[1]
 # (No apostrophes in this block: an apostrophe inside the enclosing $( )
 # command substitution starts a quoted string for the bash parser, even in a
 # quoted heredoc. Same trap enforce_tech_debt_budgets.sh documents.)
-NEEDLE = re.compile(r"\.font\(\.system\(size:\s*([^,)]+)")
+#
+# The needle is the `Font.system(size:)` call itself, with or without the
+# `Font` prefix, wherever it appears: inside `.font(...)`, as a stored `Font`,
+# or as an argument on a continuation line.
+NEEDLE = re.compile(r"(?<![\w])(?:Font)?\.system\(size:\s*([^,)]+)")
 LITERAL_ARG = re.compile(r"^[\d.]+$")
 count = 0
+files = 0
 for dirpath, _dirnames, filenames in os.walk(root):
     for name in filenames:
         if not name.endswith(".swift"):
             continue
+        files += 1
         with open(os.path.join(dirpath, name), encoding="utf-8", errors="replace") as handle:
             for line in handle:
                 stripped = line.strip()
@@ -95,12 +111,16 @@ for dirpath, _dirnames, filenames in os.walk(root):
                 for argument in NEEDLE.findall(line):
                     if LITERAL_ARG.match(argument.strip()):
                         count += 1
+if files == 0:
+    sys.stderr.write("check_fixed_font_budget: no Swift files under " + root + "\n")
+    sys.exit(66)
 print(count)
 PY
 }
 
-count="$(measure "$SOURCE_ROOT")"
-watch_count="$(measure "$WATCH_ROOT")"
+# `|| exit $?`: measure runs in a subshell, so its exit cannot stop this script.
+count="$(measure "$SOURCE_ROOT")" || exit $?
+watch_count="$(measure "$WATCH_ROOT")" || exit $?
 
 if [[ ! -f "$WATCH_BUDGET_FILE" ]]; then
     echo "Fixed-font watch budget file not found: $WATCH_BUDGET_FILE" >&2
@@ -112,7 +132,7 @@ if [[ ! "$watch_budget" =~ ^[0-9]+$ ]]; then
     exit 65
 fi
 
-echo "Fixed-point fonts (.font(.system(size: <literal>)): ${count} (budget: ${budget}; ratchet toward the documented exceptions)"
+echo "Fixed-point fonts (.system(size: <literal>)): ${count} (budget: ${budget}; ratchet toward the documented exceptions)"
 echo "  ...in ${WATCH_ROOT}: ${watch_count} (budget: ${watch_budget})"
 
 failed=0

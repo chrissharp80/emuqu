@@ -69,6 +69,11 @@ final class ReanalysisServiceTests: XCTestCase {
     nonisolated private let archiveDirectory = FileManager.default.temporaryDirectory
         .appendingPathComponent("ReanalysisSleepTests-\(UUID().uuidString)", isDirectory: true)
 
+    /// The service's baseline tracker lives on this file, never on the app's
+    /// own `HRVBaseline.json`.
+    nonisolated private let baselineFile = FileManager.default.temporaryDirectory
+        .appendingPathComponent("ReanalysisBaseline-\(UUID().uuidString).json")
+
     private lazy var archive = SessionArchive(
         directory: archiveDirectory,
         sleepScheduleProvider: { SleepSchedule(bedtimeHour: 22, bedtimeMinute: 0, sleepHours: 8.0) },
@@ -80,6 +85,11 @@ final class ReanalysisServiceTests: XCTestCase {
             try FileManager.default.removeItem(at: archiveDirectory)
         } catch {
             // swallow-ok: a test that never archived left no directory behind.
+        }
+        do {
+            try FileManager.default.removeItem(at: baselineFile)
+        } catch {
+            // swallow-ok: a test whose tracker never saved left no file behind.
         }
         super.tearDown()
     }
@@ -95,7 +105,7 @@ final class ReanalysisServiceTests: XCTestCase {
                 artifactDetector: artifactDetector, windowSelector: windowSelector, healthKit: healthKit
             ),
             windowSelector: windowSelector, artifactDetector: artifactDetector,
-            baselineTracker: BaselineTracker(),
+            baselineTracker: BaselineTracker(baselineFile: baselineFile),
             settingsProvider: { settings },
             scoringConfigProvider: { .init(from: settings) },
             ansConfigProvider: { _ in

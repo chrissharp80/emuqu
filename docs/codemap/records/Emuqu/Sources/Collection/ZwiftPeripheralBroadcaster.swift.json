@@ -1,0 +1,483 @@
+{
+ "file": "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift",
+ "hash": "d3c34a9cac7e733c",
+ "role": "MainActor @Observable singleton that makes the iPhone advertise as a standard BLE Heart Rate (0x180D) + Cycling Power (0x1818) peripheral so Zwift/other trainer apps can pair and receive the workout's live HR and power.",
+ "types": [
+  "ZwiftPeripheralBroadcaster: class (@Observable @MainActor NSObject) — lazily-created CBPeripheralManager, service setup, per-tick value push",
+  "ZwiftPeripheralBroadcaster: extension — CBPeripheralManagerDelegate conformance (state, subscribe/unsubscribe, advertising result)"
+ ],
+ "state": [
+  "mem:ZwiftPeripheralBroadcaster.shared (singleton, returned by AppDependencies.collection.zwiftPeripheralBroadcaster unless overridden)",
+  "mem:ZwiftPeripheralBroadcaster.isAdvertising (private(set), read by AppFactResolver+RoutesAndDevices.swift:594)",
+  "mem:ZwiftPeripheralBroadcaster.subscriberCount (private(set), read by AppFactResolver+RoutesAndDevices.swift:604)",
+  "mem:ZwiftPeripheralBroadcaster.isBroadcastBlocked (private(set); true while a broadcast is wanted but the radio is off/denied/unsupported or advertising failed; no UI reads it yet)",
+  "mem:ZwiftPeripheralBroadcaster.wantsBroadcast (ObservationIgnored)",
+  "mem:ZwiftPeripheralBroadcaster.peripheralManager (CBPeripheralManager?, lazily created)",
+  "mem:ZwiftPeripheralBroadcaster.hrMeasurementChar/cpMeasurementChar",
+  "mem:ZwiftPeripheralBroadcaster.subscribedCentrals (Set<CBCentral>)",
+  "ble:service 180D (Heart Rate) char 2A37 HR Measurement (notify)",
+  "ble:service 1818 (Cycling Power) char 2A63 CP Measurement (notify), 2A65 CP Feature (read, 0x00000000), 2A5D Sensor Location (read, 0x06 hip); the two read-only characteristics are not kept after the service is built",
+  "static CBUUID constants heartRateService, heartRateMeasurementChar_UUID, cyclingPowerService, cyclingPowerMeasurementChar_UUID, cyclingPowerFeatureChar_UUID, sensorLocationChar_UUID"
+ ],
+ "toplevel": "static let shared = ZwiftPeripheralBroadcaster() lazily constructs the singleton; stored properties default isAdvertising=false, subscriberCount=0, isBroadcastBlocked=false, wantsBroadcast=false, all CB objects nil; CBUUID statics are nonisolated constants. Advertised local name is the literal \"Emuqu\".",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "docs/FLOWCHART.md names ZwiftPeripheralBroadcaster.shared.start()/stop() (no such methods; they are startBroadcasting/stopBroadcasting) and says update(heartRate:powerWatts:) runs 'only when enableZwiftBroadcast', but the ticker calls update every tick unconditionally and it is a no-op only because isAdvertising is false.",
+   "evidence": [
+    "docs/FLOWCHART.md:1041",
+    "docs/FLOWCHART.md:1097",
+    "docs/FLOWCHART.md:1098",
+    "docs/FLOWCHART.md:1176",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift:802",
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift:122"
+   ],
+   "found": "second read"
+  }
+ ],
+ "units": [
+  {
+   "key": "init ZwiftPeripheralBroadcaster()",
+   "hash": "07bd3526c2ac7288",
+   "does": "NSObject init; deliberately does not create the CBPeripheralManager so the Bluetooth-peripheral permission prompt is not shown until the user's first broadcast.",
+   "entry": "Invoked once by the static initializer of ZwiftPeripheralBroadcaster.shared (line 31) when AppDependencies.collection.zwiftPeripheralBroadcaster first returns the shared instance.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ZwiftPeripheralBroadcaster.startBroadcasting()",
+   "hash": "8a8a1cab162b8e05",
+   "does": "Records wantsBroadcast=true and lazily creates the peripheral manager. If the radio is not poweredOn it sets isBroadcastBlocked (true for poweredOff/unauthorized/unsupported, false for unknown/resetting), logs 'Waiting for Bluetooth' (warning level, so it shows under Troubleshooting > Recent Problems, when blocked; info otherwise) and returns. If poweredOn and not already advertising: removes all previously registered services, re-adds HRS+CPS services, starts advertising local name \"Emuqu\" with both service UUIDs, sets isAdvertising=true (before CoreBluetooth confirms) and clears isBroadcastBlocked. Called from WorkoutSessionLifecycle.deferZwiftBroadcast (only when settings.enableZwiftBroadcast) and re-entered from radioStateChanged when the radio turns on.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.existingOrNewPeripheralManager()",
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.isRadioUnusable(_:)",
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.configureServices()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:CBPeripheralManager.removeAllServices",
+    "ext:CBPeripheralManager.startAdvertising"
+   ],
+   "reads": [
+    "mem:ZwiftPeripheralBroadcaster.peripheralManager",
+    "mem:ZwiftPeripheralBroadcaster.isAdvertising"
+   ],
+   "writes": [
+    "mem:ZwiftPeripheralBroadcaster.wantsBroadcast",
+    "mem:ZwiftPeripheralBroadcaster.isAdvertising",
+    "mem:ZwiftPeripheralBroadcaster.isBroadcastBlocked",
+    "ble:advertisement HRS 180D + CPS 1818"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "peripheral manager state is not .poweredOn (e.g. .unknown right after creation, .poweredOff, .unauthorized)",
+     "effect": "true path of the guard fails: sets isBroadcastBlocked from isRadioUnusable(state), logs 'Waiting for Bluetooth' at warning level when blocked (info otherwise) and returns; the request is carried out later by radioStateChanged if the state becomes .poweredOn. Otherwise continue."
+    },
+    {
+     "at": "+8",
+     "cond": "already advertising",
+     "effect": "returns without re-adding services (idempotent); otherwise services are reset, advertising starts and isBroadcastBlocked is cleared"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "low",
+     "text": "With Bluetooth denied/unsupported/off, startBroadcasting now sets isBroadcastBlocked and logs at warning level (Troubleshooting > Recent Problems), but no screen reads isBroadcastBlocked yet, so the rider is not told the Zwift broadcast is not running while enableZwiftBroadcast is on.",
+     "evidence": [
+      "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift:86"
+     ],
+     "found": "fix batch b13"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.configureServices()": "fa1c990636cde1b9",
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.cyclingPowerService()": "cb04e9f162dc620b",
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.existingOrNewPeripheralManager()": "278f113fbeaca779",
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.heartRateService()": "ebc9dde67e0b4e81",
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.isRadioUnusable(_:)": "ac938cad4d67149c",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func ZwiftPeripheralBroadcaster.existingOrNewPeripheralManager()",
+   "hash": "93794deaec307c62",
+   "does": "Returns the existing CBPeripheralManager or creates one with self as delegate on the main queue and stores it; this is the only place the manager is instantiated (and so the only place the iOS BT-peripheral permission prompt can be triggered).",
+   "entry": null,
+   "calls": [
+    "ext:CBPeripheralManager.init(delegate:queue:)"
+   ],
+   "reads": [
+    "mem:ZwiftPeripheralBroadcaster.peripheralManager"
+   ],
+   "writes": [
+    "mem:ZwiftPeripheralBroadcaster.peripheralManager"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "a manager was already created",
+     "effect": "true: returns it; false: creates, stores and returns a new one"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ZwiftPeripheralBroadcaster.stopBroadcasting()",
+   "hash": "e4590dd306d970c3",
+   "does": "Clears wantsBroadcast, stops advertising, removes all services, sets isAdvertising=false and isBroadcastBlocked=false, and clears subscribers via clearSubscribers. Optional-chained so it never creates the manager. Called by WorkoutRecorder.tearDownLiveWorkoutServices at workout stop.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.clearSubscribers()",
+    "ext:CBPeripheralManager.stopAdvertising",
+    "ext:CBPeripheralManager.removeAllServices"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:ZwiftPeripheralBroadcaster.wantsBroadcast",
+    "mem:ZwiftPeripheralBroadcaster.isAdvertising",
+    "mem:ZwiftPeripheralBroadcaster.isBroadcastBlocked",
+    "mem:ZwiftPeripheralBroadcaster.subscribedCentrals",
+    "mem:ZwiftPeripheralBroadcaster.subscriberCount"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.clearSubscribers()": "38598107866c10aa"
+   }
+  },
+  {
+   "key": "func ZwiftPeripheralBroadcaster.clearSubscribers()",
+   "hash": "d7c9575a1e8ff8de",
+   "does": "Empties subscribedCentrals and sets subscriberCount=0 (the value the AI fact app.devices.zwift_broadcast.subscriber_count reports).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:ZwiftPeripheralBroadcaster.subscribedCentrals",
+    "mem:ZwiftPeripheralBroadcaster.subscriberCount"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ZwiftPeripheralBroadcaster.update(heartRate:powerWatts:)",
+   "hash": "87e55e1d3fa2e396",
+   "does": "Per-tick push (called by WorkoutTicker.pushZwiftBroadcasterUpdate with workoutHR.currentHR and motion.powerWatts): when advertising, notifies subscribed centrals with the packet heartRateMeasurementPacket builds for the HR and/or the packet cyclingPowerMeasurementPacket builds for the power. The Bool result of updateValue (false when the transmit queue is full) is ignored.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.heartRateMeasurementPacket(bpm:)",
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.cyclingPowerMeasurementPacket(watts:)",
+    "ext:CBPeripheralManager.updateValue(_:for:onSubscribedCentrals:)"
+   ],
+   "reads": [
+    "mem:ZwiftPeripheralBroadcaster.isAdvertising",
+    "mem:ZwiftPeripheralBroadcaster.peripheralManager",
+    "mem:ZwiftPeripheralBroadcaster.hrMeasurementChar",
+    "mem:ZwiftPeripheralBroadcaster.cpMeasurementChar"
+   ],
+   "writes": [
+    "ble:2A37 Heart Rate Measurement notify",
+    "ble:2A63 Cycling Power Measurement notify"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "not advertising, or no peripheral manager exists",
+     "effect": "returns immediately (the default path when the Zwift feature is off); otherwise continues"
+    },
+    {
+     "at": "+2",
+     "cond": "heartRate non-nil, the HR characteristic exists and heartRateMeasurementPacket returns a packet (bpm > 0)",
+     "effect": "true: sends the 2-byte HR packet; false (nil/0 HR or services never configured): no HR notification this tick"
+    },
+    {
+     "at": "+5",
+     "cond": "powerWatts non-nil, the CP measurement characteristic exists and cyclingPowerMeasurementPacket returns a packet (watts >= 0)",
+     "effect": "true: sends the 4-byte power packet (0 W is sent); false: no power notification this tick"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "untested",
+     "sev": "low",
+     "text": "The HR (uint8) and Cycling Power (flags u16 + int16 LE, clamped 0..2000 W) packet encodings have no test; they are now pure static functions (heartRateMeasurementPacket / cyclingPowerMeasurementPacket) that a test can call directly, but grep finds no reference to ZwiftPeripheralBroadcaster in EmuquTests.",
+     "evidence": [
+      "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift:142",
+      "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift:151"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.cyclingPowerMeasurementPacket(watts:)": "0627d2a21200bdcb",
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.heartRateMeasurementPacket(bpm:)": "a878199020531c72"
+   }
+  },
+  {
+   "key": "func ZwiftPeripheralBroadcaster.heartRateMeasurementPacket(bpm:)",
+   "hash": "076ead035f95d933",
+   "does": "Pure encoder for the BLE Heart Rate Measurement (0x2A37) value: returns nil for bpm <= 0, otherwise [0x00 flags (uint8 BPM format), BPM clamped to 255].",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "bpm <= 0",
+     "effect": "returns nil (caller sends nothing); otherwise the 2-byte packet"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ZwiftPeripheralBroadcaster.cyclingPowerMeasurementPacket(watts:)",
+   "hash": "1a1b6ec2e4ed1153",
+   "does": "Pure encoder for the BLE Cycling Power Measurement (0x2A63) value: returns nil for negative watts, otherwise [0x00, 0x00 flags (only the mandatory power field), instantaneous power as int16 little-endian clamped to 2000 W].",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "watts < 0",
+     "effect": "returns nil (caller sends nothing); otherwise the 4-byte packet"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ZwiftPeripheralBroadcaster.configureServices()",
+   "hash": "cc15271e68669027",
+   "does": "Adds freshly built HRS and CPS services to the peripheral manager (no-op if the manager is nil).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.heartRateService()",
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.cyclingPowerService()",
+    "ext:CBPeripheralManager.add"
+   ],
+   "reads": [],
+   "writes": [
+    "ble:GATT services 180D,1818"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.cyclingPowerService()": "cb04e9f162dc620b",
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.heartRateService()": "ebc9dde67e0b4e81"
+   }
+  },
+  {
+   "key": "func ZwiftPeripheralBroadcaster.heartRateService()",
+   "hash": "4afdc35cfd323d97",
+   "does": "Builds a primary 0x180D service with one notify-only 2A37 characteristic, stores the characteristic in hrMeasurementChar, returns the service.",
+   "entry": null,
+   "calls": [
+    "ext:CBMutableService",
+    "ext:CBMutableCharacteristic"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:ZwiftPeripheralBroadcaster.hrMeasurementChar"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ZwiftPeripheralBroadcaster.cyclingPowerService()",
+   "hash": "fc7cc5551d984fc1",
+   "does": "Builds a primary 0x1818 service with notify 2A63 measurement, read-only 2A65 feature (4 zero bytes = no optional features) and read-only 2A5D sensor location (0x06 hip); stores only the measurement characteristic (the two read-only ones carry static values and are not kept) and returns the service.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.readOnlyCharacteristic(_:value:)",
+    "ext:CBMutableService",
+    "ext:CBMutableCharacteristic"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:ZwiftPeripheralBroadcaster.cpMeasurementChar"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.readOnlyCharacteristic(_:value:)": "b23dfd2dbf4b6a24"
+   }
+  },
+  {
+   "key": "func ZwiftPeripheralBroadcaster.isRadioUnusable(_:)",
+   "hash": "c72e127577609e25",
+   "does": "Classifies a CBManagerState: true for .poweredOff, .unauthorized and .unsupported (the radio will not advertise until the user acts), false for .poweredOn, .unknown, .resetting and any future case.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "switch on state",
+     "effect": "poweredOff/unauthorized/unsupported -> true; poweredOn/unknown/resetting -> false; @unknown default -> false"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ZwiftPeripheralBroadcaster.readOnlyCharacteristic(_:value:)",
+   "hash": "e2dc2bc0ee49bd5d",
+   "does": "Returns a CBMutableCharacteristic with .read property, .readable permission and the given static value.",
+   "entry": null,
+   "calls": [
+    "ext:CBMutableCharacteristic"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ZwiftPeripheralBroadcaster.peripheralManagerDidUpdateState(_:)",
+   "hash": "59b20b5a16845cd6",
+   "does": "Delegate callback: captures the peripheral state and hops to the main actor to call radioStateChanged.",
+   "entry": "CBPeripheralManagerDelegate.peripheralManagerDidUpdateState, delivered by CoreBluetooth on the main queue after the manager is created and on each radio state change.",
+   "calls": [
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.radioStateChanged(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.radioStateChanged(_:)": "735af91f6fbaf847"
+   }
+  },
+  {
+   "key": "func ZwiftPeripheralBroadcaster.radioStateChanged(_:)",
+   "hash": "54b68f59291acbec",
+   "does": "On a radio state change: anything but .poweredOn sets isAdvertising=false, clears every subscriber (clearSubscribers) and sets isBroadcastBlocked when a broadcast is wanted and the state is off/denied/unsupported; .poweredOn starts a pending broadcast if one was requested and is not running.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.clearSubscribers()",
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.isRadioUnusable(_:)",
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.startBroadcasting()"
+   ],
+   "reads": [
+    "mem:ZwiftPeripheralBroadcaster.wantsBroadcast",
+    "mem:ZwiftPeripheralBroadcaster.isAdvertising"
+   ],
+   "writes": [
+    "mem:ZwiftPeripheralBroadcaster.isAdvertising",
+    "mem:ZwiftPeripheralBroadcaster.isBroadcastBlocked",
+    "mem:ZwiftPeripheralBroadcaster.subscribedCentrals",
+    "mem:ZwiftPeripheralBroadcaster.subscriberCount"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "state != .poweredOn",
+     "effect": "sets isAdvertising=false, clears subscribedCentrals/subscriberCount, sets isBroadcastBlocked = wantsBroadcast && isRadioUnusable(state), and returns. Otherwise continues."
+    },
+    {
+     "at": "+7",
+     "cond": "wantsBroadcast && !isAdvertising",
+     "effect": "true: calls startBroadcasting (re-registers services and advertises); false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.clearSubscribers()": "38598107866c10aa",
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.isRadioUnusable(_:)": "ac938cad4d67149c",
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.startBroadcasting()": "67fb28ca120fceb8"
+   }
+  },
+  {
+   "key": "func ZwiftPeripheralBroadcaster.peripheralManager(_:central:didSubscribeTo:)",
+   "hash": "5ac4ca2d96af0c3c",
+   "does": "Subscribe callback: on the main actor, if still advertising, inserts the central into subscribedCentrals and updates subscriberCount; a subscribe that lands after stopBroadcasting or a radio loss is dropped.",
+   "entry": "CBPeripheralManagerDelegate peripheralManager(_:central:didSubscribeTo:) when a central (Zwift) enables notifications on 2A37 or 2A63.",
+   "calls": [],
+   "reads": [
+    "mem:ZwiftPeripheralBroadcaster.isAdvertising"
+   ],
+   "writes": [
+    "mem:ZwiftPeripheralBroadcaster.subscribedCentrals",
+    "mem:ZwiftPeripheralBroadcaster.subscriberCount"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "not advertising when the main-actor task runs",
+     "effect": "returns without recording the subscriber; otherwise inserts and recounts"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ZwiftPeripheralBroadcaster.peripheralManager(_:central:didUnsubscribeFrom:)",
+   "hash": "c169a872af0ae122",
+   "does": "Unsubscribe callback: on the main actor removes the central and updates subscriberCount.",
+   "entry": "CBPeripheralManagerDelegate peripheralManager(_:central:didUnsubscribeFrom:) when a central disables notifications.",
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:ZwiftPeripheralBroadcaster.subscribedCentrals",
+    "mem:ZwiftPeripheralBroadcaster.subscriberCount"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ZwiftPeripheralBroadcaster.peripheralManagerDidStartAdvertising(_:error:)",
+   "hash": "48ab48f11d750f9d",
+   "does": "Advertising-result callback: on error logs a warning, sets isAdvertising=false and sets isBroadcastBlocked to wantsBroadcast; nothing retries until the radio state cycles.",
+   "entry": "CBPeripheralManagerDelegate peripheralManagerDidStartAdvertising(_:error:) after startAdvertising.",
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "mem:ZwiftPeripheralBroadcaster.wantsBroadcast"
+   ],
+   "writes": [
+    "mem:ZwiftPeripheralBroadcaster.isAdvertising",
+    "mem:ZwiftPeripheralBroadcaster.isBroadcastBlocked"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "advertising start returned an error",
+     "effect": "true: warning log + isAdvertising=false + isBroadcastBlocked=wantsBroadcast (update() then becomes a no-op for the rest of the workout unless the radio state cycles); false: nothing"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "low",
+     "text": "A failed startAdvertising logs, clears isAdvertising and sets isBroadcastBlocked, but no retry is scheduled and no UI reads isBroadcastBlocked yet, so Zwift never sees the sensor for that workout and the user only sees the warning under Troubleshooting.",
+     "evidence": [
+      "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift:252",
+      "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift:254"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -17,16 +17,15 @@ import SwiftUI
 //   3. Default 180 — conservative floor so zone coloring doesn't blow up
 //      for fit users without any profile info.
 //
-// Zone fractions match the Edwards TRIMP / Lucia layout that
-// WorkoutAnalyzer already uses internally for training-load math.
-enum HRZone: Int, CaseIterable, Identifiable {
+// Zone fractions (50–60 / 60–70 / 70–80 / 80–90 / 90+ % of max HR) are the
+// Edwards TRIMP layout WorkoutAnalyzer uses for training-load math. Lucia
+// TRIMP is a different, three-zone ventilatory-threshold model.
+enum HRZone: Int {
     case z1 = 1
     case z2 = 2
     case z3 = 3
     case z4 = 4
     case z5 = 5
-
-    var id: Int { rawValue }
 
     /// Classify HR against the user's max HR. Returns nil for HR below ~50%
     /// of max (warm-up / rest / normal daily life) so the UI renders the
@@ -58,8 +57,6 @@ enum HRZone: Int, CaseIterable, Identifiable {
     /// `label` in the app language, for the screen. `label` stays English:
     /// it is what the AI context reads.
     var localizedLabel: String { String(localized: "Zone \(rawValue)", bundle: LanguageManager.appBundle) }
-
-    var shortLabel: String { "Z\(rawValue)" }
 
     var color: Color {
         switch self {

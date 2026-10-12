@@ -1,0 +1,503 @@
+{
+ "file": "Emuqu/Sources/Views/RecoveredWorkoutControls.swift",
+ "hash": "1d0eda297b79a34b",
+ "role": "Three recovered-workout controls hosted by the post-workout summary: trim a crash-recovered workout's end, re-download and merge the strap's on-device recording, and recover distance/route from Apple Health (Watch).",
+ "types": [
+  "RecoveredWorkoutTrimControl: struct — View, slider + Save to re-finalize at an earlier end",
+  "RecoverSessionFromStrapButton: struct — View, strap merge action",
+  "RecoverSessionFromStrapButton: extension (fileprivate) — button, action and result message",
+  "RecoveredRouteFromWatchButton: struct — View, Apple Health distance/route recovery",
+  "RecoveredRouteFromWatchButton: extension (fileprivate) — button, action, result message, distance formatting"
+ ],
+ "state": [
+  "mem:RecoveredWorkoutTrimControl.endMinutes/working (@State)",
+  "mem:RecoverSessionFromStrapButton.working/message (@State)",
+  "mem:RecoveredRouteFromWatchButton.working/message (@State)"
+ ],
+ "toplevel": "File-scope private helpers recoveryCard / recoveryMessage / actionLabel. Hosts: FitnessPostSummaryView+Feeling.swift:319-327 (strap button, route button, trim control with .id(session.endDate); onTrim calls RRCollector.retrimRecoveredWorkout).",
+ "flags": [],
+ "units": [
+  {
+   "key": "init RecoveredWorkoutTrimControl(session:onTrim:)",
+   "hash": "3c9f0d09cf13da23",
+   "does": "Stores session and onTrim; initial slider value = max(1, rounded session minutes).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "session.endDate ?? startDate",
+     "effect": "no endDate: duration 0 → endMinutes 1"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var RecoveredWorkoutTrimControl.durationMinutes",
+   "hash": "377f2a8f07996415",
+   "does": "Session length in minutes (endDate ?? startDate minus startDate, so 0 without an end).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "session.endDate ?? startDate",
+     "effect": "no endDate: 0"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var RecoveredWorkoutTrimControl.maxMinutes",
+   "hash": "a78d9246c1d796d1",
+   "does": "Slider upper bound: max(2, rounded durationMinutes), so the range is never empty.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::var RecoveredWorkoutTrimControl.durationMinutes"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::var RecoveredWorkoutTrimControl.durationMinutes": "aec1a981228ced4a"
+   }
+  },
+  {
+   "key": "var RecoveredWorkoutTrimControl.untrimmedMinutes",
+   "hash": "ab63ec6d23e6a5e1",
+   "does": "Where the slider starts: max(1, rounded durationMinutes) (same as the init).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::var RecoveredWorkoutTrimControl.durationMinutes"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::var RecoveredWorkoutTrimControl.durationMinutes": "aec1a981228ced4a"
+   }
+  },
+  {
+   "key": "var RecoveredWorkoutTrimControl.changed",
+   "hash": "c7efc04503872810",
+   "does": "True only when the slider is below its untrimmed start, so a recording under ~1.5 min (range 1...2) is never offered a trim the user did not make.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::var RecoveredWorkoutTrimControl.untrimmedMinutes"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::var RecoveredWorkoutTrimControl.untrimmedMinutes": "ad14e2bc981ee9ad"
+   }
+  },
+  {
+   "key": "var RecoveredWorkoutTrimControl.body",
+   "hash": "7ecf96814ddfe9fb",
+   "does": "Sage card with title, explanation, slider and Save button.",
+   "entry": "SwiftUI body",
+   "calls": [
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::func recoveryCard(_:tint:fill:stroke:)",
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::var RecoveredWorkoutTrimControl.trimEndControl",
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::var RecoveredWorkoutTrimControl.saveTrimButton"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::func recoveryCard(_:tint:fill:stroke:)": "b3cd845286e8734b",
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::var RecoveredWorkoutTrimControl.saveTrimButton": "dc3263e7d1eec373",
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::var RecoveredWorkoutTrimControl.trimEndControl": "c05e2538530b024e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var RecoveredWorkoutTrimControl.trimEndControl",
+   "hash": "094e6ab55bf4d0c5",
+   "does": "'End at N min' label and a 1-minute-step slider from 1 to maxMinutes bound to endMinutes.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:RecoveredWorkoutTrimControl.endMinutes"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "380cb385515abafc",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::var RecoveredWorkoutTrimControl.maxMinutes": "227bb7871c7b6ace",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+   }
+  },
+  {
+   "key": "var RecoveredWorkoutTrimControl.saveTrimButton",
+   "hash": "de0813b57c487a0d",
+   "does": "Save button: sets working, awaits onTrim(endMinutes×60) in a Task, then clears working; disabled while working or unchanged.",
+   "entry": "Button action",
+   "calls": [
+    "closure:onTrim — set by FitnessPostSummaryView+Feeling.swift:326 to RRCollector.retrimRecoveredWorkout(sessionId:endSec:)",
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::var RecoveredWorkoutTrimControl.bodyLabel"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:RecoveredWorkoutTrimControl.working"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "low",
+     "text": "onTrim returns Void; when retrimRecoveredWorkout keeps <30 beats or WorkoutRecoveryService.recover returns nil it just returns (and still marks the workout reviewed), so the button reverts to 'Save trimmed length' with no message and the user cannot tell the trim did nothing.",
+     "evidence": [
+      "Emuqu/Sources/Views/RecoveredWorkoutControls.swift:71",
+      "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift:181",
+      "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift:194"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::var RecoveredWorkoutTrimControl.bodyLabel": "ebd41163c349eb5c",
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::var RecoveredWorkoutTrimControl.changed": "fda48960cfd244c2"
+   }
+  },
+  {
+   "key": "var RecoveredWorkoutTrimControl.bodyLabel",
+   "hash": "d176feb9fbdad119",
+   "does": "Spinner + 'Saving…' while working, else 'Save trimmed length'; dimmed background when unchanged.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "working",
+     "effect": "true: ProgressView shown"
+    },
+    {
+     "at": "+3",
+     "cond": "working ? 'Saving…' : 'Save trimmed length'",
+     "effect": "label text"
+    },
+    {
+     "at": "+10",
+     "cond": "changed",
+     "effect": "true: primary background; false: 40% opacity"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::var RecoveredWorkoutTrimControl.changed": "fda48960cfd244c2",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+   }
+  },
+  {
+   "key": "var RecoverSessionFromStrapButton.body",
+   "hash": "2bf6802093593c10",
+   "does": "Sage card: title, explanation, last result message, Recover session button.",
+   "entry": "SwiftUI body",
+   "calls": [
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::func recoveryCard(_:tint:fill:stroke:)",
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::func recoveryMessage(_:)",
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::var RecoverSessionFromStrapButton.recoverFromStrapButton"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::func recoveryCard(_:tint:fill:stroke:)": "b3cd845286e8734b",
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::func recoveryMessage(_:)": "b0d25a92354edfb2",
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::var RecoverSessionFromStrapButton.recoverFromStrapButton": "d446e917f59fc128",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var RecoverSessionFromStrapButton.recoverFromStrapButton",
+   "hash": "1eb74cabae6a4d76",
+   "does": "Button running recoverFromStrap, labelled via actionLabel, disabled while working.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::func RecoverSessionFromStrapButton.recoverFromStrap()",
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::func actionLabel(working:busyTitle:idleTitle:tint:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::func RecoverSessionFromStrapButton.recoverFromStrap()": "08c4ff4b30fcc103",
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::func actionLabel(working:busyTitle:idleTitle:tint:)": "2fdad1003875cc62"
+   }
+  },
+  {
+   "key": "func RecoverSessionFromStrapButton.recoverFromStrap()",
+   "hash": "c3050a2dcb9da1c2",
+   "does": "Sets working, clears message, awaits RRCollector.augmentWorkoutFromStrap(sessionId:), then clears working and shows the result message.",
+   "entry": "Button action",
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.augmentWorkoutFromStrap(sessionId:)",
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::func RecoverSessionFromStrapButton.strapMergeMessage(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:RecoverSessionFromStrapButton.working",
+    "mem:RecoverSessionFromStrapButton.message",
+    "archive:SessionArchive (via augmentWorkoutFromStrap)",
+    "ble:Polar strap on-device recording (via augmentWorkoutFromStrap)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.augmentWorkoutFromStrap(sessionId:)": "1e3fc9ecdc810109",
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::func RecoverSessionFromStrapButton.strapMergeMessage(_:)": "d3282ce484001bd1"
+   }
+  },
+  {
+   "key": "func RecoverSessionFromStrapButton.strapMergeMessage(_:)",
+   "hash": "0622509873a9bbcf",
+   "does": "Maps StrapAugmentResult to user text.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".merged(durationSec, beats)",
+     "effect": "'Merged — N min, M beats.'"
+    },
+    {
+     "at": "+5",
+     "cond": ".notConnected",
+     "effect": "'Connect your strap first, then try again.'"
+    },
+    {
+     "at": "+7",
+     "cond": ".noStrapData",
+     "effect": "'No recording found on the strap for this session.'"
+    },
+    {
+     "at": "+9",
+     "cond": ".failed",
+     "effect": "'Couldn't merge — try again.'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func recoveryCard(_:tint:fill:stroke:)",
+   "hash": "210707944f0a0f89",
+   "does": "Shared rounded card chrome: padding, tinted fill and stroke.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "func recoveryMessage(_:)",
+   "hash": "a91087d4e2cb9c76",
+   "does": "Footnote text when a message exists.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "message non-nil",
+     "effect": "true: Text shown; false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func actionLabel(working:busyTitle:idleTitle:tint:)",
+   "hash": "bd4efa412494392e",
+   "does": "Full-width tinted pill label with spinner and busy/idle title.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "working",
+     "effect": "true: ProgressView"
+    },
+    {
+     "at": "+3",
+     "cond": "working",
+     "effect": "busyTitle else idleTitle"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var RecoveredRouteFromWatchButton.body",
+   "hash": "8c071589e2918eee",
+   "does": "Primary-tinted card: title, explanation, last result, Recover route button.",
+   "entry": "SwiftUI body",
+   "calls": [
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::func recoveryCard(_:tint:fill:stroke:)",
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::func recoveryMessage(_:)",
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::var RecoveredRouteFromWatchButton.recoverRouteButton"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::func recoveryCard(_:tint:fill:stroke:)": "b3cd845286e8734b",
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::func recoveryMessage(_:)": "b0d25a92354edfb2",
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::var RecoveredRouteFromWatchButton.recoverRouteButton": "4be54de2adffbcec",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var RecoveredRouteFromWatchButton.recoverRouteButton",
+   "hash": "717b794ca9b7383b",
+   "does": "Button running recoverRoute, labelled via actionLabel, disabled while working.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::func RecoveredRouteFromWatchButton.recoverRoute()",
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::func actionLabel(working:busyTitle:idleTitle:tint:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::func RecoveredRouteFromWatchButton.recoverRoute()": "b8a595f1a5663800",
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::func actionLabel(working:busyTitle:idleTitle:tint:)": "2fdad1003875cc62",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+   }
+  },
+  {
+   "key": "func RecoveredRouteFromWatchButton.recoverRoute()",
+   "hash": "d166262a3f88a371",
+   "does": "Sets working, clears message, awaits RRCollector.recoverRouteFromAppleWatch(sessionId:), then shows the result message.",
+   "entry": "Button action",
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.recoverRouteFromAppleWatch(sessionId:)",
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::func RecoveredRouteFromWatchButton.routeRecoveryMessage(_:)"
+   ],
+   "reads": [
+    "hk:HKWorkoutRoute / distance samples (via recoverRouteFromAppleWatch)"
+   ],
+   "writes": [
+    "mem:RecoveredRouteFromWatchButton.working",
+    "mem:RecoveredRouteFromWatchButton.message",
+    "archive:SessionArchive (via recoverRouteFromAppleWatch)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.recoverRouteFromAppleWatch(sessionId:)": "aaf99121fbf15ff7",
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::func RecoveredRouteFromWatchButton.routeRecoveryMessage(_:)": "88c58c01eb5c31e7"
+   }
+  },
+  {
+   "key": "func RecoveredRouteFromWatchButton.routeRecoveryMessage(_:)",
+   "hash": "9501648900cab7f2",
+   "does": "Maps WatchRouteRecoveryResult to user text.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::func RecoveredRouteFromWatchButton.distanceText(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".recovered(meters)",
+     "effect": "'Route recovered — distance is now X.'"
+    },
+    {
+     "at": "+4",
+     "cond": ".distanceOnly(meters)",
+     "effect": "distance recovered, no GPS route message"
+    },
+    {
+     "at": "+6",
+     "cond": ".noRoute",
+     "effect": "'Apple Health has no extra distance…'"
+    },
+    {
+     "at": "+8",
+     "cond": ".failed",
+     "effect": "'Couldn't recover — try again.'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::func RecoveredRouteFromWatchButton.distanceText(_:)": "77fba777506e7ed8"
+   }
+  },
+  {
+   "key": "func RecoveredRouteFromWatchButton.distanceText(_:)",
+   "hash": "c8377276b31b4792",
+   "does": "Formats meters as miles (imperial) or kilometres with 2 decimals in the app locale.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved"
+   ],
+   "reads": [
+    "ud:fitness.unitsPreference (App Group suite)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "UnitsPreferenceStore.current.resolved == .imperial",
+     "effect": "true: miles; false: kilometres"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3"
+   }
+  }
+ ],
+ "deps": {}
+}

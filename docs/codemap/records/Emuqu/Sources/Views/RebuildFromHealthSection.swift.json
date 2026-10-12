@@ -1,0 +1,123 @@
+{
+ "file": "Emuqu/Sources/Views/RebuildFromHealthSection.swift",
+ "hash": "a57bedc3e325953d",
+ "role": "Form section in HealthWorkoutImportSheet letting the user pick a start time and sport so a lost workout can be rebuilt from Apple Health samples; it only gathers input and calls onRebuild.",
+ "types": [
+  "RebuildFromHealthSection: struct View — date picker, sport picker, rebuild button"
+ ],
+ "state": [
+  "@State start: Date = min(today 07:00, now)",
+  "@State sport: Sport = .walk"
+ ],
+ "toplevel": "Stored-property initializer for start: Calendar.date(bySettingHour:7) of today, ?? Date() if nil, capped by min(...) at now. sport defaults to .walk. Instantiated only at HealthWorkoutImportSheet.swift:58 with onRebuild: startManualRebuild.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var RebuildFromHealthSection.body",
+   "hash": "0c2c7eb115ed5539",
+   "does": "Renders a Section with fields, header and footer.",
+   "entry": "SwiftUI body; view built at Emuqu/Sources/Views/HealthWorkoutImportSheet.swift:58",
+   "calls": [
+    "Emuqu/Sources/Views/RebuildFromHealthSection.swift::var RebuildFromHealthSection.header",
+    "Emuqu/Sources/Views/RebuildFromHealthSection.swift::var RebuildFromHealthSection.footer",
+    "Emuqu/Sources/Views/RebuildFromHealthSection.swift::var RebuildFromHealthSection.fields"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RebuildFromHealthSection.swift::var RebuildFromHealthSection.fields": "9edb9e60133ba7bc",
+    "Emuqu/Sources/Views/RebuildFromHealthSection.swift::var RebuildFromHealthSection.footer": "562a44526249cbd9",
+    "Emuqu/Sources/Views/RebuildFromHealthSection.swift::var RebuildFromHealthSection.header": "0351096c56b09c7e"
+   }
+  },
+  {
+   "key": "var RebuildFromHealthSection.header",
+   "hash": "4a48c091e8c36210",
+   "does": "Localized header text \"Rebuild from a time you remember\".",
+   "entry": "SwiftUI render via body",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var RebuildFromHealthSection.footer",
+   "hash": "8f4f7eefe8adcb88",
+   "does": "Localized footer text explaining Emuqu reads Health forward from the start time to rebuild the workout.",
+   "entry": "SwiftUI render via body",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var RebuildFromHealthSection.fields",
+   "hash": "7dd5d4805234a234",
+   "does": "Builds a DatePicker for start limited to ...now (date+time), the sport picker and the rebuild button.",
+   "entry": "SwiftUI render via body",
+   "calls": [
+    "Emuqu/Sources/Views/RebuildFromHealthSection.swift::var RebuildFromHealthSection.sportPicker",
+    "Emuqu/Sources/Views/RebuildFromHealthSection.swift::var RebuildFromHealthSection.rebuildButton"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RebuildFromHealthSection.swift::var RebuildFromHealthSection.rebuildButton": "c148a8057301d00b",
+    "Emuqu/Sources/Views/RebuildFromHealthSection.swift::var RebuildFromHealthSection.sportPicker": "ba6dffb48c8d5e1f"
+   }
+  },
+  {
+   "key": "var RebuildFromHealthSection.sportPicker",
+   "hash": "32da54d205e6f339",
+   "does": "Picker over sports walk, hike, run, trailRun, treadmill, bike labelled by Sport.displayName, bound to sport.",
+   "entry": "SwiftUI render",
+   "calls": [
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.displayName"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.displayName": "77a6486ffa8861f3",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var RebuildFromHealthSection.rebuildButton",
+   "hash": "95725a5619d68686",
+   "does": "Shows a centered ProgressView while isBusy, otherwise a \"Rebuild from Apple Health\" button that calls onRebuild(start, sport).",
+   "entry": "SwiftUI render; button tap invokes the closure",
+   "calls": [
+    "closure:onRebuild = HealthWorkoutImportSheet.startManualRebuild (HealthWorkoutImportSheet.swift:58)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "isBusy (busyRow == manualRebuildRow in parent)",
+     "effect": "true: spinner, no button; false: button that calls onRebuild"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  }
+ ],
+ "deps": {}
+}

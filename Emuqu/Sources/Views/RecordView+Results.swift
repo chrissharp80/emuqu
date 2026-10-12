@@ -10,7 +10,6 @@ extension RecordView {
         VStack(spacing: 16) {
             MorningPreviewCards.header(session)
             MorningPreviewCards.metrics(result)
-            deviceFetchIndicator
             viewFullReportButton
             continueToDashboardButton
         }
@@ -24,7 +23,7 @@ extension RecordView {
     /// (baseline, backup archive flag, sync), then the Dashboard.
     private var continueToDashboardButton: some View {
         Button {
-            saveMorningReading()
+            acceptSession()
             selectedTab = .dashboard
         } label: {
             Text(String(localized: "Continue to Dashboard", bundle: LanguageManager.appBundle))
@@ -33,36 +32,6 @@ extension RecordView {
         }
         .buttonStyle(.bordered)
         .tint(.secondary)
-    }
-
-    /// Subtle device fetch indicator, with an escape hatch that accepts the
-    /// beats already streamed rather than waiting on the strap.
-    @ViewBuilder
-    var deviceFetchIndicator: some View {
-        if morningCoordination.isDeviceFetchInProgress {
-            HStack(spacing: 6) {
-                ProgressView().scaleEffect(0.6)
-                Text(String(localized: "Syncing strap data\u{2026}", bundle: LanguageManager.appBundle))
-                    .font(.caption)
-                    .foregroundColor(AppTheme.textSecondary)
-                Spacer()
-                skipDeviceFetchButton
-            }
-        }
-    }
-
-    var skipDeviceFetchButton: some View {
-        Button(action: skipDeviceFetch) {
-            Text(String(localized: "Use \(sessionState.collectedPoints.count.formatted()) streamed beats", bundle: LanguageManager.appBundle))
-                .font(.caption.weight(.medium))
-        }
-        .buttonStyle(.bordered)
-        .tint(.secondary)
-    }
-
-    func skipDeviceFetch() {
-        collector.deviceFetchPolicy = .skipByUser
-        collector.polarManager.cancelFetch()
     }
 
     var viewFullReportButton: some View {
@@ -128,25 +97,11 @@ extension RecordView {
         }
     }
 
-    func saveMorningReading() {
-        Task {
-            if let session = sessionState.currentSession { await persistTagsAndNotes(for: session) }
-            do {
-                try await collector.acceptSession()
-            } catch {
-                debugLog("[RecordView] ⚠️ Failed to accept session: \(error)")
-            }
-            await MainActor.run {
-                selectedTags.removeAll()
-                sessionNotes = ""
-                selectedSessionType = nil
-            }
-        }
-    }
-
-    /// Write the user's tags + notes onto the session. Every save path (Save,
-    /// Continue, Done) comes through here, so a reading gets the same tags
-    /// whichever button is pressed.
+    /// Write the user's tags + notes onto the session: Save, Continue and
+    /// Done on a reading awaiting acceptance (`acceptSession`), and a quick
+    /// reading as it stops (`stopStreaming`), so a reading gets the same tags
+    /// whichever button is pressed. An overnight or nap takes its tags at
+    /// auto-accept through `preSessionTagged` instead.
     ///
     /// The morning tag is added when the recording ended between 4 and 10 AM.
     /// The tags go onto `currentSession` as well as the archive: a reading not
@@ -157,6 +112,21 @@ extension RecordView {
         let notes = sessionNotes.isEmpty ? nil : sessionNotes
         applyTagsInMemory(tags, notes: notes, sessionId: session.id)
         await writeTagsToArchive(session.id, tags: tags, notes: notes)
+    }
+
+    /// Overnight/nap auto-accept: the session with the tags picked before the
+    /// night, plus the morning tag when it ended between 4 and 10 AM (as
+    /// every save adds it), added to the tags it already holds (a same-night
+    /// merge carries an earlier segment's). Notes left empty keep the
+    /// session's own. Pure: the auto-accept re-score archives the session it
+    /// returns, so the tags reach the archive with the score.
+    func preSessionTagged(_ session: HRVSession) -> HRVSession {
+        let picked = Self.tagsToSave(selectedTags, endedAt: session.endDate ?? Date())
+        let added = picked.filter { !session.tags.contains($0) }
+        var tagged = session
+        tagged.tags = session.tags + added.sorted { $0.name < $1.name }
+        if !sessionNotes.isEmpty { tagged.notes = sessionNotes }
+        return tagged
     }
 
     /// The archive rewrite (decrypt, encode, write) runs off the main actor.
@@ -175,6 +145,17 @@ extension RecordView {
         let hour = Calendar.current.component(.hour, from: endedAt)
         guard hour >= 4, hour < 10 else { return selected }
         return selected.union([ReadingTag.morning])
+    }
+
+    /// Tags & Notes edited in a reading's report (morning or quick), handed
+    /// over by the report on its Done or as it closes: onto the in-memory
+    /// reading while it is still the current one (acceptance archives that
+    /// copy), and into the archived copy. The report hands them over after
+    /// the toolbar Done has started acceptance, so these writes land after
+    /// `persistTagsAndNotes`'s and the report's edits are what is kept.
+    func saveReportTags(_ tags: [ReadingTag], notes: String?, sessionId: UUID) {
+        applyTagsInMemory(tags, notes: notes, sessionId: sessionId)
+        Task { await writeTagsToArchive(sessionId, tags: tags, notes: notes) }
     }
 
     /// Apply tags + notes onto `currentSession` when it is the session being

@@ -1,0 +1,183 @@
+{
+ "file": "Emuqu/Sources/Collection/RRCollector+Import.swift",
+ "hash": "40625bfed23b9d1d",
+ "role": "Saving imported (already analysed) sessions into the archive, baseline and iCloud: RRCollector forwarders plus the SessionImport value type.",
+ "types": [
+  "RRCollector: extension — import forwarders",
+  "SessionImport: struct (@MainActor) — single and batch import save"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func RRCollector.saveImportedSession(_:)",
+   "hash": "cc3246da490b02ca",
+   "does": "Forwards to SessionImport.save.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+Import.swift::func SessionImport.save(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Import.swift::func SessionImport.save(_:)": "f754888cf842d1cd"
+   }
+  },
+  {
+   "key": "func RRCollector.saveImportedSessionsBatch(_:)",
+   "hash": "bd5d6e67f46a1531",
+   "does": "Forwards to SessionImport.saveBatch.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+Import.swift::func SessionImport.saveBatch(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Import.swift::func SessionImport.saveBatch(_:)": "65950880fc8370a6"
+   }
+  },
+  {
+   "key": "func SessionImport.save(_:)",
+   "hash": "a93bc84b4feafe0a",
+   "does": "Saves one imported session: requires complete+analysed, refuses a duplicate the archive already holds, archives it with a re-upload request (same-sleep merge allowed). A reading saved under its own id is uploaded to iCloud; one the archive merged into an existing reading reaches iCloud through the archive's re-upload request for the merged id, and the merged reading (re-read) is what the baseline and deviation use; the deviation is measured against the nights before the imported one (deviation(for:sleepSchedule:)), not a baseline it has just joined. Bumps the archive signal (its own post reaches an ArchiveSignal listening on an injected centre).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.holdsCopy(of:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadSession(_:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.update(with:sleepSchedule:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.deviation(for:sleepSchedule:)",
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)"
+   ],
+   "reads": [
+    "archive:index"
+   ],
+   "writes": [
+    "archive:session file+index",
+    "archive:modifiedAt stamp",
+    "notif:flowRecoveryArchiveSessionsNeedReupload (merged)",
+    "ck:session record",
+    "file:HRVBaseline",
+    "mem:SessionState.baselineDeviation",
+    "mem:ArchiveSignal.version",
+    "notif:flowRecoveryArchiveChanged"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "not complete or no analysisResult",
+     "effect": "throws importNotAnalyzed"
+    },
+    {
+     "at": "+4",
+     "cond": "archive already holds a copy (same type, overlapping time)",
+     "effect": "throws duplicateImport"
+    },
+    {
+     "at": "+7",
+     "cond": "merged into another id",
+     "effect": "baseline/deviation use the re-read merged reading (the import when the read fails); no direct upload"
+    },
+    {
+     "at": "+8",
+     "cond": "saved under its own id",
+     "effect": "uploadSession"
+    },
+    {
+     "at": "+16",
+     "cond": "deviation computed",
+     "effect": "publishes it; nil leaves the previous deviation"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.deviation(for:sleepSchedule:)": "db44d0c36e819068",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.update(with:sleepSchedule:)": "39b522c63ba99f84",
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()": "47c71a985b0f7b54",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.holdsCopy(of:)": "9ee650a0ac71e106",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)": "e1a5ccaab9fa4e3e",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)": "f0a309cc2b24de13",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadSession(_:)": "6be1af35552af634"
+   }
+  },
+  {
+   "key": "func SessionImport.saveBatch(_:)",
+   "hash": "c7214cff79827fe9",
+   "does": "Batch import: keeps complete+analysed sessions, archives them in one batch, feeds the baseline only those the archive now holds (chronologically), bumps the archive signal and triggers a full iCloud sync when any were saved.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.archiveBatch(_:)",
+    "Emuqu/Sources/Collection/RRCollector+Import.swift::func SessionImport.updateBaseline(withImported:)",
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.performFullSync()"
+   ],
+   "reads": [
+    "archive:index"
+   ],
+   "writes": [
+    "archive:session files+index",
+    "file:HRVBaseline",
+    "mem:ArchiveSignal.version",
+    "ck:full sync"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "no valid sessions",
+     "effect": "logs and returns 0"
+    },
+    {
+     "at": "+12",
+     "cond": "savedCount > 0",
+     "effect": "starts performFullSync; otherwise no sync"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()": "47c71a985b0f7b54",
+    "Emuqu/Sources/Collection/RRCollector+Import.swift::func SessionImport.updateBaseline(withImported:)": "0e2d7d73f022ae70",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.archiveBatch(_:)": "b5be05ffd711fc74",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.performFullSync()": "e1168fc765a065fb",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func SessionImport.updateBaseline(withImported:)",
+   "hash": "ee070a5566ba6faf",
+   "does": "Updates the baseline with the imported sessions whose ids are now in the archive index, oldest first.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.update(with:sleepSchedule:)"
+   ],
+   "reads": [
+    "archive:entries"
+   ],
+   "writes": [
+    "file:HRVBaseline"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each written session",
+     "effect": "baseline update"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.update(with:sleepSchedule:)": "3d630ccb9de1838f",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e"
+   }
+  }
+ ],
+ "deps": {}
+}

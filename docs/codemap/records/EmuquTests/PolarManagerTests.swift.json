@@ -1,0 +1,443 @@
+{
+ "file": "EmuquTests/PolarManagerTests.swift",
+ "hash": "af4b69670ccc0a1b",
+ "role": "XCTest suite for PolarManager streaming ingestion (RR extraction only when rrAvailable, cumulative t_ms, wall-clock stamping, a 130-beat stream) and device-information callbacks through StrapLinkCoordinator.apply (battery and firmware only from the connected device, invalid battery ignored, 2A28 software revision overriding 2A26).",
+ "types": [
+  "PolarManagerTests: class — @MainActor XCTestCase over PolarManager ingestion and DIS/battery callbacks"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "duplicate",
+   "sev": "low",
+   "text": "The streaming-ingestion tests here duplicate PolarManagerIntegrationTests through the same ingestHeartRate path: testMultipleSamplesInBatch vs testMultipleSamplesWithMixedAvailability, testCumulativeTimeTracking vs testHighFrequencyDataBurst/testMaxStreamDuration, testWallClockTimeCapture vs testStreamingWithBLEHiccups.",
+   "evidence": [
+    "EmuquTests/PolarManagerTests.swift:57",
+    "EmuquTests/PolarManagerIntegrationTests.swift:78",
+    "EmuquTests/PolarManagerTests.swift:99",
+    "EmuquTests/PolarManagerIntegrationTests.swift:99",
+    "EmuquTests/PolarManagerTests.swift:127",
+    "EmuquTests/PolarManagerIntegrationTests.swift:15"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func PolarManagerTests.testRRDataExtractionWhenAvailable()",
+   "hash": "00cf366fe067e252",
+   "does": "Ingests one sample with 4 RR intervals and asserts 4 points with those values and cumulative 3700 ms.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.prepareStreamingStateForTesting(startTime:cumulativeMs:existingPoints:)",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.ingestHeartRate(_:receivedAt:)",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeats(_:wallClockMs:hr:)",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.elapsedStreamingMs(at:)",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeat(rrMs:wallClockMs:hr:)",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.publishStreamingProgress(heartbeatLabel:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.noteSample(at:)",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::var PolarManager.streamingCumulativeMsForTesting"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeat(rrMs:wallClockMs:hr:)": "7b4e5cf2bd983fa0",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeats(_:wallClockMs:hr:)": "6fcfcf050a07bcd4",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.elapsedStreamingMs(at:)": "339893bba3fe4698",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.ingestHeartRate(_:receivedAt:)": "a4128b4165979968",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.prepareStreamingStateForTesting(startTime:cumulativeMs:existingPoints:)": "b9e93cd94ab7e8e5",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.publishStreamingProgress(heartbeatLabel:)": "038f31a574db4c2d",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::var PolarManager.streamingCumulativeMsForTesting": "99ca2e005647f10c",
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "b9f281895be22d44",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.streamedRRPoints": "e1584f9930f839e0",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.noteSample(at:)": "58dda9f6dac9b2d9"
+   }
+  },
+  {
+   "key": "func PolarManagerTests.testRRDataSkippedWhenNotAvailable()",
+   "hash": "17b6ad70563b64af",
+   "does": "Asserts a sample with rrAvailable false adds no points and cumulative stays 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.prepareStreamingStateForTesting(startTime:cumulativeMs:existingPoints:)",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.ingestHeartRate(_:receivedAt:)",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeats(_:wallClockMs:hr:)",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.elapsedStreamingMs(at:)",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeat(rrMs:wallClockMs:hr:)",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.publishStreamingProgress(heartbeatLabel:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.noteSample(at:)",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::var PolarManager.streamingCumulativeMsForTesting"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeat(rrMs:wallClockMs:hr:)": "7b4e5cf2bd983fa0",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeats(_:wallClockMs:hr:)": "6fcfcf050a07bcd4",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.elapsedStreamingMs(at:)": "339893bba3fe4698",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.ingestHeartRate(_:receivedAt:)": "a4128b4165979968",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.prepareStreamingStateForTesting(startTime:cumulativeMs:existingPoints:)": "b9e93cd94ab7e8e5",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.publishStreamingProgress(heartbeatLabel:)": "038f31a574db4c2d",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::var PolarManager.streamingCumulativeMsForTesting": "99ca2e005647f10c",
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "b9f281895be22d44",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.streamedRRPoints": "e1584f9930f839e0",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.noteSample(at:)": "58dda9f6dac9b2d9"
+   }
+  },
+  {
+   "key": "func PolarManagerTests.testMultipleSamplesInBatch()",
+   "hash": "947f395d357383f8",
+   "does": "Asserts a batch of samples with 2, 1 and 0 (unavailable) RRs yields 3 points in order.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.prepareStreamingStateForTesting(startTime:cumulativeMs:existingPoints:)",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.ingestHeartRate(_:receivedAt:)",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeats(_:wallClockMs:hr:)",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.elapsedStreamingMs(at:)",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeat(rrMs:wallClockMs:hr:)",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.publishStreamingProgress(heartbeatLabel:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.noteSample(at:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeat(rrMs:wallClockMs:hr:)": "7b4e5cf2bd983fa0",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeats(_:wallClockMs:hr:)": "6fcfcf050a07bcd4",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.elapsedStreamingMs(at:)": "339893bba3fe4698",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.ingestHeartRate(_:receivedAt:)": "a4128b4165979968",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.prepareStreamingStateForTesting(startTime:cumulativeMs:existingPoints:)": "b9e93cd94ab7e8e5",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.publishStreamingProgress(heartbeatLabel:)": "038f31a574db4c2d",
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "b9f281895be22d44",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.streamedRRPoints": "e1584f9930f839e0",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.noteSample(at:)": "58dda9f6dac9b2d9"
+   }
+  },
+  {
+   "key": "func PolarManagerTests.testEmptyRRsMsArray()",
+   "hash": "3c3af12599f27b05",
+   "does": "Asserts rrAvailable true with an empty RR array does not throw and adds nothing.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.prepareStreamingStateForTesting(startTime:cumulativeMs:existingPoints:)",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.ingestHeartRate(_:receivedAt:)",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeats(_:wallClockMs:hr:)",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.elapsedStreamingMs(at:)",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeat(rrMs:wallClockMs:hr:)",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.publishStreamingProgress(heartbeatLabel:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.noteSample(at:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "XCTAssertNoThrow wraps a non-throwing call; it can never fail (a trap would crash the run instead), so only the count assertion carries weight.",
+     "evidence": [
+      "EmuquTests/PolarManagerTests.swift:92"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeat(rrMs:wallClockMs:hr:)": "7b4e5cf2bd983fa0",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeats(_:wallClockMs:hr:)": "6fcfcf050a07bcd4",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.elapsedStreamingMs(at:)": "339893bba3fe4698",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.ingestHeartRate(_:receivedAt:)": "a4128b4165979968",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.prepareStreamingStateForTesting(startTime:cumulativeMs:existingPoints:)": "b9e93cd94ab7e8e5",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.publishStreamingProgress(heartbeatLabel:)": "038f31a574db4c2d",
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "b9f281895be22d44",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.streamedRRPoints": "e1584f9930f839e0",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.noteSample(at:)": "58dda9f6dac9b2d9"
+   }
+  },
+  {
+   "key": "func PolarManagerTests.testCumulativeTimeTracking()",
+   "hash": "1e66366233086833",
+   "does": "Ingests 2 then 3 beats of 1000 ms and asserts cumulative 2000 then 5000 ms and t_ms 0,1000,2000,3000,4000.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.prepareStreamingStateForTesting(startTime:cumulativeMs:existingPoints:)",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.ingestHeartRate(_:receivedAt:)",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeats(_:wallClockMs:hr:)",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.elapsedStreamingMs(at:)",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeat(rrMs:wallClockMs:hr:)",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.publishStreamingProgress(heartbeatLabel:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.noteSample(at:)",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::var PolarManager.streamingCumulativeMsForTesting"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeat(rrMs:wallClockMs:hr:)": "7b4e5cf2bd983fa0",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeats(_:wallClockMs:hr:)": "6fcfcf050a07bcd4",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.elapsedStreamingMs(at:)": "339893bba3fe4698",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.ingestHeartRate(_:receivedAt:)": "a4128b4165979968",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.prepareStreamingStateForTesting(startTime:cumulativeMs:existingPoints:)": "b9e93cd94ab7e8e5",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.publishStreamingProgress(heartbeatLabel:)": "038f31a574db4c2d",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::var PolarManager.streamingCumulativeMsForTesting": "99ca2e005647f10c",
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "b9f281895be22d44",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.streamedRRPoints": "e1584f9930f839e0",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.noteSample(at:)": "58dda9f6dac9b2d9"
+   }
+  },
+  {
+   "key": "func PolarManagerTests.testWallClockTimeCapture()",
+   "hash": "30373fd43cc3c33e",
+   "does": "Ingests one beat 120 ms after start via ingestHeartRateForTesting and asserts wallClockMs 120.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.prepareStreamingStateForTesting(startTime:cumulativeMs:existingPoints:)",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.ingestHeartRateForTesting(_:elapsedMs:)",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.ingestHeartRate(_:receivedAt:)",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeats(_:wallClockMs:hr:)",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.elapsedStreamingMs(at:)",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeat(rrMs:wallClockMs:hr:)",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.publishStreamingProgress(heartbeatLabel:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.noteSample(at:)",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)": "5950e566f77c54d0",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeat(rrMs:wallClockMs:hr:)": "7b4e5cf2bd983fa0",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeats(_:wallClockMs:hr:)": "6fcfcf050a07bcd4",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.elapsedStreamingMs(at:)": "339893bba3fe4698",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.ingestHeartRate(_:receivedAt:)": "a4128b4165979968",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.ingestHeartRateForTesting(_:elapsedMs:)": "ada5e182d18472bb",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.prepareStreamingStateForTesting(startTime:cumulativeMs:existingPoints:)": "b9e93cd94ab7e8e5",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.publishStreamingProgress(heartbeatLabel:)": "038f31a574db4c2d",
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "b9f281895be22d44",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.streamedRRPoints": "e1584f9930f839e0",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.noteSample(at:)": "58dda9f6dac9b2d9",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "6d761b0522590a2a"
+   }
+  },
+  {
+   "key": "func PolarManagerTests.testRealisticTwoMinuteStream()",
+   "hash": "e1424af54505e2d0",
+   "does": "Ingests 130 single-beat batches with RR 923±{50,25,0} and asserts 130 points and cumulative equals the summed RR.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.prepareStreamingStateForTesting(startTime:cumulativeMs:existingPoints:)",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.ingestHeartRate(_:receivedAt:)",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeats(_:wallClockMs:hr:)",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.elapsedStreamingMs(at:)",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeat(rrMs:wallClockMs:hr:)",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.publishStreamingProgress(heartbeatLabel:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.noteSample(at:)",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::var PolarManager.streamingCumulativeMsForTesting"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+13",
+     "cond": "for beat in 0..<130",
+     "effect": "one single-beat batch per iteration with RR varied by beat % 5"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeat(rrMs:wallClockMs:hr:)": "7b4e5cf2bd983fa0",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeats(_:wallClockMs:hr:)": "6fcfcf050a07bcd4",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.elapsedStreamingMs(at:)": "339893bba3fe4698",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.ingestHeartRate(_:receivedAt:)": "a4128b4165979968",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.prepareStreamingStateForTesting(startTime:cumulativeMs:existingPoints:)": "b9e93cd94ab7e8e5",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.publishStreamingProgress(heartbeatLabel:)": "038f31a574db4c2d",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::var PolarManager.streamingCumulativeMsForTesting": "99ca2e005647f10c",
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "b9f281895be22d44",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.streamedRRPoints": "e1584f9930f839e0",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.noteSample(at:)": "58dda9f6dac9b2d9"
+   }
+  },
+  {
+   "key": "func PolarManagerTests.testBatteryCallbackIgnoresNonConnectedDevice()",
+   "hash": "517a975ea77f7a43",
+   "does": "Asserts a battery event from another device is ignored and one from the connected device sets 88.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.setConnectedDeviceForTesting(id:type:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.applyBatteryLevelUpdate(from:batteryLevel:)",
+    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.applyLevelUpdate(from:batteryLevel:)",
+    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.persist(for:)",
+    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.recomputeStaleness()",
+    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.usageKey(_:deviceId:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:<usagePrefix>value/changedAt/hours.ACTIVE-DEVICE (standard suite, StrapBatteryUsageTracker.persist; never cleaned up)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.setConnectedDeviceForTesting(id:type:)": "119fb2afbb3f1150",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.applyBatteryLevelUpdate(from:batteryLevel:)": "6c87482bae1a9d59",
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "b9f281895be22d44",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.battery": "f11567bc6e24a0c6",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.batteryLevel": "ddfd0bc6b3d69f3b",
+    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.applyLevelUpdate(from:batteryLevel:)": "f6454d20b7084cd4",
+    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.persist(for:)": "63a62a2b59e4d3ad",
+    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.recomputeStaleness()": "72ab2cdd18ded3f8",
+    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.usageKey(_:deviceId:)": "f57e81ee54306a11",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "de045b193f014cc0"
+   }
+  },
+  {
+   "key": "func PolarManagerTests.testBatteryCallbackIgnoresInvalidPercentageValues()",
+   "hash": "0afafb66dadb74a5",
+   "does": "Asserts battery 84 is published, a later 255 is ignored, and a first callback of 200 on a fresh manager leaves batteryLevel nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.setConnectedDeviceForTesting(id:type:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.applyBatteryLevelUpdate(from:batteryLevel:)",
+    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.applyLevelUpdate(from:batteryLevel:)",
+    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.persist(for:)",
+    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.recomputeStaleness()",
+    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.usageKey(_:deviceId:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:<usagePrefix>value/changedAt/hours.ACTIVE-DEVICE (standard suite, StrapBatteryUsageTracker.persist; never cleaned up)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.setConnectedDeviceForTesting(id:type:)": "119fb2afbb3f1150",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.applyBatteryLevelUpdate(from:batteryLevel:)": "6c87482bae1a9d59",
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "b9f281895be22d44",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.battery": "f11567bc6e24a0c6",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.batteryLevel": "ddfd0bc6b3d69f3b",
+    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.applyLevelUpdate(from:batteryLevel:)": "f6454d20b7084cd4",
+    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.persist(for:)": "63a62a2b59e4d3ad",
+    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.recomputeStaleness()": "72ab2cdd18ded3f8",
+    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.usageKey(_:deviceId:)": "f57e81ee54306a11",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "de045b193f014cc0"
+   }
+  },
+  {
+   "key": "func PolarManagerTests.testFirmwareCallbackIgnoresNonConnectedDevice()",
+   "hash": "fbe22dba310d72c0",
+   "does": "Asserts a 2A26 firmware event from another device is ignored and from the connected device sets 5.1.0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.setConnectedDeviceForTesting(id:type:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.applyFirmwareRevisionUpdate(from:uuid:value:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.setConnectedDeviceForTesting(id:type:)": "119fb2afbb3f1150",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.applyFirmwareRevisionUpdate(from:uuid:value:)": "c56749b671ba62dc",
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "b9f281895be22d44",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "de045b193f014cc0"
+   }
+  },
+  {
+   "key": "func PolarManagerTests.testFirmwareCallbackIgnoresNonFirmwareCharacteristic()",
+   "hash": "7db167954ef0960b",
+   "does": "Asserts a 2A29 (manufacturer) characteristic does not set firmwareVersion.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.setConnectedDeviceForTesting(id:type:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.applyFirmwareRevisionUpdate(from:uuid:value:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.setConnectedDeviceForTesting(id:type:)": "119fb2afbb3f1150",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.applyFirmwareRevisionUpdate(from:uuid:value:)": "c56749b671ba62dc",
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "b9f281895be22d44",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "de045b193f014cc0"
+   }
+  },
+  {
+   "key": "func PolarManagerTests.testSoftwareRevisionOverridesFirmwareRevision()",
+   "hash": "f2ec581282d34b58",
+   "does": "Asserts 2A26 sets 5.0.0 as fallback, 2A28 replaces it with 4.1.10, and a later 2A26 does not override the software revision.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.setConnectedDeviceForTesting(id:type:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.applyFirmwareRevisionUpdate(from:uuid:value:)",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.setFirmwareVersion(_:label:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.setConnectedDeviceForTesting(id:type:)": "119fb2afbb3f1150",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.applyFirmwareRevisionUpdate(from:uuid:value:)": "c56749b671ba62dc",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.setFirmwareVersion(_:label:)": "b92655429122a2e0",
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "b9f281895be22d44",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "de045b193f014cc0"
+   }
+  },
+  {
+   "key": "func PolarManagerTests.testSoftwareRevisionCanArriveViaStringKeyCallback()",
+   "hash": "fe9468e13b51bc2f",
+   "does": "Asserts a lowercase '2a28' string-key device-information event sets firmwareVersion 4.1.10.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.setConnectedDeviceForTesting(id:type:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.applyFirmwareRevisionUpdate(from:uuid:value:)",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.applyFirmwareRevisionUpdate(from:key:value:)",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.setFirmwareVersion(_:label:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.setConnectedDeviceForTesting(id:type:)": "119fb2afbb3f1150",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.applyFirmwareRevisionUpdate(from:key:value:)": "da126d2c8892851c",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.applyFirmwareRevisionUpdate(from:uuid:value:)": "c56749b671ba62dc",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.setFirmwareVersion(_:label:)": "b92655429122a2e0",
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "b9f281895be22d44",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "de045b193f014cc0"
+   }
+  }
+ ],
+ "deps": {}
+}

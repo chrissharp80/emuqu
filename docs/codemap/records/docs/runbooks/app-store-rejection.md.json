@@ -1,0 +1,131 @@
+{
+ "file": "docs/runbooks/app-store-rejection.md",
+ "hash": "e3b0c44298fc1c14",
+ "role": "Operational runbook for responding to an App Store rejection, listing the most likely guideline triggers and the fix/appeal/resubmit sequence.",
+ "types": [],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "§ Runbook: App Store Rejection Response",
+   "hash": "50c1990f4f2dda99",
+   "does": "no behavioural claim: runbook title and trigger (~14 days to respond).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Runbook: App Store Rejection Response > 1. Read the actual reason",
+   "hash": "dac288dff3e1eb34",
+   "does": "Lists likely rejection causes with code pointers: PrivacyInfo.xcprivacy + SECURITY.md alignment section; UIBackgroundModes location/bluetooth-peripheral/audio, naming WorkoutLocationManager (workout route) and BreadcrumbRecorder (Get Me Back trail) as the two background-location streamers, both with the location indicator, and BackgroundAudioManager holding audio only during a cue; MedicalQueryGuard and the MEDICAL BOUNDARY block in AIProvider+SystemPromptText.swift; docs/REVIEW.md reviewer notes.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.startStreaming()",
+    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.configureManagerForBackgroundTracking()",
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.beginCue()",
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.endCue(_:)",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.evaluate(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Info.plist UIBackgroundModes also declares bluetooth-central, which the runbook's list of background modes to justify omits.",
+     "evidence": [
+      "docs/runbooks/app-store-rejection.md:24",
+      "Emuqu/Info.plist:25"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.evaluate(_:)": "209910bab182d4ea",
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.beginCue()": "73c6ae1ce9608494",
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.endCue(_:)": "416d3a125402698c",
+    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.configureManagerForBackgroundTracking()": "1744863de5d3a812",
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.startStreaming()": "dfe92fa6ef2dee3f"
+   }
+  },
+  {
+   "key": "§ Runbook: App Store Rejection Response > 2. Reproduce the rejection trigger locally",
+   "hash": "8590a4b620364276",
+   "does": "no behavioural claim: process advice to reproduce the rejection locally.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Runbook: App Store Rejection Response > 3. Decide: fix-and-resubmit OR appeal",
+   "hash": "ca01b8a07bd1e033",
+   "does": "no behavioural claim: process for fix-and-resubmit (bump CFBundleVersion, attach build) vs appeal.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Runbook: App Store Rejection Response > 4. Resubmit",
+   "hash": "447e2425a2c34370",
+   "does": "no behavioural claim: attach new build to open submission.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Runbook: App Store Rejection Response > 5. Record the cause and the fix",
+   "hash": "2b47b466bc2b7084",
+   "does": "no behavioural claim: record cause in notes outside the repo.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Runbook: App Store Rejection Response > Common gotchas",
+   "hash": "6a247e3c09c913c5",
+   "does": "no behavioural claim: App Store Connect gotchas (build replacement, processing lag, CFBundleVersion collisions).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Runbook: App Store Rejection Response > Contacts",
+   "hash": "6bffa0b4659de705",
+   "does": "no behavioural claim: Apple contact links.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

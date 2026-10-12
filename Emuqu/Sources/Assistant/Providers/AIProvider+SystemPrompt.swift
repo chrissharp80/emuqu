@@ -21,18 +21,14 @@ enum AssistantSystemPrompt {
         /// data context). Sent after `stable`, no cache control.
         let variable: String
 
-        /// Single-string fallback for providers (Apple, OpenAI) whose
-        /// SDKs don't expose multi-block system prompts.
-        var combined: String {
-            variable.isEmpty ? stable : "\(stable)\n\n\(variable)"
-        }
-
         /// Combined string with a marker between the cached and
         /// uncached halves. Anthropic provider splits on this marker
         /// to build two cache-aware system blocks; other providers
-        /// strip it and send the whole thing as one prompt.
+        /// strip it and send the whole thing as one prompt. The variable
+        /// half is never empty (it always opens with the clock snapshot),
+        /// so the marker is always present.
         var combinedWithMarker: String {
-            variable.isEmpty ? stable : "\(stable)\(Self.cacheSplitMarker)\(variable)"
+            "\(stable)\(Self.cacheSplitMarker)\(variable)"
         }
 
         /// Sentinel that delimits the stable / variable halves inside
@@ -134,8 +130,9 @@ enum AssistantSystemPrompt {
         if voiceMode { sections.append(voiceOverlay) }
         // App-level reference (features, metrics, capabilities). Static across
         // users and sessions — goes EARLY so prompt caching can hit it on
-        // every send without counting as per-request variable content. Compact
-        // variant is offered for small-context providers (Apple on-device).
+        // every send without counting as per-request variable content. The
+        // app's one composer asks for the compact variant for every provider;
+        // the full manual is reached through the `app.help.lookup` tool.
         if includeAppReference {
             sections.append(compactAppReference ? AppKnowledgeBase.referenceCompact : AppKnowledgeBase.reference)
         }
@@ -265,20 +262,20 @@ enum AssistantSystemPrompt {
     /// name unmissable. HR / pace / GPS are NOT inlined (they change per
     /// second; inlining would blow the cache).
     ///
-    /// Surface any unconsumed hallucination corrections
-    /// from the previous turn. The voice-side guard records these
-    /// when it catches a fabricated number; we inject ONE reminder
-    /// into the next turn's variable (per-send) section, then the
-    /// buffer clears. Without this, the model fabricates the same
-    /// number on every subsequent turn because it never sees that
-    /// it got it wrong (the user heard the corrected number, the
-    /// model thinks its claim was accepted).
+    /// Surface any hallucination corrections from the previous turn. The
+    /// guards record these when they catch a fabricated number; we inject
+    /// ONE reminder into the next turn's variable (per-send) section.
+    /// Composing does not retire it: the next reply's verification does, so
+    /// a prompt re-composed for a fallback provider still carries it.
+    /// Without this, the model fabricates the same number on every
+    /// subsequent turn because it never sees that it got it wrong (the user
+    /// heard the corrected number, the model thinks its claim was accepted).
     @MainActor
     private static func variableSections(priorSummary: String?, contextRendered: String) -> [String] {
         var sections: [String] = [nowSnapshot()]
         sections += trainingLoadSections()
         if let liveMarker = activeWorkoutMarker() { sections.append(liveMarker) }
-        if let corrections = MetricsVerifier.consumePendingCorrectionsBlock() {
+        if let corrections = MetricsVerifier.pendingCorrectionsBlock() {
             sections.append(corrections)
         }
         if let summary = priorSummary, !summary.isEmpty {
@@ -490,12 +487,12 @@ enum AssistantSystemPrompt {
 
     /// Per-send marker indicating a workout is currently in progress.
     /// Returns nil when no active session — caller skips the section
-    /// entirely. Static fields only (sport, started-at, elapsed
-    /// rounded to the minute) so the same marker holds across many
-    /// rapid sends without forcing prompt-cache invalidation; the
-    /// volatile metrics (HR, pace, GPS) live behind the
-    /// `get_workout_live` tool that the marker explicitly names. The
-    /// exact second is a tool call away if the model needs it.
+    /// entirely. Coarse fields only (sport, started-at, elapsed
+    /// rounded to the minute), so the text changes at most once a
+    /// minute; it sits in the variable half, so the cached prefix is
+    /// unaffected either way. The volatile metrics (HR, pace, GPS) live
+    /// behind the `get_workout_live` tool that the marker explicitly
+    /// names. The exact second is a tool call away if the model needs it.
     ///
     /// The block carries explicit provenance per HARD
     /// RULE #1 (source attribution). The model can tag values

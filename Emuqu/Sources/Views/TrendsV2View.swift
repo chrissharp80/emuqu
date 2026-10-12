@@ -64,6 +64,10 @@ struct TrendsV2View: View {
     /// nav transition) — the "More tab → Trends" stall.
     @State private var allSessions: [HRVSession] = []
     @State private var isLoadingSessions = false
+    /// Set when a refresh is asked for while a load is running; the running
+    /// load then loads again, so a save, delete or pull that lands mid-load
+    /// is not lost.
+    @State private var reloadRequested = false
 
     /// Memoized derived state. Body re-evaluations
     /// (range change, tag chip tap, metric switch, archive bump, view
@@ -176,11 +180,14 @@ struct TrendsV2View: View {
             .sorted { $0.startDate < $1.startDate }
     }
 
-    /// These are the four primary tags in the filter row.
-    /// Single horizontal scroll, never wrapped. "All" = nil selection.
-    private static let primaryFilterTags: [ReadingTag] = [
-        .morning, .postExercise, .recovery, .evening
-    ]
+    /// The tags in the filter row after "All" (nil selection): the user's
+    /// tags, system and custom in Settings order, that at least one loaded
+    /// overnight reading carries, so every chip can match something.
+    /// Single horizontal scroll, never wrapped.
+    private var filterTags: [ReadingTag] {
+        let used = Set(allSessions.filter { $0.sessionType == .overnight }.flatMap(\.tags).map(\.id))
+        return collector.settingsManager.settings.allTags.filter { used.contains($0.id) }
+    }
 
     var body: some View {
         withRefreshHooks(
@@ -227,6 +234,11 @@ struct TrendsV2View: View {
             .onChange(of: archiveSignal.version) { _, _ in
                 Task { await loadSessions() }
             }
+            // A pull from iCloud, including a session deleted on another
+            // device, which does not bump the archive signal.
+            .onChange(of: dependencies.storage.cloudKitSyncManager.pullVersion) { _, _ in
+                Task { await loadSessions() }
+            }
             // Rebuild memoized derived state whenever an input changes, so a
             // plain body re-evaluation never triggers a rebuild. A reload
             // rebuilds in `loadSessions` even when the count is unchanged.
@@ -236,31 +248,36 @@ struct TrendsV2View: View {
             .onChange(of: selectedTagId) { _, _ in rebuildDerived() }
     }
 
+    /// One load at a time. A refresh asked for during a load sets
+    /// `reloadRequested`, and the running load goes round again, because the
+    /// archive snapshot it took may predate the change that asked.
     @MainActor
     private func loadSessions() async {
-        guard !isLoadingSessions else { return }
+        guard !isLoadingSessions else {
+            reloadRequested = true
+            return
+        }
         isLoadingSessions = true
         defer { isLoadingSessions = false }
-        // Async loader runs on a background priority queue and uses
-        // the lightweight retrieve path (skips rrSeries decode), so
-        // the main thread never blocks on disk during nav transition.
-        let loaded = await collector.recentSessionsAsync(limit: nil)
-        allSessions = loaded
-        rebuildDerived()
+        repeat {
+            reloadRequested = false
+            // Async loader runs on a background priority queue and uses
+            // the lightweight retrieve path (skips rrSeries decode), so
+            // the main thread never blocks on disk during nav transition.
+            allSessions = await collector.recentSessionsAsync(limit: nil)
+            rebuildDerived()
+        } while reloadRequested
     }
 
-    /// Soft-delete a session from the calendar's day sheet (moves it to Trash).
-    /// Mirrors `MainTabView.deleteSession` so the History list and the calendar
-    /// share one delete path. Removing it from `allSessions` immediately keeps
-    /// the calendar in sync before the archive signal re-loads. Returns
-    /// whether the reading left the archive.
+    /// Soft-delete a session from the calendar's day sheet (moves it to Trash)
+    /// through `SessionTrash.move`, the delete path History uses. Removing it
+    /// from `allSessions` immediately keeps the calendar in sync before the
+    /// archive signal re-loads. Returns whether the reading left the archive.
     private func deleteSession(_ session: HRVSession) -> Bool {
         do {
-            try collector.archive.delete(session.id)
-            collector.notifyArchiveChanged()
+            try SessionTrash.move(session.id, collector: collector, cloudKit: dependencies.storage.cloudKitSyncManager)
             allSessions.removeAll { $0.id == session.id }
             rebuildDerived()
-            Task { await dependencies.storage.cloudKitSyncManager.uploadDeletion(session.id) }
             return true
         } catch {
             debugLog("[TrendsV2View] Failed to delete session \(session.id.uuidString.prefix(8)): \(error)")
@@ -288,7 +305,8 @@ struct TrendsV2View: View {
     }
 
     /// 60-day rolling baseline (shaded normal-range
-    /// band, mean ±1 SD over 60 days). Computed across ALL overnight sessions
+    /// band over 60 days: mean ±1 SD, or ±1 SD in log space for the
+    /// log-normal metrics, `isLogNormal`). Computed across ALL overnight sessions
     /// in the last 60 days, independent of the visible-window range chip —
     /// that's what makes the band a stable "this is your normal" reference
     /// rather than circular ("the average of the dots, ±1 SD of those same
@@ -298,7 +316,7 @@ struct TrendsV2View: View {
         return Dictionary(uniqueKeysWithValues:
             Metric.allCases.map { metric in
                 let pts = buildMetricPoints(from: baselineSet, metric: metric)
-                return (metric, BaselineStats.from(pts.map(\.value)))
+                return (metric, BaselineStats.from(pts.map(\.value), logScale: Self.isLogNormal(metric)))
             }
         )
     }
@@ -311,15 +329,38 @@ struct TrendsV2View: View {
         let mean: Double
         let sd: Double
         let sampleCount: Int
+        /// The normal-range band's edges: mean ±1 SD, or, for a log-normal
+        /// metric, exp(lnMean ± lnSD) over its positive values, so a skewed
+        /// metric's band isn't pulled low by its long upper tail.
+        let low: Double
+        let high: Double
 
-        static let empty = BaselineStats(mean: 0, sd: 0, sampleCount: 0)
+        static let empty = BaselineStats(mean: 0, sd: 0, sampleCount: 0, low: 0, high: 0)
         var hasData: Bool { sampleCount >= 4 }
 
-        static func from(_ values: [Double]) -> BaselineStats {
+        static func from(_ values: [Double], logScale: Bool = false) -> BaselineStats {
             guard values.count >= 4 else { return .empty }
             let mean = values.reduce(0, +) / Double(values.count)
-            let variance = values.map { pow($0 - mean, 2) }.reduce(0, +) / Double(values.count)
-            return BaselineStats(mean: mean, sd: sqrt(variance), sampleCount: values.count)
+            let sd = standardDeviation(values, mean: mean)
+            let edges = logScale ? logEdges(values) : nil
+            return BaselineStats(
+                mean: mean, sd: sd, sampleCount: values.count,
+                low: edges?.low ?? mean - sd, high: edges?.high ?? mean + sd
+            )
+        }
+
+        private static func standardDeviation(_ values: [Double], mean: Double) -> Double {
+            sqrt(values.map { pow($0 - mean, 2) }.reduce(0, +) / Double(values.count))
+        }
+
+        /// exp(lnMean ± lnSD) over the positive values; nil with fewer than
+        /// four (the band then falls back to mean ±1 SD).
+        private static func logEdges(_ values: [Double]) -> (low: Double, high: Double)? {
+            let logs = values.filter { $0 > 0 }.map { log($0) }
+            guard logs.count >= 4 else { return nil }
+            let lnMean = logs.reduce(0, +) / Double(logs.count)
+            let lnSD = standardDeviation(logs, mean: lnMean)
+            return (exp(lnMean - lnSD), exp(lnMean + lnSD))
         }
 
         /// Percentage delta of `value` vs the baseline mean. Returns nil
@@ -377,7 +418,7 @@ struct TrendsV2View: View {
     private var chipRow: some View {
         HStack(spacing: 8) {
             allTagsChip
-            ForEach(Self.primaryFilterTags) { tag in
+            ForEach(filterTags) { tag in
                 filterChip(tag)
             }
         }

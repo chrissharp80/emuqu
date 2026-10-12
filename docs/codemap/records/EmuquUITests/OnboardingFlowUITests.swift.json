@@ -1,0 +1,223 @@
+{
+ "file": "EmuquUITests/OnboardingFlowUITests.swift",
+ "hash": "afa2cc72c1f7fd89",
+ "role": "XCUITest of the first-run path: the health disclaimer gates a fresh install, accepting it reveals onboarding, and an all-skip walk of onboarding reaches the app.",
+ "types": [
+  "OnboardingFlowUITests: class — XCTestCase"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Passes the bare '-UITests' launch argument, which no production code reads (only -UITests-FreshInstall at AppLaunchRecovery.swift:185 and -UITests-ForcePaywall/-UITests-SeedArchive at UITestLaunchArguments.swift:18,23 are checked); it is inert",
+   "evidence": [
+    "EmuquUITests/OnboardingFlowUITests.swift:33",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift:185",
+    "Emuqu/Sources/Services/UITestLaunchArguments.swift:18"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func OnboardingFlowUITests.setUp()",
+   "hash": "df85131ea44a9c16",
+   "does": "Sets continueAfterFailure=false and launches with -UITests, -UITests-FreshInstall and English; does not walk gates.",
+   "entry": "XCTest runner: setUp before each test in the class",
+   "calls": [
+    "ext:XCUIApplication.launch",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resetUITestStateIfRequested()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resetUITestStateIfRequested()": "6ce77cca4f0ebae6",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)": "35f7ec6a1e50e9a0"
+   }
+  },
+  {
+   "key": "func OnboardingFlowUITests.tearDown()",
+   "hash": "c6f9bd9c44559741",
+   "does": "Releases the XCUIApplication (app = nil); does not terminate the app.",
+   "entry": "XCTest runner: tearDown after each test in the class",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func OnboardingFlowUITests.testFreshInstallShowsHealthDisclaimerFirst()",
+   "hash": "1adc4674107cac55",
+   "does": "Asserts the 'Health Disclaimer' heading or disclaimer.agree appears; if a tab bar exists, coordinate-taps its More tab (tapSafely) and asserts the More menu's Settings row does not appear within 4 s and the disclaimer's agree button is still there — reachability checked by the tap's effect, since a covered tab bar reports hittable on iOS 26.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.tapSafely(_:in:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.tabButton(in:identifier:title:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.anyElement(in:identifier:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+31",
+     "cond": "tab bar exists in hierarchy",
+     "effect": "tap More and assert it did not open and the disclaimer stayed; else no tab assertion"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.anyElement(in:identifier:)": "7c7096c59b35ed60",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.tabButton(in:identifier:title:)": "08e19cd88b3cee20",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.tapSafely(_:in:)": "5ba2bf71286c792e",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+   }
+  },
+  {
+   "key": "func OnboardingFlowUITests.testDisclaimerAcceptanceRevealsOnboarding()",
+   "hash": "e620062364cdcbec",
+   "does": "Asserts disclaimer.agree appears, swipes the first scroll view up to 6 times until enabled, asserts it is enabled, taps it, then asserts 'Welcome to Emuqu' text, 'Get started' or 'Next' button appears.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+20",
+     "cond": "a scroll view exists",
+     "effect": "swipe to enable"
+    },
+    {
+     "at": "+21",
+     "cond": "for up to 6 swipes while agree disabled",
+     "effect": "swipe up"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Queries static text 'Welcome to Emuqu', which no longer exists in the app (OnboardingWelcomePage shows 'Emuqu' and a tagline); the test passes only through the English 'Get started' button label, contrary to the identifier contract at EmuquUITests.swift:51-58",
+     "evidence": [
+      "EmuquUITests/OnboardingFlowUITests.swift:122",
+      "Emuqu/Sources/Views/Onboarding/OnboardingWelcomePage.swift:39",
+      "EmuquUITests/EmuquUITests.swift:53"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+   }
+  },
+  {
+   "key": "func OnboardingFlowUITests.testOnboardingHealthPageHasSkipAffordance()",
+   "hash": "4ff06ac46dea8ea7",
+   "does": "Accepts the disclaimer if possible, then for up to 12 iterations taps the laid-out onboarding.skip (recording that a skip was seen) or onboarding.advance, ending when neither exists and a tab bar exists; the app counts as reached only if UITestLaunch.toMainUI then confirms no gate (paywall included) is up and the tab bar takes taps; asserts a skip was seen and the app was reached.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/OnboardingFlowUITests.swift::func OnboardingFlowUITests.laidOutButton(_:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "disclaimer appears within 10s",
+     "effect": "try to enable and accept it"
+    },
+    {
+     "at": "+6",
+     "cond": "a scroll view exists",
+     "effect": "swipe up to enable"
+    },
+    {
+     "at": "+7",
+     "cond": "for up to 6 swipes while disabled",
+     "effect": "swipe up"
+    },
+    {
+     "at": "+11",
+     "cond": "agree enabled",
+     "effect": "tap; else leave disclaimer up"
+    },
+    {
+     "at": "+27",
+     "cond": "12 walk iterations",
+     "effect": "loop"
+    },
+    {
+     "at": "+28",
+     "cond": "a laid-out, enabled onboarding.skip exists",
+     "effect": "mark sawSkip, tap, continue"
+    },
+    {
+     "at": "+33",
+     "cond": "a laid-out, enabled onboarding.advance exists",
+     "effect": "tap, continue"
+    },
+    {
+     "at": "+39",
+     "cond": "neither control exists and a tab bar exists",
+     "effect": "reachedApp=true, break; else wait up to 2s for any text"
+    },
+    {
+     "at": "+49",
+     "cond": "reachedApp",
+     "effect": "also requires UITestLaunch.toMainUI (dismisses the paywall, true only with no gate up and a tappable tab bar)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Named for the onboarding Health page but never identifies or asserts anything about that page; any onboarding.skip on any page satisfies sawSkipAffordance",
+     "evidence": [
+      "EmuquUITests/OnboardingFlowUITests.swift:145",
+      "EmuquUITests/OnboardingFlowUITests.swift:175"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)": "747ec38364b540cd",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68",
+    "EmuquUITests/OnboardingFlowUITests.swift::func OnboardingFlowUITests.laidOutButton(_:)": "0781971fe4709585"
+   }
+  },
+  {
+   "key": "func OnboardingFlowUITests.laidOutButton(_:)",
+   "hash": "e7a84c32713e1755",
+   "does": "Test helper: from one allElementsBoundByIndex snapshot of buttons with `identifier`, the first that is enabled and UITestFind.isSafelyHittable (a real frame inside the app), skipping the zero-frame copies a paged TabView keeps for neighbouring pages; nil when none.",
+   "entry": null,
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.isSafelyHittable(_:in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.isSafelyHittable(_:in:)": "b61ecba125b82b7c"
+   }
+  }
+ ],
+ "deps": {}
+}

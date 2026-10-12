@@ -1,0 +1,238 @@
+{
+ "file": "EmuquTests/OvernightSnapshotTests.swift",
+ "hash": "0ddac0a3260dbe31",
+ "role": "Pixel snapshot suite for OvernightChartsView (default, HealthKit-sleep, manual-window) and VitalsDetailV2View (with and without vitals), compared against gzipped references in EmuquTests/__Snapshots__.",
+ "types": [
+  "OvernightSnapshotTests: class — @MainActor XCTestCase using assertSnapshot"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "test-defect",
+   "sev": "low",
+   "text": "Unlike TabScreenSnapshotTests/UncoveredScreenSnapshotTests, this suite neither calls useDefaultSettings() nor uses SnapshotFixtures.collector(): it injects RRCollector() (the app's shared archive and HealthKitManager) and SettingsManager.shared as found. OvernightChartsView reads AppDependencies.current.app.settingsManager.settings.typicalSleepHours, so a host with non-default saved settings renders a different chart and fails the snapshot.",
+   "evidence": [
+    "EmuquTests/OvernightSnapshotTests.swift:16",
+    "EmuquTests/OvernightSnapshotTests.swift:17",
+    "Emuqu/Sources/Views/OvernightChartsView.swift:267",
+    "EmuquTests/SnapshotFixtures.swift:184"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func OvernightSnapshotTests.hosted(_:)",
+   "hash": "619ad049fc40b48c",
+   "does": "Helper: wraps a view in NavigationStack and injects RRCollector(), SettingsManager.shared and a new ArchiveSignal into the environment.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)",
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::init ArchiveSignal(center:)"
+   ],
+   "reads": [
+    "mem:SettingsManager.shared",
+    "mem:AppDependencies.current (shared archive, HealthKitManager)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::init ArchiveSignal(center:)": "649db20a5b80e648",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()": "cee8619a3d38e814",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)": "77db749d2e74b6b0",
+    "EmuquTests/BigScreenSnapshotTests.swift::func BigScreenSnapshotTests.environment(_:)": "fe0869f551e25b93"
+   }
+  },
+  {
+   "key": "func OvernightSnapshotTests.testOvernightChartsRenders()",
+   "hash": "ecee632411bf9f22",
+   "does": "Snapshots OvernightChartsView for the fixture overnight session and analysis result as 'chart-overnight'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/OvernightSnapshotTests.swift::func OvernightSnapshotTests.hosted(_:)",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.overnightSession(dayOffset:)",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.analysisResult()",
+    "Emuqu/Sources/Views/OvernightChartsView+Init.swift::init OvernightChartsView(session:result:healthKitSleep:onReanalyzeAt:isManualWindowMode:manualResult:hideSleepRow:)",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.body",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.computeOvernightStats()",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.render(_:size:)",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.isBlank(_:)",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.compare(_:_:)",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.drawnCount(_:)"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/<name>.raw (reference images)",
+    "ud:SettingsManager.shared settings (typicalSleepHours) from the host"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/OvernightChartsView+Init.swift::init OvernightChartsView(session:result:healthKitSleep:onReanalyzeAt:isManualWindowMode:manualResult:hideSleepRow:)": "641610d6a2bce215",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.computeOvernightStats()": "e785c60cf55223b2",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.body": "c6d2b0b9fe571442",
+    "EmuquTests/OvernightSnapshotTests.swift::func OvernightSnapshotTests.hosted(_:)": "1981862b35f4db9e",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.analysisResult()": "c6360e6fb9ef3864",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.overnightSession(dayOffset:)": "3121b86335aa9ee5",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.compare(_:_:)": "32155a47f52729b7",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.drawnCount(_:)": "36f2591e498a9d25",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.isBlank(_:)": "cbd2c7b66dba2797",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.render(_:size:)": "266f0659f8d7aa5b",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  },
+  {
+   "key": "func OvernightSnapshotTests.testOvernightChartsWithHealthKitSleepRenders()",
+   "hash": "d0173936af70d8f1",
+   "does": "Snapshots OvernightChartsView with fixture HealthKit sleep as 'chart-overnight-healthkit'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/OvernightSnapshotTests.swift::func OvernightSnapshotTests.hosted(_:)",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.overnightSession(dayOffset:)",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.analysisResult()",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.sleepData()",
+    "Emuqu/Sources/Views/OvernightChartsView+Init.swift::init OvernightChartsView(session:result:healthKitSleep:onReanalyzeAt:isManualWindowMode:manualResult:hideSleepRow:)",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.body",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.computeOvernightStats()",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.render(_:size:)",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.isBlank(_:)",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.compare(_:_:)",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.drawnCount(_:)"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/<name>.raw (reference images)",
+    "ud:SettingsManager.shared settings (typicalSleepHours) from the host"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/OvernightChartsView+Init.swift::init OvernightChartsView(session:result:healthKitSleep:onReanalyzeAt:isManualWindowMode:manualResult:hideSleepRow:)": "641610d6a2bce215",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.computeOvernightStats()": "e785c60cf55223b2",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.body": "c6d2b0b9fe571442",
+    "EmuquTests/OvernightSnapshotTests.swift::func OvernightSnapshotTests.hosted(_:)": "1981862b35f4db9e",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.analysisResult()": "c6360e6fb9ef3864",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.overnightSession(dayOffset:)": "3121b86335aa9ee5",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.sleepData()": "f3d2e3e8542e2fab",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.compare(_:_:)": "32155a47f52729b7",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.drawnCount(_:)": "36f2591e498a9d25",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.isBlank(_:)": "cbd2c7b66dba2797",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.render(_:size:)": "266f0659f8d7aa5b",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  },
+  {
+   "key": "func OvernightSnapshotTests.testOvernightChartsManualWindowRenders()",
+   "hash": "6a69fc511fca8ddf",
+   "does": "Snapshots OvernightChartsView in manual-window mode as 'chart-overnight-manual-window'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/OvernightSnapshotTests.swift::func OvernightSnapshotTests.hosted(_:)",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.overnightSession(dayOffset:)",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.analysisResult()",
+    "Emuqu/Sources/Views/OvernightChartsView+Init.swift::init OvernightChartsView(session:result:healthKitSleep:onReanalyzeAt:isManualWindowMode:manualResult:hideSleepRow:)",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.body",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.computeOvernightStats()",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.render(_:size:)",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.isBlank(_:)",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.compare(_:_:)",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.drawnCount(_:)"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/<name>.raw (reference images)",
+    "ud:SettingsManager.shared settings (typicalSleepHours) from the host"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/OvernightChartsView+Init.swift::init OvernightChartsView(session:result:healthKitSleep:onReanalyzeAt:isManualWindowMode:manualResult:hideSleepRow:)": "641610d6a2bce215",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.computeOvernightStats()": "e785c60cf55223b2",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.body": "c6d2b0b9fe571442",
+    "EmuquTests/OvernightSnapshotTests.swift::func OvernightSnapshotTests.hosted(_:)": "1981862b35f4db9e",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.analysisResult()": "c6360e6fb9ef3864",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.overnightSession(dayOffset:)": "3121b86335aa9ee5",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.compare(_:_:)": "32155a47f52729b7",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.drawnCount(_:)": "36f2591e498a9d25",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.isBlank(_:)": "cbd2c7b66dba2797",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.render(_:size:)": "266f0659f8d7aa5b",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  },
+  {
+   "key": "func OvernightSnapshotTests.testVitalsDetailRenders()",
+   "hash": "6d08eb8362a6e622",
+   "does": "Snapshots VitalsDetailV2View with fixture vitals and 5 recent overnight sessions in Celsius as 'detail-vitals'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/OvernightSnapshotTests.swift::func OvernightSnapshotTests.hosted(_:)",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.recoveryVitals()",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.overnightSession(dayOffset:)",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.body",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.effectiveVitals",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.render(_:size:)",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.isBlank(_:)",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.compare(_:_:)",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.drawnCount(_:)"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/<name>.raw (zlib-compressed reference images)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.body": "8e3ecd1a8e5cd0ec",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.effectiveVitals": "d7e76b01d9aded2b",
+    "EmuquTests/OvernightSnapshotTests.swift::func OvernightSnapshotTests.hosted(_:)": "1981862b35f4db9e",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.overnightSession(dayOffset:)": "3121b86335aa9ee5",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.recoveryVitals()": "6b42d93fc6f07dd7",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.compare(_:_:)": "32155a47f52729b7",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.drawnCount(_:)": "36f2591e498a9d25",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.isBlank(_:)": "cbd2c7b66dba2797",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.render(_:size:)": "266f0659f8d7aa5b",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  },
+  {
+   "key": "func OvernightSnapshotTests.testVitalsDetailWithoutDataRenders()",
+   "hash": "538a58c1f2adc226",
+   "does": "Snapshots VitalsDetailV2View with nil vitals and no sessions in Fahrenheit as 'detail-vitals-empty'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/OvernightSnapshotTests.swift::func OvernightSnapshotTests.hosted(_:)",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.body",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.effectiveVitals",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.render(_:size:)",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.isBlank(_:)",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.compare(_:_:)",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.drawnCount(_:)"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/<name>.raw (zlib-compressed reference images)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.body": "8e3ecd1a8e5cd0ec",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.effectiveVitals": "d7e76b01d9aded2b",
+    "EmuquTests/OvernightSnapshotTests.swift::func OvernightSnapshotTests.hosted(_:)": "1981862b35f4db9e",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.compare(_:_:)": "32155a47f52729b7",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.drawnCount(_:)": "36f2591e498a9d25",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.isBlank(_:)": "cbd2c7b66dba2797",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.render(_:size:)": "266f0659f8d7aa5b",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  }
+ ],
+ "deps": {}
+}

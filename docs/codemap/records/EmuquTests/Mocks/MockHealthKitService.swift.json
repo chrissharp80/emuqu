@@ -1,0 +1,106 @@
+{
+ "file": "EmuquTests/Mocks/MockHealthKitService.swift",
+ "hash": "d3f9c6feb05e5630",
+ "role": "Test double conforming to HealthKitServiceProtocol with only its requirements: every query answers \"no HealthKit data\" (empty sleep, no Watch HR estimate, zero training load, nil vitals, exports succeed); daytimeRestingHR is the one settable answer (HRVAnalysisPipelineTests). Used by MorningProcessingServiceTests, HRVAnalysisPipelineTests, ReanalysisServiceTests, SleepBoundaryResolverTests, SessionImmutabilityTests, DemoSessionSeederTests.",
+ "types": [
+  "MockHealthKitService: class — @MainActor final HealthKitServiceProtocol mock"
+ ],
+ "state": [
+  "mem:MockHealthKitService.daytimeRestingHR (nil by default)"
+ ],
+ "toplevel": "No top-level code. fetchDaytimeNapMinutes and estimateSleepFromRR are not implemented, so the protocol extension defaults (0 nap minutes; HealthKitManager.estimateSleepFromHR on the RR series) are used.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var MockHealthKitService.isHealthKitAvailable",
+   "hash": "c703f05f443065ea",
+   "does": "nonisolated getter: always true.",
+   "entry": "Protocol witness for HealthKitServiceProtocol (Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift); invoked through the protocol by production code under test (MorningProcessingService, HRVAnalysisPipeline, ReanalysisService, SleepBoundaryResolver, DemoSessionSeeder, SessionImmutability tests).",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func MockHealthKitService.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:)",
+   "hash": "ed853e82b24a3f4a",
+   "does": "Returns SleepData.empty (ignores the recording window, rrPoints and autoSleepExtension); never throws.",
+   "entry": "Protocol witness for HealthKitServiceProtocol (Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift); invoked through the protocol by production code under test (MorningProcessingService, HRVAnalysisPipeline, ReanalysisService, SleepBoundaryResolver, DemoSessionSeeder, SessionImmutability tests).",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func MockHealthKitService.fetchDaytimeRestingHR(for:)",
+   "hash": "558e8784c24a4383",
+   "does": "Returns daytimeRestingHR (nil unless the test set it); never throws.",
+   "entry": "Protocol witness for HealthKitServiceProtocol (Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift); invoked through the protocol by production code under test (MorningProcessingService, HRVAnalysisPipeline, ReanalysisService, SleepBoundaryResolver, DemoSessionSeeder, SessionImmutability tests).",
+   "calls": [],
+   "reads": [
+    "mem:MockHealthKitService.daytimeRestingHR"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func MockHealthKitService.calculateTrainingLoad(relativeTo:)",
+   "hash": "d8d13a2d000d9fe0",
+   "does": "Returns a zero TrainingLoad: no VO2max, no workouts, weekly load 0, no days-since-hard-workout, no ACR, no metrics.",
+   "entry": "Protocol witness for HealthKitServiceProtocol (Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift); invoked through the protocol by production code under test (MorningProcessingService, HRVAnalysisPipeline, ReanalysisService, SleepBoundaryResolver, DemoSessionSeeder, SessionImmutability tests).",
+   "calls": [
+    "Emuqu/Sources/Collection/TrainingLoad.swift::init TrainingLoad(vo2Max:recentWorkouts:weeklyLoadScore:daysSinceHardWorkout:acuteChronicRatio:metrics:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/TrainingLoad.swift::init TrainingLoad(vo2Max:recentWorkouts:weeklyLoadScore:daysSinceHardWorkout:acuteChronicRatio:metrics:)": "5f83f00abb777e3c"
+   }
+  },
+  {
+   "key": "func MockHealthKitService.fetchRecoveryVitals(relativeTo:)",
+   "hash": "6c2cc198737e0475",
+   "does": "Returns RecoveryVitals with every field nil.",
+   "entry": "Protocol witness for HealthKitServiceProtocol (Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift); invoked through the protocol by production code under test (MorningProcessingService, HRVAnalysisPipeline, ReanalysisService, SleepBoundaryResolver, DemoSessionSeeder, SessionImmutability tests).",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func MockHealthKitService.estimateSleepFromHealthKitHR(windowStart:windowEnd:minimumSamples:minimumSleepMinutes:)",
+   "hash": "6b68ff48ce737c92",
+   "does": "Returns nil: no Watch background-HR sleep estimate.",
+   "entry": "Protocol witness for HealthKitServiceProtocol (Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift); invoked through the protocol by production code under test (MorningProcessingService, HRVAnalysisPipeline, ReanalysisService, SleepBoundaryResolver, DemoSessionSeeder, SessionImmutability tests).",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func MockHealthKitService.exportSessionMetrics(from:)",
+   "hash": "4d58e714186c4f73",
+   "does": "No-op; the export always succeeds.",
+   "entry": "Protocol witness for HealthKitServiceProtocol (Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift); invoked through the protocol by production code under test (MorningProcessingService, HRVAnalysisPipeline, ReanalysisService, SleepBoundaryResolver, DemoSessionSeeder, SessionImmutability tests).",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

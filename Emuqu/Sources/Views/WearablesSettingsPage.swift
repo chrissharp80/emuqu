@@ -1,3 +1,4 @@
+import CoreBluetooth
 import SwiftUI
 
 // MARK: - Wearables & Apple Health Settings Page
@@ -12,14 +13,10 @@ struct WearablesSettingsPage: View {
     /// iOS does not substitute for you. See `AdaptiveMaterial`.
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
+    /// Controls bind through `Bindable(settingsManager).settings`, as the
+    /// other `@Observable` settings screens do.
     @Environment(SettingsManager.self) var settingsManager
-    /// Two-way access to the settings for controls. An `@Environment` value has
-    /// no projected `$` binding, so this stands in for `$settingsManager.settings`.
-    private var settingsBinding: Binding<UserSettings> {
-        Binding(get: { settingsManager.settings }, set: { settingsManager.settings = $0 })
-    }
     @Environment(RRCollector.self) var collector
-    @Environment(LanguageManager.self) private var languageManager
 
     private var footPod: FootPodManager { dependencies.collection.footPodManager }
     @State private var isCleaningSleepWrites = false
@@ -29,9 +26,10 @@ struct WearablesSettingsPage: View {
 
     /// HealthKit re-auth flow. HKHealthStore deliberately
     /// hides denial state, so once a user denies permissions there's no
-    /// in-app signal we can use to detect it. `requestAuthorization` is
-    /// idempotent — calling it again will either prompt for any types
-    /// the user hasn't seen yet, or no-op silently.
+    /// in-app signal we can use to detect it. The button goes through
+    /// `HealthKitManager.forceReauthorize`, which asks HealthKit again even
+    /// after this process already asked: iOS then prompts for any types the
+    /// user hasn't seen yet, or answers at once without a window.
     @State private var isReprompting = false
     @State private var showingHKHelpSheet = false
     /// Set when a re-request came back with no permission window: iOS asks
@@ -121,7 +119,7 @@ struct WearablesSettingsPage: View {
         Section {
             Toggle(
                 String(localized: "Export to Apple Health", bundle: LanguageManager.appBundle),
-                isOn: settingsBinding.enableHealthKitExport
+                isOn: Bindable(settingsManager).settings.enableHealthKitExport
             )
             .accessibilityHint(Text("Write HRV and heart-rate results back to the Health app.", bundle: LanguageManager.appBundle))
 
@@ -138,19 +136,19 @@ struct WearablesSettingsPage: View {
         if settingsManager.settings.enableHealthKitExport {
             Toggle(
                 String(localized: "HRV (SDNN)", bundle: LanguageManager.appBundle),
-                isOn: settingsBinding.exportSDNN
+                isOn: Bindable(settingsManager).settings.exportSDNN
             )
             Toggle(
                 String(localized: "Mean Heart Rate", bundle: LanguageManager.appBundle),
-                isOn: settingsBinding.exportHeartRate
+                isOn: Bindable(settingsManager).settings.exportHeartRate
             )
             Toggle(
                 String(localized: "Resting Heart Rate", bundle: LanguageManager.appBundle),
-                isOn: settingsBinding.exportRestingHeartRate
+                isOn: Bindable(settingsManager).settings.exportRestingHeartRate
             )
             Toggle(
                 String(localized: "Sleep (fill-in only)", bundle: LanguageManager.appBundle),
-                isOn: settingsBinding.exportSleepData
+                isOn: Bindable(settingsManager).settings.exportSleepData
             )
             .accessibilityHint(Text("Writes detected sleep to Health only when Health has none for that night.", bundle: LanguageManager.appBundle))
         }
@@ -214,12 +212,21 @@ struct WearablesSettingsPage: View {
                 Text(String(localized: "Why we can't deep-link there", bundle: LanguageManager.appBundle))
                     .font(.subheadline.bold())
 
-                Text(String(localized: "Apple deliberately doesn't expose a URL scheme that opens the per-app Health permissions page. The button below opens Emuqu's own iOS Settings page; from there, navigate to Privacy & Security → Health → Emuqu.", bundle: LanguageManager.appBundle))
-                    .font(.callout)
-                    .fixedSize(horizontal: false, vertical: true)
+                healthKitHelpPaths
             }
             .padding(20)
         }
+    }
+
+    /// The Settings path the button leads to, and the Health-app path the
+    /// section footer names; both reach the same switches.
+    private var healthKitHelpPaths: some View {
+        Group {
+            Text(String(localized: "Apple deliberately doesn't expose a URL scheme that opens the per-app Health permissions page. The button below opens Emuqu's own iOS Settings page; from there, navigate to Privacy & Security → Health → Emuqu.", bundle: LanguageManager.appBundle))
+            Text(String(localized: "Turn the categories back on in the Health app: tap your picture, then Privacy, then Apps and Services, then Emuqu. Settings → Privacy & Security → Health → Emuqu has the same switches.", bundle: LanguageManager.appBundle))
+        }
+        .font(.callout)
+        .fixedSize(horizontal: false, vertical: true)
     }
 
     private var healthKitHelpSteps: some View {
@@ -253,9 +260,7 @@ struct WearablesSettingsPage: View {
 
     private var openSettingsButton: some View {
         Button {
-            if let url = URL(string: UIApplication.openSettingsURLString) {
-                UIApplication.shared.open(url)
-            }
+            openAppSettings()
             showingHKHelpSheet = false
         } label: {
             Text(String(localized: "Open iOS Settings", bundle: LanguageManager.appBundle))
@@ -321,18 +326,16 @@ struct WearablesSettingsPage: View {
     }
 
     /// iOS shows its permission window only for types never asked about, and
-    /// answers at once without one otherwise. A request that returns faster
-    /// than anyone could answer a window showed none, so the page says where
-    /// the switches are instead of appearing to do nothing.
+    /// answers at once without one otherwise. `forceReauthorize` clears the
+    /// manager's asked-this-process flag so HealthKit is really asked again
+    /// (it logs a failure itself). A request that returns faster than anyone
+    /// could answer a window showed none, so the page says where the switches
+    /// are instead of appearing to do nothing.
     private func repromptHealthKit() {
         isReprompting = true
         let started = Date()
         Task {
-            do {
-                try await collector.healthKit.requestAuthorization()
-            } catch {
-                debugLog("[Wearables] re-prompt HK auth failed: \(error)", level: .warning)
-            }
+            await collector.healthKit.forceReauthorize()
             let noWindowShown = Date().timeIntervalSince(started) < Self.fastestAnsweredPrompt
             await MainActor.run {
                 isReprompting = false
@@ -357,22 +360,30 @@ struct WearablesSettingsPage: View {
         }
     }
 
+    /// Shows on only once this device's disclosure was accepted: a value
+    /// restored from iCloud on a new device reads as off here until the user
+    /// turns it on and reads the explainer.
     private var broadcastToggle: some View {
         Toggle(
             String(localized: "Broadcast HR + Power to indoor-trainer apps", bundle: LanguageManager.appBundle),
             isOn: Binding(
-                get: { settingsManager.settings.enableZwiftBroadcast },
-                set: { newValue in
-                    if newValue && !broadcastAcknowledged {
-                        // Defer the actual flip until the user accepts.
-                        showingBroadcastExplainer = true
-                    } else {
-                        settingsManager.settings.enableZwiftBroadcast = newValue
-                    }
-                }
+                get: { settingsManager.settings.enableZwiftBroadcast && broadcastAcknowledged },
+                set: { setBroadcast($0) }
             )
         )
         .accessibilityHint(Text("When enabled, your iPhone advertises as a Heart Rate and Cycling Power BLE peripheral so apps like Zwift can pair to it.", bundle: LanguageManager.appBundle))
+    }
+
+    /// Turning on first shows the disclosure if this device has not accepted
+    /// it; the setting flips when the user accepts. Turning off also stops an
+    /// advertisement already running for the current workout.
+    private func setBroadcast(_ on: Bool) {
+        if on && !broadcastAcknowledged {
+            showingBroadcastExplainer = true
+            return
+        }
+        settingsManager.settings.enableZwiftBroadcast = on
+        if !on { dependencies.collection.zwiftPeripheralBroadcaster.stopBroadcasting() }
     }
 
     // MARK: - Foot pod section
@@ -421,12 +432,16 @@ struct WearablesSettingsPage: View {
         }
     }
 
+    /// Not tappable while a pod is connected or connecting: the manager would
+    /// attach the second pod without dropping the first, and both would feed
+    /// the same readings. Disconnect first; Forget stays available.
     private func knownFootPodRow(_ dev: FootPodManager.KnownFootPod) -> some View {
         Button {
             footPod.connect(deviceId: dev.id)
         } label: {
             knownFootPodLabel(dev)
         }
+        .disabled(footPodBusy)
         .swipeActions(edge: .trailing) {
             Button(role: .destructive) {
                 footPod.removeKnownDevice(id: dev.id)
@@ -439,14 +454,27 @@ struct WearablesSettingsPage: View {
         }
     }
 
+    private var footPodBusy: Bool {
+        footPod.connectionState == .connected || footPod.connectionState == .connecting
+    }
+
     private func knownFootPodLabel(_ dev: FootPodManager.KnownFootPod) -> some View {
         HStack {
             footPodCapabilities(dev)
             Spacer()
-            Text("Reconnect", bundle: LanguageManager.appBundle)
+            knownFootPodAction(dev)
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(AppTheme.primaryText)
         }
+    }
+
+    /// "Waiting for Bluetooth…" once a tap parked this pod's id because the
+    /// radio is not on yet (the connect runs when it is); "Reconnect" otherwise.
+    private func knownFootPodAction(_ dev: FootPodManager.KnownFootPod) -> Text {
+        if footPod.pendingReconnectId == dev.id, footPod.centralIfCreated?.state != .poweredOn {
+            return Text("Waiting for Bluetooth…", bundle: LanguageManager.appBundle)
+        }
+        return Text("Reconnect", bundle: LanguageManager.appBundle)
     }
 
     private func footPodCapabilities(_ dev: FootPodManager.KnownFootPod) -> some View {
@@ -614,12 +642,5 @@ extension WearablesSettingsPage {
             Button(String(localized: "Open Settings", bundle: LanguageManager.appBundle)) { openAppSettings() }
             Button(String(localized: "OK", bundle: LanguageManager.appBundle), role: .cancel) {}
         }
-    }
-
-    /// This app's page in Settings, the documented way in; the alert names
-    /// the Health switches' path from there.
-    private func openAppSettings() {
-        guard let settings = URL(string: UIApplication.openSettingsURLString) else { return }
-        UIApplication.shared.open(settings)
     }
 }

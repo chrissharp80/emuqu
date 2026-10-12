@@ -89,24 +89,16 @@ final class LiveDFAAnalyzer {
     /// Exposed to the live UI and the voice-coach context so the AI can say
     /// "α1 isn't showing because the strap is dropping beats" instead of
     /// pretending the value doesn't exist. When α1 IS valid this
-    /// still carries diagnostic info (last recompute time, fit quality, beats
-    /// in window) — so "it's working fine" is a visible, provable state too.
+    /// still carries the fit quality — so "it's working fine" is a visible,
+    /// provable state too.
     private(set) var status: Status = .warmup(fractionReady: 0)
     /// Rolling-window fill fraction 0..1, so the UI can animate a "X %
     /// ready" readout during the first two minutes. Separate from `status`
     /// so views can bind to it independently.
     private(set) var bufferFillFraction: Double = 0
-    /// Most recent recompute timestamp — nil if we've never produced a value.
-    /// Used to spot "value is stale because RR has stopped arriving."
+    /// Most recent successful fit — nil if we've never produced a value.
+    /// Read by the stream tests to pin the recompute cadence.
     private(set) var lastComputeAt: Date?
-    /// Beats currently in the rolling window. Correlates with `bufferFillFraction`
-    /// but exposed separately for the diagnostic readout ("217 / 240 needed").
-    private(set) var beatsInWindow: Int = 0
-    /// Fraction (0..1) of the last fitted window that was artifact-corrected.
-    /// Nil until a window has been evaluated. Above
-    /// `lowConfidenceCorrectedFraction` the α1 on screen is real but softer
-    /// than it looks; above `maxCorrectedFraction` no α1 is published at all.
-    private(set) var correctedFraction: Double?
 
     /// The α1 band shown live, spoken by the voice coach, sent to the Watch
     /// and shown after the workout, all from `display(alpha1:)`.
@@ -277,8 +269,6 @@ final class LiveDFAAnalyzer {
         currentBand = .unknown
         fitQuality = nil
         bufferFillFraction = 0
-        beatsInWindow = 0
-        correctedFraction = nil
         lastComputeAt = nil
         status = .warmup(fractionReady: 0)
         self.sessionStart = sessionStart
@@ -326,7 +316,6 @@ final class LiveDFAAnalyzer {
     /// soon as 64 beats had arrived — sometimes 25 s into a window the same
     /// caption was calling two minutes long.
     private func publishFillProgress() {
-        beatsInWindow = rollingBuffer.count
         let byBeats = min(1, Double(rollingBuffer.count) / Double(minBeatsForFit))
         // Divided by the SAME span `hasEnoughDataForFit` requires, so 100 %
         // means ready. Dividing by the nominal `windowSec` instead peaked at
@@ -351,7 +340,6 @@ final class LiveDFAAnalyzer {
             return
         }
         let cleaned = Self.cleanRRForDFA(rollingBuffer.map { Double($0.rr_ms) })
-        correctedFraction = cleaned.correctedFraction
         guard let result = fitOrExplain(cleaned) else { return }
         currentAlpha1 = result.alpha1
         fitQuality = result.alpha1R2
@@ -498,12 +486,14 @@ final class LiveDFAAnalyzer {
         return isArtifact
     }
 
-    /// Implausible outright, or more than 20% off the running median of the
-    /// last few clean beats.
+    /// Implausible outright (outside `HRVThresholds.minimumRRIntervalMs` …
+    /// `maximumRRIntervalMs`), or more than `ectopicThresholdPercent` off the
+    /// running median of the last few clean beats — the shared thresholds, so
+    /// a tuning change reaches live α1 too.
     nonisolated private static func isArtifactBeat(_ rr: Double, recentClean: [Double]) -> Bool {
-        let minRR: Double = 300 // >200 bpm — implausible
-        let maxRR: Double = 2_000 // <30 bpm — implausible
-        let ectopicRatio: Double = 0.20
+        let minRR = Double(HRVThresholds.minimumRRIntervalMs)
+        let maxRR = Double(HRVThresholds.maximumRRIntervalMs)
+        let ectopicRatio = HRVThresholds.ectopicThresholdPercent
         if rr < minRR || rr > maxRR { return true }
         guard recentClean.count >= 3 else { return false }
         let sorted = recentClean.sorted()

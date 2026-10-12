@@ -1,0 +1,206 @@
+{
+ "file": "Emuqu/Sources/Storage/TrashRestoreCoordinator.swift",
+ "hash": "65d7a952b49eb176",
+ "role": "TrashRestoreCoordinator: decides whether a Trash restore or an iCloud tombstone wins. Persists ids restored on this device until their upload replaces the tombstone, marks pushed records with isDeleted = -1, and adopts restores made on other devices.",
+ "types": [
+  "TrashRestoreCoordinator: struct (@MainActor) — built on demand by CloudKitSyncManager.trashRestore"
+ ],
+ "state": [
+  "ud:cloudkit.restoredFromTrash (standard UserDefaults, [String] of session UUIDs)",
+  "mem:TrashRestoreCoordinator.restoredMarker = -1 (ck:isDeleted value for a restored record)"
+ ],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func TrashRestoreCoordinator.noteRestored(_:)",
+   "hash": "053ed68ccfbfdccd",
+   "does": "Records a session as restored from Trash in UserDefaults, marks it removed (re-upload pending) in sync state and saves sync state and pending queue.",
+   "entry": "Called by SessionRecoveryService.swift:232 after a Trash restore",
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markRemoved(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveSyncState()",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.savePendingQueue()"
+   ],
+   "reads": [
+    "ud:cloudkit.restoredFromTrash"
+   ],
+   "writes": [
+    "ud:cloudkit.restoredFromTrash",
+    "mem:CloudKitSyncManager.state",
+    "file:CloudKit sync state",
+    "file:CloudKit pending queue"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "stored array missing",
+     "effect": "?? [] then insert"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markRemoved(_:)": "b25b3f650720f2b1",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.savePendingQueue()": "24930bf90ddc7e31",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveSyncState()": "4b9d91d2dd778a9c"
+   }
+  },
+  {
+   "key": "func TrashRestoreCoordinator.isRestored(_:)",
+   "hash": "964f74dcd7725f47",
+   "does": "True when the session id is in the restoredFromTrash list.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "ud:cloudkit.restoredFromTrash"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "array missing",
+     "effect": "?? [] → false"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TrashRestoreCoordinator.clear(_:)",
+   "hash": "ef6d7aa1c8b5a839",
+   "does": "Removes the id from the restoredFromTrash list after its upload landed.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "ud:cloudkit.restoredFromTrash"
+   ],
+   "writes": [
+    "ud:cloudkit.restoredFromTrash"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "array exists AND contains id",
+     "effect": "false: return; true: remove and save"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TrashRestoreCoordinator.abandon(_:)",
+   "hash": "94601b3237ae4aba",
+   "does": "Restore found nothing: clears the restored mark and marks the session deleted in sync state, saving both files.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/TrashRestoreCoordinator.swift::func TrashRestoreCoordinator.clear(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markDeleted(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveSyncState()",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.savePendingQueue()"
+   ],
+   "reads": [
+    "ud:cloudkit.restoredFromTrash"
+   ],
+   "writes": [
+    "ud:cloudkit.restoredFromTrash",
+    "mem:CloudKitSyncManager.state",
+    "file:CloudKit sync state",
+    "file:CloudKit pending queue"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markDeleted(_:)": "5423f0d392aeff36",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.savePendingQueue()": "24930bf90ddc7e31",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveSyncState()": "4b9d91d2dd778a9c",
+    "Emuqu/Sources/Storage/TrashRestoreCoordinator.swift::func TrashRestoreCoordinator.clear(_:)": "ed8cb4e4725aa0c7"
+   }
+  },
+  {
+   "key": "func TrashRestoreCoordinator.markIfReplacingTombstone(_:sessionId:)",
+   "hash": "35e6960e8aefc0fa",
+   "does": "When the session is a pending restore, sets the server record's isDeleted to -1 so other devices see a restore rather than a live record.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/TrashRestoreCoordinator.swift::func TrashRestoreCoordinator.isRestored(_:)"
+   ],
+   "reads": [
+    "ud:cloudkit.restoredFromTrash"
+   ],
+   "writes": [
+    "ck:Session record isDeleted"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "isRestored",
+     "effect": "false: no change"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/TrashRestoreCoordinator.swift::func TrashRestoreCoordinator.isRestored(_:)": "15c730e038134d0a"
+   }
+  },
+  {
+   "key": "func TrashRestoreCoordinator.restoreIsNewer(_:thanDeletionAt:)",
+   "hash": "169ee597619d4ea3",
+   "does": "True when the record carries the restore marker and was modified after this device's deletion (or the deletion has no time).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "ck:Session record isDeleted/modificationDate"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "isDeleted == -1",
+     "effect": "false: return false"
+    },
+    {
+     "at": "+2",
+     "cond": "deletedAt nil",
+     "effect": "return true (restore wins)"
+    },
+    {
+     "at": "+3",
+     "cond": "record.modificationDate nil",
+     "effect": "return false"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TrashRestoreCoordinator.adoptFromAnotherDevice(_:)",
+   "hash": "b7d1b3d3d96c39ec",
+   "does": "Another device restored the session: un-marks the local deletion in the archive and drops this device's Trash copy; errors logged.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.unmarkAsDeleted(_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.discardTrashed(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "archive:unmarkAsDeleted",
+    "archive:discardTrashed"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "unmarkAsDeleted throws",
+     "effect": "catch: warning log; Trash copy kept, deletion stays"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.discardTrashed(_:)": "e29a7846681f7347",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.unmarkAsDeleted(_:)": "64feb753f919f66a",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  }
+ ],
+ "deps": {}
+}

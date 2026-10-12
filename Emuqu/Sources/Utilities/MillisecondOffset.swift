@@ -2,10 +2,11 @@ import Foundation
 
 /// Converting a date interval into whole milliseconds, safely.
 ///
-/// Holds the one copy of a conversion needed in two places —
-/// `ImportSleepWindow` for HealthKit sleep boundaries, and
-/// `RRCollector` for overnight segment merging. Both take two dates that came
-/// off disk, and a bare `Int64(interval * 1000)` there:
+/// Holds the one copy of a conversion used wherever a stored offset is built
+/// from two dates — sleep boundaries (`ImportSleepWindow`), overnight segment
+/// merging (`RRCollector`, `SessionMerger`), beat and chart offsets
+/// (`RRModels`, `OvernightChartsView`), and the re-analysis, recovery and demo
+/// paths. The dates come off disk, and a bare `Int64(interval * 1000)` there:
 ///
 ///   * TRAPS on a non-finite or out-of-range value. The dates come from a
 ///     backup file or a HealthKit query, so "cannot happen" is not available.
@@ -31,9 +32,13 @@ enum MillisecondOffset {
     /// arithmetic expression — where propagating an optional would mean
     /// reshaping the surrounding code for a case that only arises from a
     /// corrupt stored date. The fallback is explicit at the call site so the
-    /// choice is visible rather than hidden inside this helper.
+    /// choice is visible rather than hidden inside this helper, and using it is
+    /// logged as a warning, so a corrupt date never turns into a plausible
+    /// offset without a trace.
     static func between(_ later: Date, and earlier: Date, fallback: Int64) -> Int64 {
-        between(later, and: earlier) ?? fallback
+        if let ms = between(later, and: earlier) { return ms }
+        debugLog("[MillisecondOffset] interval not representable (corrupt date?); using fallback \(fallback) ms", level: .warning)
+        return fallback
     }
 
     /// Whole milliseconds for a seconds interval, or nil when it cannot be

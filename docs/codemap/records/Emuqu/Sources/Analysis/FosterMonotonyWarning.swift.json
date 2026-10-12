@@ -1,0 +1,62 @@
+{
+ "file": "Emuqu/Sources/Analysis/FosterMonotonyWarning.swift",
+ "hash": "7b4831f1cc13a3a8",
+ "role": "Single decision point for the Foster (1998) training-monotony warning: raised only when weekly monotony > 2.0 AND strain > 1600, shared by Load & Trajectory, Training Load screen and TrainingAdviceGate.",
+ "types": [
+  "FosterMonotonyWarning: enum — namespace for the monotony-warning rule"
+ ],
+ "state": [],
+ "toplevel": "Thresholds read from RecoveryScoreConstants.Training.monotonyThreshold (2.0, Constants+RecoveryScore.swift:230) and strainThreshold (1600, :237).",
+ "flags": [],
+ "units": [
+  {
+   "key": "func FosterMonotonyWarning.isRaised(dailyLoad:referenceDate:)",
+   "hash": "fb0ae8c387679421",
+   "does": "Computes Foster monotony/strain over the 7 days ending at referenceDate from a date->load map and returns whether the warning is raised; false when no computation is possible (no load at all or calendar failure).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Training.swift::func RecoveryScoreCalculator.fosterMonotonyStrain(dailyTrimp:referenceDate:)",
+    "Emuqu/Sources/Analysis/FosterMonotonyWarning.swift::func FosterMonotonyWarning.isRaised(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "fosterMonotonyStrain returns non-nil",
+     "effect": "nil: returns false; non-nil: delegates to isRaised(_:)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/FosterMonotonyWarning.swift::func FosterMonotonyWarning.isRaised(_:)": "2dc1e8ad595eac0d",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Training.swift::func RecoveryScoreCalculator.fosterMonotonyStrain(dailyTrimp:referenceDate:)": "afd78f8aece889c0"
+   }
+  },
+  {
+   "key": "func FosterMonotonyWarning.isRaised(_:)",
+   "hash": "db2b776e725a2a45",
+   "does": "Returns monotony > 2.0 && strain > 1600.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "docs/FLOWCHART.md says the Foster banner shows when monotony > 2.0, leaving out the strain > 1600 condition this function also requires (docs/FEATURES.md:37 states both).",
+     "evidence": [
+      "docs/FLOWCHART.md:398",
+      "Emuqu/Sources/Analysis/FosterMonotonyWarning.swift:26",
+      "Emuqu/Sources/Analysis/FosterMonotonyWarning.swift:27"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

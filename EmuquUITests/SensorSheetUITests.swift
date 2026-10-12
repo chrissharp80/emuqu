@@ -26,7 +26,7 @@ final class SensorSheetUITests: XCTestCase {
     override func setUp() async throws {
         continueAfterFailure = false
         app = XCUIApplication()
-        app.launchArguments += ["-UITests", "-UITests-FreshInstall"] + UITestLanguage.english
+        app.launchArguments += ["-UITests-FreshInstall"] + UITestLanguage.english
         app.launch()
         UITestLaunch.toMainUI(app)
     }
@@ -35,11 +35,17 @@ final class SensorSheetUITests: XCTestCase {
         app = nil
     }
 
+    /// The pill lives in `WorkoutPreflightView`, which renders once the
+    /// Fitness tab's recorder exists. `FitnessTabUITests` skips on its
+    /// absence; this suite waits as long and then fails, because the recorder
+    /// is bound unconditionally on the tab's first appearance
+    /// (`FitnessTabView.bindRecorderOffTabSwap`) — a pill still missing after
+    /// that wait is the sheet's only route in being gone, not a slow start.
     private func openSensorSheet() {
         openFitnessTab()
         let pill = app.buttons[UITestID.fitnessStrapPill]
         XCTAssertTrue(
-            pill.waitForExistence(timeout: UITestTiming.s(10)),
+            pill.waitForExistence(timeout: UITestTiming.s(15)),
             "The Fitness tab's sport row must show the strap pill — \(UITestFind.onScreen(app))"
         )
         XCTAssertTrue(UITestFind.tapSafely(pill, in: app), "The strap pill must be tappable")
@@ -88,10 +94,18 @@ final class SensorSheetUITests: XCTestCase {
 
     /// A sheet that cannot be dismissed traps the user in it. Swiped down
     /// rather than tapping Done, which carries only its localized title.
+    /// The Fitness root stays in the hierarchy under a presented sheet, so
+    /// the sheet's own root leaving is what proves the dismissal.
     func testSensorSheetDismissesBackToFitness() {
         openSensorSheet()
         XCTAssertTrue(sheetRoot.waitForExistence(timeout: UITestTiming.s(10)))
         app.swipeDown(velocity: .fast)
+        let deadline = Date().addingTimeInterval(UITestTiming.s(10))
+        while sheetRoot.exists, Date() < deadline { usleep(100_000) }
+        XCTAssertFalse(
+            sheetRoot.exists,
+            "Swiping down must dismiss the sensor sheet — \(UITestFind.onScreen(app))"
+        )
         let fitnessRoot = app.descendants(matching: .any)[UITestID.fitnessRoot].firstMatch
         XCTAssertTrue(
             fitnessRoot.waitForExistence(timeout: UITestTiming.s(10)),

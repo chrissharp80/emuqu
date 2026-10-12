@@ -1,0 +1,120 @@
+{
+ "file": "Emuqu/Sources/Assistant/MedicalTermLexicon.swift",
+ "hash": "10881da36ccf581e",
+ "role": "Shared regulated-language vocabulary: one Concept per regulated idea with latin (\\b-wrapped) and unbounded (substring) alternatives in 17 locales; groups for the input guard (refuseAsRhythm/Emergency/GeneralConcern/Symptom/BeforeSending), the output guard (scrubFromOutput), the static-copy linter (neverInStaticCopy) and the sync gate (all), plus the cached regex compiler.",
+ "types": [
+  "MedicalTermLexicon: enum — namespace of Concept constants and groups",
+  "MedicalTermLexicon.Concept: struct — id, latin, unbounded alternatives and combined pattern"
+ ],
+ "state": [
+  "mem:MedicalTermLexicon.atrialFibrillation",
+  "mem:MedicalTermLexicon.arrhythmia",
+  "mem:MedicalTermLexicon.namedCardiacCondition",
+  "mem:MedicalTermLexicon.acuteCardiacEvent",
+  "mem:MedicalTermLexicon.neurovascularEvent",
+  "mem:MedicalTermLexicon.irregularHeartbeat",
+  "mem:MedicalTermLexicon.diagnosis",
+  "mem:MedicalTermLexicon.cure",
+  "mem:MedicalTermLexicon.treatmentClaim",
+  "mem:MedicalTermLexicon.prescription",
+  "mem:MedicalTermLexicon.regulatoryClearance",
+  "mem:MedicalTermLexicon.injuryRisk",
+  "mem:MedicalTermLexicon.overtraining",
+  "mem:MedicalTermLexicon.riskZoneFraming",
+  "mem:MedicalTermLexicon.pathology",
+  "mem:MedicalTermLexicon.clinicalPhysiologyLabels",
+  "mem:MedicalTermLexicon.chestPain",
+  "mem:MedicalTermLexicon.breathlessness",
+  "mem:MedicalTermLexicon.syncope",
+  "mem:MedicalTermLexicon.severeSymptom",
+  "mem:MedicalTermLexicon.dangerJudgement",
+  "mem:MedicalTermLexicon.selfHarm",
+  "mem:MedicalTermLexicon.medicalReferral",
+  "mem:MedicalTermLexicon.symptomOfDisease",
+  "mem:MedicalTermLexicon.speculativeDiagnosis",
+  "mem:MedicalTermLexicon.refuseAsRhythm",
+  "mem:MedicalTermLexicon.refuseAsEmergency",
+  "mem:MedicalTermLexicon.refuseAsGeneralConcern",
+  "mem:MedicalTermLexicon.refuseAsSymptom",
+  "mem:MedicalTermLexicon.refuseBeforeSending",
+  "mem:MedicalTermLexicon.scrubFromOutput",
+  "mem:MedicalTermLexicon.neverInStaticCopy",
+  "mem:MedicalTermLexicon.categoricalAutonomicState",
+  "mem:MedicalTermLexicon.physiologicalCertainty",
+  "mem:MedicalTermLexicon.all"
+ ],
+ "toplevel": "All content is static let Concept constants and [Concept] groups; refuseAsSymptom/refuseBeforeSending are unions read by MedicalQueryGuardTests and refuseBeforeSending/neverInStaticCopy are parsed by Tools/copy_linter/lint.py; scrubFromOutput is consumed by CoachVoiceGuard; all by tests and the perimeter sync gate. Apostrophes in the alternatives are written ['’] so model output and typed input with a typographic ’ match (can't breathe, m'inquiéter, d'une maladie, you're definitely, d'important); syncope matches 'faint' only as a verb form (fainted/faints/fainting/faintness) or after a feeling verb ('feel/felt/going to ... faint'), not the adjective ('a faint trace'). Every spelling the build-time prohibited_terms.json rules expand to is covered at runtime (check_perimeter_sync.sh): diagnosis includes 'undiagnosed', cure 'cur(e|es|ed|ing)' and 'curative', prescription 'prescrib(e|es|ed|ing)', pathology 'patholog(y|ies|ical|ically)', named cardiac conditions 'isch(a?e)mi[ac]' (ischemic/ischaemic/ischaemia), and physiological certainty allows a space before the apostrophe ('you 're definitely').",
+ "flags": [
+  {
+   "kind": "broken",
+   "sev": "low",
+   "text": "DebugLogger.compiledPattern, which regex(for:) routes through, logs a compile failure as 'REDACTION PATTERN FAILED TO COMPILE — redaction is degraded', so a malformed medical-lexicon concept (silently dropped from the guard by compactMap) is reported as a redaction problem, misdirecting diagnosis.",
+   "evidence": [
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift:999",
+    "Emuqu/Sources/Utilities/DebugLog.swift:415"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "init MedicalTermLexicon.Concept(id:latin:unbounded:)",
+   "hash": "72c6d1379d190d26",
+   "does": "Stores id, latin alternatives and unbounded alternatives (default empty).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var MedicalTermLexicon.Concept.pattern",
+   "hash": "8c2d32c2285c02d7",
+   "does": "Builds the concept regex source: \\b(?:latin|...)\\b when latin non-empty, plus (?:unbounded|...) when unbounded non-empty, joined as one alternation group.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "latin non-empty",
+     "effect": "true: add the word-bounded branch; false: omitted"
+    },
+    {
+     "at": "+5",
+     "cond": "unbounded non-empty",
+     "effect": "true: add the bare substring branch; false: omitted (empty both gives \"(?:)\" which matches everything)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func MedicalTermLexicon.regex(for:)",
+   "hash": "62755f2e3f4b2c65",
+   "does": "Compiles concept.pattern case-insensitively through DebugLogger.compiledPattern's process-wide cache; nil (with NSLog) when malformed.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.compiledPattern(_:options:)",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::var MedicalTermLexicon.Concept.pattern",
+    "ext:Foundation.NSRegularExpression"
+   ],
+   "reads": [
+    "mem:DebugLogger.compiledPatterns"
+   ],
+   "writes": [
+    "mem:DebugLogger.compiledPatterns"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::var MedicalTermLexicon.Concept.pattern": "06c951bd29a3be8b",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.compiledPattern(_:options:)": "3350ce6123d0accf"
+   }
+  }
+ ],
+ "deps": {}
+}

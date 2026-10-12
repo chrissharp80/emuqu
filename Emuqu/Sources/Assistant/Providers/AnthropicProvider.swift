@@ -3,28 +3,6 @@ import Foundation
 /// Streams responses from Anthropic's Messages API (Claude).
 /// https://docs.claude.com/en/api/messages-streaming
 final class AnthropicProvider: AIProvider, Sendable {
-    /// Dedicated session matching the one
-    /// `OpenAICompatibleStreamer` uses, rather than
-    /// `URLSession.shared`, which lacks `waitsForConnectivity` — a single
-    /// tower handoff during a walk would fail the request immediately and
-    /// surface as "Anthropic dropped" to the user. With the configured
-    /// session the request is held until connectivity returns, up to the
-    /// resource timeout. Same `httpMaximumConnectionsPerHost = 4` cap
-    /// and 30 s request / 180 s resource timeouts so behaviour matches
-    /// the OpenAI-family providers.
-    static let streamSession: URLSession = {
-        let config = URLSessionConfiguration.default
-        config.waitsForConnectivity = true
-        config.timeoutIntervalForRequest = 30
-        config.timeoutIntervalForResource = 180
-        config.allowsCellularAccess = true
-        config.allowsConstrainedNetworkAccess = true
-        config.allowsExpensiveNetworkAccess = true
-        config.httpMaximumConnectionsPerHost = 4
-        config.urlCache = nil
-        return URLSession(configuration: config)
-    }()
-
     // MARK: - Static catalog
 
     /// Checked against platform.claude.com/docs/en/about-claude/models and
@@ -316,7 +294,7 @@ final class AnthropicProvider: AIProvider, Sendable {
         systemBlocks: inout [RequestBody.SystemBlock]
     ) {
         guard !contextRendered.isEmpty else { return }
-        let liveBlock = "\n\n<live_state>\n\(contextRendered)\n</live_state>"
+        let liveBlock = ProviderHTTP.liveStateEnvelope(variableSystem: "", contextRendered: contextRendered)
         guard let idx = mapped.lastIndex(where: { $0.role == "user" }) else {
             systemBlocks.append(RequestBody.SystemBlock(
                 type: "text", text: contextRendered, cache_control: nil
@@ -381,7 +359,7 @@ final class AnthropicProvider: AIProvider, Sendable {
             messages: mapped, stream: true, tools: Self.toolDeclarations(for: tools)
         )
         let request = try Self.makeRequest(url: url, apiKey: apiKey, body: body)
-        let (bytes, response) = try await Self.streamSession.bytes(for: request)
+        let (bytes, response) = try await ProviderHTTP.streamSession.bytes(for: request)
         try Task.checkCancellation()
         if let http = response as? HTTPURLResponse, !(200 ... 299).contains(http.statusCode) {
             try await Self.throwForStatus(http.statusCode, bytes: bytes)
@@ -402,11 +380,14 @@ final class AnthropicProvider: AIProvider, Sendable {
     /// Per-request SSE state: open tool-use blocks, and `message_start`'s
     /// usage held until `message_delta` brings the final output count, so
     /// each request records ONE usage event. Recording both doubled the
-    /// cache-telemetry turn count.
+    /// cache-telemetry turn count. `messageStopped` records that
+    /// `message_stop` arrived, so a stream cut before it is not taken for a
+    /// complete reply.
     struct StreamState {
         var openToolUses: [Int: PendingToolUse] = [:]
         var startUsage: [String: Any]?
         var usageRecorded = false
+        var messageStopped = false
     }
 
     /// Emits a `.usage` event from an Anthropic usage payload, when it
@@ -435,7 +416,7 @@ final class AnthropicProvider: AIProvider, Sendable {
         state: inout StreamState,
         continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
     ) throws {
-        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else { return }
+        guard let json = try eventObject(data) else { return }
         switch (json["type"] as? String) ?? eventName ?? "" {
         case "content_block_start":
             openBlock(json, into: &state.openToolUses)
@@ -444,7 +425,7 @@ final class AnthropicProvider: AIProvider, Sendable {
         case "content_block_stop":
             closeBlock(json, openToolUses: &state.openToolUses, continuation: continuation)
         case "message_delta":
-            flushUsage(&state, final: json["usage"] as? [String: Any], to: continuation)
+            messageDelta(json, state: &state, continuation: continuation)
         case "message_start":
             state.startUsage = (json["message"] as? [String: Any])?["usage"] as? [String: Any]
         case "message_stop":
@@ -457,11 +438,40 @@ final class AnthropicProvider: AIProvider, Sendable {
         }
     }
 
+    /// One SSE `data:` payload as a JSON object. Malformed JSON is the
+    /// stream's fault, not the device's, so it becomes an `AIProviderError`
+    /// the chat layer can fall back from rather than a raw Cocoa error.
+    static func eventObject(_ data: Data) throws -> [String: Any]? {
+        do {
+            return try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        } catch {
+            throw AIProviderError.invalidResponse("malformed Anthropic stream event")
+        }
+    }
+
+    /// `message_delta`: the final usage, and the stop reason. A reply that
+    /// stopped at the token cap (`max_tokens`) or paused mid server-tool
+    /// turn (`pause_turn`) is incomplete, so it is logged and ends with an
+    /// ellipsis rather than reading as a finished answer.
+    static func messageDelta(
+        _ json: [String: Any],
+        state: inout StreamState,
+        continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
+    ) {
+        let reason = (json["delta"] as? [String: Any])?["stop_reason"] as? String
+        if let reason, reason == "max_tokens" || reason == "pause_turn" {
+            debugLog("[Anthropic] reply stopped early: stop_reason=\(reason)", level: .warning)
+            continuation.yield(.textDelta("…"))
+        }
+        flushUsage(&state, final: json["usage"] as? [String: Any], to: continuation)
+    }
+
     /// `message_stop`: record usage if no delta did, then end the stream.
     static func finishMessage(
         _ state: inout StreamState,
         continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
     ) {
+        state.messageStopped = true
         flushUsage(&state, final: nil, to: continuation)
         continuation.yield(.done)
     }
@@ -524,47 +534,18 @@ final class AnthropicProvider: AIProvider, Sendable {
     }
 
     static func throwForStatus(_ status: Int, bytes: URLSession.AsyncBytes) async throws -> Never {
-        // Drain a bounded portion of the body for diagnostics.
-        var collected = Data()
-        for try await byte in bytes {
-            collected.append(byte)
-            if collected.count >= 4096 { break }
-        }
+        let collected = try await ProviderHTTP.errorBody(bytes)
         let bodyText = redactAPIKeys(String(data: collected, encoding: .utf8) ?? "")
         if ProviderAccountReply.isCreditExhausted(status: status, body: bodyText) {
             throw AIProviderError.outOfCredit(.anthropic)
         }
-        throw statusError(status, message: errorMessage(from: collected) ?? String(bodyText.prefix(300)))
-    }
-
-    /// Maps an HTTP failure to the error the chat banner shows. 529
-    /// (Anthropic's "overloaded") and other 5xx are transient on their
-    /// side, so the user gets a plain "try again" instead of a status dump.
-    static func statusError(_ status: Int, message: String) -> AIProviderError {
-        switch status {
-        case 401, 403: return .authFailed
-        case 429: return .rateLimited
-        case 404: return .modelUnavailable(message)
-        case 500...599:
-            return .modelUnavailable(String(
-                localized: "Anthropic is overloaded right now. Try again in a moment.",
-                bundle: LanguageManager.appBundle
-            ))
-        default: return .invalidResponse("HTTP \(status): \(message)")
-        }
-    }
-
-    /// Pulls `error.message` out of Anthropic's JSON error envelope
-    /// (`{"type":"error","error":{"type":"...","message":"..."}}`) so the
-    /// banner shows one readable sentence instead of raw JSON.
-    static func errorMessage(from data: Data) -> String? {
-        let object: Any
-        do { object = try JSONSerialization.jsonObject(with: data) } catch { return nil }
-        guard let json = object as? [String: Any],
-              let error = json["error"] as? [String: Any],
-              let message = error["message"] as? String, !message.isEmpty
-        else { return nil }
-        return redactAPIKeys(message)
+        // 529 (Anthropic's "overloaded") and other 5xx are transient on
+        // their side, so the user gets a plain "try again".
+        throw ProviderHTTP.statusError(
+            status,
+            message: ProviderHTTP.errorMessage(from: collected) ?? String(bodyText.prefix(300)),
+            overloaded: String(localized: "Anthropic is overloaded right now. Try again in a moment.", bundle: LanguageManager.appBundle)
+        )
     }
 }
 

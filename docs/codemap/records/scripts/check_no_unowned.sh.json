@@ -1,0 +1,14 @@
+{
+ "file": "scripts/check_no_unowned.sh",
+ "hash": "3c31379765a29284",
+ "role": "CI gate: no `unowned` in Emuqu/Sources or the watch app - stored `unowned (let|var)` and closure captures `[unowned self]` / `[unowned(unsafe) x]` alike.",
+ "types": [],
+ "state": [
+  "dir:Emuqu/Sources",
+  "dir:EmuquWatch Watch App"
+ ],
+ "toplevel": "cd to repo root; sources preflight. Missing root -> exit 2. grep `unowned((un)safe)? <identifier>`, // comment lines dropped; hits -> exit 1; else clean.",
+ "flags": [],
+ "units": [],
+ "deps": {}
+}

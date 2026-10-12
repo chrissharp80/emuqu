@@ -1,0 +1,382 @@
+{
+ "file": "Emuqu/Sources/Storage/CloudPayloadCodec.swift",
+ "hash": "059f398b50b7768b",
+ "role": "The single encrypted envelope for every iCloud payload (sessions, live backups, settings): EMQC magic + version byte + AES-GCM combined box sealed with a synchronizable iCloud-Keychain cloud key; decode also opens legacy FR (EncryptionManager archive key) payloads and passes unframed legacy bytes through.",
+ "types": [
+  "CloudPayloadCodec: enum — encode/decode, multi-key Keychain management",
+  "CloudPayloadCodec.CodecError: enum — keyUnreadable/malformedEnvelope/unsupportedVersion/noMatchingKey"
+ ],
+ "state": [
+  "mem:CloudPayloadCodec.magic EMQC (0x45 0x4D 0x51 0x43), version 1, legacyEncryptedMagic FR (0x46 0x52)",
+  "kc:com.chrissharp.flowrecovery.cloud (synchronizable generic passwords, accounts cloud-payload-key-v1 and cloud-payload-key-id-<UUID>)",
+  "kc service constant com.chrissharp.flowrecovery.cloud; legacyAccount cloud-payload-key-v1; accountPrefix cloud-payload-key-id-",
+  "mem:CloudPayloadCodec.keyCreation (OSAllocatedUnfairLock serializing key creation)"
+ ],
+ "toplevel": "Static constants only. Keys are created with kSecAttrAccessibleAfterFirstUnlock and kSecAttrSynchronizable=true so they sync via iCloud Keychain.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var CloudPayloadCodec.CodecError.errorDescription",
+   "hash": "a4b10b45e3bb6fe4",
+   "does": "Localized text for CodecError cases.",
+   "entry": "LocalizedError witness; read via localizedDescription in sync error lines",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": ".keyUnreadable(status)",
+     "effect": "message with the Keychain status"
+    },
+    {
+     "at": "+5",
+     "cond": ".malformedEnvelope",
+     "effect": "not-recognised-format message"
+    },
+    {
+     "at": "+7",
+     "cond": ".unsupportedVersion",
+     "effect": "update-the-app message"
+    },
+    {
+     "at": "+9",
+     "cond": ".noMatchingKey",
+     "effect": "iCloud Keychain not delivered message"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var CloudPayloadCodec.hasUsableKey",
+   "hash": "40f5411c40e7cc5f",
+   "does": "Returns true when a writing key exists or can be created (calls writingKey, which creates a key on genuine absence); logs and returns false on Keychain read/add failure.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.writingKey()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "kc:com.chrissharp.flowrecovery.cloud (synchronizable generic passwords, accounts cloud-payload-key-v1 and cloud-payload-key-id-<UUID>)"
+   ],
+   "writes": [
+    "kc:com.chrissharp.flowrecovery.cloud (synchronizable generic passwords, accounts cloud-payload-key-v1 and cloud-payload-key-id-<UUID>) (new key when none)"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "writingKey threw",
+     "effect": "log error, return false; else true"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.writingKey()": "3706dcec5ce9702d",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func CloudPayloadCodec.encode(_:)",
+   "hash": "e0d95e8d4812fb96",
+   "does": "Seals payload with AES-GCM under the writing key and returns magic + version + combined box.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.writingKey()",
+    "ext:AES.GCM.seal"
+   ],
+   "reads": [
+    "kc:com.chrissharp.flowrecovery.cloud (synchronizable generic passwords, accounts cloud-payload-key-v1 and cloud-payload-key-id-<UUID>)"
+   ],
+   "writes": [
+    "kc:com.chrissharp.flowrecovery.cloud (synchronizable generic passwords, accounts cloud-payload-key-v1 and cloud-payload-key-id-<UUID>) (new key when none)"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "sealed.combined nil",
+     "effect": "throw malformedEnvelope (unreachable with the default 12-byte nonce)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.writingKey()": "3706dcec5ce9702d"
+   }
+  },
+  {
+   "key": "func CloudPayloadCodec.decode(_:)",
+   "hash": "f0884f32c940d7e2",
+   "does": "Decodes a cloud payload: EMQC → openCurrent with the cloud keys; FR → EncryptionManager.decrypt with the device archive key; otherwise returns raw unchanged (pre-encryption compressed record).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.openCurrent(_:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.decrypt(_:)"
+   ],
+   "reads": [
+    "kc:com.chrissharp.flowrecovery.cloud (synchronizable generic passwords, accounts cloud-payload-key-v1 and cloud-payload-key-id-<UUID>)",
+    "kc:session-encryption-key (FR path)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "longer than 4 bytes and starts with EMQC",
+     "effect": "openCurrent"
+    },
+    {
+     "at": "+4",
+     "cond": "longer than 2 bytes and starts with FR",
+     "effect": "decrypt with archive key (throws on other devices); else return raw unchanged"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.openCurrent(_:)": "8e49782ede28cd92",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.decrypt(_:)": "32058ab0050d0265",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74"
+   }
+  },
+  {
+   "key": "func CloudPayloadCodec.openCurrent(_:)",
+   "hash": "0045ab721de10969",
+   "does": "Checks the version byte after the magic and opens the AES-GCM box with every stored cloud key.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.storedKeys()",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.open(_:withAnyOf:)",
+    "ext:AES.GCM.SealedBox"
+   ],
+   "reads": [
+    "kc:com.chrissharp.flowrecovery.cloud (synchronizable generic passwords, accounts cloud-payload-key-v1 and cloud-payload-key-id-<UUID>)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "version byte == 1",
+     "effect": "continue; else throw unsupportedVersion"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.open(_:withAnyOf:)": "113ebb0eafb86ae8",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.storedKeys()": "54a0f9830a1c9db1"
+   }
+  },
+  {
+   "key": "func CloudPayloadCodec.open(_:withAnyOf:)",
+   "hash": "36ccb1ab5762f05f",
+   "does": "Tries each key; returns the first successful AES.GCM.open; authenticationFailure moves to the next key; other errors throw; no key opens → noMatchingKey.",
+   "entry": null,
+   "calls": [
+    "ext:AES.GCM.open"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each key",
+     "effect": "attempt open"
+    },
+    {
+     "at": "+4",
+     "cond": "CryptoKitError.authenticationFailure",
+     "effect": "continue to next key; other errors propagate"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.keys(from:)": "81582ac8db121057"
+   }
+  },
+  {
+   "key": "func CloudPayloadCodec.writingKey()",
+   "hash": "accac846892bc5e2",
+   "does": "Returns the stored key under the primary account (no lock); when there is none, takes the keyCreation lock, re-checks, and only then creates a new key, so concurrent first writers create one key between them. Keychain read failures propagate (no key minted over a locked Keychain).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.primaryKey()",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.create()",
+    "ext:OSAllocatedUnfairLock.withLock"
+   ],
+   "reads": [
+    "kc:com.chrissharp.flowrecovery.cloud (synchronizable generic passwords, accounts cloud-payload-key-v1 and cloud-payload-key-id-<UUID>)"
+   ],
+   "writes": [
+    "kc:com.chrissharp.flowrecovery.cloud (synchronizable generic passwords, accounts cloud-payload-key-v1 and cloud-payload-key-id-<UUID>) (create)",
+    "mem:CloudPayloadCodec.keyCreation"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "primary key stored",
+     "effect": "return it"
+    },
+    {
+     "at": "+3",
+     "cond": "still none under the lock",
+     "effect": "create(); else return the key another writer created"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.create()": "883abd5e9f98385a",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.primaryKey()": "a72befbc54d0efc0"
+   }
+  },
+  {
+   "key": "func CloudPayloadCodec.primaryKey()",
+   "hash": "6b054d5379788ce2",
+   "does": "Reads all stored cloud keys (failures propagate) and returns the one under primaryAccount(among:), or nil when no account qualifies.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.storedKeys()",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.primaryAccount(among:)"
+   ],
+   "reads": [
+    "kc:com.chrissharp.flowrecovery.cloud (synchronizable generic passwords, accounts cloud-payload-key-v1 and cloud-payload-key-id-<UUID>)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "no primary account",
+     "effect": "nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.keys(from:)": "81582ac8db121057",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.primaryAccount(among:)": "f5618d2383fba70d",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.storedKeys()": "54a0f9830a1c9db1"
+   }
+  },
+  {
+   "key": "func CloudPayloadCodec.primaryAccount(among:)",
+   "hash": "46b5749129428896",
+   "does": "Picks the legacy account when present, else the lexicographically smallest cloud-payload-key-id-* account; nil if none.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "accounts contain legacy cloud-payload-key-v1",
+     "effect": "return it; else min of prefixed accounts"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func CloudPayloadCodec.create()",
+   "hash": "3db6c526d4ffa19e",
+   "does": "Generates a 256-bit key and SecItemAdds it under accountPrefix+UUID (synchronizable, AfterFirstUnlock); throws keyUnreadable(status) on failure.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.baseQuery()",
+    "ext:SecItemAdd"
+   ],
+   "reads": [],
+   "writes": [
+    "kc:com.chrissharp.flowrecovery.cloud (synchronizable generic passwords, accounts cloud-payload-key-v1 and cloud-payload-key-id-<UUID>)"
+   ],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "SecItemAdd == errSecSuccess",
+     "effect": "return key; else throw keyUnreadable(status)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.baseQuery()": "af3633847d0ef6b7"
+   }
+  },
+  {
+   "key": "func CloudPayloadCodec.storedKeys()",
+   "hash": "d4858686ffca49f6",
+   "does": "SecItemCopyMatching for all synchronizable cloud keys (data+attributes); returns (account,key) sorted primary-first; [] when none; throws keyUnreadable on any other status.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.baseQuery()",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.keys(from:)",
+    "ext:SecItemCopyMatching"
+   ],
+   "reads": [
+    "kc:com.chrissharp.flowrecovery.cloud (synchronizable generic passwords, accounts cloud-payload-key-v1 and cloud-payload-key-id-<UUID>)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "errSecSuccess",
+     "effect": "parse rows"
+    },
+    {
+     "at": "+9",
+     "cond": "result not [[String:Any]]",
+     "effect": "throw keyUnreadable"
+    },
+    {
+     "at": "+11",
+     "cond": "errSecItemNotFound",
+     "effect": "return []"
+    },
+    {
+     "at": "+13",
+     "cond": "any other status",
+     "effect": "throw keyUnreadable(status)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.baseQuery()": "af3633847d0ef6b7",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.keys(from:)": "81582ac8db121057"
+   }
+  },
+  {
+   "key": "func CloudPayloadCodec.keys(from:)",
+   "hash": "b036b837d0b0329c",
+   "does": "Maps Keychain rows to (account, SymmetricKey), dropping rows missing account or data, sorted so the primary account comes first.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.primaryAccount(among:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "row has account and data",
+     "effect": "include; else skip"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.primaryAccount(among:)": "f5618d2383fba70d"
+   }
+  },
+  {
+   "key": "func CloudPayloadCodec.baseQuery()",
+   "hash": "c2b67e94a7ee9a8b",
+   "does": "Base Keychain query: generic password, service com.chrissharp.flowrecovery.cloud, synchronizable true.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

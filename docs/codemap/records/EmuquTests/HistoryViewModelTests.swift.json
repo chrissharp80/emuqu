@@ -1,0 +1,120 @@
+{
+ "file": "EmuquTests/HistoryViewModelTests.swift",
+ "hash": "a7a8d631b547e0e4",
+ "role": "XCTest suite for HistoryViewModel's same-night collapse: a scored canonical overnight row survives while an unscored near-duplicate and an unscored 2-minute suffix artifact are hidden, using a hermetic temp-dir SessionArchive.",
+ "types": [
+  "HistoryViewModelTests: class — @MainActor XCTestCase over HistoryViewModel with an isolated SessionArchive"
+ ],
+ "state": [
+  "mem:HistoryViewModelTests.tempDir (lazy temp dir HistoryViewModelTests-<UUID>)",
+  "mem:HistoryViewModelTests.archive (lazy SessionArchive(directory: tempDir))",
+  "mem:HistoryViewModelTests.createdSessionIds"
+ ],
+ "toplevel": "lazy tempDir and archive properties; createdSessionIds array.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func HistoryViewModelTests.setUp()",
+   "hash": "6c7afe9dd0d50486",
+   "does": "Resets createdSessionIds before each test.",
+   "entry": "XCTest setUp before each test",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HistoryViewModelTests.tearDown()",
+   "hash": "1fe5e532c8e31559",
+   "does": "Deletes every created session from the temp archive (errors ignored), clears the list and removes the temp directory (errors ignored).",
+   "entry": "XCTest tearDown after each test",
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:temp HistoryViewModelTests-<UUID> archive"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each created session id",
+     "effect": "try? archive.delete; failures swallowed"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)": "cefef470ab858af7"
+   }
+  },
+  {
+   "key": "func HistoryViewModelTests.testHistoryCollapsesDuplicateOvernightRowsWithTinySuffixArtifact()",
+   "hash": "d29cb250bc7ba7df",
+   "does": "Archives a scored canonical overnight session plus two unscored same-night sessions (4 min later; 2-min suffix) each with a dangling linkedSessionIds to bypass write-time merge, builds HistoryViewModel(archive:), calls refreshIfNeeded(archiveVersion: 1), polls filteredEntries for up to 2 s, and asserts only the canonical id remains.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TestDate.swift::func TestDate.adding(_:_:to:calendar:file:line:)",
+    "EmuquTests/HistoryViewModelTests.swift::func HistoryViewModelTests.makeSession(start:end:score:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)",
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::init HistoryViewModel(archive:settingsProvider:)",
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.refreshIfNeeded(archiveVersion:)",
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.recomputeFilteredEntries()"
+   ],
+   "reads": [],
+   "writes": [
+    "file:temp HistoryViewModelTests-<UUID> archive"
+   ],
+   "branches": [
+    {
+     "at": "+49",
+     "cond": "no tracked id is in filteredEntries yet and the 2 s deadline has not passed",
+     "effect": "sleeps 20 ms and polls again; exits when any tracked id appears or on timeout"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Timing-dependent: waits at most 2 s for the detached recompute (HistoryViewModel.recomputeFilteredEntries) with a 20 ms poll; a slow CI host times out and the assertions then fail on an empty list rather than on wrong collapse logic.",
+     "evidence": [
+      "EmuquTests/HistoryViewModelTests.swift:82",
+      "EmuquTests/HistoryViewModelTests.swift:85"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)": "e1a5ccaab9fa4e3e",
+    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7",
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.recomputeFilteredEntries()": "4709c5b029b6ba41",
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.refreshIfNeeded(archiveVersion:)": "31cf379f4b178303",
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::init HistoryViewModel(archive:settingsProvider:)": "b8e4e68becf134f2",
+    "EmuquTests/HistoryViewModelTests.swift::func HistoryViewModelTests.makeSession(start:end:score:)": "3cd367dddcb8681d",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "9b0181db6472cf0d",
+    "EmuquTests/TestDate.swift::func TestDate.adding(_:_:to:calendar:file:line:)": "05f3816097f2b356"
+   }
+  },
+  {
+   "key": "func HistoryViewModelTests.makeSession(start:end:score:)",
+   "hash": "5f310e291ea291d5",
+   "does": "Fixture: complete overnight HRVSession over start…end with optional recoveryScore (nil = unscored placeholder).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f"
+   }
+  }
+ ],
+ "deps": {}
+}

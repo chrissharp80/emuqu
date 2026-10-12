@@ -20,12 +20,4 @@ extension WorkoutRecorder {
             rrPoints: rrPoints, stopDate: stopDate, hrrSamples: hrrSamples
         )
     }
-
-    /// A pure timeout wrapper — no recorder state — so it forwards to the type.
-    static func runWithTimeout<T: Sendable>(
-        seconds: TimeInterval,
-        _ operation: @Sendable @escaping () async -> T
-    ) async -> T? {
-        await WorkoutFinalizer.runWithTimeout(seconds: seconds, operation)
-    }
 }

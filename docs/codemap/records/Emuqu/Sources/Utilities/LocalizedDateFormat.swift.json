@@ -1,0 +1,60 @@
+{
+ "file": "Emuqu/Sources/Utilities/LocalizedDateFormat.swift",
+ "hash": "fe7fa3181b11db59",
+ "role": "Template-based date formatting in the app's selected language, with a lock-protected formatter cache keyed by locale, time zone and template.",
+ "types": [
+  "LocalizedDateFormat: enum — cached template formatters"
+ ],
+ "state": [
+  "mem:LocalizedDateFormat.cache"
+ ],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func LocalizedDateFormat.string(from:template:)",
+   "hash": "ebbe9b9739d7c6be",
+   "does": "Formats date with the cached formatter for template.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/LocalizedDateFormat.swift::func LocalizedDateFormat.formatter(template:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/LocalizedDateFormat.swift::func LocalizedDateFormat.formatter(template:)": "ca42a77cea56606e"
+   }
+  },
+  {
+   "key": "func LocalizedDateFormat.formatter(template:)",
+   "hash": "c97ee1a7ac771e1e",
+   "does": "Returns a cached DateFormatter for (LanguageManager.appLocale, TimeZone.current, template), creating it with setLocalizedDateFormatFromTemplate on a miss.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
+    "ext:DateFormatter"
+   ],
+   "reads": [
+    "mem:LocalizedDateFormat.cache",
+    "mem:LanguageManager.shared.locale"
+   ],
+   "writes": [
+    "mem:LocalizedDateFormat.cache"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "formatter cached for key",
+     "effect": "returns it; otherwise creates and caches"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -20,6 +20,13 @@ import Foundation
 //   4. Replace `WorkoutSample.alpha1` on the session's samples with the
 //      regenerated value from the nearest in-time recompute.
 //
+// Readings are timed on the beat (wall-clock) timeline, samples on active
+// seconds, which stop while the workout is paused. The two agree only for a
+// workout that was never paused, and the pause timeline is not stored, so a
+// workout whose samples end well short of its wall-clock length (it was
+// paused) is not re-analysed rather than have every later reading written
+// onto the wrong sample.
+//
 // This runs off-thread and takes ~100 ms for a 60-minute session
 // (~200 recompute windows × ~250 beats each), so it can safely run
 // on a background task and the result is re-archived when done.
@@ -46,6 +53,9 @@ enum WorkoutAlpha1Reanalyzer {
         let offsetSec: Int
         let alpha1: Double
         let fitQualityR2: Double
+        /// The recompute cadence the reading was produced at: how long after
+        /// `offsetSec` it stays current for `applyReadings`.
+        let cadenceSec: Int
     }
 
     /// Re-run α1 on the raw RR series stored with the session. Returns
@@ -60,16 +70,20 @@ enum WorkoutAlpha1Reanalyzer {
     /// rather than O(windows × n).
     ///
     /// Windows are cut on the gap-corrected timeline
-    /// (`WorkoutAnalyzer.gapCorrectedOffsetsMs`), the same wall-clock seconds
-    /// the workout samples are stamped in, so readings after a Bluetooth
-    /// dropout land on the samples they describe.
+    /// (`WorkoutAnalyzer.gapCorrectedOffsetsMs`), wall-clock seconds from the
+    /// start, so readings after a Bluetooth dropout land on the samples they
+    /// describe. Samples are stamped in ACTIVE seconds, which equal wall-clock
+    /// seconds only while the workout was never paused; a paused workout
+    /// (`wasPaused`) returns no readings, since without the pause timeline
+    /// every reading after the first pause would land on the wrong sample.
     static func reanalyze(
         session: HRVSession,
         windowSec: TimeInterval = 120,
         cadenceSec: TimeInterval = 20,
         minBeatsForFit: Int = 64
     ) -> [Reading] {
-        guard let rrPoints = session.rrSeries?.points, rrPoints.count >= minBeatsForFit else { return [] }
+        guard let rrPoints = session.rrSeries?.points, rrPoints.count >= minBeatsForFit,
+              !wasPaused(session, toleranceSec: cadenceSec) else { return [] }
         let timeline = wallClockTimeline(rrPoints)
         let sessionDuration = session.duration ?? Double(timeline.last?.t_ms ?? 0) / 1000.0
         guard sessionDuration > windowSec else { return [] }
@@ -81,12 +95,26 @@ enum WorkoutAlpha1Reanalyzer {
         while t <= sessionDuration {
             // Slice RR points whose t_ms falls within this window.
             let range = sweep.range(start: Int64((t - windowSec) * 1000), end: Int64(t * 1000))
-            if let reading = fit(Array(timeline[range]), atOffsetSec: t, minBeatsForFit: minBeatsForFit) {
+            if let reading = fit(Array(timeline[range]), atOffsetSec: t, cadenceSec: Int(cadenceSec), minBeatsForFit: minBeatsForFit) {
                 readings.append(reading)
             }
             t += cadenceSec
         }
         return readings
+    }
+
+    /// Whether the workout's samples end more than `toleranceSec` short of its
+    /// wall-clock length: active time stopped while paused, so the shortfall
+    /// is the time spent paused. A shortfall within one cadence step moves a
+    /// reading by less than the step it already stands for. False without
+    /// samples or an end date (nothing to misplace, or nothing to compare).
+    private static func wasPaused(_ session: HRVSession, toleranceSec: TimeInterval) -> Bool {
+        guard let duration = session.duration,
+              let lastOffset = session.workoutMetadata?.samples?.map(\.offsetSec).max() else { return false }
+        let pausedSec = duration - TimeInterval(lastOffset)
+        guard pausedSec > toleranceSec else { return false }
+        debugLog("[Alpha1Reanalyze] samples end \(Int(pausedSec)) s short of the workout — paused; not re-analysing")
+        return true
     }
 
     /// The beats re-stamped onto the gap-corrected (wall-clock) timeline.
@@ -108,7 +136,7 @@ enum WorkoutAlpha1Reanalyzer {
     /// threshold the live analyzer uses — which is the point, since this type
     /// exists to reproduce the live path offline.
     private static func fit(
-        _ windowPoints: [RRPoint], atOffsetSec t: Double, minBeatsForFit: Int
+        _ windowPoints: [RRPoint], atOffsetSec t: Double, cadenceSec: Int, minBeatsForFit: Int
     ) -> Reading? {
         guard windowPoints.count >= minBeatsForFit else { return nil }
         let cleaned = LiveDFAAnalyzer.cleanRRForDFA(windowPoints.map { Double($0.rr_ms) })
@@ -116,28 +144,36 @@ enum WorkoutAlpha1Reanalyzer {
               let result = DFAAnalyzer.compute(cleaned.values) else {
             return nil
         }
-        return Reading(offsetSec: Int(t), alpha1: result.alpha1, fitQualityR2: result.alpha1R2)
+        return Reading(offsetSec: Int(t), alpha1: result.alpha1, fitQualityR2: result.alpha1R2, cadenceSec: cadenceSec)
     }
 
     /// Overwrite `alpha1` on every WorkoutSample in the provided series
     /// with the latest re-analyzed reading at or before it, but only while
-    /// that reading is current — less than one cadence step old. Samples in
-    /// the warm-up period, or inside a stretch whose windows were rejected
-    /// (too noisy, too few beats), get their α1 cleared (nil) rather than
-    /// inherit a value from minutes earlier.
-    static func applyReadings(
-        _ readings: [Reading],
-        to samples: [WorkoutSample],
-        cadenceSec: Int = 20
-    ) -> [WorkoutSample] {
+    /// that reading is current — less than one cadence step (the reading's
+    /// own `cadenceSec`) old. Samples in the warm-up period, or inside a
+    /// stretch whose windows were rejected (too noisy, too few beats), get
+    /// their α1 cleared (nil) rather than inherit a value from minutes
+    /// earlier. Samples may come in any order: each is looked up by binary
+    /// search in the readings sorted by offset.
+    static func applyReadings(_ readings: [Reading], to samples: [WorkoutSample]) -> [WorkoutSample] {
         guard !readings.isEmpty else { return samples }
         let sorted = readings.sorted { $0.offsetSec < $1.offsetSec }
-        var next = 0
         return samples.map { s in
-            // Samples are in time order, so the cursor only moves forward.
-            while next < sorted.count, sorted[next].offsetSec <= s.offsetSec { next += 1 }
-            guard next > 0, s.offsetSec - sorted[next - 1].offsetSec < cadenceSec else { return s.withAlpha1(nil) }
-            return s.withAlpha1(sorted[next - 1].alpha1)
+            guard let reading = latestReading(atOrBefore: s.offsetSec, in: sorted),
+                  s.offsetSec - reading.offsetSec < reading.cadenceSec else { return s.withAlpha1(nil) }
+            return s.withAlpha1(reading.alpha1)
         }
+    }
+
+    /// The last reading with `offsetSec` at or before `offset` in readings
+    /// sorted by offset, or nil when every reading is later.
+    private static func latestReading(atOrBefore offset: Int, in sorted: [Reading]) -> Reading? {
+        var low = 0
+        var high = sorted.count
+        while low < high {
+            let mid = (low + high) / 2
+            if sorted[mid].offsetSec <= offset { low = mid + 1 } else { high = mid }
+        }
+        return low > 0 ? sorted[low - 1] : nil
     }
 }

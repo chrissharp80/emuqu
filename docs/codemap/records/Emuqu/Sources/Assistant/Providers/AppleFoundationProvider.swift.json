@@ -1,0 +1,1124 @@
+{
+ "file": "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift",
+ "hash": "bff0bfc343e6846b",
+ "role": "On-device Apple Intelligence provider (Foundation Models, iOS 26+): availability check, prewarm, a process-wide LanguageModelSession cache with a token ledger used by chat turns only (side sends run on one-off sessions), per-turn planning (Apple-specific instructions, relevance-ranked tools that fit the 4K window, compacted transcript, tool-output allowance), streaming through ProviderStream with one trimmed retry on context overflow, error translation, plus AppleReplyTrimmer/AppleReplyRelay that end capped replies at a complete sentence.",
+ "types": [
+  "AppleFoundationProvider: class (AIProvider) — on-device provider",
+  "SessionRequest: struct (private) — what a send asks of the cache",
+  "SessionLease: struct (private) — leased session + fresh flag + follow-up tool budget",
+  "SessionCache: actor (private) — single cached LanguageModelSession with signature/ledger",
+  "TurnPlan: struct (private) — instructions/tools/transcript/allowance for one attempt + isChatTurn",
+  "FailedAfterOutput: struct Error (private) — stream failure after text was shown",
+  "UnreadableSnapshot: struct Error (private) — a stream snapshot with no readable text",
+  "AppleReplyTrimmer: enum — 150-word length rule and sentence-boundary trimming",
+  "AppleReplyRelay: struct — converts cumulative snapshots into sentence-at-a-time deltas"
+ ],
+ "state": [
+  "mem:AppleFoundationProvider.model (static ModelOption apple.foundation.on-device, 4096 ctx, free, default)",
+  "mem:AppleFoundationProvider.sharedCache (SessionCache actor: session, signatures, turn count, ledger)",
+  "mem:SessionCache.maxTurnsPerSession = 20",
+  "mem:SessionCache.volatileLinePrefixes [\"- now_iso:\", \"- local_date:\"]",
+  "mem:AppleReplyTrimmer.lengthRule (instructions text)",
+  "mem:AppleReplyTrimmer.terminators/wideTerminators/closers"
+ ],
+ "toplevel": "All Foundation Models code is under #if canImport(FoundationModels) and @available(iOS 26, *); without it send() fails with unsupportedOS and isAvailable is false. id is a stored let .apple. Only chat turns (a prompt composed by AssistantSystemPrompt, recognised by its cache marker) lease the shared SessionCache and touch the AppleToolDispatcher; the summarizer, fact extraction and voice interjections run on a one-off session with no tools.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var AppleFoundationProvider.availableModels",
+   "hash": "d3a929f57fa54df9",
+   "does": "Returns the single Apple model option.",
+   "entry": "AIProvider conformance",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppleFoundationProvider.requiresKey",
+   "hash": "f4a2b37819ba7d6a",
+   "does": "Returns false (no key needed).",
+   "entry": "AIProvider conformance",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppleFoundationProvider.isAvailable",
+   "hash": "d9e76b938aa3bcec",
+   "does": "Inside a KeyboardPerfSignpost interval, returns SystemLanguageModel.default.availability == .available on iOS 26 with FoundationModels; false otherwise.",
+   "entry": "AIProvider conformance (ProviderRegistry, routing, fact extraction)",
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.keyboardPerfSignpost",
+    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.interval(_:_:)",
+    "ext:SystemLanguageModel.default.availability"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "iOS 26 available (and FoundationModels importable)",
+     "effect": "returns model availability; otherwise falls through to false"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.availability(_:)": "2a208168a4e76609",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.keyboardPerfSignpost": "a1807dd53a6f5ed4",
+    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.interval(_:_:)": "ea03554b743c72aa"
+   }
+  },
+  {
+   "key": "func AppleFoundationProvider.prewarm()",
+   "hash": "3a61347209f6722b",
+   "does": "Fire-and-forget: if the system model is available, creates an empty-instructions LanguageModelSession in a detached utility task and calls prewarm(), warming the model's shared assets (weights, tokenizer). Not the session send() later builds with real instructions and tools, whose prefix is still processed on the first send. Called from AssistantViewModel.",
+   "entry": null,
+   "calls": [
+    "ext:LanguageModelSession.prewarm",
+    "ext:Task.detached"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "iOS 26 available",
+     "effect": "proceeds; else no-op"
+    },
+    {
+     "at": "+3",
+     "cond": "model not available",
+     "effect": "returns without prewarming"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.availability(_:)": "2a208168a4e76609"
+   }
+  },
+  {
+   "key": "func AppleFoundationProvider.SessionCache.lease(for:)",
+   "hash": "06c04935feabeeb9",
+   "does": "Returns a lease: reuses the cached session (incrementing turn count, with the ledger's follow-up tool budget) when it exists, the ledger has room and canReuse holds; otherwise builds and adopts a fresh session.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.SessionLedger.followUpToolBudget(promptTokens:perCallCap:)",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.SessionCache.canReuse(for:)",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.SessionCache.adopt(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "mem:AppleFoundationProvider.sharedCache (SessionCache actor: session, signatures, turn count, ledger)"
+   ],
+   "writes": [
+    "mem:AppleFoundationProvider.sharedCache (SessionCache actor: session, signatures, turn count, ledger)"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "session exists AND budget non-nil AND canReuse",
+     "effect": "returns reused lease with followUpToolBudget"
+    },
+    {
+     "at": "+8",
+     "cond": "session exists, budget nil, canReuse",
+     "effect": "logs that the window is full; then falls through to fresh session"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.SessionLedger.followUpToolBudget(promptTokens:perCallCap:)": "9b37d6216d8646b2",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.SessionCache.adopt(_:)": "16ffc597e9545386",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.SessionCache.canReuse(for:)": "fbf5b10083bbede1",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.request(for:followUp:)": "2eb180ed203b98ef",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func AppleFoundationProvider.SessionCache.record(_:promptTokens:toolTokens:replyTokens:)",
+   "hash": "cfaf41c451eb8061",
+   "does": "Charges a finished turn's prompt/tool/reply tokens to the ledger if the session used is still the cached one.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.SessionLedger.charge(promptTokens:toolTokens:replyTokens:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:AppleFoundationProvider.sharedCache (SessionCache actor: session, signatures, turn count, ledger)"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "used !== cached session (replaced/invalidated meanwhile)",
+     "effect": "ignored; else ledger charged"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.SessionLedger.charge(promptTokens:toolTokens:replyTokens:)": "e16cbeb9f376ab0f"
+   }
+  },
+  {
+   "key": "func AppleFoundationProvider.SessionCache.canReuse(for:)",
+   "hash": "96206e21fe6fc8b8",
+   "does": "True when instruction signature (clock lines removed) and tool hash match, fewer than 20 turns, the transcript has >1 turn and the previous reply came from Apple.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.SessionCache.signature(of:)"
+   ],
+   "reads": [
+    "mem:AppleFoundationProvider.sharedCache (SessionCache actor: session, signatures, turn count, ledger)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.SessionCache.signature(of:)": "444b2e3cbffc46ea",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.request(for:followUp:)": "2eb180ed203b98ef"
+   }
+  },
+  {
+   "key": "func AppleFoundationProvider.SessionCache.adopt(_:)",
+   "hash": "55e80d9bf13e6d1e",
+   "does": "Creates a LanguageModelSession (with tools when any), stores it with its signatures, turn count 1 and a ledger seeded with prefixTokens.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.SessionCache.signature(of:)",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::init AppleContextCompactor.SessionLedger(prefixTokens:)",
+    "ext:LanguageModelSession(tools:instructions:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:AppleFoundationProvider.sharedCache (SessionCache actor: session, signatures, turn count, ledger)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "request.tools empty",
+     "effect": "toolless session; else session with tools"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::init AppleContextCompactor.SessionLedger(prefixTokens:)": "98fc30fb36b31a15",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.SessionCache.signature(of:)": "444b2e3cbffc46ea",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.request(for:followUp:)": "2eb180ed203b98ef",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+ToolForwarding.swift::var AssistantViewModel.tools": "e99be7c41ae4f3b8"
+   }
+  },
+  {
+   "key": "func AppleFoundationProvider.SessionCache.invalidate()",
+   "hash": "213aa0b7ca14b786",
+   "does": "Drops the cached session, signature, turn count and ledger (toolSignature kept).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:AppleFoundationProvider.sharedCache (SessionCache actor: session, signatures, turn count, ledger)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AppleFoundationProvider.SessionCache.signature(of:)",
+   "hash": "9ffe46829f41e3eb",
+   "does": "Returns the instructions with every line starting \"- now_iso:\" or \"- local_date:\" removed, used as the reuse signature.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AppleFoundationProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)",
+   "hash": "5418d579f7c04325",
+   "does": "On iOS 26 with FoundationModels returns ProviderStream.make running runTranslatingFailures (ProviderStream closes the stream exactly once: normal finish, or the thrown error with cancellation mapped to .cancelled); otherwise a stream that finishes with unsupportedOS(\"iOS 26 with Apple Intelligence\"). model, contextRendered and toolRounds are ignored.",
+   "entry": "AIProvider conformance — chat tool loop, summarizer, fact extractor, voice interjection",
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.make(_:)",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.runTranslatingFailures(messages:systemPrompt:tools:continuation:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "iOS 26 and FoundationModels available",
+     "effect": "returns the ProviderStream; else a stream failing with unsupportedOS"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.runTranslatingFailures(messages:systemPrompt:tools:continuation:)": "db7253535600f087",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.make(_:)": "d43def889cd27b9e"
+   }
+  },
+  {
+   "key": "func AppleFoundationProvider.runTranslatingFailures(messages:systemPrompt:tools:continuation:)",
+   "hash": "c37a7713666fdcdb",
+   "does": "Runs the turn (runAttempts) for ProviderStream. A cancellation drops the cached session (it may hold part of a reply its ledger never saw) and rethrows CancellationError; any other failure drops the cached session and throws translate(error).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.runAttempts(messages:systemPrompt:tools:continuation:)",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.SessionCache.invalidate()",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.translate(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:AppleFoundationProvider.sharedCache (dropped on failure)"
+   ],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "CancellationError",
+     "effect": "invalidates the cache and rethrows CancellationError"
+    },
+    {
+     "at": "+12",
+     "cond": "any other error",
+     "effect": "invalidates the cache and throws translate(error)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.SessionCache.invalidate()": "1dabdf0b25252e58",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.runAttempts(messages:systemPrompt:tools:continuation:)": "795cc4ac0584dee6",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.translate(_:)": "69df0b45b699a533"
+   }
+  },
+  {
+   "key": "func AppleFoundationProvider.runAttempts(messages:systemPrompt:tools:continuation:)",
+   "hash": "8912b8654915d8f5",
+   "does": "Runs the turn as the .full attempt and repeats with the attempt runAttempt returns (only .trimmed after an overflow) until it returns nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.runAttempt(_:messages:systemPrompt:tools:continuation:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "runAttempt returns a next attempt",
+     "effect": "loops with it; nil ends; a throw propagates"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.runAttempt(_:messages:systemPrompt:tools:continuation:)": "0d7a537e5dc69780",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+   }
+  },
+  {
+   "key": "func AppleFoundationProvider.runAttempt(_:messages:systemPrompt:tools:continuation:)",
+   "hash": "81a35f3cfc4ceff1",
+   "does": "Builds the attempt's plan and streams it; on a context-window overflow (before text was shown) invalidates the cache and returns the next attempt, or rethrows when there is none.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.makePlan(messages:systemPrompt:tools:attempt:)",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.runStream(_:continuation:)",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.isContextOverflow(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::var AppleContextCompactor.Attempt.afterOverflow",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.SessionCache.invalidate()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:AppleFoundationProvider.sharedCache (SessionCache actor: session, signatures, turn count, ledger)"
+   ],
+   "branches": [
+    {
+     "at": "+12",
+     "cond": "error is exceededContextWindowSize",
+     "effect": "handled here; other errors propagate"
+    },
+    {
+     "at": "+13",
+     "cond": "attempt.afterOverflow nil (already .trimmed)",
+     "effect": "rethrows overflow; else logs, invalidates, returns .trimmed"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::var AppleContextCompactor.Attempt.afterOverflow": "1a868559a982796b",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.SessionCache.invalidate()": "1dabdf0b25252e58",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.isContextOverflow(_:)": "7af6f09069285d3c",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.makePlan(messages:systemPrompt:tools:attempt:)": "131422315cb60002",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.runStream(_:continuation:)": "6c738cab6d72c92e",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+   }
+  },
+  {
+   "key": "func AppleFoundationProvider.makePlan(messages:systemPrompt:tools:attempt:)",
+   "hash": "cc5bb8f1c94124e3",
+   "does": "Plans one attempt: Apple instructions rebuilt from the composed prompt (on MainActor) cut to the attempt cap plus the length rule; whether it is a chat turn (the prompt carries AssistantSystemPrompt's cache marker); for a chat turn the relevance-ranked tools fitting the attempt tool budget, for any other send no tools; compacted transcript (or only the last message on .trimmed); and the tool-output allowance from the remaining window.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.appleInstructions(fromComposed:)",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.withLengthRule(_:cap:)",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::var AppleContextCompactor.Attempt.instructionTokenCap",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.fittingTools(_:for:budget:)",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::var AppleContextCompactor.Attempt.toolTokenBudget",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::var AppleContextCompactor.Attempt.keepsHistory",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.compactedPromptInput(messages:systemPromptTokens:)",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.toolOutputBudget(fixedTokens:transcriptTokens:)",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.transcriptTokens(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::init AppleContextCompactor.ToolOutputAllowance(remaining:perCallCap:)",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::var AppleContextCompactor.Attempt.toolOutputCap"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "chat turn (prompt carries the cache marker)",
+     "effect": "tools fitted from the catalog; else no tools"
+    },
+    {
+     "at": "+12",
+     "cond": "attempt.keepsHistory (.full)",
+     "effect": "compactedPromptInput of all messages; else only the last message"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.compactedPromptInput(messages:systemPromptTokens:)": "5367c29f83a3b52a",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)": "beb08099bb36f9f4",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.toolOutputBudget(fixedTokens:transcriptTokens:)": "ac8ab1b87398fbba",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.transcriptTokens(_:)": "5e73c6b8d113c2ac",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::init AppleContextCompactor.ToolOutputAllowance(remaining:perCallCap:)": "c723e52520b1bdce",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::var AppleContextCompactor.Attempt.instructionTokenCap": "539eb686ddc474be",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::var AppleContextCompactor.Attempt.keepsHistory": "714aa9adbfee0c49",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::var AppleContextCompactor.Attempt.toolOutputCap": "cc950938e63dbc68",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::var AppleContextCompactor.Attempt.toolTokenBudget": "b3338836b20cfc6a",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.appleInstructions(fromComposed:)": "86ccd35fb6f38610",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.fittingTools(_:for:budget:)": "f62a55f4264ee6bf",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.withLengthRule(_:cap:)": "8d28927b6e454728",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+   }
+  },
+  {
+   "key": "func AppleFoundationProvider.withLengthRule(_:cap:)",
+   "hash": "fd7c373b11217d13",
+   "does": "Truncates the composed instructions to (cap − length-rule tokens − 1) with a cut note and appends the length rule.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.truncate(_:toTokens:note:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "cap == Int.max (.full)",
+     "effect": "room unlimited; else cap minus the rule's estimated tokens minus 1"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)": "beb08099bb36f9f4",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.truncate(_:toTokens:note:)": "08f3948a67f128ed"
+   }
+  },
+  {
+   "key": "func AppleFoundationProvider.runStream(_:continuation:)",
+   "hash": "d190535ad953b871",
+   "does": "Leases a session (lease: the cached one for a chat turn, a one-off otherwise), picks the prompt (full transcript for fresh, clock+latest user text for reuse), installs the tool-output allowance on the dispatcher for a chat turn only (toolDispatcher), streams the reply through relay, charges tokens to the ledger (a one-off session is not charged) and yields .done.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.prompt(from:isFresh:now:)",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.lease(for:followUp:)",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::init AppleContextCompactor.ToolOutputAllowance(remaining:perCallCap:)",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.toolDispatcher(for:allowance:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::var AppleFoundationProvider.replyOptions",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.relay(_:to:)",
+    "Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift::var AppleToolDispatcher.toolTokensSpent",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.SessionCache.record(_:promptTokens:toolTokens:replyTokens:)",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)",
+    "ext:LanguageModelSession.streamResponse(to:options:)"
+   ],
+   "reads": [
+    "mem:AppleFoundationProvider.sharedCache (SessionCache actor: session, signatures, turn count, ledger)",
+    "mem:AppleToolDispatcher.shared (outputAllowance spent) — chat turns only"
+   ],
+   "writes": [
+    "mem:AppleFoundationProvider.sharedCache (SessionCache actor: session, signatures, turn count, ledger) — chat turns only",
+    "mem:AppleToolDispatcher.shared (callsThisTurn, outputAllowance) — chat turns only"
+   ],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "lease.isFresh",
+     "effect": "prompt = full transcript; else follow-up prompt"
+    },
+    {
+     "at": "+8",
+     "cond": "followUpToolBudget nil (fresh)",
+     "effect": "uses the plan's allowance; else new allowance with the ledger's budget"
+    },
+    {
+     "at": "+15",
+     "cond": "dispatcher nil (not a chat turn)",
+     "effect": "tool tokens counted as 0"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.SessionLedger.followUpToolBudget(promptTokens:perCallCap:)": "9b37d6216d8646b2",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)": "beb08099bb36f9f4",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::init AppleContextCompactor.ToolOutputAllowance(remaining:perCallCap:)": "c723e52520b1bdce",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.SessionCache.record(_:promptTokens:toolTokens:replyTokens:)": "4487834e71760736",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.lease(for:followUp:)": "6ea6348338541b2c",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.prompt(from:isFresh:now:)": "921043779c45fa2b",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.relay(_:to:)": "132d13b974195c5a",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.toolDispatcher(for:allowance:)": "cda486639125ec60",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::var AppleFoundationProvider.replyOptions": "e0818b10778c2fb8",
+    "Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift::var AppleToolDispatcher.toolTokensSpent": "e6f943df9fa096f6",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+ToolForwarding.swift::var AssistantViewModel.tools": "e99be7c41ae4f3b8",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.transcript": "6f892b798379aa91",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func AppleFoundationProvider.lease(for:followUp:)",
+   "hash": "3ba1c5b87bc7ac2d",
+   "does": "The session for a plan: for a chat turn the shared SessionCache lease (reused or adopted); for any other send a one-off LanguageModelSession with the plan's instructions, marked fresh, which the cache never sees — so a side send cannot replace the chat's cached session.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.SessionCache.lease(for:)",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.request(for:followUp:)",
+    "ext:LanguageModelSession(instructions:)"
+   ],
+   "reads": [
+    "mem:AppleFoundationProvider.sharedCache"
+   ],
+   "writes": [
+    "mem:AppleFoundationProvider.sharedCache (chat turns)"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "not a chat turn",
+     "effect": "one-off session, not cached"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.SessionCache.lease(for:)": "3fa99c5054ae2269",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.request(for:followUp:)": "2eb180ed203b98ef"
+   }
+  },
+  {
+   "key": "func AppleFoundationProvider.toolDispatcher(for:allowance:)",
+   "hash": "0db1ba2b7883e0f2",
+   "does": "For a chat turn: fetches the AppleToolDispatcher on MainActor, installs this attempt's tool-output allowance (resetting its call count) and returns it; nil for any other send, which has no tools and must not reset a chat turn's count or allowance mid-generation.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.appleToolDispatcher",
+    "Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift::func AppleToolDispatcher.setToolOutputAllowance(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:AppleToolDispatcher.shared (callsThisTurn, outputAllowance)"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "not a chat turn",
+     "effect": "returns nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift::func AppleToolDispatcher.setToolOutputAllowance(_:)": "a53442ced9dceb1a",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "3848c612cbdb11bc",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.appleToolDispatcher": "3fb424c7d7d2c0d1"
+   }
+  },
+  {
+   "key": "func AppleFoundationProvider.request(for:followUp:)",
+   "hash": "139d3c06d4d0904d",
+   "does": "Builds the SessionRequest: wrapped Apple tools, catalog hash, transcript length, whether the turn before the latest was answered by Apple, prefix tokens, follow-up prompt tokens and per-call cap.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.appleTools(for:)",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.hashToolCatalog(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)": "beb08099bb36f9f4",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.appleTools(for:)": "de0124d3e2ed2723",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.hashToolCatalog(_:)": "b0256648b366e3d3",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+ToolForwarding.swift::var AssistantViewModel.tools": "e99be7c41ae4f3b8",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.transcript": "6f892b798379aa91"
+   }
+  },
+  {
+   "key": "var AppleFoundationProvider.replyOptions",
+   "hash": "4b7293d2d2f0a420",
+   "does": "GenerationOptions with maximumResponseTokens = AppleContextCompactor.responseReserve (512).",
+   "entry": null,
+   "calls": [
+    "ext:GenerationOptions"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AppleFoundationProvider.fittingTools(_:for:budget:)",
+   "hash": "00be30aa22d34db7",
+   "does": "Ranks tools against the latest two user messages with ToolRetriever and keeps those whose estimated token cost fits the budget; returns tools and total tokens.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.relevanceQuery(from:)",
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.ranked(for:tools:)",
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.fitting(_:budget:cost:)",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationToolAdapter.swift::func AppleToolCatalog.estimatedTokens(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.fitting(_:budget:cost:)": "50bf36aa302a1f5f",
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.ranked(for:tools:)": "e799060c3c4e6da6",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.relevanceQuery(from:)": "30578f9db57411da",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationToolAdapter.swift::func AppleToolCatalog.estimatedTokens(for:)": "2ba3edb0ca807e9e"
+   }
+  },
+  {
+   "key": "func AppleFoundationProvider.relevanceQuery(from:)",
+   "hash": "a78939fcfcb0554d",
+   "does": "Joins the last two user messages' texts, latest first, with a space.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AppleFoundationProvider.isContextOverflow(_:)",
+   "hash": "68f1d57e1aadbd03",
+   "does": "True when the error is LanguageModelSession.GenerationError.exceededContextWindowSize.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "not a GenerationError or a different case",
+     "effect": "false; else true"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AppleFoundationProvider.appleTools(for:)",
+   "hash": "9eff4ffa140ad4a4",
+   "does": "Wraps each ToolSpec as an AppleToolAdapter whose handler calls AppleToolDispatcher.dispatch(name:argumentsJSON:) via AppDependencies.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationToolAdapter.swift::func AppleToolCatalog.wrap(_:handler:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.appleToolDispatcher",
+    "Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift::func AppleToolDispatcher.dispatch(name:argumentsJSON:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationToolAdapter.swift::func AppleToolCatalog.wrap(_:handler:)": "075e79e94137f110",
+    "Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift::func AppleToolDispatcher.dispatch(name:argumentsJSON:)": "dd65e131a7601d37",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "3848c612cbdb11bc",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.appleToolDispatcher": "3fb424c7d7d2c0d1"
+   }
+  },
+  {
+   "key": "func AppleFoundationProvider.prompt(from:isFresh:now:)",
+   "hash": "f14c090b89b903ad",
+   "does": "Prompt text: the full rendered transcript for a fresh session, else \"(Current time: <ISO8601 local>)\\n<latest user text>\".",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.buildPrompt(from:)",
+    "ext:ISO8601DateFormatter.string"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "isFresh",
+     "effect": "buildPrompt(transcript)"
+    },
+    {
+     "at": "+2",
+     "cond": "no user message in transcript",
+     "effect": "latest = \"\" (sends only the clock line)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.buildPrompt(from:)": "8485e3a5d0ffe83c"
+   }
+  },
+  {
+   "key": "func AppleFoundationProvider.relay(_:to:)",
+   "hash": "17808d40b0d26ecb",
+   "does": "Consumes Foundation Models cumulative snapshots, feeding extracted text to AppleReplyRelay (which yields sentence-complete deltas), finishes the relay and returns the full generated text; a snapshot with no readable text throws (extractText); a failure after any text was shown is wrapped in FailedAfterOutput.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::init AppleReplyRelay(emit:)",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.extractText(from:)",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleReplyRelay.receive(_:)",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleReplyRelay.finish()",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::var AppleReplyRelay.generated",
+    "ext:Task.checkCancellation"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "for each snapshot",
+     "effect": "receive extracted text (throws on an unreadable snapshot)"
+    },
+    {
+     "at": "+13",
+     "cond": "error thrown",
+     "effect": "handled below"
+    },
+    {
+     "at": "+14",
+     "cond": "nothing shown yet OR CancellationError",
+     "effect": "rethrows raw (overflow can then be retried); else throws FailedAfterOutput"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.extractText(from:)": "4fbfbef379365310",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleReplyRelay.finish()": "a34ed89a01fd5b9d",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleReplyRelay.receive(_:)": "e2dd33e357dd9b18",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::init AppleReplyRelay(emit:)": "cd689fbf81ee2594",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::var AppleReplyRelay.generated": "7486babec43c89df"
+   }
+  },
+  {
+   "key": "func AppleFoundationProvider.extractText(from:)",
+   "hash": "b469afa7c7da2cfc",
+   "does": "Pulls the snapshot's cumulative text: Mirror child \"content\" as String, else the snapshot itself if String; otherwise throws UnreadableSnapshot (with the type name), which translate turns into the generic 'couldn't answer' error with the type logged, instead of streaming the snapshot's debug description to the user.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "Mirror child labelled content is a String",
+     "effect": "returns it"
+    },
+    {
+     "at": "+7",
+     "cond": "snapshot is a String",
+     "effect": "returns it; else throws UnreadableSnapshot"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Still reads the snapshot through reflection on a field labelled content; an SDK change to that shape now fails the turn loudly (UnreadableSnapshot) rather than showing garbage, but every Apple reply would fail until the label is updated.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift:567"
+     ],
+     "found": "fix batch b07"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func AppleFoundationProvider.buildPrompt(from:)",
+   "hash": "4396080b70de249c",
+   "does": "Renders the transcript as \"User: …\"/\"Assistant: …\" paragraphs ending with \"\\n\\nAssistant:\".",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "for each turn",
+     "effect": "one line per turn"
+    },
+    {
+     "at": "+6",
+     "cond": "role user",
+     "effect": "\"User: <text>\""
+    },
+    {
+     "at": "+7",
+     "cond": "role assistant",
+     "effect": "\"Assistant: <text>\""
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AppleFoundationProvider.hashToolCatalog(_:)",
+   "hash": "3b66a25c5761cc63",
+   "does": "SHA-256 hex of the name-sorted tool list encoded with sortedKeys; \"empty\" for no tools, \"unknown\" if encoding fails.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.sha256Hex(_:)",
+    "ext:JSONEncoder.encode"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "tools empty",
+     "effect": "\"empty\""
+    },
+    {
+     "at": "+5",
+     "cond": "encode fails (attempt returns nil)",
+     "effect": "\"unknown\" (logged by attempt)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.sha256Hex(_:)": "105d314353244c89",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+   }
+  },
+  {
+   "key": "func AppleFoundationProvider.translate(_:)",
+   "hash": "c3cb47d6b4f13b89",
+   "does": "Maps errors to AIProviderError: unwraps FailedAfterOutput; guardrail/refusal → guardrailViolation; rateLimited/concurrentRequests → rateLimited; assetsUnavailable / unsupportedLanguageOrLocale → modelUnavailable with localized text; anything else logged and → couldNotAnswer (.unknown).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::var AppleFoundationProvider.couldNotAnswer"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "error is FailedAfterOutput",
+     "effect": "recurses on underlying"
+    },
+    {
+     "at": "+3",
+     "cond": "not a GenerationError",
+     "effect": "logs, returns couldNotAnswer"
+    },
+    {
+     "at": "+9",
+     "cond": ".guardrailViolation, .refusal",
+     "effect": "AIProviderError.guardrailViolation (not fallbackable)"
+    },
+    {
+     "at": "+11",
+     "cond": ".rateLimited, .concurrentRequests",
+     "effect": "AIProviderError.rateLimited"
+    },
+    {
+     "at": "+13",
+     "cond": ".assetsUnavailable",
+     "effect": "modelUnavailable(\"Apple Intelligence isn't ready...\")"
+    },
+    {
+     "at": "+15",
+     "cond": ".unsupportedLanguageOrLocale",
+     "effect": "modelUnavailable(\"...doesn't support this language yet...\")"
+    },
+    {
+     "at": "+17",
+     "cond": "default (incl. exceededContextWindowSize on .trimmed or after output, decodingFailure)",
+     "effect": "logs, couldNotAnswer (.unknown, fallbackable)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::var AppleFoundationProvider.couldNotAnswer": "ced85f238892386c",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "var AppleFoundationProvider.couldNotAnswer",
+   "hash": "9e98bcaf5029659b",
+   "does": "AIProviderError.unknown with localized \"Apple Intelligence couldn't answer that...\".",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func AppleReplyTrimmer.mayHaveReachedCap(_:)",
+   "hash": "f6793f7089e407bd",
+   "does": "True when the reply's estimated tokens are ≥ 3/4 of responseReserve (512), i.e. it may have hit the cap.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)": "beb08099bb36f9f4"
+   }
+  },
+  {
+   "key": "func AppleReplyTrimmer.finalText(_:)",
+   "hash": "db0f7341dd65b8a4",
+   "does": "Returns the reply unchanged unless it may have hit the cap and does not end a sentence; then its last complete sentence/line prefix (trimmed), or the reply if that prefix is empty.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleReplyTrimmer.mayHaveReachedCap(_:)",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleReplyTrimmer.endsSentence(_:)",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleReplyTrimmer.completePrefix(of:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "short reply OR ends with a sentence terminator",
+     "effect": "returns reply as-is"
+    },
+    {
+     "at": "+3",
+     "cond": "complete prefix empty",
+     "effect": "returns whole reply; else the trimmed prefix"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleReplyTrimmer.completePrefix(of:)": "dcddb2c3420e3ede",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleReplyTrimmer.endsSentence(_:)": "328021d3e86e23f8",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleReplyTrimmer.mayHaveReachedCap(_:)": "52d47c071a28e714"
+   }
+  },
+  {
+   "key": "func AppleReplyTrimmer.endsSentence(_:)",
+   "hash": "a4cac433b7d9e52a",
+   "does": "True when the last non-closer character of the trimmed text is a sentence terminator (. ! ? … 。！？ ؟).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "text is empty or only closers",
+     "effect": "false; else terminator test"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AppleReplyTrimmer.completePrefix(of:)",
+   "hash": "88be067ae496c3d4",
+   "does": "Scans the text and returns the prefix up to the last sentence end or newline.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleReplyTrimmer.sentenceEnd(after:at:in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "while index < endIndex",
+     "effect": "advances one character"
+    },
+    {
+     "at": "+6",
+     "cond": "sentenceEnd returns a boundary",
+     "effect": "end moves to it"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleReplyTrimmer.sentenceEnd(after:at:in:)": "b0c58a9d9b79ea7c"
+   }
+  },
+  {
+   "key": "func AppleReplyTrimmer.sentenceEnd(after:at:in:)",
+   "hash": "41f1faf677494d23",
+   "does": "Boundary after a character: newline ends a line; a terminator ends a sentence after any closers if it is a wide CJK terminator or followed by whitespace; else nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleReplyTrimmer.afterClosers(in:from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "char is newline",
+     "effect": "returns index"
+    },
+    {
+     "at": "+2",
+     "cond": "char not a terminator",
+     "effect": "nil"
+    },
+    {
+     "at": "+5",
+     "cond": "wide terminator OR next char after closers is whitespace",
+     "effect": "returns index after closers; else nil (e.g. \"3.5\" or text-final \".\")"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleReplyTrimmer.afterClosers(in:from:)": "f8d40f8fd019f67f"
+   }
+  },
+  {
+   "key": "func AppleReplyTrimmer.afterClosers(in:from:)",
+   "hash": "0d3e6fb39d941350",
+   "does": "Advances past closing quote/bracket/emphasis characters.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "current char is a closer",
+     "effect": "advance; else stop"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "init AppleReplyRelay(emit:)",
+   "hash": "1c7aab87d2eb9ddb",
+   "does": "Stores the emit closure.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AppleReplyRelay.receive(_:)",
+   "hash": "7f60e72c7a305d90",
+   "does": "Records the latest cumulative snapshot and shows its complete-sentence prefix.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleReplyRelay.show(_:)",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleReplyTrimmer.completePrefix(of:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleReplyRelay.show(_:)": "4b15f91148b2729d",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleReplyTrimmer.completePrefix(of:)": "dcddb2c3420e3ede"
+   }
+  },
+  {
+   "key": "var AppleReplyRelay.generated",
+   "hash": "79bd5210e97ef64d",
+   "does": "Returns the latest full snapshot (including any tail finish() dropped).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AppleReplyRelay.finish()",
+   "hash": "2b0ef863cfcc6d85",
+   "does": "Shows the final text (whole reply, or trimmed at the last sentence when it hit the cap).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleReplyRelay.show(_:)",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleReplyTrimmer.finalText(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleReplyRelay.show(_:)": "4b15f91148b2729d",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleReplyTrimmer.finalText(_:)": "4ea55ff5c65a36da"
+   }
+  },
+  {
+   "key": "func AppleReplyRelay.show(_:)",
+   "hash": "d5c1047104b4c388",
+   "does": "Yields what the text adds past the length already shown and appends it to shown. Snapshots normally extend the shown text, so that is exactly the new part; a snapshot that rewrote shown text (the chat appends deltas and cannot retract one) adds only what lies past the shown length, so nothing is repeated; a shorter or equal snapshot yields nothing.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "text not longer than what was shown",
+     "effect": "nothing emitted"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

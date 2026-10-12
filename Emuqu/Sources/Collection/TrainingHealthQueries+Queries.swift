@@ -37,17 +37,21 @@ extension TrainingHealthQueries {
 
     /// Deduplicate workouts that cover the same physical session.
     ///
-    /// Two rules, both required:
-    ///   1. Start times within 5 minutes of each other (protects against
-    ///      back-to-back distinct workouts being collapsed).
-    ///   2. Either matching type OR overlapping time ranges by >= 60 % of
-    ///      the shorter workout — which catches the case where Emuqu
-    ///      exports a session as (say) Walk and Apple's auto-detection or a
-    ///      paired Watch writes a parallel HKWorkout labelled Run for the
-    ///      SAME physical activity. A "type must match" check leaves
-    ///      both in the recent-workouts list.
+    /// Workouts are taken in start order; each one not yet absorbed starts a
+    /// cluster, and a later workout starting within 30 minutes of it joins
+    /// the cluster when either rule holds (`collapseDuplicates`):
+    ///   1. Same type, starting within 5 minutes of it, and their spans
+    ///      intersect (two separate same-type workouts — an aborted start,
+    ///      then the real one — do not intersect and stay apart).
+    ///   2. Time ranges overlapping by >= 60 % of the shorter workout,
+    ///      whatever the type or start gap — which catches the case where
+    ///      Emuqu exports a session as (say) Walk and Apple's
+    ///      auto-detection or a paired Watch writes a parallel HKWorkout
+    ///      labelled Run for the SAME physical activity, and copies whose
+    ///      starts drifted apart.
     ///
-    /// Ties broken by data richness (HR > maxHR > calories).
+    /// The cluster keeps the copy with the richest data (precomputed load >
+    /// HR > maxHR > calories).
     nonisolated static func deduplicateWorkouts(_ workouts: [HealthKitManager.WorkoutSummary]) -> [HealthKitManager.WorkoutSummary] {
         guard workouts.count > 1 else { return workouts }
         let sorted = workouts.sorted { $0.date < $1.date }
@@ -66,17 +70,22 @@ extension TrainingHealthQueries {
     /// and its own HealthKit back-fill still collapse even when their start
     /// times drift apart (the archive start and the Apple-Health export start
     /// rarely align to the minute). Same-type near-starts still merge on the
-    /// tight 5-min rule; drifted or differently-typed copies merge only on a
-    /// STRONG span overlap (≥60% of the shorter), which won't fuse two
-    /// genuinely distinct back-to-back workouts.
+    /// tight 5-min rule (when their spans intersect); drifted or
+    /// differently-typed copies merge only on a STRONG span overlap (≥60% of
+    /// the shorter), which won't fuse two genuinely distinct back-to-back
+    /// workouts.
+    ///
+    /// Every candidate is measured against the cluster's first workout, not
+    /// against whichever copy currently scores best, so which workouts join
+    /// does not depend on the order richer copies turn up in.
     nonisolated private static func collapseDuplicates(from i: Int, in sorted: [HealthKitManager.WorkoutSummary], consumed: inout Set<Int>) -> HealthKitManager.WorkoutSummary {
-        var best = sorted[i]
+        let anchor = sorted[i]
+        var best = anchor
         for j in (i + 1) ..< sorted.count where !consumed.contains(j) {
             let other = sorted[j]
-            let gap = other.date.timeIntervalSince(best.date)
+            let gap = other.date.timeIntervalSince(anchor.date)
             guard gap <= 1800 else { break }
-            let sameTypeNearStart = other.workoutType == best.workoutType && gap <= 300
-            guard sameTypeNearStart || overlaps(best, other) else { continue }
+            guard isSameSession(anchor, other, startGap: gap) else { continue }
             consumed.insert(j)
             if workoutDataScore(other) > workoutDataScore(best) {
                 best = other
@@ -120,16 +129,28 @@ extension TrainingHealthQueries {
         return deduplicateWorkouts(archive + externalHealthKit + additional)
     }
 
+    /// Rule 1 or rule 2 of `deduplicateWorkouts`.
+    nonisolated private static func isSameSession(
+        _ a: HealthKitManager.WorkoutSummary,
+        _ b: HealthKitManager.WorkoutSummary,
+        startGap: TimeInterval
+    ) -> Bool {
+        let sameTypeNearStart = a.workoutType == b.workoutType && startGap <= 300 && intersectionSeconds(a, b) > 0
+        return sameTypeNearStart || overlaps(a, b)
+    }
+
     nonisolated private static func endDate(of w: HealthKitManager.WorkoutSummary) -> Date {
         w.date.addingTimeInterval(w.durationMinutes * 60.0)
     }
 
+    /// Seconds two workouts' spans share; 0 or less when they are disjoint.
+    nonisolated private static func intersectionSeconds(_ a: HealthKitManager.WorkoutSummary, _ b: HealthKitManager.WorkoutSummary) -> TimeInterval {
+        min(endDate(of: a), endDate(of: b)).timeIntervalSince(max(a.date, b.date))
+    }
+
     /// Overlap test: intersection >= 60 % of the shorter workout's duration.
     nonisolated private static func overlaps(_ a: HealthKitManager.WorkoutSummary, _ b: HealthKitManager.WorkoutSummary) -> Bool {
-        let aEnd = endDate(of: a), bEnd = endDate(of: b)
-        let intersectionStart = max(a.date, b.date)
-        let intersectionEnd = min(aEnd, bEnd)
-        let overlap = intersectionEnd.timeIntervalSince(intersectionStart)
+        let overlap = intersectionSeconds(a, b)
         guard overlap > 0 else { return false }
         let shorter = min(a.durationMinutes, b.durationMinutes) * 60.0
         guard shorter > 0 else { return false }
@@ -252,9 +273,12 @@ extension TrainingHealthQueries {
         return locations.isEmpty ? nil : locations.sorted { $0.timestamp < $1.timestamp }
     }
 
-    /// Best overlapping workout — prefers an external (Watch) source and the
-    /// longest duration (the full recording, not a stub). Watch + phone
-    /// start/stop rarely align to the second, so the window is padded.
+    /// Best overlapping workout — prefers an external (Watch) source, and the
+    /// one covering the most of `[start, end]` (the full recording, not a
+    /// stub). Watch + phone start/stop rarely align to the second, so the
+    /// query window is padded; a workout found only in the padding (a
+    /// separate one that ended before the session or began after it) does
+    /// not overlap the session and is never taken.
     private func bestOverlappingWorkout(from start: Date, to end: Date) async -> HKWorkout? {
         let pad: TimeInterval = 15 * 60
         let predicate = HKQuery.predicateForSamples(
@@ -269,17 +293,22 @@ extension TrainingHealthQueries {
                 limit: HKObjectQueryNoLimit,
                 sortDescriptors: nil
             ) { _, samples, _ in
-                resolve(Self.preferredWorkout((samples as? [HKWorkout]) ?? []))
+                resolve(Self.preferredWorkout((samples as? [HKWorkout]) ?? [], start: start, end: end))
             }
         }
     }
 
-    nonisolated private static func preferredWorkout(_ workouts: [HKWorkout]) -> HKWorkout? {
+    nonisolated private static func preferredWorkout(_ workouts: [HKWorkout], start: Date, end: Date) -> HKWorkout? {
         let ownSource = HKSource.default()
-        let usable = workouts.filter { $0.duration >= 60 }
+        let usable = workouts.filter { $0.duration >= 60 && sessionOverlap($0, start: start, end: end) > 0 }
         let external = usable.filter { $0.sourceRevision.source != ownSource }
         let pool = external.isEmpty ? usable : external
-        return pool.max(by: { $0.duration < $1.duration })
+        return pool.max { sessionOverlap($0, start: start, end: end) < sessionOverlap($1, start: start, end: end) }
+    }
+
+    /// Seconds of `workout` inside `[start, end]`; 0 or less when disjoint.
+    nonisolated private static func sessionOverlap(_ workout: HKWorkout, start: Date, end: Date) -> TimeInterval {
+        min(workout.endDate, end).timeIntervalSince(max(workout.startDate, start))
     }
 
     /// The workout's GPS route series, if it has one.
@@ -407,6 +436,10 @@ extension TrainingHealthQueries {
     /// Fetch Apple's computed resting heart rate from HealthKit.
     /// This is a daily metric derived by Apple Watch from all-day HR monitoring,
     /// more stable than instantaneous minimum HR for TRIMP calculations.
+    /// Only a sample from the last `WorkoutLoadRestingHR.maxAgeDays` counts:
+    /// a value from a Watch the user stopped wearing months ago must not
+    /// anchor every HR-only TRIMP, so with none that recent this returns nil
+    /// and the anchors fall back to the resting-HR setting.
     /// Internal (not private) so `TrainingMetricsCache.buildDailySeries` resolves
     /// resting HR the SAME way as `calculateTrainingMetrics` — see the note
     /// there. Both must use one source or their HR-backed TRIMP diverges.
@@ -416,9 +449,10 @@ extension TrainingHealthQueries {
             debugLog("[HealthKitManager] Resting heart rate type unavailable")
             return nil
         }
-        let value = await latestQuantityValue(rhrType, unit: HKUnit.count().unitDivided(by: .minute()))
-        if let value { WorkoutLoadRestingHR.record(value) }
-        return value
+        let since = Calendar.current.date(byAdding: .day, value: -WorkoutLoadRestingHR.maxAgeDays, to: Date())
+        let latest = await latestQuantitySample(rhrType, unit: HKUnit.count().unitDivided(by: .minute()), since: since)
+        if let latest { WorkoutLoadRestingHR.record(latest.value, measuredAt: latest.date) }
+        return latest?.value
     }
 
     /// Fetch latest VO2max from HealthKit
@@ -431,17 +465,30 @@ extension TrainingHealthQueries {
 
     /// Most recent sample of a quantity type, in the requested unit.
     private func latestQuantityValue(_ type: HKQuantityType, unit: HKUnit) async -> Double? {
+        await latestQuantitySample(type, unit: unit, since: nil)?.value
+    }
+
+    /// Most recent sample of a quantity type, in the requested unit, with its
+    /// end date; with `since`, only samples starting at or after it.
+    private func latestQuantitySample(_ type: HKQuantityType, unit: HKUnit, since: Date?) async -> (value: Double, date: Date)? {
         let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)
+        let predicate = since.map { HKQuery.predicateForSamples(withStart: $0, end: nil, options: .strictStartDate) }
         return await manager.runBoundedQuery(timeout: HealthKitManager.backgroundAggregateQueryTimeoutSec) { resolve in
             HKSampleQuery(
                 sampleType: type,
-                predicate: nil,
+                predicate: predicate,
                 limit: 1,
                 sortDescriptors: [sortDescriptor]
             ) { _, samples, _ in
-                resolve((samples?.first as? HKQuantitySample)?.quantity.doubleValue(for: unit))
+                resolve(Self.newestValueAndDate(samples, unit: unit))
             }
         }
+    }
+
+    /// The first (newest) sample's value in `unit` and its end date.
+    nonisolated private static func newestValueAndDate(_ samples: [HKSample]?, unit: HKUnit) -> (value: Double, date: Date)? {
+        guard let sample = samples?.first as? HKQuantitySample else { return nil }
+        return (sample.quantity.doubleValue(for: unit), sample.endDate)
     }
 
     /// Calculate TrainingPeaks-style ATL/CTL/TSB using exponentially weighted moving averages
@@ -561,15 +608,21 @@ extension TrainingHealthQueries {
         )
     }
 
-    /// The last `days` of training: every archive workout plus the HealthKit
-    /// ones that don't overlap it (`mergeArchiveAuthoritative`).
+    /// The last `days` calendar days of training, today included: every
+    /// archive workout plus the HealthKit ones that don't overlap it
+    /// (`mergeArchiveAuthoritative`). Both fetches reach back to the start of
+    /// the day `days` days ago, one day more than that, so the merge is
+    /// trimmed to the window the weekly load score is normalised over.
     private func recentMergedWorkouts(days: Int, relativeTo referenceDate: Date) async -> [HealthKitManager.WorkoutSummary] {
         let healthKitWorkouts = await fetchRecentWorkouts(days: days, relativeTo: referenceDate)
         let archive = AppDependencies.current.storage.sessionArchive
         let archiveWorkouts = await Task.detached(priority: .userInitiated) {
             HealthKitManager.WorkoutSummary.fromAppArchive(archive: archive, days: days, relativeTo: referenceDate)
         }.value
-        return Self.mergeArchiveAuthoritative(archive: archiveWorkouts, healthKit: healthKitWorkouts)
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: referenceDate)
+        let firstDay = calendar.date(byAdding: .day, value: -(max(days, 1) - 1), to: today) ?? today
+        return Self.mergeArchiveAuthoritative(archive: archiveWorkouts, healthKit: healthKitWorkouts).filter { $0.date >= firstDay }
     }
 
     /// `Calendar.date` returns optional; falls back to `today` so
@@ -637,23 +690,22 @@ extension TrainingHealthQueries {
     /// from the same archive-authoritative merge as the ATL/CTL metrics, so a
     /// strap workout that never reached HealthKit counts in all of them, and
     /// all of them use the same resolved heart-rate anchors.
+    ///
+    /// VO2max and its 30-day trend come from the metrics, which
+    /// `calculateTrainingMetrics` (`applyVO2Max`) has already read once.
     func calculateTrainingLoad(days: Int = 7, forMorningReading: Bool = true, relativeTo referenceDate: Date = Date()) async -> HealthKitManager.TrainingLoad {
         let workouts = await recentMergedWorkouts(days: days, relativeTo: referenceDate)
-        let vo2Max = await fetchVO2Max()
-        let vo2Trend = await fetchVO2MaxTrend(days: 30)
         let anchors = await trainingHeartRateAnchors()
         let metrics = await calculateTrainingMetrics(
             restingHR: anchors.restingHR, userMaxHR: anchors.maxHR,
             forMorningReading: forMorningReading, relativeTo: referenceDate
         )
         var load = Self.trainingLoad(
-            workouts: workouts, days: days, anchors: anchors, vo2Max: vo2Max,
+            workouts: workouts, days: days, anchors: anchors, vo2Max: metrics.vo2MaxLatest,
             metrics: metrics, relativeTo: referenceDate
         )
-        if let trend = vo2Trend {
-            load.vo2MaxChange30Days = trend.latest - trend.oldestInWindow
-            load.vo2MaxSampleCount30Days = trend.sampleCount
-        }
+        load.vo2MaxChange30Days = metrics.vo2MaxChange30Days
+        load.vo2MaxSampleCount30Days = metrics.vo2MaxSampleCount30Days
         return load
     }
 

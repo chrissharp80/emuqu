@@ -1,0 +1,184 @@
+{
+ "file": "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift",
+ "hash": "12984bb1576df574",
+ "role": "Single accessor for 'current' training load (ATL/CTL/TSB/ACWR/today TRIMP/Foster monotony+strain) with provenance, used by dashboards, AI facts/system prompt, reports and workout summary.",
+ "types": [
+  "TrainingLoadRegistry: enum @MainActor — live()/liveRefreshed()",
+  "TrainingLoadRegistry.TrainingLoad: struct — values + provenance + display helpers",
+  "TrainingLoadRegistry.Provenance: enum — single case live(asOf:)"
+ ],
+ "state": [],
+ "toplevel": "Long doc comment including the surface→source table; no top-level code.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var TrainingLoadRegistry.TrainingLoad.asOfDisplay",
+   "hash": "560b9be34a00eaf0",
+   "does": "Formats provenance.asOf in the app locale: short time if today, weekday+time within 7 days, else month/day+time. Allocates a DateFormatter per call.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift::var TrainingLoadRegistry.Provenance.asOf",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "asOf is today",
+     "effect": "time only"
+    },
+    {
+     "at": "+7",
+     "cond": "days since asOf < 7",
+     "effect": "'EEEjmm' template; else 'MMMdjmm'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift::var TrainingLoadRegistry.Provenance.asOf": "a20ff4ab1f5d7a73",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "var TrainingLoadRegistry.TrainingLoad.disclosure",
+   "hash": "4453b36b3d235e73",
+   "does": "Returns localized 'Live · updated <asOfDisplay>'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift::var TrainingLoadRegistry.TrainingLoad.asOfDisplay",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift::var TrainingLoadRegistry.TrainingLoad.asOfDisplay": "9e47ee844d879943",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var TrainingLoadRegistry.Provenance.asOf",
+   "hash": "eab2840f88224cfc",
+   "does": "Returns the asOf date of the only provenance case.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .live(asOf)",
+     "effect": "returns asOf"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TrainingLoadRegistry.live()",
+   "hash": "8f47904a997181bb",
+   "does": "Reads TrainingMetricsCache.snapshot() first (which schedules a refresh when one is needed); nil when the cache has never computed a value (computedAt nil). When current metrics exist builds a TrainingLoad from them (todayTrimp nil when 0, Foster monotony/strain from dailyTrimp, asOf = cache.computedAt — when the value was computed, which an invalidation does not clear); otherwise falls back to today's daily-series sample.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AnalysisServices.trainingMetricsCache",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.snapshot(reference:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Training.swift::func RecoveryScoreCalculator.fosterMonotonyStrain(dailyTrimp:referenceDate:)",
+    "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift::func TrainingLoadRegistry.dailySeriesFallback(cache:computedAt:)"
+   ],
+   "reads": [
+    "mem:TrainingMetricsCache.current",
+    "mem:TrainingMetricsCache.computedAt"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "cache.computedAt non-nil",
+     "effect": "false → nil (no value has ever been computed or restored)"
+    },
+    {
+     "at": "+5",
+     "cond": "snapshot non-nil",
+     "effect": "builds from current metrics; else dailySeriesFallback"
+    },
+    {
+     "at": "+12",
+     "cond": "todayTrimp > 0",
+     "effect": "todayTrimp value; else nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Training.swift::func RecoveryScoreCalculator.fosterMonotonyStrain(dailyTrimp:referenceDate:)": "ccb3c6f568b7e996",
+    "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift::func TrainingLoadRegistry.dailySeriesFallback(cache:computedAt:)": "34322daf9684a54b",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.snapshot(reference:)": "add609a71bb226b6",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AnalysisServices.trainingMetricsCache": "c54dab42e8e86c14",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+   }
+  },
+  {
+   "key": "func TrainingLoadRegistry.dailySeriesFallback(cache:computedAt:)",
+   "hash": "7eeb2e4e67e42fae",
+   "does": "Today's daily-series sample only (an older day's ATL/CTL are not decayed to today), as a TrainingLoad: ACWR = atl/ctl when ctl > 0, todayTrimp = the day's TRIMP, Foster monotony/strain from the series' daily TRIMP, asOf = computedAt; nil without a sample for today.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.sampleOn(date:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Training.swift::func RecoveryScoreCalculator.fosterMonotonyStrain(dailyTrimp:referenceDate:)"
+   ],
+   "reads": [
+    "mem:TrainingMetricsCache.dailySeries"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "sampleOn(today) exists",
+     "effect": "false → nil"
+    },
+    {
+     "at": "+7",
+     "cond": "day.ctl > 0",
+     "effect": "acwr = atl/ctl; else nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Training.swift::func RecoveryScoreCalculator.fosterMonotonyStrain(dailyTrimp:referenceDate:)": "ccb3c6f568b7e996",
+    "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift::func TrainingLoadRegistry.live()": "fc01ae42d73cc6b8",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.sampleOn(date:)": "b9050b7f2eb5bf8d",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+   }
+  },
+  {
+   "key": "func TrainingLoadRegistry.liveRefreshed()",
+   "hash": "e65b051bc1678b87",
+   "does": "Awaits TrainingMetricsCache.refresh() then returns live().",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AnalysisServices.trainingMetricsCache",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.refresh(reference:forMorningReading:)",
+    "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift::func TrainingLoadRegistry.live()"
+   ],
+   "reads": [
+    "mem:TrainingMetricsCache.current"
+   ],
+   "writes": [
+    "mem:TrainingMetricsCache.current"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift::func TrainingLoadRegistry.live()": "fc01ae42d73cc6b8",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.refresh(reference:forMorningReading:)": "261edc49e75a859f",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AnalysisServices.trainingMetricsCache": "c54dab42e8e86c14",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+   }
+  }
+ ],
+ "deps": {}
+}

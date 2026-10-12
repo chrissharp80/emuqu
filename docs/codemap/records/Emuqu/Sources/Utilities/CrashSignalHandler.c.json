@@ -1,0 +1,340 @@
+{
+ "file": "Emuqu/Sources/Utilities/CrashSignalHandler.c",
+ "hash": "2a5114b93747964a",
+ "role": "Async-signal-safe fatal-signal handler for the iOS app: on SIGABRT/SIGSEGV/SIGBUS/SIGFPE/SIGILL/SIGTRAP writes a raw-address crash log to the path given at install (CrashLogManager.crashLogURL = <app group container>/crash_log.txt), then re-raises with default disposition. Compiled into the iOS app target (project.pbxproj:4150).",
+ "types": [],
+ "state": [
+  "mem:g_crash_path (static char[PATH_MAX], crash file path copy)",
+  "mem:g_frames (static void*[128] backtrace buffer)",
+  "mem:g_image_slide (main executable vmaddr slide)",
+  "mem:g_code_image_base / g_code_image_name / g_code_image_name_len (dladdr result for the image containing app code)",
+  "mem:g_handling (volatile sig_atomic_t, claimed with an atomic exchange) and g_handling_thread (pthread_t of the thread that claimed it)",
+  "mem:kFatalSignals (const list of 6 signals)",
+  "file:crash_log.txt (path passed in by CrashLogManager.installSignalHandlers, CrashLogManager.swift:457)"
+ ],
+ "toplevel": "Static globals lines 19-30 (g_crash_path, g_frames, g_image_slide, g_code_image_*, g_handling, g_handling_thread); kFatalSignals lines 32-39 (SIGABRT,SIGSEGV,SIGBUS,SIGFPE,SIGILL,SIGTRAP) and count line 41; macro safe_write_lit writes a string literal with compile-time length.",
+ "flags": [
+  {
+   "kind": "fragile",
+   "sev": "med",
+   "text": "The sigaction installs the handler with sa_flags=0 and no alternate signal stack (no sigaltstack/SA_ONSTACK anywhere in Emuqu/). A SIGSEGV/SIGBUS from stack overflow (e.g. runaway recursion) cannot run the handler on the exhausted stack, so the process dies with no crash_log.txt written for exactly that crash class.",
+   "evidence": [
+    "Emuqu/Sources/Utilities/CrashSignalHandler.c:219",
+    "Emuqu/Sources/Utilities/CrashSignalHandler.c:226"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "c safe_write",
+   "hash": "9e53d57990b39ff9",
+   "does": "Writes `count` bytes to fd with write(2), looping on short writes and retrying on EINTR; stops silently on any other error or zero-byte write.",
+   "entry": null,
+   "calls": [
+    "ext:write(2)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "written < count",
+     "effect": "loop continues writing; exits when all bytes written"
+    },
+    {
+     "at": "+4",
+     "cond": "n > 0",
+     "effect": "advance written and continue"
+    },
+    {
+     "at": "+8",
+     "cond": "n < 0 && errno == EINTR",
+     "effect": "retry same write; otherwise (n==0 or other error) break and abandon the remaining bytes"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "c safe_write_hex_line",
+   "hash": "8fef0bded8da8168",
+   "does": "Renders `value` as fixed-width 0x-prefixed 16-digit lowercase hex plus newline into a 19-byte stack buffer and writes it via safe_write.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/CrashSignalHandler.c::c safe_write"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "for i in 0..<16",
+     "effect": "emit one nibble per iteration, most significant first"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/CrashSignalHandler.c::c safe_write": "72a6b316f5e5c49c"
+   }
+  },
+  {
+   "key": "c safe_write_dec",
+   "hash": "1a0d6699012e71e3",
+   "does": "Renders an int as decimal into a 12-byte stack buffer back-to-front and writes it; writes \"0\" for zero and prefixes \"-\" for negatives (only signal numbers are passed in practice).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/CrashSignalHandler.c::c safe_write"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "value < 0",
+     "effect": "magnitude taken as -value (undefined for INT_MIN; never reached with signal numbers); else value"
+    },
+    {
+     "at": "+4",
+     "cond": "v == 0",
+     "effect": "write literal \"0\" and return early"
+    },
+    {
+     "at": "+8",
+     "cond": "v > 0 && i > 0",
+     "effect": "emit next decimal digit"
+    },
+    {
+     "at": "+12",
+     "cond": "value < 0 && i > 0",
+     "effect": "prepend \"-\"; otherwise no sign"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/CrashSignalHandler.c::c safe_write": "72a6b316f5e5c49c"
+   }
+  },
+  {
+   "key": "c safe_write_signal_name",
+   "hash": "a81eaaa034eeb773",
+   "does": "Writes the constant name of a fatal signal (SIGABRT/SIGSEGV/SIGBUS/SIGFPE/SIGILL/SIGTRAP) or \"SIGNAL\" for anything else.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/CrashSignalHandler.c::c safe_write"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case SIGABRT",
+     "effect": "write \"SIGABRT\""
+    },
+    {
+     "at": "+3",
+     "cond": "case SIGSEGV",
+     "effect": "write \"SIGSEGV\""
+    },
+    {
+     "at": "+4",
+     "cond": "case SIGBUS",
+     "effect": "write \"SIGBUS\""
+    },
+    {
+     "at": "+5",
+     "cond": "case SIGFPE",
+     "effect": "write \"SIGFPE\""
+    },
+    {
+     "at": "+6",
+     "cond": "case SIGILL",
+     "effect": "write \"SIGILL\""
+    },
+    {
+     "at": "+7",
+     "cond": "case SIGTRAP",
+     "effect": "write \"SIGTRAP\""
+    },
+    {
+     "at": "+8",
+     "cond": "default",
+     "effect": "write \"SIGNAL\""
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/CrashSignalHandler.c::c safe_write": "72a6b316f5e5c49c"
+   }
+  },
+  {
+   "key": "c emuqu_signal_handler",
+   "hash": "dfb244057457f710",
+   "does": "Fatal-signal handler: claims g_handling with an atomic exchange. If it was already claimed: on the same thread (the handler itself faulted) _exit(128+sig); on another thread, waits in a pause() loop until the first thread's re-raise ends the process. Otherwise records g_handling_thread, opens g_crash_path O_WRONLY|O_CREAT|O_TRUNC 0600 and writes header (signal name/number, main executable slide, app code image name and load address), a symbolication how-to, raw backtrace() return addresses (max 128) and an end marker; then restores SIG_DFL and re-raises so the OS crash report is still produced. Read on next launch by CrashLogManager.promoteCurrentCrashLog into previous_crash.txt.",
+   "entry": "Installed via sigaction for the six kFatalSignals by emuqu_install_crash_signal_handlers; invoked by the kernel on the crashing thread.",
+   "calls": [
+    "Emuqu/Sources/Utilities/CrashSignalHandler.c::c safe_write",
+    "Emuqu/Sources/Utilities/CrashSignalHandler.c::c safe_write_hex_line",
+    "Emuqu/Sources/Utilities/CrashSignalHandler.c::c safe_write_dec",
+    "Emuqu/Sources/Utilities/CrashSignalHandler.c::c safe_write_signal_name",
+    "ext:open/close(2)",
+    "ext:backtrace (execinfo)",
+    "ext:signal/raise",
+    "ext:_exit",
+    "ext:pause",
+    "ext:pthread_self/pthread_equal",
+    "ext:__atomic_exchange_n"
+   ],
+   "reads": [
+    "mem:g_crash_path",
+    "mem:g_image_slide",
+    "mem:g_code_image_base",
+    "mem:g_code_image_name",
+    "mem:g_handling_thread"
+   ],
+   "writes": [
+    "file:crash_log.txt (truncated and rewritten)",
+    "mem:g_handling",
+    "mem:g_handling_thread",
+    "mem:g_frames"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "g_handling was already claimed",
+     "effect": "go to the re-entry handling below; otherwise continue"
+    },
+    {
+     "at": "+7",
+     "cond": "the claiming thread is this thread (handler faulted)",
+     "effect": "_exit(128+signal_number), no log, no OS re-raise"
+    },
+    {
+     "at": "+12",
+     "cond": "another thread holds the handler",
+     "effect": "loops on pause() forever; the other thread's re-raise terminates the process"
+    },
+    {
+     "at": "+19",
+     "cond": "open() returned fd >= 0",
+     "effect": "write the full log and close; if open fails nothing is written and the handler goes straight to re-raise"
+    },
+    {
+     "at": "+53",
+     "cond": "for each captured frame",
+     "effect": "one hex line per frame"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Calls backtrace() from signal context; backtrace is not on the POSIX async-signal-safe list. The installer pre-warms it (line 217) to reduce, not eliminate, the risk of lazy initialisation inside the handler.",
+     "evidence": [
+      "Emuqu/Sources/Utilities/CrashSignalHandler.c:149",
+      "Emuqu/Sources/Utilities/CrashSignalHandler.c:217"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/CrashSignalHandler.c::c safe_write": "72a6b316f5e5c49c",
+    "Emuqu/Sources/Utilities/CrashSignalHandler.c::c safe_write_dec": "8bf9dc43e713ffcf",
+    "Emuqu/Sources/Utilities/CrashSignalHandler.c::c safe_write_hex_line": "c175f830d02981d9",
+    "Emuqu/Sources/Utilities/CrashSignalHandler.c::c safe_write_signal_name": "580f85db9334a023"
+   }
+  },
+  {
+   "key": "c restore_handlers",
+   "hash": "58933dfe470a2ad2",
+   "does": "Re-installs the saved dispositions in previous[0..count-1] for the first count kFatalSignals (sigaction result ignored), undoing a partial install.",
+   "entry": null,
+   "calls": [
+    "ext:sigaction"
+   ],
+   "reads": [
+    "mem:kFatalSignals"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each of the first count signals",
+     "effect": "sigaction(sig, &previous[i], NULL)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "c emuqu_install_crash_signal_handlers",
+   "hash": "b874bed3c6865307",
+   "does": "Copies crash_file_path into g_crash_path, records main-executable slide (_dyld_get_image_vmaddr_slide(0)) and, via dladdr on itself, the base name and load address of the image holding app code (Emuqu.debug.dylib on Xcode debug builds), warms backtrace(), then installs emuqu_signal_handler with sigaction for the six fatal signals, saving each previous disposition. Returns false on NULL/empty/over-long path, or on a sigaction failure after restoring the signals already installed (all or nothing). Called from CrashLogManager.installSignalHandlers, which NSLogs on false.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/CrashSignalHandler.c::c emuqu_signal_handler",
+    "Emuqu/Sources/Utilities/CrashSignalHandler.c::c restore_handlers",
+    "ext:_dyld_get_image_vmaddr_slide",
+    "ext:dladdr",
+    "ext:backtrace",
+    "ext:sigaction"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:g_crash_path",
+    "mem:g_image_slide",
+    "mem:g_code_image_base",
+    "mem:g_code_image_name",
+    "mem:g_code_image_name_len"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "crash_file_path == NULL",
+     "effect": "return false, no handlers installed"
+    },
+    {
+     "at": "+5",
+     "cond": "len == 0 || len >= PATH_MAX",
+     "effect": "return false, no handlers installed; else copy path"
+    },
+    {
+     "at": "+30",
+     "cond": "dladdr succeeded",
+     "effect": "store dli_fbase and base name of dli_fname (\"\" if dli_fname NULL), truncated to 255 chars; else store \"(dladdr failed)\" and leave g_code_image_base NULL (logged as 0x0)"
+    },
+    {
+     "at": "+32",
+     "cond": "info.dli_fname != NULL",
+     "effect": "use it; else empty string"
+    },
+    {
+     "at": "+34",
+     "cond": "path contains \"/\"",
+     "effect": "take substring after last slash; else whole path"
+    },
+    {
+     "at": "+36",
+     "cond": "base_len >= 256",
+     "effect": "truncate to 255"
+    },
+    {
+     "at": "+67",
+     "cond": "for each fatal signal",
+     "effect": "install handler, saving the previous action"
+    },
+    {
+     "at": "+68",
+     "cond": "sigaction fails",
+     "effect": "restore_handlers for the signals already installed, return false (none left installed)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/CrashSignalHandler.c::c emuqu_signal_handler": "0e883cf168c9c6f3",
+    "Emuqu/Sources/Utilities/CrashSignalHandler.c::c restore_handlers": "e4186443f26d5378"
+   }
+  }
+ ],
+ "deps": {}
+}

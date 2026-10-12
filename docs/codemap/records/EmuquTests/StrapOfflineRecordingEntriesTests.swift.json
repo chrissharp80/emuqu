@@ -1,0 +1,132 @@
+{
+ "file": "EmuquTests/StrapOfflineRecordingEntriesTests.swift",
+ "hash": "058b2a333bacf1c4",
+ "role": "XCTest suite for StrapOfflineRecordingEntries: grouping Verity Sense offline sub-file paths (PPI0.REC, PPI1.REC, …) to one recording key, de-duplicating the SDK fallback listing to one entry per recording in listing order, and clearing a split recording with one removal (against FakeStrapRadio).",
+ "types": [
+  "StrapOfflineRecordingEntriesTests: class — XCTestCase over StrapOfflineRecordingEntries.recordingKey/onePerRecording"
+ ],
+ "state": [
+  "Entries: private typealias for StrapOfflineRecordingEntries"
+ ],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func StrapOfflineRecordingEntriesTests.testSubFilesShareTheirRecordingsKey()",
+   "hash": "adce59724c74a178",
+   "does": "Asserts recordingKey maps PPI0.REC and PPI12.REC of the same directory to the same key, and PPI3.REC to '…/PPI.REC' (trailing digits before .REC stripped by regex \\d+\\.REC$).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapOfflineRecordingEntries.swift::func StrapOfflineRecordingEntries.recordingKey(forPath:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapOfflineRecordingEntries.swift::func StrapOfflineRecordingEntries.recordingKey(forPath:)": "452a39a1b30c2224"
+   }
+  },
+  {
+   "key": "func StrapOfflineRecordingEntriesTests.testDifferentRecordingsKeepDifferentKeys()",
+   "hash": "98c52df4f743c63b",
+   "does": "Asserts recordingKey keeps different keys for the same file name on different dates (20260902 vs 20260903) and for different data types (PPI0 vs ACC0) in the same directory.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapOfflineRecordingEntries.swift::func StrapOfflineRecordingEntries.recordingKey(forPath:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapOfflineRecordingEntries.swift::func StrapOfflineRecordingEntries.recordingKey(forPath:)": "452a39a1b30c2224"
+   }
+  },
+  {
+   "key": "func StrapOfflineRecordingEntriesTests.testOnlyTheSubFileIndexIsRemoved()",
+   "hash": "2734fafef2265765",
+   "does": "Asserts recordingKey leaves an already-unsplit 'PPI.REC' path unchanged and does not strip digits from a non-.REC extension ('PPI7.TXT').",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapOfflineRecordingEntries.swift::func StrapOfflineRecordingEntries.recordingKey(forPath:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapOfflineRecordingEntries.swift::func StrapOfflineRecordingEntries.recordingKey(forPath:)": "452a39a1b30c2224"
+   }
+  },
+  {
+   "key": "func StrapOfflineRecordingEntriesTests.testASplitRecordingIsListedOnceInListingOrder()",
+   "hash": "5570d6f001b7d986",
+   "does": "Asserts onePerRecording over five interleaved sub-file paths of two recordings returns only the first-seen sub-file of each ('…220000/PPI0.REC', '…221500/PPI0.REC') in listing order.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapOfflineRecordingEntries.swift::func StrapOfflineRecordingEntries.onePerRecording(_:path:)",
+    "Emuqu/Sources/Collection/StrapOfflineRecordingEntries.swift::func StrapOfflineRecordingEntries.recordingKey(forPath:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapOfflineRecordingEntries.swift::func StrapOfflineRecordingEntries.onePerRecording(_:path:)": "ad14f2f73d638fb0",
+    "Emuqu/Sources/Collection/StrapOfflineRecordingEntries.swift::func StrapOfflineRecordingEntries.recordingKey(forPath:)": "452a39a1b30c2224"
+   }
+  },
+  {
+   "key": "func StrapOfflineRecordingEntriesTests.testAnUnsplitListingIsUnchanged()",
+   "hash": "18e2981a76f59031",
+   "does": "Asserts onePerRecording returns an unsplit two-recording listing unchanged.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapOfflineRecordingEntries.swift::func StrapOfflineRecordingEntries.onePerRecording(_:path:)",
+    "Emuqu/Sources/Collection/StrapOfflineRecordingEntries.swift::func StrapOfflineRecordingEntries.recordingKey(forPath:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapOfflineRecordingEntries.swift::func StrapOfflineRecordingEntries.onePerRecording(_:path:)": "ad14f2f73d638fb0",
+    "Emuqu/Sources/Collection/StrapOfflineRecordingEntries.swift::func StrapOfflineRecordingEntries.recordingKey(forPath:)": "452a39a1b30c2224"
+   }
+  },
+  {
+   "key": "func StrapOfflineRecordingEntriesTests.testASplitRecordingIsRemovedOnce()",
+   "hash": "e85a90c4dc50558b",
+   "does": "Adds a Verity night split into three sub-files (same recording key) to a FakeStrapRadio, runs StrapRecordingCoordinator.removeOfflinePpiRecordings, and asserts it reports 1 removed, the fake saw exactly one .removeOfflineRecord call, and listPpiEntries then lists nothing. A per-sub-file removal regression would throw on the second removal (the fake fails a removal of a recording already gone).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.addOfflineRecording(path:date:ppiMs:)",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.removeOfflinePpiRecordings(api:deviceId:)",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.listPpiEntries(api:deviceId:)",
+    "EmuquTests/FakeStrapRadio.swift::var FakeStrapRadio.calls",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.removeOfflineRecord(_:entry:)",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.listOfflineRecordings(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for index in 0 ..< 3",
+     "effect": "adds sub-files PPI0/PPI1/PPI2.REC of one recording"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.listPpiEntries(api:deviceId:)": "fc7c574ff9a9b9bb",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.removeOfflinePpiRecordings(api:deviceId:)": "4bacb0cccb8308e6",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.addOfflineRecording(path:date:ppiMs:)": "f1faeda571c39b62",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.listOfflineRecordings(_:)": "c94c55e59839bb88",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.removeOfflineRecord(_:entry:)": "88e1d033acbd3abc",
+    "EmuquTests/FakeStrapRadio.swift::var FakeStrapRadio.calls": "f3f360684b4dcac1"
+   }
+  }
+ ],
+ "deps": {}
+}

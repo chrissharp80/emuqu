@@ -246,8 +246,7 @@ extension MorningResultsView {
 
     private var doneButton: some View {
         Button {
-            // Save tags/notes before dismissing if callback provided
-            onUpdateTags?(Array(vm.selectedTags), vm.notes.isEmpty ? nil : vm.notes)
+            saveTagsAndNotesIfChanged()
             onDiscard()
         } label: {
             Label(onDelete != nil ? String(localized: "Done", bundle: LanguageManager.appBundle) : String(localized: "Discard", bundle: LanguageManager.appBundle), systemImage: onDelete != nil ? "checkmark" : "xmark")
@@ -255,6 +254,19 @@ extension MorningResultsView {
                 .foregroundColor(onDelete != nil ? AppTheme.textPrimary : AppTheme.terracotta)
         }
         .buttonStyle(.zenSecondary)
+    }
+
+    /// Hands the Tags & Notes card's edits to `onUpdateTags` when they differ
+    /// from what was last stored: the session's own tags and notes, or the
+    /// last hand-off. Called by Done and when the sheet disappears, so a
+    /// swipe-dismiss keeps the edits too. No-op without `onUpdateTags`.
+    func saveTagsAndNotesIfChanged() {
+        guard let onUpdateTags else { return }
+        let current = SavedTagsAndNotes(tags: vm.selectedTags, notes: vm.notes)
+        let stored = savedTagsAndNotes ?? SavedTagsAndNotes(tags: Set(vm.session.tags), notes: vm.session.notes ?? "")
+        guard current != stored else { return }
+        onUpdateTags(Array(current.tags), current.notes.isEmpty ? nil : current.notes)
+        savedTagsAndNotes = current
     }
 
     @ViewBuilder

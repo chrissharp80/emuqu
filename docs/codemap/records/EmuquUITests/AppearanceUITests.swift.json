@@ -1,0 +1,146 @@
+{
+ "file": "EmuquUITests/AppearanceUITests.swift",
+ "hash": "dfb49fdab690929c",
+ "role": "XCUITest that Settings → Appearance is reachable, shows Light/Dim/Dark theme controls, and that tapping Dark does not kill the app.",
+ "types": [
+  "AppearanceUITests: class — XCTestCase"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Passes the bare '-UITests' launch argument, which no production code reads (only -UITests-FreshInstall at AppLaunchRecovery.swift:185 and -UITests-ForcePaywall/-UITests-SeedArchive at UITestLaunchArguments.swift:18,23 are checked); it is inert",
+   "evidence": [
+    "EmuquUITests/AppearanceUITests.swift:26",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift:185",
+    "Emuqu/Sources/Services/UITestLaunchArguments.swift:18"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func AppearanceUITests.setUp()",
+   "hash": "5afd054df2a6b2da",
+   "does": "Sets continueAfterFailure=false, creates XCUIApplication, appends launch arguments -UITests, -UITests-FreshInstall and English locale (UITestLanguage.english), launches the app (the app wipes onboarding/disclaimer/paywall flags, settings files and the session archive via AppLaunchRecovery.resetUITestStateIfRequested) and walks every first-run gate with UITestLaunch.toMainUI, ignoring its Bool result.",
+   "entry": "XCTest runner: setUp before each test in the class",
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)",
+    "ext:XCUIApplication.launch",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resetUITestStateIfRequested()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resetUITestStateIfRequested()": "6ce77cca4f0ebae6",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)": "35f7ec6a1e50e9a0",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)": "747ec38364b540cd"
+   }
+  },
+  {
+   "key": "func AppearanceUITests.tearDown()",
+   "hash": "c6f9bd9c44559741",
+   "does": "Releases the XCUIApplication (app = nil); does not terminate the app.",
+   "entry": "XCTest runner: tearDown after each test in the class",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AppearanceUITests.navigateToAppearance()",
+   "hash": "0b9b23208bb71b84",
+   "does": "Asserts Settings opens via More, scrolls to settings.appearance, asserts it exists and taps it.",
+   "entry": null,
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.openSettings(_:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.scrollTo(_:identifier:label:attempts:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "Appearance row missing",
+     "effect": "return without tapping (assertion above already failed)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.openSettings(_:)": "db4b4ddcef0ceb5a",
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.scrollTo(_:identifier:label:attempts:)": "57e7d029f2eefe07"
+   }
+  },
+  {
+   "key": "func AppearanceUITests.testAppearancePageExposesThemeControls()",
+   "hash": "db0dc99d006b9aaa",
+   "does": "Opens Appearance and asserts any static text or button containing 'Light', 'Dim' or 'Dark' exists.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/AppearanceUITests.swift::func AppearanceUITests.navigateToAppearance()",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Passes if any one of three common substrings appears anywhere on screen, so it does not verify a theme picker exists (doc claims all three options are exposed)",
+     "evidence": [
+      "EmuquUITests/AppearanceUITests.swift:58",
+      "EmuquUITests/AppearanceUITests.swift:13"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "EmuquUITests/AppearanceUITests.swift::func AppearanceUITests.navigateToAppearance()": "5ff51edee30e4424",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+   }
+  },
+  {
+   "key": "func AppearanceUITests.testThemeSwitchDoesNotCrash()",
+   "hash": "bb46816d960de30d",
+   "does": "Opens Appearance, skips if no 'Dark' button appears, taps it via tapSafely (result ignored) and asserts the tab bar still exists.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/AppearanceUITests.swift::func AppearanceUITests.navigateToAppearance()",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.tapSafely(_:in:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Ignores tapSafely's result and asserts only that the tab bar exists (it stays in the hierarchy on any screen), so the theme switch may never have happened; XCTSkipUnless turns a missing button into a skip",
+     "evidence": [
+      "EmuquUITests/AppearanceUITests.swift:80",
+      "EmuquUITests/AppearanceUITests.swift:83"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "EmuquUITests/AppearanceUITests.swift::func AppearanceUITests.navigateToAppearance()": "5ff51edee30e4424",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.tapSafely(_:in:)": "5ba2bf71286c792e",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+   }
+  }
+ ],
+ "deps": {}
+}

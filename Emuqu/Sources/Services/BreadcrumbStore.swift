@@ -94,6 +94,10 @@ struct BreadcrumbTrail: Codable, Equatable, Sendable {
     /// `RoadGeocodingService` when connectivity allows. Cached so we
     /// don't re-geocode the same point. Optional — never blocking.
     var resolvedOriginLabel: String?
+    /// True for a finished workout's track filed by the recorder, not a
+    /// Get Me Back trail the user engaged. Nil on trails stored before the
+    /// field existed. The archive cap evicts these first.
+    var isWorkoutTrack: Bool?
 
     /// Total straight-line distance from the most recent fix to the
     /// origin. Returns nil if either piece is missing.
@@ -188,9 +192,8 @@ final class BreadcrumbStore: @unchecked Sendable {
         }
     }
 
-    /// Test seam — single-file mode for tests written against v1.
-    /// Tests can pass a custom URL; we use it for both active+archive
-    /// (the archive then accumulates next to it).
+    /// Test seam: a store rooted at a custom URL, for unit tests. `fileURL`
+    /// is the active trail; the archive is `archive.json` beside it.
     init(fileURL: URL) {
         self.activeURL = fileURL
         self.archiveURL = fileURL.deletingLastPathComponent()
@@ -203,12 +206,31 @@ final class BreadcrumbStore: @unchecked Sendable {
 
     /// Read the active (in-progress) trail off disk. Returns nil when
     /// no Get-Me-Back session is currently engaged.
+    /// A file that is present but unreadable or undecodable also reads as
+    /// no trail, and is logged rather than passed over in silence.
     func load() -> BreadcrumbTrail? {
         queue.sync {
-            guard let data = try? Data(contentsOf: activeURL) else { return nil }
+            guard let data = Self.contentsIfPresent(activeURL) else { return nil }
             let decoder = JSONDecoder()
             decoder.dateDecodingStrategy = .iso8601
-            return try? decoder.decode(BreadcrumbTrail.self, from: data)
+            do {
+                return try decoder.decode(BreadcrumbTrail.self, from: data)
+            } catch {
+                debugLog("[BreadcrumbStore] active trail present but failed to decode, reading it as no trail: \(error)", level: .error)
+                return nil
+            }
+        }
+    }
+
+    /// The file's bytes. Nil when it is absent (normal) or present but
+    /// unreadable (before the first unlock, or an I/O error), which is logged.
+    private static func contentsIfPresent(_ url: URL) -> Data? {
+        guard FileManager.default.fileExists(atPath: url.path) else { return nil }
+        do {
+            return try Data(contentsOf: url)
+        } catch {
+            debugLog("[BreadcrumbStore] \(url.lastPathComponent) present but unreadable: \(error)", level: .error)
+            return nil
         }
     }
 
@@ -235,11 +257,18 @@ final class BreadcrumbStore: @unchecked Sendable {
 
     /// "Clear" semantics from the GetMeBackView toolbar — moves the
     /// active trail into the archive (instead of throwing it away).
-    /// The AI can still say where it started.
+    /// The AI can still say where it started. The active file is removed
+    /// only once the archive write succeeded; when the archive could not be
+    /// read or written, the trail stays where it is rather than being lost.
     func archiveActive() {
         guard let active = load() else { return }
-        archive(active)
-        clear()
+        queue.async { [archiveURL, activeURL] in
+            guard Self.appendToArchive(active, at: archiveURL) else {
+                debugLog("[BreadcrumbStore] archiving the active trail failed; keeping it as the active trail", level: .error)
+                return
+            }
+            _ = attempt("BreadcrumbStore.remove") { try FileManager.default.removeItem(at: activeURL) }
+        }
     }
 
     /// Permanent delete of the active trail. Used by the sleep-prompt
@@ -260,23 +289,25 @@ final class BreadcrumbStore: @unchecked Sendable {
         }
     }
 
+    /// Whether an archive file is on disk, readable or not. Queued behind
+    /// pending writes and erases, so a check after `eraseArchive()` sees it.
+    func hasArchiveFile() -> Bool {
+        queue.sync {
+            FileManager.default.fileExists(atPath: archiveURL.path)
+        }
+    }
+
     // MARK: Archive (history of completed trails)
 
     /// All archived trails, newest first. Cheap read — the file is
-    /// JSON of at most a few hundred KB even with the retention cap.
+    /// JSON of at most a few hundred KB even with the retention cap. Reads
+    /// through `decodeArchive`, so a present-but-unreadable archive is logged
+    /// and, for a reader, shows as no trails.
     func loadArchive() -> [BreadcrumbTrail] {
         queue.sync {
-            guard let data = try? Data(contentsOf: archiveURL) else { return [] }
             let decoder = JSONDecoder()
             decoder.dateDecodingStrategy = .iso8601
-            do {
-                return try decoder.decode([BreadcrumbTrail].self, from: data)
-            } catch {
-                // Missing file is normal; an unreadable one is data loss the
-                // user cannot see, so say so.
-                debugLog("[BreadcrumbStore] archive decode failed, reporting no trails: \(error)", level: .error)
-                return []
-            }
+            return Self.decodeArchive(at: archiveURL, using: decoder) ?? []
         }
     }
 
@@ -292,9 +323,8 @@ final class BreadcrumbStore: @unchecked Sendable {
     /// The same holds for a file that is present and cannot be read at all —
     /// before the first unlock, or an I/O error: it is not an empty archive.
     private static func decodeArchive(at url: URL, using decoder: JSONDecoder) -> [BreadcrumbTrail]? {
-        guard let data = try? Data(contentsOf: url) else {
-            return FileManager.default.fileExists(atPath: url.path) ? nil : []
-        }
+        guard FileManager.default.fileExists(atPath: url.path) else { return [] }
+        guard let data = contentsIfPresent(url) else { return nil }
         do {
             return try decoder.decode([BreadcrumbTrail].self, from: data)
         } catch {
@@ -305,23 +335,40 @@ final class BreadcrumbStore: @unchecked Sendable {
 
     func archive(_ trail: BreadcrumbTrail) {
         queue.async { [archiveURL] in
-            let decoder = JSONDecoder()
-            decoder.dateDecodingStrategy = .iso8601
-            guard let existingOrNil = Self.decodeArchive(at: archiveURL, using: decoder) else { return }
-            var existing = existingOrNil
-            // Newest-first ordering so callers don't have to re-sort.
-            existing.insert(trail, at: 0)
-            if existing.count > Self.archiveRetentionLimit {
-                existing = Array(existing.prefix(Self.archiveRetentionLimit))
-            }
-            let encoder = JSONEncoder()
-            encoder.dateEncodingStrategy = .iso8601
-            encoder.outputFormatting = [.sortedKeys]
-            guard let data = attempt("breadcrumbs.archive.encode", { try encoder.encode(existing) }) else { return }
-            let options: Data.WritingOptions = [.atomic, .completeFileProtectionUntilFirstUserAuthentication]
-            Self.ensureParentDirectory(of: archiveURL)
-            attempt("breadcrumbs.archive.write") { try data.write(to: archiveURL, options: options) }
+            Self.appendToArchive(trail, at: archiveURL)
         }
+    }
+
+    /// Insert `trail` at the front of the archive and write it back. False
+    /// when nothing was written: the archive is present but unreadable (left
+    /// intact, see `decodeArchive`), or encoding or the write failed. Runs on
+    /// `queue`.
+    @discardableResult
+    private static func appendToArchive(_ trail: BreadcrumbTrail, at archiveURL: URL) -> Bool {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        guard let existing = decodeArchive(at: archiveURL, using: decoder) else { return false }
+        // Newest-first ordering so callers don't have to re-sort.
+        let trails = capped([trail] + existing)
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        encoder.outputFormatting = [.sortedKeys]
+        guard let data = attempt("breadcrumbs.archive.encode", { try encoder.encode(trails) }) else { return false }
+        let options: Data.WritingOptions = [.atomic, .completeFileProtectionUntilFirstUserAuthentication]
+        ensureParentDirectory(of: archiveURL)
+        return attempt("breadcrumbs.archive.write") { try data.write(to: archiveURL, options: options) } != nil
+    }
+
+    /// Trim a newest-first list to `archiveRetentionLimit`, evicting the
+    /// oldest workout track first so workouts cannot push out the trails
+    /// the user engaged; the oldest trail of any kind goes once no workout
+    /// track is left.
+    static func capped(_ trails: [BreadcrumbTrail]) -> [BreadcrumbTrail] {
+        var kept = trails
+        while kept.count > archiveRetentionLimit {
+            kept.remove(at: kept.lastIndex { $0.isWorkoutTrack == true } ?? kept.count - 1)
+        }
+        return kept
     }
 
     /// Delete All My Data sweeps the `Breadcrumbs` directory away while the

@@ -1,0 +1,491 @@
+{
+ "file": "EmuquTests/WorkoutExportersTests.swift",
+ "hash": "42f7cdc86ca279fd",
+ "role": "XCTest suite for GPXExporter, TCXExporter and CSVExporter: XML well-formedness, required structure, one trkpt per fix, 6-dp coordinates, notes excluded, CSV header/column consistency and tolerance of a metadata-less session.",
+ "types": [
+  "WorkoutExportersTests: class — XCTestCase for the three workout exporters"
+ ],
+ "state": [
+  "mem:WorkoutExportersTests.savedDefaultTimeZone (static OSAllocatedUnfairLock<TimeZone?>)"
+ ],
+ "toplevel": "Class-level setUp/tearDown pin NSTimeZone.default to UTC for the class.",
+ "flags": [
+  {
+   "kind": "test-defect",
+   "sev": "low",
+   "text": "Class doc says the assertions focus on escaping, but no test passes XML-significant characters into an emitted field: the only such input is notes, which the exporters omit, and the sport names are fixed strings, so GPXExporter.escape and the TCX escaping are never exercised.",
+   "evidence": [
+    "EmuquTests/WorkoutExportersTests.swift:18",
+    "EmuquTests/WorkoutExportersTests.swift:87",
+    "Emuqu/Sources/Analysis/GPXExporter.swift:223"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "test-defect",
+   "sev": "low",
+   "text": "The exporters read UnitsPreferenceStore.current (app-group UserDefaults key fitness.unitsPreference, with a legacy standard-suite fallback the getter migrates by writing the app-group key) for the summary text and CSV units; the tests neither set nor restore it, so GPX/TCX/CSV output varies with the host's stored units preference (no assertion depends on the value).",
+   "evidence": [
+    "Emuqu/Sources/Analysis/GPXExporter.swift:46",
+    "Emuqu/Sources/Analysis/TCXExporter.swift:52",
+    "Emuqu/Sources/Analysis/CSVExporter.swift:38",
+    "Emuqu/Sources/Models/UnitsPreference.swift:128",
+    "EmuquTests/WorkoutExportersTests.swift:131"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func WorkoutExportersTests.setUp()",
+   "hash": "aaf67210658fbccf",
+   "does": "Class setUp: saves NSTimeZone.default and sets it to TestTimeZone.utc.",
+   "entry": "XCTest class-level setUp",
+   "calls": [],
+   "reads": [
+    "mem:NSTimeZone.default"
+   ],
+   "writes": [
+    "mem:NSTimeZone.default",
+    "mem:WorkoutExportersTests.savedDefaultTimeZone"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/MaxHeartRateTests.swift::var MaxHeartRateTests.utc": "62821ebd21fe11e7"
+   }
+  },
+  {
+   "key": "func WorkoutExportersTests.tearDown()",
+   "hash": "8eabd0f83edd2a18",
+   "does": "Class tearDown: restores the saved NSTimeZone.default and clears the lock.",
+   "entry": "XCTest class-level tearDown",
+   "calls": [],
+   "reads": [
+    "mem:WorkoutExportersTests.savedDefaultTimeZone"
+   ],
+   "writes": [
+    "mem:NSTimeZone.default"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "a saved zone exists",
+     "effect": "true: restored; false: default left unchanged"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutExportersTests.testGPXIsWellFormedXML()",
+   "hash": "7980ae5af64bac16",
+   "does": "Asserts the GPX for a 5-fix track parses with XMLParser.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.export(session:track:)",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeSession(notes:)",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeTrack(count:)"
+   ],
+   "reads": [
+    "ud:fitness.unitsPreference (SharedUserDefaults.appGroup suite, legacy UserDefaults.standard fallback) via UnitsPreferenceStore.current"
+   ],
+   "writes": [
+    "ud:fitness.unitsPreference (app group; written by the getter only when it migrates a legacy standard-suite value)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.export(session:track:)": "3308e3d5d6241308",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeSession(notes:)": "f5652fc76e9b82a8",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeTrack(count:)": "d2373754f00c8ace"
+   }
+  },
+  {
+   "key": "func WorkoutExportersTests.testGPXCarriesRequiredStructure()",
+   "hash": "05a345a644166488",
+   "does": "Asserts GPX starts with the XML declaration, contains gpx version 1.1, creator Emuqu, trkseg open/close and ends with </gpx>.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.export(session:track:)",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeSession(notes:)",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeTrack(count:)"
+   ],
+   "reads": [
+    "ud:fitness.unitsPreference (SharedUserDefaults.appGroup suite, legacy UserDefaults.standard fallback) via UnitsPreferenceStore.current"
+   ],
+   "writes": [
+    "ud:fitness.unitsPreference (app group; written by the getter only when it migrates a legacy standard-suite value)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.export(session:track:)": "3308e3d5d6241308",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeSession(notes:)": "f5652fc76e9b82a8",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeTrack(count:)": "d2373754f00c8ace"
+   }
+  },
+  {
+   "key": "func WorkoutExportersTests.testGPXEmitsOneTrackpointPerFix()",
+   "hash": "4621215f734155d2",
+   "does": "Asserts the GPX has exactly as many '<trkpt ' elements as fixes for 0, 1, 5 and 50 fixes.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.export(session:track:)",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeSession(notes:)",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeTrack(count:)"
+   ],
+   "reads": [
+    "ud:fitness.unitsPreference (SharedUserDefaults.appGroup suite, legacy UserDefaults.standard fallback) via UnitsPreferenceStore.current"
+   ],
+   "writes": [
+    "ud:fitness.unitsPreference (app group; written by the getter only when it migrates a legacy standard-suite value)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for count in [0,1,5,50]",
+     "effect": "each count exported and counted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.export(session:track:)": "3308e3d5d6241308",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeSession(notes:)": "f5652fc76e9b82a8",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeTrack(count:)": "d2373754f00c8ace"
+   }
+  },
+  {
+   "key": "func WorkoutExportersTests.testGPXWithEmptyTrackIsStillValid()",
+   "hash": "8dbc79e8992e9eb5",
+   "does": "Asserts a GPX for an empty track parses and still contains <trkseg>.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.export(session:track:)",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeSession(notes:)"
+   ],
+   "reads": [
+    "ud:fitness.unitsPreference (SharedUserDefaults.appGroup suite, legacy UserDefaults.standard fallback) via UnitsPreferenceStore.current"
+   ],
+   "writes": [
+    "ud:fitness.unitsPreference (app group; written by the getter only when it migrates a legacy standard-suite value)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.export(session:track:)": "3308e3d5d6241308",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeSession(notes:)": "f5652fc76e9b82a8"
+   }
+  },
+  {
+   "key": "func WorkoutExportersTests.testGPXWritesCoordinatesAtSixDecimalPlaces()",
+   "hash": "127d842cd2f0e15b",
+   "does": "Asserts a fix at 0.780123456/-0.650987654 is written as lat 0.780123 / lon -0.650988 (rounded to 6 dp).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.export(session:track:)",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeSession(notes:)"
+   ],
+   "reads": [
+    "ud:fitness.unitsPreference (SharedUserDefaults.appGroup suite, legacy UserDefaults.standard fallback) via UnitsPreferenceStore.current"
+   ],
+   "writes": [
+    "ud:fitness.unitsPreference (app group; written by the getter only when it migrates a legacy standard-suite value)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.export(session:track:)": "3308e3d5d6241308",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeSession(notes:)": "f5652fc76e9b82a8"
+   }
+  },
+  {
+   "key": "func WorkoutExportersTests.testGPXLeavesTheNotesOut()",
+   "hash": "a9665b97e154b15e",
+   "does": "Asserts a session with notes containing & < > \" still yields parseable GPX and the notes text does not appear.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.export(session:track:)",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeSession(notes:)",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeTrack(count:)"
+   ],
+   "reads": [
+    "ud:fitness.unitsPreference (SharedUserDefaults.appGroup suite, legacy UserDefaults.standard fallback) via UnitsPreferenceStore.current"
+   ],
+   "writes": [
+    "ud:fitness.unitsPreference (app group; written by the getter only when it migrates a legacy standard-suite value)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.export(session:track:)": "3308e3d5d6241308",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeSession(notes:)": "f5652fc76e9b82a8",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeTrack(count:)": "d2373754f00c8ace"
+   }
+  },
+  {
+   "key": "func WorkoutExportersTests.testTCXIsWellFormedXML()",
+   "hash": "1aabbf6fdea19fa3",
+   "does": "Asserts the TCX for a 5-fix track parses as XML.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.export(session:track:)",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeSession(notes:)",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeTrack(count:)"
+   ],
+   "reads": [
+    "ud:fitness.unitsPreference (SharedUserDefaults.appGroup suite, legacy UserDefaults.standard fallback) via UnitsPreferenceStore.current"
+   ],
+   "writes": [
+    "ud:fitness.unitsPreference (app group; written by the getter only when it migrates a legacy standard-suite value)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.export(session:track:)": "b0dacdceb37ebf7b",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeSession(notes:)": "f5652fc76e9b82a8",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeTrack(count:)": "d2373754f00c8ace"
+   }
+  },
+  {
+   "key": "func WorkoutExportersTests.testTCXCarriesTrainingCenterDatabaseRoot()",
+   "hash": "ba1ba303d2ad657c",
+   "does": "Asserts TCX contains TrainingCenterDatabase and <Activities>.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.export(session:track:)",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeSession(notes:)",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeTrack(count:)"
+   ],
+   "reads": [
+    "ud:fitness.unitsPreference (SharedUserDefaults.appGroup suite, legacy UserDefaults.standard fallback) via UnitsPreferenceStore.current"
+   ],
+   "writes": [
+    "ud:fitness.unitsPreference (app group; written by the getter only when it migrates a legacy standard-suite value)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.export(session:track:)": "b0dacdceb37ebf7b",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeSession(notes:)": "f5652fc76e9b82a8",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeTrack(count:)": "d2373754f00c8ace"
+   }
+  },
+  {
+   "key": "func WorkoutExportersTests.testTCXWithEmptyTrackIsStillValid()",
+   "hash": "21bc1271772cf0a8",
+   "does": "Asserts TCX for an empty track parses and still contains a <Trackpoint>.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.export(session:track:)",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeSession(notes:)"
+   ],
+   "reads": [
+    "ud:fitness.unitsPreference (SharedUserDefaults.appGroup suite, legacy UserDefaults.standard fallback) via UnitsPreferenceStore.current"
+   ],
+   "writes": [
+    "ud:fitness.unitsPreference (app group; written by the getter only when it migrates a legacy standard-suite value)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.export(session:track:)": "b0dacdceb37ebf7b",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeSession(notes:)": "f5652fc76e9b82a8"
+   }
+  },
+  {
+   "key": "func WorkoutExportersTests.testTCXLeavesTheNotesOut()",
+   "hash": "9f19903dfe172e4a",
+   "does": "Asserts notes with & and < do not break the TCX parse and are absent from the output.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.export(session:track:)",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeSession(notes:)",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeTrack(count:)"
+   ],
+   "reads": [
+    "ud:fitness.unitsPreference (SharedUserDefaults.appGroup suite, legacy UserDefaults.standard fallback) via UnitsPreferenceStore.current"
+   ],
+   "writes": [
+    "ud:fitness.unitsPreference (app group; written by the getter only when it migrates a legacy standard-suite value)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.export(session:track:)": "b0dacdceb37ebf7b",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeSession(notes:)": "f5652fc76e9b82a8",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeTrack(count:)": "d2373754f00c8ace"
+   }
+  },
+  {
+   "key": "func WorkoutExportersTests.testCSVCarriesCommentHeaderAndSportLine()",
+   "hash": "9ee54d4f9bd58641",
+   "does": "Asserts the CSV starts with '# Emuqu workout export' and contains '# Sport:' and '# Units preference:'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.export(session:track:)",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeSession(notes:)",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeTrack(count:)"
+   ],
+   "reads": [
+    "ud:fitness.unitsPreference (SharedUserDefaults.appGroup suite, legacy UserDefaults.standard fallback) via UnitsPreferenceStore.current"
+   ],
+   "writes": [
+    "ud:fitness.unitsPreference (app group; written by the getter only when it migrates a legacy standard-suite value)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.export(session:track:)": "1f14580a45612a69",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeSession(notes:)": "f5652fc76e9b82a8",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeTrack(count:)": "d2373754f00c8ace"
+   }
+  },
+  {
+   "key": "func WorkoutExportersTests.testCSVRowsAllMatchHeaderColumnCount()",
+   "hash": "40770a5f922523b3",
+   "does": "Asserts every non-comment CSV line has the same comma-split column count as the header (header has >1 column).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.export(session:track:)",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeSession(notes:)",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeTrack(count:)"
+   ],
+   "reads": [
+    "ud:fitness.unitsPreference (SharedUserDefaults.appGroup suite, legacy UserDefaults.standard fallback) via UnitsPreferenceStore.current"
+   ],
+   "writes": [
+    "ud:fitness.unitsPreference (app group; written by the getter only when it migrates a legacy standard-suite value)"
+   ],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "for each data row",
+     "effect": "asserts its column count equals the header's"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.export(session:track:)": "1f14580a45612a69",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeSession(notes:)": "f5652fc76e9b82a8",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeTrack(count:)": "d2373754f00c8ace"
+   }
+  },
+  {
+   "key": "func WorkoutExportersTests.testCSVIncludesRecordedPhysiologyInHeader()",
+   "hash": "d8e6f1646f0352d4",
+   "does": "Asserts the CSV comment header includes TRIMP, Mean HR and RMSSD lines.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.export(session:track:)",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeSession(notes:)",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeTrack(count:)"
+   ],
+   "reads": [
+    "ud:fitness.unitsPreference (SharedUserDefaults.appGroup suite, legacy UserDefaults.standard fallback) via UnitsPreferenceStore.current"
+   ],
+   "writes": [
+    "ud:fitness.unitsPreference (app group; written by the getter only when it migrates a legacy standard-suite value)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.export(session:track:)": "1f14580a45612a69",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeSession(notes:)": "f5652fc76e9b82a8",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeTrack(count:)": "d2373754f00c8ace"
+   }
+  },
+  {
+   "key": "func WorkoutExportersTests.testCSVWithEmptyTrackStillProducesHeader()",
+   "hash": "f6d951821af735aa",
+   "does": "Asserts a CSV for an empty track is non-empty and has the producer comment.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.export(session:track:)",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeSession(notes:)"
+   ],
+   "reads": [
+    "ud:fitness.unitsPreference (SharedUserDefaults.appGroup suite, legacy UserDefaults.standard fallback) via UnitsPreferenceStore.current"
+   ],
+   "writes": [
+    "ud:fitness.unitsPreference (app group; written by the getter only when it migrates a legacy standard-suite value)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.export(session:track:)": "1f14580a45612a69",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeSession(notes:)": "f5652fc76e9b82a8"
+   }
+  },
+  {
+   "key": "func WorkoutExportersTests.testAllExportersTolerateSessionWithoutMetadata()",
+   "hash": "9779a1992c9fa16d",
+   "does": "Asserts a 1-hour workout HRVSession with no workoutMetadata or analysis yields parseable GPX/TCX and non-empty CSV.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.export(session:track:)",
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.export(session:track:)",
+    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.export(session:track:)",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeTrack(count:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)"
+   ],
+   "reads": [
+    "ud:fitness.unitsPreference (SharedUserDefaults.appGroup suite, legacy UserDefaults.standard fallback) via UnitsPreferenceStore.current"
+   ],
+   "writes": [
+    "ud:fitness.unitsPreference (app group; written by the getter only when it migrates a legacy standard-suite value)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.export(session:track:)": "1f14580a45612a69",
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.export(session:track:)": "3308e3d5d6241308",
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.export(session:track:)": "b0dacdceb37ebf7b",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5",
+    "EmuquTests/WorkoutExportersTests.swift::func WorkoutExportersTests.makeTrack(count:)": "d2373754f00c8ace"
+   }
+  },
+  {
+   "key": "func WorkoutExportersTests.makeTrack(count:)",
+   "hash": "c1c12387deee7b54",
+   "does": "Fixture: `count` CLLocations stepping 0.0001° in lat/lon and 1 m altitude, one per second from 1_700_000_000.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutExportersTests.makeSession(notes:)",
+   "hash": "309aa6d34d3d623f",
+   "does": "Fixture: 1-hour workout HRVSession with optional notes, a TimeDomain/Nonlinear HRVAnalysisResult (rmssd 42.5, meanHR 142), WorkoutMetadata (10 km, 180 m gain, luciaTRIMP 137.5, 6 per-minute samples).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)",
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+20",
+     "cond": "notes == nil",
+     "effect": "true: sport .run; false: sport .hike"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933",
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)": "501c2b4e36fffb8e",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "eb772ae55676de35",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "26b496eaa37ca3d8"
+   }
+  }
+ ],
+ "deps": {}
+}

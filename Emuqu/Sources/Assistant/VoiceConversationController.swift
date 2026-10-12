@@ -150,9 +150,6 @@ final class VoiceConversationController: NSObject {
 
     func beginUserTurn() async { await audio.beginUserTurn() }
     func finalizeUserTurn() { audio.finalizeUserTurn() }
-    func finishResponseFromAssistant() { audio.finishResponseFromAssistant() }
-    func observeAssistantStreaming() { audio.observeAssistantStreaming() }
-    func startAudioEngineAndRecognizer() async throws { try await audio.startAudioEngineAndRecognizer() }
 
     /// Pure RMS over a buffer — no controller state. Kept reachable here for
     /// `VoiceAudioMeasurementTests`.
@@ -207,8 +204,14 @@ final class VoiceConversationController: NSObject {
     /// thread); eagerly allocating it at controller construction blocks
     /// the AI chat tab's text field availability at startup. Since we
     /// rarely need the synthesiser before the user's first voice
-    /// interaction, lazy-ing it off the critical path is free.
-    @ObservationIgnored lazy var synthesizer = AVSpeechSynthesizer()
+    /// interaction, lazy-ing it off the critical path is free. The delegate
+    /// is wired here, on first use, so constructing the controller doesn't
+    /// build the synthesizer.
+    @ObservationIgnored lazy var synthesizer: AVSpeechSynthesizer = {
+        let synthesizer = AVSpeechSynthesizer()
+        synthesizer.delegate = self
+        return synthesizer
+    }()
     /// The conversation's voice (`ConversationVoicePicker`), looked up off
     /// the main actor at each voice start (`refreshLanguageForSession`). Nil
     /// until the first lookup lands, when the system default voice speaks.
@@ -225,6 +228,10 @@ final class VoiceConversationController: NSObject {
     @ObservationIgnored lazy var audioEngine = AVAudioEngine()
     @ObservationIgnored var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
     @ObservationIgnored var recognitionTask: SFSpeechRecognitionTask?
+    /// Bumped by each `startFreshRecognitionTask`; a recognition callback
+    /// carries the value its task started with, so callbacks from a task
+    /// that was since replaced are ignored.
+    @ObservationIgnored var recognitionTaskGeneration = 0
     @ObservationIgnored var llmTask: Task<Void, Never>?
     /// Buffers streaming LLM text and emits complete sentences ready for TTS.
     /// Extracted from this controller so the sentence-chunking + markdown-
@@ -275,22 +282,15 @@ final class VoiceConversationController: NSObject {
     /// Saved state to restore after a trigger preemption.
     var preemptedState: State?
 
-    // Pending triggers queue. If every threshold / mile-marker /
-    // decoupling alert preempted the in-flight LLM stream + TTS, a
-    // user mid-question would get their answer cut off and the
-    // trigger would speak instead — perceived as the chat "dying."
-    // So triggers enqueue when the AI is busy and drain when the
-    // current response finishes (synth + LLM both idle), so the
-    // user's answer always completes before the coaching alert
-    // plays. When the AI is idle, triggers fire immediately.
-    enum PendingTrigger {
-        /// `.spoken` tier — message is the literal phrase to TTS.
-        case spokenLiteral(String)
-        /// A PROMPT for the model, whose reply is spoken (the workout
-        /// start readout and post-workout summary).
-        case aiPrompt(String)
-    }
-    var pendingTriggers: [PendingTrigger] = []
+    /// Coach triggers waiting for the current answer to finish
+    /// (`VoiceTriggerQueue`).
+    var pendingTriggers = VoiceTriggerQueue()
+
+    /// Drops the scripted trigger lines still waiting in the queue — the
+    /// workout coach's mute, so nothing it handed over before the tap plays
+    /// after it. Queued AI prompts (the workout start readout, the
+    /// post-workout summary) stay.
+    func discardPendingSpokenTriggers() { pendingTriggers.discardSpokenLines() }
     @ObservationIgnored var silenceTimer: Timer?
     /// Wall-clock moment the TTS started, so we can ignore any transcript
     /// ingested in the first half-second (echo bleed stabilises by then).
@@ -435,9 +435,11 @@ final class VoiceConversationController: NSObject {
     // user doesn't want to babysit the phone. Two mechanisms combine:
     //   1) `audio` UIBackgroundMode + `.playAndRecord` session — Apple-supported
     //      path for foreground audio to continue into background.
-    //   2) Audio-session interruption recovery — phone calls, alarms, and Siri
+    //   2) Audio-session interruption handling — phone calls, alarms, and Siri
     //      can yank the session out from under us; `interruptionObserver`
-    //      re-arms the engine when the interruption ends.
+    //      drops the recognition task when the interruption begins and ends
+    //      the conversation when it ends, so the user re-taps to resume
+    //      rather than voice silently reopening the mic.
     // Voice chat never begins a BackgroundAudioManager cue; only spoken
     // workout cues do, and each releases its own hold, so stop() never
     // touches it.
@@ -446,19 +448,11 @@ final class VoiceConversationController: NSObject {
     /// Retained so we can remove it on stop().
     @ObservationIgnored var interruptionObserver: NSObjectProtocol?
 
-    override init() {
-        super.init()
-        // Cold-start: init only wires the
-        // synthesizer delegate (cheap, no I/O). SFSpeechRecognizer
-        // construction is deferred to boot() so the recognizer's locale-
-        // table loading can't show up on the synchronous launch path.
-        // start()'s existing nil-recognizer guard makes that delay safe —
-        // if the user taps the mic before boot() lands, we surface
-        // VoiceError.recognizerUnavailable cleanly instead of crashing.
-        synthesizer.delegate = self
-    }
-
-    /// Post-first-frame recognizer construction.
+    /// Post-first-frame recognizer construction. Construction does no audio
+    /// or speech work: the synthesizer is built on first use, and the
+    /// recognizer's locale-table loading waits for this call so it can't
+    /// show up on the synchronous launch path. A tap on the mic before it
+    /// lands surfaces `VoiceError.recognizerUnavailable` instead of crashing.
     /// Skipped entirely when `enableVoiceMode` is false. Idempotent — second call
     /// is a no-op once `recognizer` is non-nil.
     @MainActor
@@ -471,11 +465,15 @@ final class VoiceConversationController: NSObject {
     /// Called at each voice start so a change to "Always respond in
     /// English" applies to the next session, not the next launch: re-picks
     /// the TTS voice and rebuilds the recognizer when its locale no longer
-    /// matches.
+    /// matches. Voice mode switched off since launch drops the recognizer,
+    /// so the setting takes effect at the next session too.
     @MainActor
     func refreshLanguageForSession() {
         refreshVoices()
-        guard UserSettings.performanceFlag(.enableVoiceMode) else { return }
+        guard UserSettings.performanceFlag(.enableVoiceMode) else {
+            recognizer = nil
+            return
+        }
         let target = recognizerLocale()
         guard recognizer?.locale.identifier != target.identifier else { return }
         recognizer = Self.makeRecognizer(locale: target)
@@ -513,5 +511,57 @@ final class VoiceConversationController: NSObject {
 
     private static func makeRecognizer(locale: Locale) -> SFSpeechRecognizer? {
         SFSpeechRecognizer(locale: locale) ?? SFSpeechRecognizer(locale: Locale(identifier: "en-US"))
+    }
+}
+
+/// Coach triggers queued behind the conversation. If every threshold /
+/// mile-marker / decoupling alert preempted the in-flight LLM stream + TTS, a
+/// user mid-question would get their answer cut off and the trigger would
+/// speak instead — perceived as the chat "dying." So triggers enqueue when
+/// the AI is busy and drain when the current response finishes (synth + LLM
+/// both idle), so the user's answer always completes before the coaching
+/// alert plays. When the AI is idle, triggers fire immediately.
+struct VoiceTriggerQueue {
+    enum Trigger {
+        /// `.spoken` tier — message is the literal phrase to TTS.
+        case spokenLiteral(String)
+        /// A PROMPT for the model, whose reply is spoken (the workout
+        /// start readout and post-workout summary).
+        case aiPrompt(String)
+    }
+
+    /// If the user holds a long chat turn while triggers fire faster than
+    /// they can drain, the queue would grow unbounded — each entry holds a
+    /// full prompt string. Past this the oldest are dropped: by the time we
+    /// drain, anything more than ~8 alerts old is stale anyway.
+    static let capacity = 8
+
+    private var items: [Trigger] = []
+
+    var isEmpty: Bool { items.isEmpty }
+    var count: Int { items.count }
+
+    /// Appends `trigger`, then drops the oldest entries over `capacity`;
+    /// returns how many were dropped.
+    mutating func enqueue(_ trigger: Trigger) -> Int {
+        items.append(trigger)
+        let drop = max(0, items.count - Self.capacity)
+        items.removeFirst(drop)
+        return drop
+    }
+
+    /// The oldest trigger, removed; nil when the queue is empty.
+    mutating func popFirst() -> Trigger? {
+        items.isEmpty ? nil : items.removeFirst()
+    }
+
+    mutating func removeAll() { items.removeAll() }
+
+    /// Removes every `.spokenLiteral`; queued AI prompts stay.
+    mutating func discardSpokenLines() {
+        items.removeAll { trigger in
+            if case .spokenLiteral = trigger { return true }
+            return false
+        }
     }
 }

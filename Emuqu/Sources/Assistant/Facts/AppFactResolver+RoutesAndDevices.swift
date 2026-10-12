@@ -32,6 +32,17 @@ struct RoutesLibraryNamespace: FactNamespaceResolver {
         MainActor.assumeIsolated { AppDependencies.current.location.savedRouteStore.routes }
     }
 
+    /// The answer while the saved-route library cannot be read: its list
+    /// would read as empty and a change would not be saved. Nil when readable.
+    private func libraryUnreadable() -> FactValue? {
+        let readable = MainActor.assumeIsolated { AppDependencies.current.location.savedRouteStore.isLibraryReadable() }
+        guard !readable else { return nil }
+        return .missing(
+            reason: .notRecorded,
+            detail: "the saved-route library can't be read right now (phone not unlocked since a restart, or the file is damaged); nothing was read or changed — ask again after unlocking the phone"
+        )
+    }
+
     /// Workouts that could be saved, newest first: the ones started on
     /// `dateISO`, or without a date the 20 most recent.
     private func workoutCandidates(matching dateISO: String?) -> [SessionArchiveEntry] {
@@ -91,7 +102,8 @@ struct RoutesLibraryNamespace: FactNamespaceResolver {
             description: "How many routes the user has saved in their route library. Cheap; call this first if you only need a count.",
             valueType: "Int"
         ) {
-            .integer(self.currentRoutes().count)
+            if let unreadable = self.libraryUnreadable() { return unreadable }
+            return .integer(self.currentRoutes().count)
         }
     }
 
@@ -104,6 +116,7 @@ struct RoutesLibraryNamespace: FactNamespaceResolver {
             """,
             valueType: "List"
         ) {
+            if let unreadable = self.libraryUnreadable() { return unreadable }
             let routes = self.currentRoutes()
                 .sorted { $0.createdAt > $1.createdAt }
             if routes.isEmpty {
@@ -139,6 +152,7 @@ struct RoutesLibraryNamespace: FactNamespaceResolver {
         else {
             return .missing(reason: .invalidParameter, detail: "new_name is required and must be non-empty")
         }
+        if let unreadable = libraryUnreadable() { return unreadable }
         let matches = self.currentRoutes().filter { $0.name.caseInsensitiveCompare(current) == .orderedSame }
         guard matches.count == 1 else {
             return ambiguousRoute(name: current, matches: matches.count)
@@ -163,11 +177,12 @@ struct RoutesLibraryNamespace: FactNamespaceResolver {
             key: "routes.library.save_workout",
             description: """
             [ACTION] Save a recent workout to the user's route library under the given name. ONLY call this when the user explicitly asks to save a workout and supplies the new route name in the current turn — never on inference. Without \
-            a `date`, saves the most recent workout that has a GPS polyline, skipping indoor / no-fix sessions. With `date` (yyyy-MM-dd), saves that day's latest workout with a polyline. Errors if none has one.
+            a `date`, saves the newest of the 20 most recent workouts that has a GPS polyline, skipping indoor / no-fix sessions. With `date` (yyyy-MM-dd), saves that day's latest workout with a polyline. Errors if none has one. If that \
+            workout's route is already in the library, returns status 'already_saved' with the existing route's name instead of adding a copy.
             """,
             parameters: [
                 ActionParam("name", "The name the user has asked to save the route under. Example: 'Daily 1'."),
-                ActionParam("date", "Optional yyyy-MM-dd date of the workout to save. Omit (or pass empty string) to save the most recent GPS workout.", required: false)
+                ActionParam("date", "Optional yyyy-MM-dd date of the workout to save. Omit (or pass empty string) to save the newest GPS workout among the 20 most recent.", required: false)
             ]
         ) { args in self.resolveRoutesLibrarySaveWorkout(args) }
     }
@@ -178,6 +193,7 @@ struct RoutesLibraryNamespace: FactNamespaceResolver {
         else {
             return .missing(reason: .invalidParameter, detail: "name is required and must be non-empty")
         }
+        if let unreadable = libraryUnreadable() { return unreadable }
         let candidates = workoutCandidates(matching: requestedDate(args))
         guard !candidates.isEmpty else {
             let detail = requestedDate(args).map { "no workout on \($0)" } ?? "no recent workouts in archive"
@@ -186,10 +202,25 @@ struct RoutesLibraryNamespace: FactNamespaceResolver {
         guard let found = firstSavableRoute(in: candidates, name: name) else {
             return .missing(reason: .invalidParameter, detail: "no GPS polyline on the matching workouts — indoor or no-fix sessions can't be saved as routes")
         }
-        MainActor.assumeIsolated {
-            AppDependencies.current.location.savedRouteStore.add(found.route)
+        return addUnlessSaved(found.route, from: found.entry)
+    }
+
+    /// Adds the route unless the library already holds the same recorded
+    /// path. Saving one workout twice would leave two same-named routes,
+    /// which rename and engage then refuse as ambiguous.
+    private func addUnlessSaved(_ route: SavedRoute, from entry: SessionArchiveEntry) -> FactValue {
+        if let existing = currentRoutes().first(where: { $0.encodedPolyline == route.encodedPolyline }) {
+            return .record([
+                "status": .string("already_saved"),
+                "id": .string(existing.id.uuidString),
+                "name": .string(existing.name),
+                "from_workout_date": .string(ISO8601DateFormatter().string(from: entry.date))
+            ])
         }
-        return .record(savedRouteRecord(found.route, from: found.entry))
+        MainActor.assumeIsolated {
+            AppDependencies.current.location.savedRouteStore.add(route)
+        }
+        return .record(savedRouteRecord(route, from: entry))
     }
 
     private func requestedDate(_ args: [String: String]) -> String? {
@@ -242,6 +273,7 @@ struct RoutesLibraryNamespace: FactNamespaceResolver {
         _ saved: SavedRoute,
         from userLoc: CLLocation
     ) async -> FactValue {
+        if let unusable = Self.unusableRoute(saved) { return unusable }
         guard let result = await buildSyntheticRoute(saved, from: userLoc) else {
             return .missing(
                 reason: .notRecorded,
@@ -250,6 +282,17 @@ struct RoutesLibraryNamespace: FactNamespaceResolver {
         }
         engage(result)
         return .record(engagedRouteRecord(result))
+    }
+
+    /// The builder returns nil both for a route with under two points and on
+    /// the 3 s timeout; only the timeout is worth retrying, so a route that
+    /// can never build is answered here.
+    @MainActor private static func unusableRoute(_ saved: SavedRoute) -> FactValue? {
+        guard saved.toRoute().trackpoints.count < 2 else { return nil }
+        return .missing(
+            reason: .notRecorded,
+            detail: "saved route '\(saved.name)' has no usable GPS path and can't be followed; asking again won't help — the user can save it again from a GPS workout"
+        )
     }
 
     @MainActor private func engage(_ result: SavedRouteStepBuilder.BuildResult) {
@@ -403,6 +446,16 @@ struct AppDevicesNamespace: FactNamespaceResolver {
         MainActor.assumeIsolated { RRCollector.current?.polarManager }
     }
 
+    /// The Polar manager only while a strap is linked. What it holds after a
+    /// drop describes no connected device: the device type survives a
+    /// mid-stream drop and the recording-hours counter survives every one.
+    private func connectedPolar() -> PolarManager? {
+        MainActor.assumeIsolated {
+            guard let p = RRCollector.current?.polarManager, p.connectionState == .connected else { return nil }
+            return p
+        }
+    }
+
     var entries: [FactEntry] {
         [
             appDevicesPolarConnectedEntry,
@@ -437,10 +490,10 @@ struct AppDevicesNamespace: FactNamespaceResolver {
     private var appDevicesPolarBatteryPercentEntry: FactEntry {
         .fixed(
             key: "app.devices.polar.battery_percent",
-            description: "Last reported Polar battery level (0–100). May be stale — Polar's BLE SDK reports opportunistically. Cross-check with app.devices.polar.recording_hours_since_charge for the honest 'how much capacity is left' answer.",
+            description: "Last battery level (0–100) the connected Polar reported. May be stale — Polar's BLE SDK reports opportunistically and the level moves in coarse steps. For time left, see app.devices.polar.spec_capacity_hours.",
             valueType: "Int"
         ) {
-            guard let p = self.polar() else {
+            guard let p = self.connectedPolar() else {
                 return .missing(reason: .notRecorded, detail: "no Polar connected")
             }
             let lvl = MainActor.assumeIsolated { p.batteryLevel }
@@ -451,10 +504,10 @@ struct AppDevicesNamespace: FactNamespaceResolver {
     private var polarHoursSinceChargeEntry: FactEntry {
         .fixed(
             key: "app.devices.polar.recording_hours_since_charge",
-            description: "Hours of recording the connected Polar has accumulated since the last detected full charge. Compare against app.devices.polar.spec_capacity_hours for an honest battery prediction (Polar's reported percentage often stalls).",
+            description: "Hours the connected Polar has recorded since it last reported a CHANGED battery level — not since a full charge: the counter restarts at every new level (80 % to 79 % included). Time spent at the current battery_percent so far.",
             valueType: "Double"
         ) {
-            guard let p = self.polar() else {
+            guard let p = self.connectedPolar() else {
                 return .missing(reason: .notRecorded, detail: "no Polar connected")
             }
             let h = MainActor.assumeIsolated { p.hoursRecordedSinceBatteryChanged }
@@ -465,10 +518,10 @@ struct AppDevicesNamespace: FactNamespaceResolver {
     private var appDevicesPolarSpecCapacityHoursEntry: FactEntry {
         .fixed(
             key: "app.devices.polar.spec_capacity_hours",
-            description: "Manufacturer-published recording capacity for the connected Polar (H10 ≈ 400 h, Verity Sense ≈ 30 h). Use as the denominator for 'how much battery time is left'.",
+            description: "Manufacturer-published recording capacity of a full battery for the connected Polar (H10 ≈ 400 h, Verity Sense ≈ 30 h). Estimate time left as spec_capacity_hours × battery_percent / 100 minus recording_hours_since_charge; never as spec_capacity_hours minus recording_hours_since_charge.",
             valueType: "Double"
         ) {
-            guard let p = self.polar(),
+            guard let p = self.connectedPolar(),
                   let t = MainActor.assumeIsolated({ p.connectedDeviceType })
             else {
                 return .missing(reason: .notRecorded, detail: "no Polar connected")
@@ -483,7 +536,7 @@ struct AppDevicesNamespace: FactNamespaceResolver {
             description: "Connected Polar device type: 'Polar H10' (chest strap) or 'Polar Verity Sense' (optical armband).",
             valueType: "String"
         ) {
-            guard let p = self.polar(), let t = MainActor.assumeIsolated({ p.connectedDeviceType }) else {
+            guard let p = self.connectedPolar(), let t = MainActor.assumeIsolated({ p.connectedDeviceType }) else {
                 return .missing(reason: .notRecorded, detail: "no Polar connected")
             }
             return .string(t.displayName)
@@ -496,7 +549,7 @@ struct AppDevicesNamespace: FactNamespaceResolver {
             description: "Firmware/software revision string of the connected Polar device.",
             valueType: "String"
         ) {
-            guard let p = self.polar() else {
+            guard let p = self.connectedPolar() else {
                 return .missing(reason: .notRecorded, detail: "no Polar connected")
             }
             let fw = MainActor.assumeIsolated { p.firmwareVersion }

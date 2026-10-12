@@ -1,0 +1,1721 @@
+{
+ "file": "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift",
+ "hash": "fe1b09b3ba297c30",
+ "role": "Extension of MorningReanalysisControls holding the morning-results analysis-window picker (automatic methods + manual 'Choose Window'), live and persistent auto-vs-chosen comparison banners, the overnight strap re-merge card, provenance rows, PDF/email report rendering and the RR CSV export; plus file-scope view helpers.",
+ "types": [
+  "MorningReanalysisControls: extension — window-method/manual-window/strap-merge/report-export UI and actions (struct declared in MorningReanalysisControls.swift)",
+  "MorningReanalysisControls.ReportInputs: struct (private) — value-type bundle of sleep/sleepTrend/HK HR/vitals/composite/breakdown/baseline/live load/recent sessions passed to the detached PDF render"
+ ],
+ "state": [
+  "file:<tmp>/Emuqu_RR_yyyy-MM-dd_HHmm.csv (temporaryDirectory, written by exportRRData, MorningResultsView+Reanalysis.swift:820)"
+ ],
+ "toplevel": "File-scope private helpers persistentScoreDiffColumn/rmssdColumn/comparisonColumn/provenanceRow/rrExportRows sit outside the extension (lines 858-945); no global state.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var MorningReanalysisControls.windowSelectionMethodSection",
+   "hash": "a0b2347a0e66ad9c",
+   "does": "Builds the 'Analysis Window' card: header, method menu + Choose Window button, tooltip, live manual comparison banner, manual pick rejection message, persistent auto-vs-yours banner, and provenance rows, on a tinted rounded background.",
+   "entry": "SwiftUI view property; rendered via MorningResultsView.windowSelectionMethodSection (MorningResultsView+ReanalysisForwarding.swift:31) from interChartSections when vm.hasRawData and onReanalyze != nil; also rendered directly by EmuquTests/UncoveredScreenSnapshotTests.swift:225.",
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.windowMethodHeader",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.windowMethodPicker",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.windowMethodTooltip",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.manualComparisonBanner",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.manualPickRejection",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.persistentWindowComparisonBanner()",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.provenanceView"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.persistentWindowComparisonBanner()": "c86a53bd6e11092b",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.manualComparisonBanner": "a53843fea5818f14",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.manualPickRejection": "84cfa5ec06388bc7",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.provenanceView": "9375093bc9f60bfd",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.windowMethodHeader": "3a4c55700c697806",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.windowMethodPicker": "6eb8c5691477c2eb",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.windowMethodTooltip": "93d789013b6cf4ff",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sectionTint": "6c53c4c95f5cb401"
+   }
+  },
+  {
+   "key": "var MorningReanalysisControls.windowMethodTooltip",
+   "hash": "16e047f6146b7b57",
+   "does": "Caption text with the tooltip of the custom method when manual mode is on, else of vm.selectedMethod.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/WindowSelectionMethod.swift::var WindowSelectionMethod.tooltip"
+   ],
+   "reads": [
+    "mem:MorningResultsViewModel.selectedMethod"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "isManualWindowMode",
+     "effect": "true: WindowSelectionMethod.custom.tooltip ('Tap or drag on the chart…'); false: vm.selectedMethod.tooltip"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/WindowSelectionMethod.swift::var WindowSelectionMethod.tooltip": "5f08ccd4613a5adc",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var MorningReanalysisControls.windowMethodHeader",
+   "hash": "0095b00d57397359",
+   "does": "Static header row: 'scope' glyph and localized 'Analysis Window' title.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+   }
+  },
+  {
+   "key": "var MorningReanalysisControls.windowMethodPicker",
+   "hash": "bf2d7fdce85b1d84",
+   "does": "HStack of the method dropdown menu and the Choose Window button.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.windowMethodMenu",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.chooseYourOwnButton"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.chooseYourOwnButton": "7e438a1d815fa03a",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.windowMethodMenu": "6632a6a1f8fd227d"
+   }
+  },
+  {
+   "key": "var MorningReanalysisControls.windowMethodMenu",
+   "hash": "a2362bdde9bca838",
+   "does": "SwiftUI Menu whose items are windowMethodOptions and whose label is windowMethodMenuLabel.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.windowMethodOptions",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.windowMethodMenuLabel"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.windowMethodMenuLabel": "1c089f909e5e043f",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.windowMethodOptions": "1bd27b4fe23d7fc0"
+   }
+  },
+  {
+   "key": "var MorningReanalysisControls.windowMethodOptions",
+   "hash": "0d0f4149ddeec50b",
+   "does": "One Button per WindowSelectionMethod.automaticMethods (Best Recovery, Highest RMSSD/SDNN/Total Power) labelled with displayName/icon; tapping calls selectWindowMethod(method).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/WindowSelectionMethod.swift::var WindowSelectionMethod.automaticMethods",
+    "Emuqu/Sources/Models/WindowSelectionMethod.swift::var WindowSelectionMethod.displayName",
+    "Emuqu/Sources/Models/WindowSelectionMethod.swift::var WindowSelectionMethod.icon",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.selectWindowMethod(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/WindowSelectionMethod.swift::var WindowSelectionMethod.automaticMethods": "1e815bfa47a76391",
+    "Emuqu/Sources/Models/WindowSelectionMethod.swift::var WindowSelectionMethod.displayName": "921e5727692ec43d",
+    "Emuqu/Sources/Models/WindowSelectionMethod.swift::var WindowSelectionMethod.icon": "1e1001bbb0161e08",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.selectWindowMethod(_:)": "f67db9498a7ddcf6"
+   }
+  },
+  {
+   "key": "func MorningReanalysisControls.selectWindowMethod(_:)",
+   "hash": "cd17fc893261df14",
+   "does": "On a different method: sets vm.selectedMethod, persists it as the global defaultWindowSelectionMethod in SettingsManager.settings (didSet -> save to user_settings.json), leaves manual mode, clears manualResult, and re-runs analysis with that method.",
+   "entry": "Menu item button action (windowMethodOptions).",
+   "calls": [
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.reanalyzeWithMethod(_:)"
+   ],
+   "reads": [
+    "mem:MorningResultsViewModel.selectedMethod"
+   ],
+   "writes": [
+    "mem:MorningResultsViewModel.selectedMethod",
+    "mem:SettingsManager.settings.defaultWindowSelectionMethod",
+    "file:user_settings.json (skipped when loadOutcome == .blockedByProtection, SettingsManager.swift:28)",
+    "notif:flowRecoverySettingsChanged (SettingsManager.swift:39)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "vm.selectedMethod == method",
+     "effect": "true: return without doing anything; false: apply and reanalyze"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.reanalyzeWithMethod(_:)": "4c2723207f39d23b"
+   }
+  },
+  {
+   "key": "var MorningReanalysisControls.windowMethodMenuLabel",
+   "hash": "386d96bf974b77ee",
+   "does": "Bordered dropdown label: icon + name of the custom window when in manual mode, else the selected method's icon/shortName, chevron, and an accessibility label naming the method.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/WindowSelectionMethod.swift::var WindowSelectionMethod.icon",
+    "Emuqu/Sources/Models/WindowSelectionMethod.swift::var WindowSelectionMethod.shortName"
+   ],
+   "reads": [
+    "mem:MorningResultsViewModel.selectedMethod"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "isManualWindowMode",
+     "effect": "true: custom icon 'hand.draw.fill'; false: vm.selectedMethod.icon"
+    },
+    {
+     "at": "+4",
+     "cond": "isManualWindowMode",
+     "effect": "true: 'Custom Window'; false: vm.selectedMethod.shortName"
+    },
+    {
+     "at": "+20",
+     "cond": "isManualWindowMode",
+     "effect": "accessibility label names 'Custom Window' when true, else the selected method's shortName"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/WindowSelectionMethod.swift::var WindowSelectionMethod.icon": "1e1001bbb0161e08",
+    "Emuqu/Sources/Models/WindowSelectionMethod.swift::var WindowSelectionMethod.shortName": "196bda7df9419c41",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sectionTint": "6c53c4c95f5cb401",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+   }
+  },
+  {
+   "key": "var MorningReanalysisControls.chooseYourOwnButton",
+   "hash": "535983790ee69360",
+   "does": "Shows the 'Choose Window'/'Exit' button only when an onReanalyzeAt callback was supplied; tapping toggles manual window mode.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.toggleManualWindowMode()",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.chooseYourOwnLabel"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "onReanalyzeAt != nil",
+     "effect": "true: render the button; false: render nothing (no manual picking for this caller, e.g. ImportDataView)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.toggleManualWindowMode()": "d8c2ea635b1b9ce6",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.chooseYourOwnLabel": "4622b3d1db529376"
+   }
+  },
+  {
+   "key": "func MorningReanalysisControls.toggleManualWindowMode()",
+   "hash": "68698af1bdb91781",
+   "does": "Toggles isManualWindowMode; when it turns off, clears the preview manualResult.",
+   "entry": "Choose Window button action.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "!isManualWindowMode after toggle",
+     "effect": "true: manualResult = nil; false: keep it"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var MorningReanalysisControls.chooseYourOwnLabel",
+   "hash": "af9e451de88ac7cb",
+   "does": "Pill label 'Choose Window' (tinted) or 'Exit' (primary-filled, white text) depending on manual mode.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "isManualWindowMode",
+     "effect": "text 'Exit' vs 'Choose Window'"
+    },
+    {
+     "at": "+9",
+     "cond": "isManualWindowMode",
+     "effect": "background primary vs sectionTint"
+    },
+    {
+     "at": "+10",
+     "cond": "isManualWindowMode",
+     "effect": "foreground white vs textPrimary"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sectionTint": "6c53c4c95f5cb401",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+   }
+  },
+  {
+   "key": "var MorningReanalysisControls.manualComparisonBanner",
+   "hash": "0320d61107afdf86",
+   "does": "Live preview comparison banner, shown only in manual mode once a manual result exists.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.manualComparisonBanner(manual:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "isManualWindowMode && manualResult != nil",
+     "effect": "true: manualComparisonBanner(manual:); false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.manualComparisonBanner(manual:)": "5da7ac06599f7741"
+   }
+  },
+  {
+   "key": "var MorningReanalysisControls.manualPickRejection",
+   "hash": "e53c086392be21e5",
+   "does": "Warning row showing manualPickMessage (pick rejected / apply failed) while in manual mode.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "isManualWindowMode && manualPickMessage != nil",
+     "effect": "true: gold warning row with the message; false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var MorningReanalysisControls.overnightStrapMergeCard",
+   "hash": "682df06d33142f73",
+   "does": "Card offering to pull the strap's full-night recording for a streaming-only overnight: header, explanatory text, status message and pull button.",
+   "entry": "SwiftUI view property; rendered via MorningResultsView.overnightStrapMergeCard from dataSourceSection when dataSourceSummary.selectedSource == \"streaming\".",
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.strapMergeHeader",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.strapMergeStatus",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.strapMergeButton"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.strapMergeButton": "3a434d36ed58c838",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.strapMergeHeader": "7da91a7006db4505",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.strapMergeStatus": "49106c9870d529fe",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var MorningReanalysisControls.strapMergeHeader",
+   "hash": "aef4294b28a85dfa",
+   "does": "Static header: heart-download glyph and 'Merge full night from strap'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+   }
+  },
+  {
+   "key": "var MorningReanalysisControls.strapMergeStatus",
+   "hash": "ebfa594304525ee8",
+   "does": "Shows strapMergeMessage text when set.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "strapMergeMessage != nil",
+     "effect": "true: footnote text; false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var MorningReanalysisControls.strapMergeButton",
+   "hash": "e4a12c597b69ccee",
+   "does": "Button that calls mergeOvernightFromStrap; disabled while strapMergeWorking.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.mergeOvernightFromStrap()",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.overnightStrapMergeCardLabel"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.mergeOvernightFromStrap()": "974844f2461c4579",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.overnightStrapMergeCardLabel": "e1e5e4a3e0d34423"
+   }
+  },
+  {
+   "key": "func MorningReanalysisControls.mergeOvernightFromStrap()",
+   "hash": "1dec359c359c4d1e",
+   "does": "Sets strapMergeWorking, clears the message, then asynchronously asks the collector to reconnect to the strap, pull its stored overnight recording, merge and re-score the session; on .merged reloads the full session into vm.reanalyzedSession; finally clears the working flag and shows an outcome message.",
+   "entry": "strapMergeButton tap.",
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.augmentOvernightFromStrap(sessionId:)",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.augmentOvernightFromStrap(sessionId:)",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.showMergedSession(_:)",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.mergeOutcomeMessage(for:)",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession"
+   ],
+   "reads": [
+    "ble:Polar H10 stored exercise",
+    "archive:SessionArchive.retrieve"
+   ],
+   "writes": [
+    "archive:SessionArchive.archive (via reanalyzeSession inside augment)",
+    "notif:ArchiveSignal (notifyChanged inside augment)"
+   ],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "result is .merged",
+     "effect": "true: await showMergedSession(sessionId); false: skip reload"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.augmentOvernightFromStrap(sessionId:)": "a0a14c62552ed068",
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.augmentOvernightFromStrap(sessionId:)": "5236aba59d4fa262",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession": "eccc568f4bbb99c3",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.mergeOutcomeMessage(for:)": "814c7673d63fb5e1",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.showMergedSession(_:)": "f4671f865619a774"
+   }
+  },
+  {
+   "key": "func MorningReanalysisControls.showMergedSession(_:)",
+   "hash": "b5c7ac0cabcf2279",
+   "does": "Loads the full archived session (with rrSeries) off-main and assigns it to vm.reanalyzedSession so merged beats/data-source summary appear even if the archive observer skipped the reload.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.retrieveFullSessionAsync(_:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.retrieveOrLog"
+   ],
+   "writes": [
+    "mem:MorningResultsViewModel.reanalyzedSession"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "retrieveFullSessionAsync returned nil",
+     "effect": "true: return silently (screen keeps pre-merge session while the message still says 'Merged'); false: assign"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.retrieveFullSessionAsync(_:)": "0f232a98a915f52c",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)": "f0a309cc2b24de13"
+   }
+  },
+  {
+   "key": "func MorningReanalysisControls.mergeOutcomeMessage(for:)",
+   "hash": "5baa8f741b9ca80f",
+   "does": "Maps an OvernightAugmentResult to a localized user message.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .merged",
+     "effect": "merged: beats count, plus recovery score when present"
+    },
+    {
+     "at": "+3",
+     "cond": "score == nil",
+     "effect": "true: 'Merged — N beats.'; false: 'Merged — N beats, recovery S.' with S = safeDisplayScore(score*10)"
+    },
+    {
+     "at": "+7",
+     "cond": "case .notReachable",
+     "effect": "'Couldn't reach the strap…'"
+    },
+    {
+     "at": "+9",
+     "cond": "case .noStrapData",
+     "effect": "'No overnight recording found…'"
+    },
+    {
+     "at": "+11",
+     "cond": "case .alreadyMerged",
+     "effect": "'This night already includes the strap recording.'"
+    },
+    {
+     "at": "+13",
+     "cond": "case .failed",
+     "effect": "'Couldn't merge — try again.'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)": "243c4d1d41c669f4",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var MorningReanalysisControls.overnightStrapMergeCardLabel",
+   "hash": "b3000887722c1e07",
+   "does": "Full-width sage button label: spinner + 'Pulling from strap…' while working, else 'Pull from strap & merge'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "strapMergeWorking",
+     "effect": "true: show ProgressView; false: none"
+    },
+    {
+     "at": "+3",
+     "cond": "strapMergeWorking",
+     "effect": "label text working vs idle"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func MorningReanalysisControls.persistentWindowComparisonBanner()",
+   "hash": "30b6c65867237027",
+   "does": "Persistent 'Your Window vs Auto' banner shown on a session whose window the user adjusted and that kept the auto window result.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.persistentBannerHeader",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.persistentBannerColumns(auto:)"
+   ],
+   "reads": [
+    "archive:HRVSession.windowUserAdjusted/autoWindowResult (via vm.displaySession)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "displaySession.windowUserAdjusted == true && autoWindowResult != nil",
+     "effect": "true: header + columns; false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession": "eccc568f4bbb99c3",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.persistentBannerColumns(auto:)": "88d498ac8a42dfd4",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.persistentBannerHeader": "e0bf2b1b23ebad59",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+   }
+  },
+  {
+   "key": "var MorningReanalysisControls.persistentBannerHeader",
+   "hash": "aa3ec9fb66e10164",
+   "does": "Static header row 'Your Window vs Auto'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+   }
+  },
+  {
+   "key": "func MorningReanalysisControls.persistentBannerColumns(auto:)",
+   "hash": "cac54ffed117bc01",
+   "does": "Three columns separated by 56 pt dividers: Auto (autoWindowScore, auto RMSSD), Yours (displaySession.recoveryScore, displayResult RMSSD), and the score diff.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displayResult",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.windowStatColumn(title:score:rmssd:tint:)",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func comparisonDivider(height:)",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func persistentScoreDiffColumn(autoScore:yoursScore:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displayResult": "215489cda008c57b",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession": "eccc568f4bbb99c3",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.windowStatColumn(title:score:rmssd:tint:)": "903f96657b17ecaa",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func comparisonDivider(height:)": "7e0f4f965b30f511",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func persistentScoreDiffColumn(autoScore:yoursScore:)": "ee4f52313a9f1ef4",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+   }
+  },
+  {
+   "key": "func MorningReanalysisControls.windowStatColumn(title:score:rmssd:tint:)",
+   "hash": "e309c9805bb3e4e7",
+   "does": "Column with title, the display score ScoreVerdict.safeDisplayScore(score*10) (clamped 0–100, non-finite → 0; or '—' when nil), 'Score' caption and rounded RMSSD in ms.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "score != nil",
+     "effect": "clamped display score in app locale; else —"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)": "503106affd4064c8",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "func MorningReanalysisControls.manualComparisonBanner(manual:)",
+   "hash": "44a5fefad913ce29",
+   "does": "Live 'Comparing Windows' banner with Auto/Yours/Diff RMSSD columns and the Apply/Cancel actions for a previewed manual window.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.comparisonColumns(manual:)",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.manualWindowActions(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.comparisonColumns(manual:)": "03c4a487642fbdbb",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.manualWindowActions(_:)": "a0a2a0e2d6d101e0",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+   }
+  },
+  {
+   "key": "var MorningReanalysisControls.autoComparisonResult",
+   "hash": "eb35c2d528adfc55",
+   "does": "The Auto column's result: displaySession.autoWindowResult while the night carries a manual pick (windowUserAdjusted == true) and one was kept; otherwise vm.displayResult, which follows a method switch (that clears windowUserAdjusted but leaves the old autoWindowResult).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displayResult"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "windowUserAdjusted == true and autoWindowResult set",
+     "effect": "kept auto result; else displayResult"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displayResult": "215489cda008c57b",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession": "eccc568f4bbb99c3"
+   }
+  },
+  {
+   "key": "func MorningReanalysisControls.comparisonColumns(manual:)",
+   "hash": "13bf4ce254a74e85",
+   "does": "HStack of rmssdColumn(Auto, autoComparisonResult), 50 pt divider, rmssdColumn(Yours, manual), divider, diffColumn.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func rmssdColumn(titleKey:from:tint:)",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.autoComparisonResult",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func comparisonDivider(height:)",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.diffColumn(manual:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.diffColumn(manual:)": "e33a4bff3c17585c",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func comparisonDivider(height:)": "7e0f4f965b30f511",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func rmssdColumn(titleKey:from:tint:)": "fd841d3787f279c4",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.autoComparisonResult": "73d6df3c8d8b4ab1",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+   }
+  },
+  {
+   "key": "func MorningReanalysisControls.diffColumn(manual:)",
+   "hash": "917bbbc3219a9eea",
+   "does": "Signed RMSSD delta (manual − auto) column, sage when >= 0 else terracotta, footnoted with the manual window's classification short label.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.autoComparisonResult",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func comparisonColumn(title:value:color:footnote:)",
+    "Emuqu/Sources/Analysis/WindowSelection.swift::var WindowSelector.RecoveryWindow.WindowClassification.shortLabel",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.displayWindowClassification"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "delta >= 0",
+     "effect": "sage colour; else terracotta"
+    },
+    {
+     "at": "+6",
+     "cond": "windowClassification maps to a WindowClassification",
+     "effect": "true: its shortLabel; nil/unknown raw value: fallback manual.displayWindowClassification (may be nil -> no footnote)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WindowSelection.swift::var WindowSelector.RecoveryWindow.WindowClassification.shortLabel": "c60a7d84d7b9c0c8",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.displayWindowClassification": "05705434f873a955",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func comparisonColumn(title:value:color:footnote:)": "b677cd0d4bbc154e",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.autoComparisonResult": "73d6df3c8d8b4ab1"
+   }
+  },
+  {
+   "key": "func MorningReanalysisControls.manualWindowActions(_:)",
+   "hash": "1ad0b9cabdb9fa09",
+   "does": "Shows Apply/Cancel buttons only when an onApplyManualResult callback exists.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.manualWindowButtons(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "onApplyManualResult != nil",
+     "effect": "true: buttons; false: preview only, no way to persist the pick"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.manualWindowButtons(_:)": "b1c240d10618b63c"
+   }
+  },
+  {
+   "key": "func MorningReanalysisControls.manualWindowButtons(_:)",
+   "hash": "65f387bd8ae7419f",
+   "does": "Cancel (clears manualResult and manualPickMessage) and Apply (applyManualWindowChoice) buttons, both disabled while vm.isReanalyzing.",
+   "entry": "Button actions.",
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.cancelManualLabel",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.applyManualLabel",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.applyManualWindowChoice(_:)"
+   ],
+   "reads": [
+    "mem:MorningResultsViewModel.isReanalyzing"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.applyManualWindowChoice(_:)": "ae0a4f5cacd7a55b",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.applyManualLabel": "6ce4872edfd54026",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.cancelManualLabel": "9bf5a57cb43bdf06"
+   }
+  },
+  {
+   "key": "var MorningReanalysisControls.cancelManualLabel",
+   "hash": "1cfbd913c4a9e5b0",
+   "does": "Static 'Cancel' pill label.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sectionTint": "6c53c4c95f5cb401",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+   }
+  },
+  {
+   "key": "var MorningReanalysisControls.applyManualLabel",
+   "hash": "8fe5642bb6ab72a9",
+   "does": "'Apply' pill label with a spinner while reanalyzing, else a checkmark.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:MorningResultsViewModel.isReanalyzing"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "vm.isReanalyzing",
+     "effect": "true: white ProgressView; false: checkmark icon"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "380cb385515abafc",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func MorningReanalysisControls.applyManualWindowChoice(_:)",
+   "hash": "b987aa5ac76ca580",
+   "does": "Logs old/new RMSSD and score, sets isReanalyzing, then awaits onApplyManualResult(manual) (callers wire RRCollector.applyManualAnalysis -> ReanalysisService, which starts from the current archived copy of the session, sets windowUserAdjusted, rescores and re-archives) and finishes on the MainActor.",
+   "entry": "Apply button.",
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displayResult",
+    "closure:onApplyManualResult — set by HistoryView (collector.applyManualAnalysis) and RecordView+Sections (applyManualMorningResult)",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.finishManualApply(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:MorningResultsViewModel.isReanalyzing",
+    "archive:SessionArchive.archive (via callback)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "onApplyManualResult == nil",
+     "effect": "return without doing anything"
+    },
+    {
+     "at": "+4",
+     "cond": "oldScore == nil",
+     "effect": "log 'nil' instead of the formatted score"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displayResult": "215489cda008c57b",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession": "eccc568f4bbb99c3",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.finishManualApply(_:)": "99aa4018387ae216"
+   }
+  },
+  {
+   "key": "func MorningReanalysisControls.finishManualApply(_:)",
+   "hash": "439e69f7cec20727",
+   "does": "On success puts the updated session into vm.reanalyzedSession, clears manualResult and exits manual mode; on nil shows an apply-failed message; always clears isReanalyzing.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:MorningResultsViewModel.reanalyzedSession",
+    "mem:MorningResultsViewModel.isReanalyzing"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "updated != nil",
+     "effect": "true: adopt session, clear preview, exit manual mode, log; false: manualPickMessage='Couldn't apply this window…', log failure"
+    },
+    {
+     "at": "+6",
+     "cond": "recoveryScore / analysisResult / windowUserAdjusted nil inside log",
+     "effect": "log prints 'nil', 0 ms, false respectively"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "var MorningReanalysisControls.pdfLoadingOverlay",
+   "hash": "93ea3251343d457f",
+   "does": "Full-screen dimmed overlay with spinner and 'Generating PDF...'.",
+   "entry": "Rendered by MorningResultsView.resultsStack when vm.isGeneratingPDF.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e"
+   }
+  },
+  {
+   "key": "var MorningReanalysisControls.provenanceView",
+   "hash": "9d8edd49ac0ecdfc",
+   "does": "VStack of the window and segment provenance rows.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.windowProvenanceRow",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.segmentProvenanceRow"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.segmentProvenanceRow": "c1160fb4ee9f4897",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.windowProvenanceRow": "ba561cc58a0c5c02"
+   }
+  },
+  {
+   "key": "var MorningReanalysisControls.windowProvenanceRow",
+   "hash": "f506e6448810b6d1",
+   "does": "'Window: start – end' row using wall-clock times from the RR series for the result's windowStartMs/EndMs.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displayResult",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession",
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.wallClockTime(forTMs:)",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func provenanceRow(glyph:text:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "windowStartMs, windowEndMs and displaySession.rrSeries all non-nil",
+     "effect": "true: row; false: nothing (lightweight session before hydration shows no window row)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.wallClockTime(forTMs:)": "8f9579b405dd05f1",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displayResult": "215489cda008c57b",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession": "eccc568f4bbb99c3",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func provenanceRow(glyph:text:)": "96a94fa6b3f1d24a"
+   }
+  },
+  {
+   "key": "var MorningReanalysisControls.segmentProvenanceRow",
+   "hash": "d96f773c6b018417",
+   "does": "'From: <segment>' row when the result names an analysis segment.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displayResult",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func provenanceRow(glyph:text:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "displayResult.analysisSegmentLabel != nil",
+     "effect": "true: row; false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displayResult": "215489cda008c57b",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func provenanceRow(glyph:text:)": "96a94fa6b3f1d24a"
+   }
+  },
+  {
+   "key": "var MorningReanalysisControls.availableReportSections",
+   "hash": "dc6bbc82e1e8c5c7",
+   "does": "Computes which PDF sections have data: always hrvSummary; overnightStats if raw RR and overnight; sleep if HK sleep minutes > 0; trainingLoad if training context/snapshot; vitals if reportVitals exist; scoreBreakdown if composite > 0; charts and deepDive if raw RR.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.hasRawData",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displayResult",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.compositeRecoveryScore",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.reportVitals"
+   ],
+   "reads": [
+    "mem:MorningResultsViewModel.healthKitSleep",
+    "mem:MorningResultsViewModel.recoveryVitals"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "hasRawData && sessionType == .overnight",
+     "effect": "insert .overnightStats"
+    },
+    {
+     "at": "+5",
+     "cond": "healthKitSleep with nightSleepMinutes > 0",
+     "effect": "insert .sleep"
+    },
+    {
+     "at": "+6",
+     "cond": "trainingContext != nil || trainingSnapshot != nil",
+     "effect": "insert .trainingLoad"
+    },
+    {
+     "at": "+7",
+     "cond": "reportVitals != nil",
+     "effect": "insert .vitals"
+    },
+    {
+     "at": "+8",
+     "cond": "compositeRecoveryScore > 0",
+     "effect": "insert .scoreBreakdown"
+    },
+    {
+     "at": "+9",
+     "cond": "hasRawData",
+     "effect": "insert .charts and .deepDive"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.compositeRecoveryScore": "b00af62d5eb939c7",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displayResult": "215489cda008c57b",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession": "eccc568f4bbb99c3",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.hasRawData": "0ed6faa0cdc6c34f",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.reportVitals": "eb84b79d1e7342f4"
+   }
+  },
+  {
+   "key": "var MorningReanalysisControls.reportVitals",
+   "hash": "6a1bcfc4f11cf463",
+   "does": "Vitals for the report: for a historical session the frozen session.vitalsSnapshot, else live vm.recoveryVitals; for today's session the live vitals. Shared by the section picker and reportInputs.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.isHistoricalSession"
+   ],
+   "reads": [
+    "mem:MorningResultsViewModel.recoveryVitals"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "vm.isHistoricalSession",
+     "effect": "snapshot ?? live; else live"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "25ff7cdb40a8ca69",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.isHistoricalSession": "80173b2efd370453",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.recoveryVitals()": "6b42d93fc6f07dd7"
+   }
+  },
+  {
+   "key": "func MorningReanalysisControls.exportPDF(style:sections:onFailure:)",
+   "hash": "7d303aa54459719e",
+   "does": "Sets vm.isGeneratingPDF, then in a Task renders the PDF (renderPDFAsync) and hands the URL to finishExportPDF on the main actor with onFailure.",
+   "entry": "Report section picker's onGenerate, via the MorningResultsView forwarder",
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.renderPDFAsync(style:sections:)",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.finishExportPDF(_:onFailure:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:MorningResultsViewModel.isGeneratingPDF"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.finishExportPDF(_:onFailure:)": "16521ec532a28c8e",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.renderPDFAsync(style:sections:)": "3e181c1c3dcca38a"
+   }
+  },
+  {
+   "key": "func MorningReanalysisControls.finishExportPDF(_:onFailure:)",
+   "hash": "47ce3fbb42d7fd4a",
+   "does": "Clears vm.isGeneratingPDF; with a URL sets exportURL (opening the PDF preview sheet); without one calls onFailure with reportFailureMessage so the user is told the render failed.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.reportFailureMessage",
+    "closure:onFailure — sets MorningResultsView.exportErrorMessage (Export failed alert)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:MorningResultsViewModel.isGeneratingPDF",
+    "mem:MorningResultsView.exportURL"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "url nil",
+     "effect": "onFailure(reportFailureMessage); else set the URL"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.reportFailureMessage": "6d378f30ecf1bbc8"
+   }
+  },
+  {
+   "key": "var MorningReanalysisControls.reportFailureMessage",
+   "hash": "3fa1271f781fc948",
+   "does": "Localized 'Couldn't generate the recovery PDF. The session may not have enough data.'",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func MorningReanalysisControls.emailReport(style:sections:onFailure:)",
+   "hash": "ca8ed1d0e3745ff5",
+   "does": "Sets vm.isGeneratingEmailPDF, then in a Task renders the PDF (renderPDFAsync) and hands the URL to finishEmailPDF on the main actor with onFailure.",
+   "entry": "Report section picker's onGenerate, via the MorningResultsView forwarder",
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.renderPDFAsync(style:sections:)",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.finishEmailPDF(_:onFailure:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:MorningResultsViewModel.isGeneratingEmailPDF"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.finishEmailPDF(_:onFailure:)": "03b200da3efdaa9b",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.renderPDFAsync(style:sections:)": "3e181c1c3dcca38a"
+   }
+  },
+  {
+   "key": "func MorningReanalysisControls.finishEmailPDF(_:onFailure:)",
+   "hash": "9675b24374739317",
+   "does": "Clears vm.isGeneratingEmailPDF; with a URL sets emailURL (opening the mail composer); without one calls onFailure with reportFailureMessage so the user is told the render failed.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.reportFailureMessage",
+    "closure:onFailure — sets MorningResultsView.exportErrorMessage (Export failed alert)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:MorningResultsViewModel.isGeneratingEmailPDF",
+    "mem:MorningResultsView.emailURL"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "url nil",
+     "effect": "onFailure(reportFailureMessage); else set the URL"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.reportFailureMessage": "6d378f30ecf1bbc8"
+   }
+  },
+  {
+   "key": "func MorningReanalysisControls.renderPDFAsync(style:sections:)",
+   "hash": "ea3b87c80e01fc57",
+   "does": "Builds the export session, fetches HealthKit HR stats, gathers report inputs on the MainActor, renders the PDF on a detached task, logs timing and file size, returns the temp-file URL or nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.exportSession()",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.fetchHealthKitHRForReport()",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.reportInputs(healthKitHR:)",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.renderReport(session:inputs:style:sections:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "hk:heartRate"
+   ],
+   "writes": [
+    "file:<tmp>/Emuqu_Recovery_yyyyMMdd_HHmmss.pdf"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "vm.healthKitSleep == nil",
+     "effect": "log 0 sleep minutes"
+    },
+    {
+     "at": "+9",
+     "cond": "render returned nil",
+     "effect": "log failure and return nil; else continue"
+    },
+    {
+     "at": "+15",
+     "cond": "attributesOfItem throws or size missing",
+     "effect": "size logged as 0"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.exportSession()": "1d4dc6d00bf9cfd1",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.fetchHealthKitHRForReport()": "518d734c7e054fed",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.renderReport(session:inputs:style:sections:)": "4002c9ec1252cac7",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.reportInputs(healthKitHR:)": "265bb88f88ae35e9"
+   }
+  },
+  {
+   "key": "func MorningReanalysisControls.exportSession()",
+   "hash": "12d46ca08ead45f8",
+   "does": "Copies vm.displaySession and attaches vm.displayResult as analysisResult, filling a missing trainingContext from the session's trainingSnapshot.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displayResult"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "displayResult.trainingContext == nil",
+     "effect": "true: use displaySession.trainingSnapshot; false: keep"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displayResult": "215489cda008c57b",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession": "eccc568f4bbb99c3"
+   }
+  },
+  {
+   "key": "func MorningReanalysisControls.fetchHealthKitHRForReport()",
+   "hash": "ec7fd07666f2d870",
+   "does": "Queries HealthKit HR stats from session.startDate to endDate (fallback start + duration or 8 h) and logs timing; returns nil on error.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.calculateHRStats(from:to:)",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRate.swift::func HeartRateHealthQueries.calculateHRStats(from:to:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "hk:heartRate"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "session.endDate == nil",
+     "effect": "use startDate + (duration ?? 28800 s)"
+    },
+    {
+     "at": "+5",
+     "cond": "stats nil",
+     "effect": "log nadir/max as 0"
+    },
+    {
+     "at": "+7",
+     "cond": "calculateHRStats throws",
+     "effect": "log warning, return nil (report renders without HK nadir)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRate.swift::func HeartRateHealthQueries.calculateHRStats(from:to:)": "3a891f1e0f4db5a7",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.calculateHRStats(from:to:)": "29f3b9eb896a2b74",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.healthKit": "f61a7a679f5280dd"
+   }
+  },
+  {
+   "key": "func MorningReanalysisControls.reportInputs(healthKitHR:)",
+   "hash": "4912be65515ae3c3",
+   "does": "Gathers report inputs on the MainActor: vitals (reportVitals), HK sleep and sleep trend (only when non-empty), HK HR, composite score, breakdown, baseline stats, freshly recomputed live training load, recent sessions.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.compositeRecoveryScore",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.recoveryBreakdown()",
+    "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift::func TrainingLoadRegistry.liveRefreshed()",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator.SleepData(from:)",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator.VitalsData(from:)",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.reportVitals",
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::init AnalysisSleepTrendInput(from:)"
+   ],
+   "reads": [
+    "mem:MorningResultsViewModel.healthKitSleep",
+    "mem:MorningResultsViewModel.sleepTrendStats",
+    "mem:MorningResultsViewModel.recoveryVitals",
+    "mem:MorningResultsViewModel.baselineStats",
+    "mem:TrainingLoadRegistry cache",
+    "hk:workouts (via liveRefreshed)"
+   ],
+   "writes": [
+    "mem:TrainingLoadRegistry cache"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "hkSleep nightSleepMinutes > 0 (nil -> 0)",
+     "effect": "SleepData(from:); else nil"
+    },
+    {
+     "at": "+6",
+     "cond": "hkTrend nightsAnalyzed > 0 (nil -> 0)",
+     "effect": "SleepTrendData (AnalysisSleepTrendInput) from the stats; else nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::init AnalysisSleepTrendInput(from:)": "d1aec411499c093d",
+    "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift::func TrainingLoadRegistry.liveRefreshed()": "f6fdc835bab57f33",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator.SleepData(from:)": "0bacc660b77071e6",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator.VitalsData(from:)": "1f72b8e1242a44d9",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.recoveryBreakdown()": "cde8ca2df2aec214",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.compositeRecoveryScore": "b00af62d5eb939c7",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.reportVitals": "eb84b79d1e7342f4"
+   }
+  },
+  {
+   "key": "func MorningReanalysisControls.renderReport(session:inputs:style:sections:)",
+   "hash": "1fb0fcae795fb209",
+   "does": "Runs PDFReportGenerator().generateReportURL off the main actor with the session and inputs; returns the temp PDF URL or nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator(config:settingsProvider:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift::func PDFReportGenerator.generateReportURL(for:sleepData:sleepTrend:recentSessions:healthKitHR:vitals:compositeRecoveryScore:scoreBreakdown:baselineStats:liveLoadSnapshot:style:sections:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<tmp>/Emuqu_Recovery_yyyyMMdd_HHmmss.pdf"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.recentSessions(limit:)": "21d596f047675431",
+    "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift::func PDFReportGenerator.generateReportURL(for:sleepData:sleepTrend:recentSessions:healthKitHR:vitals:compositeRecoveryScore:scoreBreakdown:baselineStats:liveLoadSnapshot:style:sections:)": "778fffbb2cefce5c",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator(config:settingsProvider:)": "f5883be68a9c9606",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleepTrend": "221b4360b3045fb2"
+   }
+  },
+  {
+   "key": "func MorningReanalysisControls.performReanalysis()",
+   "hash": "893c849c8ab332c9",
+   "does": "Re-runs analysis on the displayed session with vm.selectedMethod via the onReanalyze callback and applies the result.",
+   "entry": "Re-analyze confirmation dialog action (MorningResultsView.reanalyzeActions via forwarding).",
+   "calls": [
+    "closure:onReanalyze — set by RecordView+Sections (collector.reanalyzeSession) and HistoryView (forwarded onReanalyze)",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.applyReanalyzedSession(_:)",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession"
+   ],
+   "reads": [
+    "mem:MorningResultsViewModel.selectedMethod"
+   ],
+   "writes": [
+    "mem:MorningResultsViewModel.isReanalyzing",
+    "archive:SessionArchive.archive (via ReanalysisService.persist)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "onReanalyze == nil",
+     "effect": "return; nothing happens"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession": "eccc568f4bbb99c3",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.applyReanalyzedSession(_:)": "33108dd6902790ae"
+   }
+  },
+  {
+   "key": "func MorningReanalysisControls.reanalyzeWithMethod(_:)",
+   "hash": "45deb64857929629",
+   "does": "Same as performReanalysis but with an explicit method.",
+   "entry": null,
+   "calls": [
+    "closure:onReanalyze — collector.reanalyzeSession(_:method:) from RecordView+Sections / HistoryView",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.applyReanalyzedSession(_:)",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:MorningResultsViewModel.isReanalyzing",
+    "archive:SessionArchive.archive (via ReanalysisService.persist)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "onReanalyze == nil",
+     "effect": "return"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession": "eccc568f4bbb99c3",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.applyReanalyzedSession(_:)": "33108dd6902790ae"
+   }
+  },
+  {
+   "key": "func MorningReanalysisControls.applyReanalyzedSession(_:)",
+   "hash": "1dd9b3635da249a4",
+   "does": "Adopts a non-nil reanalyzed session into vm.reanalyzedSession and clears isReanalyzing.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:MorningResultsViewModel.reanalyzedSession",
+    "mem:MorningResultsViewModel.isReanalyzing"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "updatedSession != nil",
+     "effect": "true: assign; false: keep current session (declined: no RR data / analysis failed / persist failed) with no user message"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func MorningReanalysisControls.handleManualReanalysis(timestampMs:)",
+   "hash": "8da9c21d14be22a6",
+   "does": "Sets isReanalyzing, clears the pick message and asks onReanalyzeAt for an analysis at the tapped timestamp; result goes to finishManualPreview.",
+   "entry": "Chart tap in manual mode (OvernightChartsView onReanalyzeAt closure set in MorningResultsView.overnightChartsSection).",
+   "calls": [
+    "closure:onReanalyzeAt — collector.reanalyzeAtPosition(session, targetMs:) from RecordView+Sections / HistoryView",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.finishManualPreview(_:timestampMs:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:MorningResultsViewModel.isReanalyzing"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "onReanalyzeAt == nil",
+     "effect": "return"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.finishManualPreview(_:timestampMs:)": "cf30d33cfd585dd9"
+   }
+  },
+  {
+   "key": "func MorningReanalysisControls.finishManualPreview(_:timestampMs:)",
+   "hash": "576733093408cd1d",
+   "does": "Stores the preview result and clears the message, or sets a 'too many irregular beats' message; clears isReanalyzing.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:MorningResultsViewModel.isReanalyzing"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "newResult != nil",
+     "effect": "true: manualResult = newResult; false: manualPickMessage set (same text for any failure, including missing RR on disk)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func MorningReanalysisControls.exportRRData(onFailure:)",
+   "hash": "df7967ea1361448b",
+   "does": "Writes the displayed session's RR series as a CSV (rrExportHeader provenance comments + rrCSVRows) to tmp under rrExportFilename and sets exportURL to preview/share it (MorningResultsView deletes the file when the sheet closes). With no series, or when the write throws, logs and calls onFailure with 'Couldn't create the CSV file.'",
+   "entry": "Export RR button, via the MorningResultsView forwarder",
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.rrExportHeader(series:)",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func rrCSVRows(points:)",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.rrExportFilename()",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession",
+    "closure:onFailure — sets MorningResultsView.exportErrorMessage",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [
+    "file:tmp/Emuqu_RR_<date>.csv",
+    "mem:MorningResultsView.exportURL"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "rrSeries nil",
+     "effect": "log, onFailure, return"
+    },
+    {
+     "at": "+13",
+     "cond": "write throws",
+     "effect": "log, onFailure"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession": "eccc568f4bbb99c3",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.rrExportFilename()": "2e32f2c0dfeffeef",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.rrExportHeader(series:)": "249a07441ca8b0c0",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func rrCSVRows(points:)": "cc54d00cf490e4a1",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4"
+   }
+  },
+  {
+   "key": "func MorningReanalysisControls.rrExportHeader(series:)",
+   "hash": "ee1e3e73d537810f",
+   "does": "Builds the '#'-comment CSV header: session date, series start, point count, duration, and when an analysis exists its window indices, window ms (-1 if nil) and RMSSD.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession",
+    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.durationMs"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "displaySession.analysisResult != nil",
+     "effect": "true: add window/RMSSD lines; false: omit"
+    },
+    {
+     "at": "+9",
+     "cond": "windowStartMs nil",
+     "effect": "write -1"
+    },
+    {
+     "at": "+10",
+     "cond": "windowEndMs nil",
+     "effect": "write -1"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.durationMs": "fc1fd164e934dda1",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession": "eccc568f4bbb99c3"
+   }
+  },
+  {
+   "key": "func MorningReanalysisControls.rrExportFilename()",
+   "hash": "1ef4f5bd9150b215",
+   "does": "Filename 'Emuqu_RR_<yyyy-MM-dd_HHmm>.csv' from displaySession.startDate using a POSIX Gregorian formatter.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession": "eccc568f4bbb99c3"
+   }
+  },
+  {
+   "key": "func persistentScoreDiffColumn(autoScore:yoursScore:)",
+   "hash": "a60fa37ed2361df3",
+   "does": "Score-diff column: the difference of the two displayed scores, safeDisplayScore(yours*10) − safeDisplayScore(auto*10), formatted '%+d', sage if >= 0 else terracotta; '—' when either score is missing.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "autoScore and yoursScore both non-nil",
+     "effect": "signed diff + Score; else —"
+    },
+    {
+     "at": "+10",
+     "cond": "d >= 0",
+     "effect": "sage; else terracotta"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)": "503106affd4064c8",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "func rmssdColumn(titleKey:from:tint:)",
+   "hash": "5304600a523f5107",
+   "does": "Comparison column for one window: localized title, RMSSD '%.1f', footnote with the window mean HR in bpm when known.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func comparisonColumn(title:value:color:footnote:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.windowMeanHR(_:windowSize:)": "b87d947521f454f0",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func comparisonColumn(title:value:color:footnote:)": "b677cd0d4bbc154e"
+   }
+  },
+  {
+   "key": "func comparisonColumn(title:value:color:footnote:)",
+   "hash": "b81a34ede08b24d6",
+   "does": "Generic column: title, value, 'RMSSD' unit, optional footnote.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+17",
+     "cond": "footnote != nil",
+     "effect": "true: footnote text; false: none"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "func comparisonDivider(height:)",
+   "hash": "a28412104a9e34d5",
+   "does": "1 pt wide tertiary (30%) vertical rule of the given height between comparison columns (56 pt in the persistent banner, 50 pt in the live comparison).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "func provenanceRow(glyph:text:)",
+   "hash": "9a8f9f15c9260ad1",
+   "does": "Glyph + caption row used for provenance.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "func rrCSVRows(points:)",
+   "hash": "c45292e79eeec56b",
+   "does": "The 'timestamp_ms,rr_ms,hr_bpm' header and one row per beat; hr is 60000/rr_ms with one decimal in the POSIX locale, empty for rr_ms ≤ 0. Internal so every RR CSV export can share one row format.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "rr_ms > 0",
+     "effect": "bpm; else empty cell"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Same 'timestamp_ms,rr_ms,hr_bpm' row builder as RawRRBackup.exportToCSV, which writes 0 (not empty) for rr_ms <= 0; the two exports of the same columns disagree on that cell. rrCSVRows is now internal; handoff b23 for RawRRBackup.exportToCSV to call it.",
+     "evidence": [
+      "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift:941",
+      "Emuqu/Sources/Storage/RawRRBackup.swift:797",
+      "Emuqu/Sources/Storage/RawRRBackup.swift:806"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

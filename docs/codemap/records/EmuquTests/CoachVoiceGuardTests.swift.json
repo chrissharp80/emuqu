@@ -1,0 +1,1736 @@
+{
+ "file": "EmuquTests/CoachVoiceGuardTests.swift",
+ "hash": "34f93ffecadde1e8",
+ "role": "Tests for CoachVoiceGuard, the runtime output perimeter that rewrites sentences carrying regulated medical claims or offensive terms: concept/rule/deflection coverage, volume (no rewrite cap), byte-identical clean sentences, straddling-match fail-closed fallback, rule precedence, word boundaries, per-locale positives and false-positive checks, streaming split helpers, a pre-check timing measure, and the offensive-term lists (every-reply vs English-only).",
+ "types": [
+  "CoachVoiceGuardTests: class — XCTestCase (plus an extension for offensive-language tests)"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "med",
+   "text": "CoachVoiceGuard's doc (CoachVoiceGuard.swift, '## Wiring') still says CoachVoiceGuardTests asserts that StreamTextBuffer.flush and VoiceConversationController.speak call the guard; no test here (or elsewhere in EmuquTests) touches StreamTextBuffer, VoiceConversationController.speak or applyPostStreamEffects — testProhibitedPhraseIsNeverPublishedDuringStreaming replays the buffer loop with the guard's own functions — so removing a production call site would leave the suite green. This file's header now says so; the source doc and a call-site test need changes outside the test file (handoff).",
+   "evidence": [
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift:25",
+    "EmuquTests/CoachVoiceGuardTests.swift:587",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift:567",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift:54"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "test-defect",
+   "sev": "low",
+   "text": "Several assertions compare against English deflection copy ('healthcare professional', offensiveLanguageRule.deflection substring) or check only the current-language deflection, but the class never pins the app language; deflections resolve through LanguageManager.appBundle, so results depend on the host language.",
+   "evidence": [
+    "EmuquTests/CoachVoiceGuardTests.swift:452",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift:73",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift:135"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func CoachVoiceGuardTests.testEveryScrubbedConceptHasARule()",
+   "hash": "dd023b6e38d0652f",
+   "does": "Asserts every concept in MedicalTermLexicon.scrubFromOutput has a CoachVoiceGuard rule and the rule count equals the concept count.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each scrubFromOutput concept",
+     "effect": "asserts its id is among the rule ids"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "CoachVoiceGuard.rules is built by mapping scrubFromOutput, so this assertion is a tautology; it does not check that each concept has a specific deflection or a compiling regex (deflection falls back to observationFallback silently).",
+     "evidence": [
+      "EmuquTests/CoachVoiceGuardTests.swift:24",
+      "Emuqu/Sources/Assistant/CoachVoiceGuard.swift:78",
+      "Emuqu/Sources/Assistant/CoachVoiceGuard.swift:91"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func CoachVoiceGuardTests.testEveryProhibitedSentenceIsRewrittenAtVolume()",
+   "hash": "a3ce5fb109df05a9",
+   "does": "Scrubs 200 repeated 'You may have atrial fibrillation.' sentences and asserts 200 triggers and no prohibited language left.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.containsProhibitedLanguage(_:)"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.containsProhibitedLanguage(_:)": "957f71294fdad0d7",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "6e1e038ffe20928d",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "cbece2f596be720a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "f82b6e6fb826e41e",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "b324b3f284396325",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "bb1c7d4e0192b2ed",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "a36b1e1e1d67d361",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "fb4c85248fb8794a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "73bfe65b48b481c2",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "5b1c66a7484bdc46",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "535021bb1dd58814"
+   }
+  },
+  {
+   "key": "func CoachVoiceGuardTests.testCleanSentencesAreLeftByteIdenticalAtVolume()",
+   "hash": "54d81e3bd009651b",
+   "does": "Scrubs 100 alternating clean/prohibited sentence pairs and asserts 100 triggers and that every clean sentence survives verbatim.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for index in 0..<100",
+     "effect": "appends one clean and one prohibited sentence"
+    },
+    {
+     "at": "+9",
+     "cond": "for index in 0..<100",
+     "effect": "asserts clean sentence index is still in the output"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "6e1e038ffe20928d",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "cbece2f596be720a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "f82b6e6fb826e41e",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "b324b3f284396325",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "bb1c7d4e0192b2ed",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "a36b1e1e1d67d361",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "fb4c85248fb8794a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "73bfe65b48b481c2",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "5b1c66a7484bdc46",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "535021bb1dd58814"
+   }
+  },
+  {
+   "key": "func CoachVoiceGuardTests.testPhraseStraddlingATerminatorFailsClosed()",
+   "hash": "b7481749e6161da2",
+   "does": "Asserts 'see a\\ndoctor' straddling a newline is caught by containsProhibitedLanguage and that scrub intercepts it and removes 'doctor'.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.containsProhibitedLanguage(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflectStraddlingMatch(_:segments:entry:among:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.replacing(_:spanning:with:)"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.containsProhibitedLanguage(_:)": "957f71294fdad0d7",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflectStraddlingMatch(_:segments:entry:among:)": "5aa09298379bbd07",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "6e1e038ffe20928d",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "cbece2f596be720a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "f82b6e6fb826e41e",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "b324b3f284396325",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.replacing(_:spanning:with:)": "7ff5aa40668aa3e7",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "bb1c7d4e0192b2ed",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "a36b1e1e1d67d361",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "fb4c85248fb8794a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "73bfe65b48b481c2",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "5b1c66a7484bdc46",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Result.didIntercept": "a8c810e8a22c2f5d",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "535021bb1dd58814"
+   }
+  },
+  {
+   "key": "func CoachVoiceGuardTests.testStraddlingFallbackKeepsTheSentencesAroundIt()",
+   "hash": "7b8e2a767de6c484",
+   "does": "Asserts a straddling referral in the middle of a reply is intercepted, the result is clean, and the leading and trailing clean sentences are kept.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.containsProhibitedLanguage(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflectStraddlingMatch(_:segments:entry:among:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.replacing(_:spanning:with:)"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.containsProhibitedLanguage(_:)": "957f71294fdad0d7",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflectStraddlingMatch(_:segments:entry:among:)": "5aa09298379bbd07",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "6e1e038ffe20928d",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "cbece2f596be720a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "f82b6e6fb826e41e",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "b324b3f284396325",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.replacing(_:spanning:with:)": "7ff5aa40668aa3e7",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "bb1c7d4e0192b2ed",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "a36b1e1e1d67d361",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "fb4c85248fb8794a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "73bfe65b48b481c2",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "5b1c66a7484bdc46",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Result.didIntercept": "a8c810e8a22c2f5d",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "535021bb1dd58814"
+   }
+  },
+  {
+   "key": "func CoachVoiceGuardTests.testATerminatorAfterWhitespaceDoesNotExtendThePreviousSentence()",
+   "hash": "457c14e618dd2192",
+   "does": "Asserts a stray '. ' after a prohibited sentence does not swallow the following clean sentence and the leading clean sentence survives.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.containsProhibitedLanguage(_:)"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.containsProhibitedLanguage(_:)": "957f71294fdad0d7",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "6e1e038ffe20928d",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "cbece2f596be720a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "f82b6e6fb826e41e",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "b324b3f284396325",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "bb1c7d4e0192b2ed",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "a36b1e1e1d67d361",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "fb4c85248fb8794a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "73bfe65b48b481c2",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "5b1c66a7484bdc46",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Result.didIntercept": "a8c810e8a22c2f5d",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "535021bb1dd58814"
+   }
+  },
+  {
+   "key": "func CoachVoiceGuardTests.testScrubbedOutputNeverTripsThePreCheck()",
+   "hash": "451411655d2c0417",
+   "does": "For six prohibited inputs (English, Japanese, Spanish, multi-sentence), asserts the scrubbed output never trips containsProhibitedLanguage.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.containsProhibitedLanguage(_:)"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "for each input",
+     "effect": "scrubs and asserts the result passes the pre-check"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.containsProhibitedLanguage(_:)": "957f71294fdad0d7",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "6e1e038ffe20928d",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "cbece2f596be720a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "f82b6e6fb826e41e",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "b324b3f284396325",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "bb1c7d4e0192b2ed",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "a36b1e1e1d67d361",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "fb4c85248fb8794a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "73bfe65b48b481c2",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "5b1c66a7484bdc46",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "535021bb1dd58814"
+   }
+  },
+  {
+   "key": "func CoachVoiceGuardTests.testDeflectionsCoverExactlyTheScrubbedConcepts()",
+   "hash": "ec711d9db5cc5c17",
+   "does": "Asserts every key of CoachVoiceGuard.deflections is a concept id in scrubFromOutput.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.deflections",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.specificDeflections",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.verdictDeflections",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.sharedDeflections"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each deflection key",
+     "effect": "asserts it is a scrubbed concept id"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.deflections": "a9eae079b93fc230",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.sharedDeflections": "195bb4b62ac3c0cb",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.specificDeflections": "cd1683b1e6cf74bd",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.verdictDeflections": "1f459cc7e5b8608a"
+   }
+  },
+  {
+   "key": "func CoachVoiceGuardTests.testEveryConceptCoversTheNonLatinScripts()",
+   "hash": "fab045c41a34d429",
+   "does": "For every concept in MedicalTermLexicon.all, asserts its unbounded alternatives include Hangul, Arabic and CJK characters.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CoachVoiceGuardTests.swift::func CoachVoiceGuardTests.scripts(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+14",
+     "cond": "for each lexicon concept",
+     "effect": "collects scripts from its unbounded alternatives"
+    },
+    {
+     "at": "+18",
+     "cond": "for each of Hangul/Arabic/CJK",
+     "effect": "asserts the concept covers it"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/CoachVoiceGuardTests.swift::func CoachVoiceGuardTests.scripts(in:)": "4cef59723cbd76e4"
+   }
+  },
+  {
+   "key": "func CoachVoiceGuardTests.scripts(in:)",
+   "hash": "d0c7eb6bef3a8e0a",
+   "does": "Returns the set of script names (Hangul, Arabic, CJK) whose Unicode ranges appear in the text.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each unicode scalar",
+     "effect": "classifies it"
+    },
+    {
+     "at": "+4",
+     "cond": "scalar in Hangul syllables/jamo ranges",
+     "effect": "inserts 'Hangul'"
+    },
+    {
+     "at": "+5",
+     "cond": "scalar in 0x0600–0x06FF",
+     "effect": "inserts 'Arabic'"
+    },
+    {
+     "at": "+6",
+     "cond": "scalar in kana or CJK unified ranges",
+     "effect": "inserts 'CJK'"
+    },
+    {
+     "at": "+7",
+     "cond": "any other scalar",
+     "effect": "ignored"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func CoachVoiceGuardTests.testSwimStrokeVocabularyIsNotScrubbed()",
+   "hash": "ee99a8a5edd7f4d1",
+   "does": "Asserts three swim-stroke sentences are not intercepted and are returned unchanged.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "for each swim sentence",
+     "effect": "asserts no interception and identical output"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "6e1e038ffe20928d",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "cbece2f596be720a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "f82b6e6fb826e41e",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "b324b3f284396325",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "bb1c7d4e0192b2ed",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "a36b1e1e1d67d361",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "fb4c85248fb8794a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "73bfe65b48b481c2",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "5b1c66a7484bdc46",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Result.didIntercept": "a8c810e8a22c2f5d",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "535021bb1dd58814"
+   }
+  },
+  {
+   "key": "func CoachVoiceGuardTests.testFirstMatchingRuleWinsForASentenceThatTripsTwo()",
+   "hash": "7c476800e7f8b826",
+   "does": "Asserts atrial-fibrillation precedes speculative-diagnosis in scrubFromOutput and that 'You may have atrial fibrillation.' yields one trigger whose reason names the atrial-fibrillation rule.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "both concept indices found",
+     "effect": "true: continues to the order and trigger checks; false: XCTFail and return"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "6e1e038ffe20928d",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "cbece2f596be720a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "f82b6e6fb826e41e",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "b324b3f284396325",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "bb1c7d4e0192b2ed",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "a36b1e1e1d67d361",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "fb4c85248fb8794a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "73bfe65b48b481c2",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "5b1c66a7484bdc46"
+   }
+  },
+  {
+   "key": "func CoachVoiceGuardTests.testWordBoundariesKeepOrdinaryVocabularyOutOfTheGuard()",
+   "hash": "8c61804807569199",
+   "does": "Asserts five ordinary sentences containing 'cure'/'stroke'/'complete' substrings are not intercepted and come back unchanged.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "for each ordinary sentence",
+     "effect": "asserts no interception and identical output"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "6e1e038ffe20928d",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "cbece2f596be720a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "f82b6e6fb826e41e",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "b324b3f284396325",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "bb1c7d4e0192b2ed",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "a36b1e1e1d67d361",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "fb4c85248fb8794a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "73bfe65b48b481c2",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "5b1c66a7484bdc46",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Result.didIntercept": "a8c810e8a22c2f5d",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "535021bb1dd58814"
+   }
+  },
+  {
+   "key": "func CoachVoiceGuardTests.testSinusArrhythmiaIsNotDeflectedInAnyLocale()",
+   "hash": "aef7db49062b3a76",
+   "does": "For 14 locales, asserts a respiratory sinus arrhythmia sentence is not intercepted.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+17",
+     "cond": "for each locale sentence",
+     "effect": "asserts didIntercept is false"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "6e1e038ffe20928d",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "cbece2f596be720a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "f82b6e6fb826e41e",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "b324b3f284396325",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "bb1c7d4e0192b2ed",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "a36b1e1e1d67d361",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "fb4c85248fb8794a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "73bfe65b48b481c2",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "5b1c66a7484bdc46",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Result.didIntercept": "a8c810e8a22c2f5d"
+   }
+  },
+  {
+   "key": "func CoachVoiceGuardTests.testARealRhythmClaimIsStillDeflectedInEveryLocale()",
+   "hash": "67973a9e7f7c1a09",
+   "does": "For 13 locales, asserts 'you have an arrhythmia' is intercepted.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+16",
+     "cond": "for each locale sentence",
+     "effect": "asserts didIntercept is true"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "6e1e038ffe20928d",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "cbece2f596be720a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "f82b6e6fb826e41e",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "b324b3f284396325",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "bb1c7d4e0192b2ed",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "a36b1e1e1d67d361",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "fb4c85248fb8794a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "73bfe65b48b481c2",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "5b1c66a7484bdc46",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Result.didIntercept": "a8c810e8a22c2f5d"
+   }
+  },
+  {
+   "key": "func CoachVoiceGuardTests.testPreviouslyEvasivePhrasingsAreCaught()",
+   "hash": "3d32fec89af33c6a",
+   "does": "Asserts seven evasive phrasings (Markdown emphasis inside the term, 'Dr', 'danger-zone', 'risk of injury', 'overtrain', 'approved by the FDA') are intercepted.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "for each evasion",
+     "effect": "asserts it is intercepted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "6e1e038ffe20928d",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "cbece2f596be720a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "f82b6e6fb826e41e",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "b324b3f284396325",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "bb1c7d4e0192b2ed",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "a36b1e1e1d67d361",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "fb4c85248fb8794a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "73bfe65b48b481c2",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "5b1c66a7484bdc46",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Result.didIntercept": "a8c810e8a22c2f5d"
+   }
+  },
+  {
+   "key": "func CoachVoiceGuardTests.testEverydayVocabularyIsNotDeflectedInAnyLocale()",
+   "hash": "f734833af177b19f",
+   "does": "Asserts nine everyday sentences in Finnish, Icelandic, English, Korean, Japanese and Spanish are not intercepted.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+12",
+     "cond": "for each labelled sentence",
+     "effect": "asserts not intercepted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "6e1e038ffe20928d",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "cbece2f596be720a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "f82b6e6fb826e41e",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "b324b3f284396325",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "bb1c7d4e0192b2ed",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "a36b1e1e1d67d361",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "fb4c85248fb8794a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "73bfe65b48b481c2",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "5b1c66a7484bdc46",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Result.didIntercept": "a8c810e8a22c2f5d"
+   }
+  },
+  {
+   "key": "func CoachVoiceGuardTests.testTheRegulatedSenseStillFiresInFinnish()",
+   "hash": "87d83a9b1557cdac",
+   "does": "Asserts two Finnish sentences claiming a cure are intercepted.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "6e1e038ffe20928d",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "cbece2f596be720a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "f82b6e6fb826e41e",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "b324b3f284396325",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "bb1c7d4e0192b2ed",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "a36b1e1e1d67d361",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "fb4c85248fb8794a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "73bfe65b48b481c2",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "5b1c66a7484bdc46",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Result.didIntercept": "a8c810e8a22c2f5d"
+   }
+  },
+  {
+   "key": "func CoachVoiceGuardTests.testSpeculativeDiagnosisStillFiresInCJKWhenItNamesAnIllness()",
+   "hash": "00df02fdde90aa2a",
+   "does": "Asserts Japanese, Korean and Chinese speculative-diagnosis sentences naming an illness are intercepted.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "6e1e038ffe20928d",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "cbece2f596be720a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "f82b6e6fb826e41e",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "b324b3f284396325",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "bb1c7d4e0192b2ed",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "a36b1e1e1d67d361",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "fb4c85248fb8794a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "73bfe65b48b481c2",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "5b1c66a7484bdc46",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Result.didIntercept": "a8c810e8a22c2f5d"
+   }
+  },
+  {
+   "key": "func CoachVoiceGuardTests.testEveryConceptCompiles()",
+   "hash": "718d1d9670fdf2fd",
+   "does": "Asserts MedicalTermLexicon.regex(for:) compiles for every concept in MedicalTermLexicon.all.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each lexicon concept",
+     "effect": "asserts its regex is non-nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750"
+   }
+  },
+  {
+   "key": "func CoachVoiceGuardTests.testNoDeflectionRematchesItsOwnRule()",
+   "hash": "122ae68470a61236",
+   "does": "For each rule, asserts its current-language deflection does not match the rule's own regex.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Rule.deflection",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each rule",
+     "effect": "checks its deflection"
+    },
+    {
+     "at": "+2",
+     "cond": "regex for the rule's concept compiles",
+     "effect": "true: runs the match check; false: skips the rule silently"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "6e1e038ffe20928d",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Rule.deflection": "6d7cf9301a98b32c",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750"
+   }
+  },
+  {
+   "key": "func CoachVoiceGuardTests.testNoDeflectionTripsAnyRule()",
+   "hash": "9b9c2f011ad5025c",
+   "does": "For each rule, asserts its deflection does not trip containsProhibitedLanguage.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Rule.deflection",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.containsProhibitedLanguage(_:)"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each rule",
+     "effect": "asserts its deflection is clean"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.containsProhibitedLanguage(_:)": "957f71294fdad0d7",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "6e1e038ffe20928d",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Rule.deflection": "6d7cf9301a98b32c"
+   }
+  },
+  {
+   "key": "func CoachVoiceGuardTests.testSpeculativeDiagnosisIsRewritten()",
+   "hash": "8a9558e8d0953867",
+   "does": "Asserts 'You may have an infection.' is rewritten while the surrounding clean sentences are kept.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "6e1e038ffe20928d",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "cbece2f596be720a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "f82b6e6fb826e41e",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "b324b3f284396325",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "bb1c7d4e0192b2ed",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "a36b1e1e1d67d361",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "fb4c85248fb8794a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "73bfe65b48b481c2",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "5b1c66a7484bdc46",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Result.didIntercept": "a8c810e8a22c2f5d",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "535021bb1dd58814"
+   }
+  },
+  {
+   "key": "func CoachVoiceGuardTests.testMedicalReferralIsDeflected()",
+   "hash": "1d65fc1a7b2c7b3f",
+   "does": "Asserts 'You should see a doctor.' is intercepted, the phrase removed, and the output contains 'healthcare professional'.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "6e1e038ffe20928d",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "cbece2f596be720a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "f82b6e6fb826e41e",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "b324b3f284396325",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "bb1c7d4e0192b2ed",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "a36b1e1e1d67d361",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "fb4c85248fb8794a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "73bfe65b48b481c2",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "5b1c66a7484bdc46",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Result.didIntercept": "a8c810e8a22c2f5d",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "535021bb1dd58814"
+   }
+  },
+  {
+   "key": "func CoachVoiceGuardTests.testTermsThatUsedToEvadeTheRuntimeGuard()",
+   "hash": "e06f9c73f89c77fc",
+   "does": "Asserts ten English sentences with linter-forbidden terms (AFib, arrhythmia, diagnosis, pathology, FDA-cleared, medical-grade, prescription, cure, high risk band, injury risk) are intercepted.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+13",
+     "cond": "for each case",
+     "effect": "asserts it is intercepted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "6e1e038ffe20928d",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "cbece2f596be720a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "f82b6e6fb826e41e",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "b324b3f284396325",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "bb1c7d4e0192b2ed",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "a36b1e1e1d67d361",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "fb4c85248fb8794a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "73bfe65b48b481c2",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "5b1c66a7484bdc46",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Result.didIntercept": "a8c810e8a22c2f5d"
+   }
+  },
+  {
+   "key": "func CoachVoiceGuardTests.testCleanCoachingTextIsUntouched()",
+   "hash": "f32e8c324c12edef",
+   "does": "Asserts four clean English coaching sentences are not intercepted and come back unchanged.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "for each clean text",
+     "effect": "asserts no interception and identical output"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "6e1e038ffe20928d",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "cbece2f596be720a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "f82b6e6fb826e41e",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "b324b3f284396325",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "bb1c7d4e0192b2ed",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "a36b1e1e1d67d361",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "fb4c85248fb8794a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "73bfe65b48b481c2",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "5b1c66a7484bdc46",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Result.didIntercept": "a8c810e8a22c2f5d",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "535021bb1dd58814"
+   }
+  },
+  {
+   "key": "func CoachVoiceGuardTests.testProhibitedOutputIsInterceptedInEveryShippedLocale()",
+   "hash": "697af13234172f05",
+   "does": "For 15 locales, asserts an AFib-plus-referral reply is intercepted.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+19",
+     "cond": "for each locale entry",
+     "effect": "asserts it is intercepted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "6e1e038ffe20928d",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "cbece2f596be720a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "f82b6e6fb826e41e",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "b324b3f284396325",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "bb1c7d4e0192b2ed",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "a36b1e1e1d67d361",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "fb4c85248fb8794a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "73bfe65b48b481c2",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "5b1c66a7484bdc46",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Result.didIntercept": "a8c810e8a22c2f5d"
+   }
+  },
+  {
+   "key": "func CoachVoiceGuardTests.testCJKReplyLosesOnlyTheOffendingSentence()",
+   "hash": "0d0679fa2d647bd3",
+   "does": "Asserts a Japanese three-sentence reply loses only the AFib sentence (leading and trailing sentences kept).",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "6e1e038ffe20928d",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "cbece2f596be720a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "f82b6e6fb826e41e",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "b324b3f284396325",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "bb1c7d4e0192b2ed",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "a36b1e1e1d67d361",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "fb4c85248fb8794a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "73bfe65b48b481c2",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "5b1c66a7484bdc46",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Result.didIntercept": "a8c810e8a22c2f5d",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "535021bb1dd58814"
+   }
+  },
+  {
+   "key": "func CoachVoiceGuardTests.testCleanNonEnglishCoachingIsUntouched()",
+   "hash": "2f30c110e811b043",
+   "does": "Asserts four clean German/French/Spanish/Japanese coaching replies are not intercepted.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "for each clean reply",
+     "effect": "asserts not intercepted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "6e1e038ffe20928d",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "cbece2f596be720a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "f82b6e6fb826e41e",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "b324b3f284396325",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "bb1c7d4e0192b2ed",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "a36b1e1e1d67d361",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "fb4c85248fb8794a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "73bfe65b48b481c2",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "5b1c66a7484bdc46",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Result.didIntercept": "a8c810e8a22c2f5d"
+   }
+  },
+  {
+   "key": "func CoachVoiceGuardTests.testSplitHoldsBackAnIncompleteSentence()",
+   "hash": "1ab367ab8e5df774",
+   "does": "Asserts splitAtLastSentenceBoundary('All good. You may have') returns complete 'All good.' and tail ' You may have'.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.splitAtLastSentenceBoundary(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "b324b3f284396325",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.splitAtLastSentenceBoundary(_:)": "b3c41cc788b3cbd2",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.tail(of:maxBytes:)": "7b5a1795f426677a"
+   }
+  },
+  {
+   "key": "func CoachVoiceGuardTests.testSplitPublishesNothingUntilTheFirstTerminator()",
+   "hash": "8c082b84ad332c43",
+   "does": "Asserts a text with no terminator returns empty complete and the whole text as tail.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.splitAtLastSentenceBoundary(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.splitAtLastSentenceBoundary(_:)": "b3c41cc788b3cbd2",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.tail(of:maxBytes:)": "7b5a1795f426677a"
+   }
+  },
+  {
+   "key": "func CoachVoiceGuardTests.testSplitHandlesCJKTerminators()",
+   "hash": "ee2b75996d7468f6",
+   "does": "Asserts the split recognises the Japanese full stop as a terminator.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.splitAtLastSentenceBoundary(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "b324b3f284396325",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.splitAtLastSentenceBoundary(_:)": "b3c41cc788b3cbd2",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.tail(of:maxBytes:)": "7b5a1795f426677a"
+   }
+  },
+  {
+   "key": "func CoachVoiceGuardTests.testDecimalPointDoesNotSplitASentence()",
+   "hash": "515b506935950cc3",
+   "does": "Asserts a sentence with '22.5' is replaced whole (no '22.' left) and that 'Your RMSSD is 22.' is held back as possibly incomplete.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.splitAtLastSentenceBoundary(_:)"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "6e1e038ffe20928d",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "cbece2f596be720a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "f82b6e6fb826e41e",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "b324b3f284396325",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "bb1c7d4e0192b2ed",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "a36b1e1e1d67d361",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "fb4c85248fb8794a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.splitAtLastSentenceBoundary(_:)": "b3c41cc788b3cbd2",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "73bfe65b48b481c2",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "5b1c66a7484bdc46",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Result.didIntercept": "a8c810e8a22c2f5d",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "535021bb1dd58814"
+   }
+  },
+  {
+   "key": "func CoachVoiceGuardTests.testProhibitedPhraseIsNeverPublishedDuringStreaming()",
+   "hash": "2fffe84453a11e10",
+   "does": "Replays six streaming deltas through split-then-scrub like StreamTextBuffer and asserts 'atrial fib' is never in the published text, and the clean sentences are published.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.splitAtLastSentenceBoundary(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "for each delta",
+     "effect": "appends it to pending and tries to publish"
+    },
+    {
+     "at": "+7",
+     "cond": "split produced an empty complete part",
+     "effect": "skips publishing this delta (continue); otherwise publishes the scrubbed complete part"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Re-implements the StreamTextBuffer publish loop in the test instead of driving StreamTextBuffer.flush, so a change to the real buffer (e.g. appending unscrubbed text) is not detected.",
+     "evidence": [
+      "EmuquTests/CoachVoiceGuardTests.swift:583",
+      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift:525"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "6e1e038ffe20928d",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "cbece2f596be720a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "f82b6e6fb826e41e",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "b324b3f284396325",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "bb1c7d4e0192b2ed",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "a36b1e1e1d67d361",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "fb4c85248fb8794a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.splitAtLastSentenceBoundary(_:)": "b3c41cc788b3cbd2",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "73bfe65b48b481c2",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "5b1c66a7484bdc46",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "535021bb1dd58814",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.tail(of:maxBytes:)": "7b5a1795f426677a"
+   }
+  },
+  {
+   "key": "func CoachVoiceGuardTests.testCleanTextPreCheckIsCheap()",
+   "hash": "24bafdfb0d2cd8f6",
+   "does": "Asserts a clean sentence passes containsProhibitedLanguage, then measures 2,000 pre-check calls with XCTest measure (no baseline, cannot fail on time).",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.containsProhibitedLanguage(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "for 2,000 iterations inside measure",
+     "effect": "calls containsProhibitedLanguage"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.containsProhibitedLanguage(_:)": "957f71294fdad0d7",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca"
+   }
+  },
+  {
+   "key": "func CoachVoiceGuardTests.testOffensiveSentenceIsReplacedAndTheRestKept()",
+   "hash": "51f0cdcf62d2a7fa",
+   "does": "Asserts an English reply with one offensive sentence gets exactly one trigger, the term removed, the first and last sentences kept, and the offensive deflection inserted.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Rule.deflection"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "6e1e038ffe20928d",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "cbece2f596be720a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "f82b6e6fb826e41e",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "b324b3f284396325",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "bb1c7d4e0192b2ed",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "a36b1e1e1d67d361",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "fb4c85248fb8794a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "73bfe65b48b481c2",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "5b1c66a7484bdc46",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Rule.deflection": "6d7cf9301a98b32c",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "535021bb1dd58814"
+   }
+  },
+  {
+   "key": "func CoachVoiceGuardTests.testOffensiveVariantsAreCaught()",
+   "hash": "37fd11c568fee682",
+   "does": "Asserts three offensive variants (spacing/case/plural) trip containsProhibitedLanguage.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.containsProhibitedLanguage(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each variant",
+     "effect": "asserts it is prohibited"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.containsProhibitedLanguage(_:)": "957f71294fdad0d7"
+   }
+  },
+  {
+   "key": "func CoachVoiceGuardTests.testOffensiveFilterLeavesOrdinaryVocabularyAlone()",
+   "hash": "faeffb9f09f14e4d",
+   "does": "Asserts six everyday sentences resembling offensive entries ('cumulative', 'retardant', 'spices', French 'retard', 'Handstands', 'damn') come back unchanged and uncaught.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "for each sentence",
+     "effect": "asserts identical output and no interception"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "6e1e038ffe20928d",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "cbece2f596be720a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "f82b6e6fb826e41e",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "b324b3f284396325",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "bb1c7d4e0192b2ed",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "a36b1e1e1d67d361",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "fb4c85248fb8794a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "73bfe65b48b481c2",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "5b1c66a7484bdc46",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Result.didIntercept": "a8c810e8a22c2f5d",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "535021bb1dd58814"
+   }
+  },
+  {
+   "key": "func CoachVoiceGuardTests.testEnglishSlurInsideANonEnglishReplyIsRemoved()",
+   "hash": "829bc83560e4c589",
+   "does": "Asserts an English slur in a Spanish reply is removed as one sentence with neighbours kept, and that an English slur after Japanese text trips the pre-check.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.containsProhibitedLanguage(_:)"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.containsProhibitedLanguage(_:)": "957f71294fdad0d7",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "6e1e038ffe20928d",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "cbece2f596be720a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "f82b6e6fb826e41e",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "b324b3f284396325",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "bb1c7d4e0192b2ed",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "a36b1e1e1d67d361",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "fb4c85248fb8794a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "73bfe65b48b481c2",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "5b1c66a7484bdc46",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "535021bb1dd58814"
+   }
+  },
+  {
+   "key": "func CoachVoiceGuardTests.testEnglishOnlyEntryIsCaughtInEnglishAsAWholeWord()",
+   "hash": "6847b97cf0582b16",
+   "does": "Asserts the English-only entry 'kike' is caught as a whole word in English and that 'Kikeriki' is not caught and is returned unchanged.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.containsProhibitedLanguage(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func OffensiveTermLexicon.appliesToReply(_:appLanguage:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.containsProhibitedLanguage(_:)": "957f71294fdad0d7",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "6e1e038ffe20928d",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "cbece2f596be720a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "f82b6e6fb826e41e",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "b324b3f284396325",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "bb1c7d4e0192b2ed",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "a36b1e1e1d67d361",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "fb4c85248fb8794a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "73bfe65b48b481c2",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "5b1c66a7484bdc46",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func OffensiveTermLexicon.appliesToReply(_:appLanguage:)": "bda40bfbb1f536fe",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "535021bb1dd58814"
+   }
+  },
+  {
+   "key": "func CoachVoiceGuardTests.testOnlyAmbiguousEntriesAreEnglishOnly()",
+   "hash": "641298aff234c505",
+   "does": "Asserts the every-reply regex does not match 'Kike' but matches 'kikes' and 'retarded', and the English-only regex matches 'Kike' but not 'retarded'.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750"
+   }
+  },
+  {
+   "key": "func CoachVoiceGuardTests.testSpanishNicknameInASpanishReplyIsKept()",
+   "hash": "bd2306d63e196ad5",
+   "does": "Asserts a Spanish reply addressing 'Kike' is returned unchanged, not intercepted and passes the pre-check.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.containsProhibitedLanguage(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func OffensiveTermLexicon.appliesToReply(_:appLanguage:)"
+   ],
+   "reads": [
+    "mem:LanguageManager.appLocale"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.containsProhibitedLanguage(_:)": "957f71294fdad0d7",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "6e1e038ffe20928d",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "cbece2f596be720a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "f82b6e6fb826e41e",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "b324b3f284396325",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "bb1c7d4e0192b2ed",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "a36b1e1e1d67d361",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "fb4c85248fb8794a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "73bfe65b48b481c2",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "5b1c66a7484bdc46",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func OffensiveTermLexicon.appliesToReply(_:appLanguage:)": "bda40bfbb1f536fe",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Result.didIntercept": "a8c810e8a22c2f5d",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "535021bb1dd58814"
+   }
+  },
+  {
+   "key": "func CoachVoiceGuardTests.testOffensiveListFollowsTheReplyLanguage()",
+   "hash": "2a828c5d6c6044e2",
+   "does": "Asserts appliesToReply follows the recognised reply language (English text true under Spanish app, Spanish text false under English app) and falls back to the app language for short text (nil app language → false).",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func OffensiveTermLexicon.appliesToReply(_:appLanguage:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func OffensiveTermLexicon.confidentLanguage(of:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func OffensiveTermLexicon.appliesToReply(_:appLanguage:)": "bda40bfbb1f536fe",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func OffensiveTermLexicon.confidentLanguage(of:)": "37fa5c686e9e6982"
+   }
+  },
+  {
+   "key": "func CoachVoiceGuardTests.testOffensiveListMatchesNothingTheAppShips()",
+   "hash": "9b80f6789848201f",
+   "does": "Builds a regex of all offensive entries and asserts it matches no key or value in any shipped Localizable or Help strings table; asserts at least 16 tables read.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)",
+    "ext:Bundle.main.path(forResource:ofType:inDirectory:forLocalization:)"
+   ],
+   "reads": [
+    "file:Emuqu.app/<lang>.lproj/Localizable.strings",
+    "file:Emuqu.app/<lang>.lproj/<Help table>.strings"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "for each localization except Base",
+     "effect": "checks both tables"
+    },
+    {
+     "at": "+7",
+     "cond": "for each of Localizable and Help tables",
+     "effect": "loads it"
+    },
+    {
+     "at": "+8",
+     "cond": "table found and parses",
+     "effect": "true: counts and scans it; false: skipped (caught only by the >=16 count)"
+    },
+    {
+     "at": "+12",
+     "cond": "for each key and value",
+     "effect": "asserts the regex does not match"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750"
+   }
+  },
+  {
+   "key": "func CoachVoiceGuardTests.testOffensiveDeflectionIsClean()",
+   "hash": "553530ea41a4395d",
+   "does": "Asserts the offensive deflection is clean, both offensive regexes compile, and the English-only rule shares the same deflection.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.containsProhibitedLanguage(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Rule.deflection",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.containsProhibitedLanguage(_:)": "957f71294fdad0d7",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "6e1e038ffe20928d",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Rule.deflection": "6d7cf9301a98b32c",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750"
+   }
+  }
+ ],
+ "deps": {}
+}

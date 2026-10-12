@@ -1,24 +1,24 @@
 import SwiftUI
 
-/// **The Marco Altini moment.** The
-/// three-question subjective questionnaire that gates score reveal.
-/// Full-screen sheet (large detent, no swipe-to-dismiss).
+/// **The Marco Altini moment.** The subjective 1–5 morning-feeling question
+/// that gates score reveal, as the User's Manual describes it. Full-screen
+/// sheet (large detent, no swipe-to-dismiss).
 ///
 /// Sequencing:
 ///   1. Reading completes (caller already invoked us).
-///   2. Q1 "How are you feeling?" — five emoji buttons.
-///   3. Tap → light haptic → the next question fades in in its place.
-///   4. Q2 "Any soreness?" — three emoji buttons.
-///   5. Tap → light haptic.
-///   6. Q3 "Motivation today?" — three emoji buttons.
-///   7. Tap → medium haptic.
-///   8. All three answers visible at top as confirmation pills.
-///   9. "Show my score" button slides up at bottom.
-///   10. Tap → score reveal animation begins (caller-supplied closure).
+///   2. "How are you feeling?" — five emoji buttons.
+///   3. Tap → medium haptic; the answer shows at top as a confirmation pill.
+///   4. "Show my score" button slides up at bottom.
+///   5. Tap → score reveal animation begins (caller-supplied closure).
 ///
-/// Skip: tertiary "Skip this time" link at bottom. Always available.
-/// Skipping still gates the reveal — there is no bypass to a non-gated
-/// state.
+/// No soreness or motivation question: the caller stores only the feeling
+/// (`HRVSession.morningFeeling`), and asking for answers nothing keeps would
+/// waste the user's time.
+///
+/// Skip: tertiary "Skip this time" link at bottom, until the question is
+/// answered (after that, "Show my score" is the way on, and a skip would be
+/// recorded for a completed prompt). Skipping still gates the reveal — there
+/// is no bypass to a non-gated state.
 ///
 /// It is shown before every score reveal, so the answer is not anchored to
 /// the number (Altini).
@@ -29,11 +29,9 @@ import SwiftUI
 struct PreScorePromptView: View {
     @Environment(\.dependencies) var dependencies
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    /// Three captured answers (any may be nil if user skipped).
+    /// The captured answer (nil if the user skipped).
     struct Answers: Equatable, Sendable {
         var feeling: Feeling?
-        var soreness: Soreness?
-        var motivation: Motivation?
     }
 
     enum Feeling: String, CaseIterable, Sendable {
@@ -54,42 +52,6 @@ struct PreScorePromptView: View {
             case .ok:       String(localized: "OK", bundle: LanguageManager.appBundle)
             case .good:     String(localized: "Good", bundle: LanguageManager.appBundle)
             case .great:    String(localized: "Great", bundle: LanguageManager.appBundle)
-            }
-        }
-    }
-
-    enum Soreness: String, CaseIterable, Sendable {
-        case aLot, some, none
-        var emoji: String {
-            switch self {
-            case .aLot: "😣"
-            case .some: "😬"
-            case .none: "😌"
-            }
-        }
-        var label: String {
-            switch self {
-            case .aLot: String(localized: "A lot", bundle: LanguageManager.appBundle)
-            case .some: String(localized: "Some", bundle: LanguageManager.appBundle)
-            case .none: String(localized: "None", bundle: LanguageManager.appBundle)
-            }
-        }
-    }
-
-    enum Motivation: String, CaseIterable, Sendable {
-        case high, normal, low
-        var emoji: String {
-            switch self {
-            case .high:   "🔥"
-            case .normal: "😐"
-            case .low:    "😴"
-            }
-        }
-        var label: String {
-            switch self {
-            case .high:   String(localized: "High", bundle: LanguageManager.appBundle)
-            case .normal: String(localized: "Normal", bundle: LanguageManager.appBundle)
-            case .low:    String(localized: "Low", bundle: LanguageManager.appBundle)
             }
         }
     }
@@ -125,16 +87,10 @@ struct PreScorePromptView: View {
         .padding(.vertical, 32)
     }
 
-    /// The answers so far. In a row at standard sizes; stacked at
-    /// accessibility sizes, where three pills no longer fit across.
+    /// The answer, once given.
     private var topPills: some View {
-        let layout = dynamicTypeSize.isAccessibilitySize
-            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
-            : AnyLayout(HStackLayout(spacing: 8))
-        return layout {
+        HStack(spacing: 8) {
             if let f = answers.feeling { pill(f.emoji + " " + f.label) }
-            if let s = answers.soreness { pill(s.emoji + " " + s.label) }
-            if let m = answers.motivation { pill(m.emoji + " " + m.label) }
         }
         .frame(maxWidth: .infinity, minHeight: 32, alignment: .leading)
     }
@@ -151,11 +107,10 @@ struct PreScorePromptView: View {
 
     @ViewBuilder
     private var currentQuestion: some View {
-        switch step {
-        case 0: feelingQuestion
-        case 1: sorenessQuestion
-        case 2: motivationQuestion
-        default: loggedConfirmation
+        if step == 0 {
+            feelingQuestion
+        } else {
+            loggedConfirmation
         }
     }
 
@@ -164,22 +119,6 @@ struct PreScorePromptView: View {
             heading: String(localized: "How are you feeling?", bundle: LanguageManager.appBundle),
             subheading: String(localized: "Quick check before we show your score.", bundle: LanguageManager.appBundle),
             content: { feelingOptions }
-        )
-    }
-
-    private var sorenessQuestion: some View {
-        questionScreen(
-            heading: String(localized: "Any soreness?", bundle: LanguageManager.appBundle),
-            subheading: nil,
-            content: { sorenessOptions }
-        )
-    }
-
-    private var motivationQuestion: some View {
-        questionScreen(
-            heading: String(localized: "Motivation today?", bundle: LanguageManager.appBundle),
-            subheading: nil,
-            content: { motivationOptions }
         )
     }
 
@@ -205,30 +144,6 @@ struct PreScorePromptView: View {
     private func feelingButton(_ f: Feeling) -> some View {
         emojiButton(emoji: f.emoji, label: f.label) {
             answers.feeling = f
-            hapticLight()
-            advance()
-        }
-    }
-
-    private var sorenessOptions: some View {
-        optionGrid(Soreness.allCases, spacing: 18) { sorenessButton($0) }
-    }
-
-    private func sorenessButton(_ s: Soreness) -> some View {
-        emojiButton(emoji: s.emoji, label: s.label) {
-            answers.soreness = s
-            hapticLight()
-            advance()
-        }
-    }
-
-    private var motivationOptions: some View {
-        optionGrid(Motivation.allCases, spacing: 18) { motivationButton($0) }
-    }
-
-    private func motivationButton(_ m: Motivation) -> some View {
-        emojiButton(emoji: m.emoji, label: m.label) {
-            answers.motivation = m
             hapticMedium()
             advance()
         }
@@ -301,7 +216,7 @@ struct PreScorePromptView: View {
 
     @ViewBuilder
     private var showMyScoreSection: some View {
-        if step >= 3 {
+        if step >= 1 {
             Button {
                 dependencies.services.preScorePromptTelemetry.recordCompleted()
                 onComplete(answers, false)
@@ -321,7 +236,15 @@ struct PreScorePromptView: View {
         }
     }
 
+    /// Only while the question is unanswered.
+    @ViewBuilder
     private var skipThisTimeSection: some View {
+        if step == 0 {
+            skipThisTimeButton
+        }
+    }
+
+    private var skipThisTimeButton: some View {
         Button {
             dependencies.services.preScorePromptTelemetry.recordSkipped()
             onComplete(answers, true)
@@ -343,10 +266,6 @@ struct PreScorePromptView: View {
         withAnimation(.easeOut(duration: 0.25)) {
             step += 1
         }
-    }
-
-    private func hapticLight() {
-        UIImpactFeedbackGenerator(style: .light).impactOccurred()
     }
 
     private func hapticMedium() {

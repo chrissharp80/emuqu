@@ -5,6 +5,10 @@ struct OnboardingView: View {
     @Environment(SettingsManager.self) var settingsManager
     @Environment(RRCollector.self) var collector
     @State private var currentPage = 0
+    /// Set when the Apple Health page itself moves on — Skip (which records
+    /// the skip) or Continue after Connect. Only leaving the page any other
+    /// way, by swiping, counts as a skip made here.
+    @State private var healthPageAnswered = false
     /// "Take a reading" lands on the Record tab; the app, which owns the tab
     /// view, does the switching.
     private let onTakeReading: () -> Void
@@ -22,7 +26,7 @@ struct OnboardingView: View {
     ///   0. Welcome (brand moment + Get started)
     ///   1. What Emuqu does (3-card carousel)
     ///   2. Quick profile
-    ///   3. Pair your strap (Polar H10 / Verity Sense, "I'll do this later")
+    ///   3. Pair your strap (Polar H10 / Verity Sense; Skip until connected)
     ///   4. Connect Apple Health (dedicated page; system-sheet preview;
     ///      post-return scope verification)
     ///   5. Backup
@@ -67,22 +71,28 @@ struct OnboardingView: View {
 
     /// Swiping past the Apple Health page without Connect or Skip counts as
     /// Skip. Otherwise the next launch put up the Health permission sheet
-    /// with nothing on screen to explain it.
+    /// with nothing on screen to explain it. Leaving through the page's own
+    /// buttons is not a swipe: Skip records the skip itself, and Continue
+    /// follows a Connect, even one whose request threw.
     private func noteHealthPageSwipedPast(from old: Int, to new: Int) {
-        guard old == 4, new > 4, !collector.healthKit.authorizationRequested else { return }
-        UserDefaults.standard.set(true, forKey: UserDefaultsKeys.healthAccessSkipped)
+        guard old == 4, new > 4, !healthPageAnswered,
+              !collector.healthKit.authorizationRequested else { return }
+        // A relaunch mid-onboarding loses the in-memory flag; HealthKit's own
+        // record says whether the permission sheet was already answered.
+        let healthKit = collector.healthKit
+        Task {
+            let alreadyAnswered = await healthKit.authorizationWasEverRequested()
+            guard !alreadyAnswered else { return }
+            UserDefaults.standard.set(true, forKey: UserDefaultsKeys.healthAccessSkipped)
+        }
     }
 
-    /// Apple Health auth is NOT fired as a side
-    /// effect of advancing past the Sensor page.
-    /// With the dedicated O4 OnboardingHealthPage in the flow, the
-    /// page's own "Connect" button drives the authorization request
-    /// directly — much clearer to the user. This advance handler only
-    /// runs after the user taps "Skip for now" or has already attempted.
+    /// The Health page's own advance (Skip, or Continue after Connect).
+    /// Apple Health auth is NOT fired here: the page's Connect button drives
+    /// the request. Marking the page answered first keeps the page-change
+    /// observer from reading this advance as a swipe-past skip.
     private func advanceFromHealthPage() {
-        // The HealthKitManager has already been asked (or skipped); no
-        // further work needed before moving on. Kept as a named handler
-        // in case future logic needs to gate the advance.
+        healthPageAnswered = true
         advanceToNext()
     }
 

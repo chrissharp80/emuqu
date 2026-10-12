@@ -1,0 +1,22 @@
+{
+ "file": "Emuqu/Info.plist",
+ "hash": "2a82254ec06bf011",
+ "role": "Canonical iOS Info.plist source (merged with generated keys): background modes, scene manifest, orientation, export-compliance flag and every permission purpose string.",
+ "types": [],
+ "state": [
+  "plist:UIBackgroundModes=[audio,bluetooth-central,bluetooth-peripheral,location]",
+  "plist:NSBluetoothAlwaysUsageDescription",
+  "plist:NSHealthShareUsageDescription",
+  "plist:NSHealthUpdateUsageDescription",
+  "plist:NSLocationWhenInUseUsageDescription",
+  "plist:NSMotionUsageDescription",
+  "plist:NSPhotoLibraryAddUsageDescription",
+  "plist:NSMicrophoneUsageDescription",
+  "plist:NSSpeechRecognitionUsageDescription",
+  "plist:ITSAppUsesNonExemptEncryption=false"
+ ],
+ "toplevel": "Header comment (2-17): this file is canonical for usage strings; INFOPLIST_KEY_*UsageDescription in pbxproj would override them and scripts/check_infoplist_key_drift.sh guards that (pbxproj has 0 INFOPLIST_KEY entries). Keys: UIBackgroundModes audio (voice/audio cues), bluetooth-central (strap/sensor recording), bluetooth-peripheral (ZwiftPeripheralBroadcaster/CBPeripheralManager), location (BreadcrumbRecorder and WorkoutLocationManager set allowsBackgroundLocationUpdates). No fetch/processing/remote-notification modes and no BGTaskSchedulerPermittedIdentifiers (no BGTaskScheduler use in code). UIApplicationSupportsIndirectInputEvents; single-scene manifest with a named 'Default Configuration'; empty UILaunchScreen; portrait only. Purpose strings: Bluetooth (Polar H10/Verity Sense, Stryd/FTMS/PM5 sensors, broadcasting to Zwift/TrainerRoad/Rouvy); HealthShare lists sleep, HR, resting HR, HR recovery, HRV, respiratory rate, SpO2, sleeping wrist temperature, VO2 max, workouts and routes, active energy, steps, walk/run/cycle/row distance, flights, exercise minutes, walk/run speed, physical effort, body weight, date of birth, biological sex (each type is referenced in Emuqu/Sources); HealthUpdate: workouts with energy/distance/route, optional HRV SDNN/HR/resting HR and HR-detected sleep export behind per-type switches; Location When-In-Use only (no Always key; no requestAlwaysAuthorization in code); Motion (CMPedometer/CMAltimeter); PhotoLibraryAdd (comment lines 72-78: share sheet 'Save Image' terminates the app without it; no PhotoKit calls - verified, AvatarPickerView uses PhotosUI picker which needs no key); Microphone and SpeechRecognition for the AI assistant voice input. Localized by Emuqu/InfoPlist.xcstrings (English values identical).",
+ "flags": [],
+ "units": [],
+ "deps": {}
+}

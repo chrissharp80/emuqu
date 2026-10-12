@@ -1,0 +1,125 @@
+{
+ "file": "Emuqu/Sources/Services/PaywallGatePolicy.swift",
+ "hash": "86dceb99900831c7",
+ "role": "Pure decision functions for the paywall: which launch modal to show, whether to show the trial clock, what the paywall offers, whether the trial can be started, and whether an anchored beta tester gets access.",
+ "types": [
+  "PaywallGatePolicy: enum — pure paywall/trial decisions",
+  "PaywallOffer: enum (trialAndUnlock, unlockOnly, unlocked) — paywall states"
+ ],
+ "state": [
+  "mem:PaywallGatePolicy.reminderWindowDays = 7"
+ ],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func PaywallGatePolicy.launchModal(hasAccess:hasPermanentAccess:isInTrial:trialDaysRemaining:reminderShownToday:)",
+   "hash": "4134a41061cc7d3a",
+   "does": "Returns .paywall without access; nil for permanent access, outside the trial, or when the reminder was shown today; .trialReminder only in the last 7 days of the trial; else nil. Called by AppLaunchTasks.paywallModal.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "!hasAccess",
+     "effect": "returns .paywall"
+    },
+    {
+     "at": "+8",
+     "cond": "hasPermanentAccess, or not in trial, or reminder already shown today",
+     "effect": "returns nil"
+    },
+    {
+     "at": "+9",
+     "cond": "trialDaysRemaining > 7",
+     "effect": "returns nil; otherwise .trialReminder"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/StoreKitManager.swift::var hasPermanentAccess": "5ca802411d5702e4",
+    "Emuqu/Sources/Services/StoreKitManager.swift::var trialDaysRemaining": "05d8a0b6c96fd72d"
+   }
+  },
+  {
+   "key": "func PaywallGatePolicy.showsTrialClock(hasPermanentAccess:isTrialActive:)",
+   "hash": "d5b73eab9ecc2df1",
+   "does": "True only when access is not permanent and the trial is active (PaywallView trial-clock note).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/StoreKitManager.swift::var hasPermanentAccess": "5ca802411d5702e4",
+    "Emuqu/Sources/Services/StoreKitManager.swift::var isTrialActive": "225bcd4fa8d3d525"
+   }
+  },
+  {
+   "key": "func PaywallGatePolicy.offer(hasPurchasedProduct:canStartTrial:)",
+   "hash": "93c45c8240f5d40c",
+   "does": "Paywall offer: .unlocked after a real purchase; else .trialAndUnlock when canStartTrial, otherwise .unlockOnly.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "hasPurchasedProduct",
+     "effect": "returns .unlocked"
+    },
+    {
+     "at": "+2",
+     "cond": "canStartTrial",
+     "effect": "returns .trialAndUnlock; otherwise .unlockOnly"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/PaywallGatePolicy.swift::func PaywallGatePolicy.canStartTrial(storeKitHasTrialTransaction:hasLocalTrialStart:hasPermanentAccess:)": "53db48015154fb2e"
+   }
+  },
+  {
+   "key": "func PaywallGatePolicy.canStartTrial(storeKitHasTrialTransaction:hasLocalTrialStart:hasPermanentAccess:)",
+   "hash": "72d5eb4ab938c59f",
+   "does": "Trial offered only without permanent access; before StoreKit answers (nil) it is offered only if no local trial start is kept; after, only if StoreKit has no trial transaction for this Apple ID.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "hasPermanentAccess",
+     "effect": "returns false"
+    },
+    {
+     "at": "+6",
+     "cond": "storeKitHasTrialTransaction is nil",
+     "effect": "returns !hasLocalTrialStart; otherwise returns !storeKitHasTrialTransaction"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/StoreKitManager.swift::var hasPermanentAccess": "5ca802411d5702e4"
+   }
+  },
+  {
+   "key": "func PaywallGatePolicy.grantsBetaTesterAccess(isAnchoredBetaTester:isVerifiedProductionInstall:)",
+   "hash": "3e11c67a3d3bbac3",
+   "does": "Beta-tester access = anchored beta tester AND install verified as production.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

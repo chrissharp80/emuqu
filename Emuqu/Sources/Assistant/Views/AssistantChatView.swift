@@ -21,7 +21,6 @@ struct AssistantChatView: View {
 
     var viewModel: AssistantViewModel { dependencies.assistant.assistantViewModel }
     var registry: ProviderRegistry { dependencies.providers.providerRegistry }
-    private var emailBridge: AssistantEmailBridge { dependencies.assistant.assistantEmailBridge }
     /// Settings → Flo, opened from the setup screen to add an API key.
     @State var floSettingsPresented = false
     @State private var showClearConfirm = false
@@ -51,11 +50,10 @@ struct AssistantChatView: View {
     /// gestures, so they can't actually scroll down once a stream
     /// is running. Throttled to once every 250ms.
     @State var lastStreamingScrollAt: Date = .distantPast
-    /// Per-message Email + Share state. The chat
-    /// view's existing email-bridge sheet is for full-transcript
-    /// emails; these are the per-bubble forwards.
-    @State var perMessageEmailText: String?
-    @State var perMessageEmailPresented: Bool = false
+    /// Per-message Email + Share state. The app-root
+    /// email-bridge sheet is for AI-composed emails; these are the
+    /// per-bubble forwards. Both use `ShareableText` items.
+    @State var perMessageEmailItem: ShareableText?
     /// Not a `String?` + `Bool` pair: with those, the sheet body
     /// re-evaluates `if let body = perMessageShareText` at present
     /// time, and if @State batching lands the bool flip BEFORE the
@@ -119,11 +117,7 @@ struct AssistantChatView: View {
             } message: {
                 Text(String(localized: "This wipes the chat thread. Your API keys and recovery data are not affected.", bundle: LanguageManager.appBundle))
             }
-            .alert(String(localized: "Report response", bundle: LanguageManager.appBundle), isPresented: $reportMailUnavailable) {
-                Button(String(localized: "OK", bundle: LanguageManager.appBundle)) {}
-            } message: {
-                Text(String(localized: "No mail account is set up on this device. Send your report to \(AppConfig.contactEmail).", bundle: LanguageManager.appBundle))
-            }
+            .reportMailUnavailableAlert(isPresented: $reportMailUnavailable)
             .environment(\.openURL, OpenURLAction { handleAssistantURL($0) })
     }
 
@@ -215,6 +209,10 @@ struct AssistantChatView: View {
     /// Session citations are resolved in-app; only real web links reach the
     /// system; everything else (javascript:, file:, data:, tel:, …) is
     /// discarded rather than auto-opened.
+    ///
+    /// A session citation whose session can't be loaded (deleted, or not
+    /// readable while locked) is still `.handled`: the tap does nothing
+    /// visible, and `retrieveOrLog` logs why.
     private func handleAssistantURL(_ url: URL) -> OpenURLAction.Result {
         if let sessionId = AssistantCitationResolver.parseSessionURL(url) {
             if let session = dependencies.storage.sessionArchive.retrieveOrLog(sessionId, caller: "AssistantChatView.citationTap") {
@@ -233,7 +231,7 @@ struct AssistantChatView: View {
             .sheet(item: $citationSession) { citationSheet($0) }
             .sheet(isPresented: $disclaimerPresented) { disclaimerSheet }
             .sheet(item: pendingConsentBinding) { consentSheet($0) }
-            .sheet(isPresented: $perMessageEmailPresented) { perMessageEmailSheet }
+            .sheet(item: $perMessageEmailItem) { perMessageEmailSheet(body: $0.body) }
             .sheet(item: $perMessageShareItem) { ShareSheet(activityItems: [$0.body]) }
             .sheet(item: exportShareBinding) { ShareSheet(activityItems: [$0.url]) }
             .sheet(isPresented: $floSettingsPresented, onDismiss: { registry.keysChanged() }, content: { floSettingsSheet })
@@ -314,28 +312,25 @@ struct AssistantChatView: View {
     /// design intent for auto-Coach-Report).
     /// per-message Email + Share sheets.
     /// Distinct from the AI-staged email bridge above; these
-    /// fire on long-press of any chat bubble.
-    @ViewBuilder
-    private var perMessageEmailSheet: some View {
-        if let body = perMessageEmailText {
-            // Pre-fill the To / CC fields from
-            // the user's saved defaults, so the per-message
-            // email path doesn't open blank when the user has
-            // configured a default address. The resolver tries the
-            // generic default, then the recovery default,
-            // then training — stops at the first set value.
-            let defaults = dependencies.app.settingsManager.settings
-            let to = defaults.resolvedDefaultEmailRecipient.map { [$0] } ?? []
-            let cc = defaults.resolvedDefaultEmailCC
-            MailComposerView(
-                subject: String(localized: "Note from Emuqu", bundle: LanguageManager.appBundle),
-                body: body,
-                recipients: to,
-                ccRecipients: cc,
-                attachmentURL: nil,
-                onDismiss: { perMessageEmailText = nil }
-            )
-        }
+    /// fire on long-press of any chat bubble. Driven by
+    /// `.sheet(item:)` like Share, so the sheet never presents without
+    /// its text.
+    private func perMessageEmailSheet(body: String) -> some View {
+        // Pre-fill the To / CC fields from
+        // the user's saved defaults, so the per-message
+        // email path doesn't open blank when the user has
+        // configured a default address. The resolver tries the
+        // generic default, then the recovery default,
+        // then training — stops at the first set value.
+        let defaults = dependencies.app.settingsManager.settings
+        return MailComposerView(
+            subject: String(localized: "Note from Emuqu", bundle: LanguageManager.appBundle),
+            body: body,
+            recipients: defaults.resolvedDefaultEmailRecipient.map { [$0] } ?? [],
+            ccRecipients: defaults.resolvedDefaultEmailCC,
+            attachmentURL: nil,
+            onDismiss: { perMessageEmailItem = nil }
+        )
     }
 
     /// Paired with the Export-chat button in the
@@ -343,11 +338,16 @@ struct AssistantChatView: View {
     /// every parent body evaluation) so the keyboard doesn't
     /// pay for the transcript walk + temp-file write on every
     /// focus event. URL is reset to nil when the sheet
-    /// dismisses so the next export builds a fresh file.
+    /// dismisses so the next export builds a fresh file, and the exported
+    /// file (the whole health chat) is deleted from the temporary directory
+    /// then: the share sheet has finished with it.
     private var exportShareBinding: Binding<ExportShareURL?> {
         Binding(
             get: { exportShareURL.map { ExportShareURL(url: $0) } },
-            set: { exportShareURL = $0?.url }
+            set: { newValue in
+                exportShareURL = newValue?.url
+                if newValue == nil { AssistantViewModel.removeChatExports() }
+            }
         )
     }
 
@@ -416,13 +416,21 @@ struct AssistantChatView: View {
         // that generates the URL on tap and presents a
         // share sheet via the `exportShareURL` state.
         Button {
-            // Compute on the main actor (the function is
-            // sync). Sub-millisecond for normal chat
-            // length; deferring it from EVERY render to
-            // ONE per export tap is the win.
-            exportShareURL = viewModel.exportConversation()
+            exportChat()
         } label: {
             Label(String(localized: "Export chat", bundle: LanguageManager.appBundle), systemImage: "square.and.arrow.up")
+        }
+        .disabled(viewModel.turns.isEmpty)
+    }
+
+    /// Builds the transcript file for the share sheet, or shows "Export
+    /// failed" when it could not be written. Computed on the main actor (the
+    /// function is sync): sub-millisecond for normal chat length; deferring
+    /// it from EVERY render to ONE per export tap is the win.
+    private func exportChat() {
+        exportShareURL = viewModel.exportConversation()
+        if exportShareURL == nil {
+            viewModel.errorMessage = String(localized: "Export failed", bundle: LanguageManager.appBundle)
         }
     }
 

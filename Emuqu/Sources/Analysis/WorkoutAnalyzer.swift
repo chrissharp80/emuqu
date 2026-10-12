@@ -243,40 +243,30 @@ enum WorkoutAnalyzer {
         restHR: Double,
         sex: BanisterSex
     ) -> Double {
-        // Banister TRIMP: dur_min × HRR × A·e^(b·HRR); male A=0.64 b=1.92,
-        // female A=0.86 b=1.67 — Morton, Fitz-Clarke & Banister, J Appl Physiol
-        // 1990;69(3):1171-1177 (coeffs: Banister 1991, Physiological Testing of
-        // Elite Athletes).
-        // Read A and b from TrainingConstants.TRIMP (one source)
-        // instead of inline 0.64/0.86 + 1.92/1.67 literals that would have to be
-        // kept in sync by hand with `HealthWorkoutSummary.calculateTrimp`.
-        // Banister TRIMP (Morton, Fitz-Clarke & Banister 1990) calls these `A`
-        // and `k`; `beatTRIMP` names the same two values `scale:` and
-        // `weighting:`, so the paper's symbols live in this comment and the
-        // code says what each one does.
-        let scale: Double = (sex == .male) ? TrainingConstants.TRIMP.maleScale : TrainingConstants.TRIMP.femaleScale
-        let weighting: Double = (sex == .male) ? TrainingConstants.TRIMP.maleWeighting : TrainingConstants.TRIMP.femaleWeighting
         let range = maxHR - restHR
         guard range > 0 else { return 0 }
-
         return hrs.reduce(0.0) { total, beat in
-            total + beatTRIMP(hr: beat.0, durSec: beat.1, restHR: restHR, range: range, scale: scale, weighting: weighting)
+            total + banisterTRIMP(minutes: beat.1 / 60.0, heartRateReserve: (beat.0 - restHR) / range, sex: sex)
         }
     }
 
-    /// One beat's contribution. HRR (Karvonen): (HR − HRrest)/(HRmax − HRrest)
-    /// — Karvonen, Kentala & Mustala, Ann Med Exp Biol Fenn 1957;35(3):307-315.
-    /// Clamped to [0,1] so a spike past max HR doesn't explode the exponential.
-    private static func beatTRIMP(
-        hr: Double,
-        durSec: Double,
-        restHR: Double,
-        range: Double,
-        scale: Double,
-        weighting: Double
-    ) -> Double {
-        let hrr = max(0, min((hr - restHR) / range, 1.0))
-        return (durSec / 60.0) * hrr * (scale * exp(weighting * hrr))
+    /// Banister TRIMP of one stretch at one intensity — the single
+    /// implementation of the weighting, for a beat here and for a whole
+    /// workout at its average HR (`HealthWorkoutSummary.calculateTrimp`).
+    ///
+    /// Banister TRIMP: dur_min × HRR × A·e^(b·HRR); male A=0.64 b=1.92,
+    /// female A=0.86 b=1.67 — Morton, Fitz-Clarke & Banister, J Appl Physiol
+    /// 1990;69(3):1171-1177 (coeffs: Banister 1991, Physiological Testing of
+    /// Elite Athletes). A and b come from TrainingConstants.TRIMP; the code
+    /// calls them `scale` and `weighting`. HRR (Karvonen):
+    /// (HR − HRrest)/(HRmax − HRrest) — Karvonen, Kentala & Mustala, Ann Med
+    /// Exp Biol Fenn 1957;35(3):307-315. Clamped to [0,1] so a spike past max
+    /// HR doesn't explode the exponential.
+    static func banisterTRIMP(minutes: Double, heartRateReserve: Double, sex: BanisterSex) -> Double {
+        let scale: Double = (sex == .male) ? TrainingConstants.TRIMP.maleScale : TrainingConstants.TRIMP.femaleScale
+        let weighting: Double = (sex == .male) ? TrainingConstants.TRIMP.maleWeighting : TrainingConstants.TRIMP.femaleWeighting
+        let hrr = max(0, min(heartRateReserve, 1.0))
+        return minutes * hrr * (scale * exp(weighting * hrr))
     }
 
     /// Edwards 5-zone fallback. Used only when userRestingHR isn't known,
@@ -400,37 +390,43 @@ enum WorkoutAnalyzer {
         splitDistanceMeters: Double = 1_000,
         pauses: TrackPauses = TrackPauses()
     ) -> [Split] {
-        guard track.count >= 2 else { return [] }
-        // Precompute a beat-time → HR array so we can average HR per split window.
-        let hrSamples = hrSamplesWithWallClock(rrPoints: rrPoints, startDate: startDate)
+        guard let firstFix = track.first, track.count >= 2 else { return [] }
+        // Beats on the wall clock, consumed step by step so each split averages
+        // the HR of its own moving steps.
+        var beats = HRCursor(samples: hrSamplesWithWallClock(rrPoints: rrPoints, startDate: startDate))
+        _ = beats.take(through: firstFix.timestamp, counting: false)
         var splits: [Split] = []
         var splitStartIdx = 0
         var run = SplitRun()
         for i in 1 ..< track.count {
-            run.add(step: i, of: track, pauses: pauses)
+            run.add(step: i, of: track, pauses: pauses, beats: &beats)
             guard run.distance >= splitDistanceMeters else { continue }
-            splits.append(split(
-                index: splits.count + 1, track: track,
-                from: splitStartIdx, to: i, run: run, hrSamples: hrSamples
-            ))
+            splits.append(split(index: splits.count + 1, track: track, from: splitStartIdx, to: i, run: run))
             splitStartIdx = i
             run = SplitRun()
         }
         return splits
     }
 
-    /// Distance and moving time accumulated since the last split, leaving out
-    /// what `TrackPauses` marks.
+    /// Distance, moving time and HR accumulated since the last split, leaving
+    /// out what `TrackPauses` marks: a paused step adds nothing and its beats
+    /// are dropped; a gap (the step across a resume) adds its distance but
+    /// neither time nor HR — the same rule as `movingHalves`.
     private struct SplitRun {
         var distance = 0.0
         var seconds = 0.0
+        var hrSum = 0.0
+        var hrCount = 0
 
-        mutating func add(step i: Int, of track: [CLLocation], pauses: TrackPauses) {
+        mutating func add(step i: Int, of track: [CLLocation], pauses: TrackPauses, beats: inout HRCursor) {
+            let moving = !pauses.paused.contains(i) && !pauses.gaps.contains(i)
+            let taken = beats.take(through: track[i].timestamp, counting: moving)
             guard !pauses.paused.contains(i) else { return }
             distance += track[i].distance(from: track[i - 1])
-            if !pauses.gaps.contains(i) {
-                seconds += track[i].timestamp.timeIntervalSince(track[i - 1].timestamp)
-            }
+            guard moving else { return }
+            seconds += track[i].timestamp.timeIntervalSince(track[i - 1].timestamp)
+            hrSum += taken.sum
+            hrCount += taken.count
         }
     }
 
@@ -439,18 +435,15 @@ enum WorkoutAnalyzer {
         track: [CLLocation],
         from splitStartIdx: Int,
         to i: Int,
-        run: SplitRun,
-        hrSamples: [HRWallClockSample]
+        run: SplitRun
     ) -> Split {
-        let startFix = track[splitStartIdx]
-        let endFix = track[i]
         let distance = run.distance
         let duration = run.seconds
         return Split(
             index: splitIndex,
             distanceMeters: distance,
             durationSeconds: duration,
-            averageHR: averageHR(samples: hrSamples, from: startFix.timestamp, to: endFix.timestamp),
+            averageHR: run.hrCount > 0 ? run.hrSum / Double(run.hrCount) : nil,
             averagePaceSecPerKm: duration > 0 ? (duration / (distance / 1_000)) : nil,
             elevationGainMeters: splitElevationGain(Array(track[splitStartIdx ... i])),
             averageAlpha1: nil // populated by enrichSplitsWithAlpha1 post-pass
@@ -472,8 +465,10 @@ enum WorkoutAnalyzer {
     /// `metadata`'s splits with each one's mean α1 from the samples already on
     /// it, or its splits unchanged when it has no samples. Call once the
     /// samples are attached (workout finalize) and again whenever α1
-    /// re-analysis rewrites them. The split windows are walked along the
-    /// stored polyline, its fixes spread across `duration`.
+    /// re-analysis rewrites them. The split windows come from the splits' own
+    /// moving times (`enrichSplitsWithAlpha1`); the stored polyline, its fixes
+    /// spread across `duration`, only anchors the first fix, which its
+    /// reconstruction places at `startDate`.
     static func splitsEnrichedWithAlpha1(
         _ metadata: WorkoutMetadata,
         startDate: Date,
@@ -487,8 +482,16 @@ enum WorkoutAnalyzer {
     /// Post-pass that adds `averageAlpha1` to each split using the workout
     /// samples' α1 column. Splits are emitted from `computeSplits` first
     /// (which only knows GPS + RR), then this enrichment runs once the
-    /// samples exist. Cheap O(n+m): samples and splits both run in
-    /// chronological order, so a single linear sweep covers all splits.
+    /// samples exist.
+    ///
+    /// Samples are stamped in ACTIVE seconds (the clock stops while paused),
+    /// and a split's `durationSeconds` is its moving time, pauses excluded.
+    /// So each split's window is laid end to end on the active clock: it
+    /// starts where the previous one ended (the first at the first fix's
+    /// offset, normally the GPS warm-up before it) and lasts the split's
+    /// moving time. Neither the paused stretches nor the GPS steps taken
+    /// while paused shift the windows, and no track timestamps are needed
+    /// past the first.
     static func enrichSplitsWithAlpha1(
         splits: [Split],
         samples: [WorkoutSample],
@@ -498,22 +501,16 @@ enum WorkoutAnalyzer {
         guard !splits.isEmpty else { return splits }
         let alphaPoints = alphaOffsets(of: samples)
         guard !alphaPoints.isEmpty else { return splits }
-        // Each split needs its [startOffsetSec, endOffsetSec] window, re-derived
-        // by walking the GPS track parallel to the split distances. When track
-        // sizes don't line up (e.g. split-only indoor sport) the per-split
-        // duration carries the window instead — close enough.
-        var enriched: [Split] = []
-        var walk = SplitTrackWalk(startOffsetSec: 0, trackIdx: 0, cumulative: 0)
-        for split in splits {
-            let endOffsetSec = walk.advance(over: split, track: track, startDate: startDate)
+        var windowStart = track.first.map { max(0, $0.timestamp.timeIntervalSince(startDate)) } ?? 0
+        return splits.map { split in
+            let windowEnd = windowStart + split.durationSeconds
             var enrichedSplit = split
             enrichedSplit.averageAlpha1 = averageAlpha1(
-                of: alphaPoints, from: walk.startOffsetSec, to: endOffsetSec
+                of: alphaPoints, from: Int(windowStart.rounded()), to: Int(windowEnd.rounded())
             )
-            enriched.append(enrichedSplit)
-            walk.startOffsetSec = endOffsetSec
+            windowStart = windowEnd
+            return enrichedSplit
         }
-        return enriched
     }
 
     /// (offsetSec, alpha1) for every sample that carried an α1 value.
@@ -529,28 +526,6 @@ enum WorkoutAnalyzer {
         let inWindow = alphaPoints.filter { $0.0 >= start && $0.0 < end }
         guard !inWindow.isEmpty else { return nil }
         return inWindow.map(\.1).reduce(0, +) / Double(inWindow.count)
-    }
-
-    /// Cursor that walks the GPS track alongside the split list, so each split
-    /// can be given the clock window it actually covered.
-    private struct SplitTrackWalk {
-        var startOffsetSec: Int
-        var trackIdx: Int
-        var cumulative: Double
-
-        /// Advances to the end of `split` and returns its end offset. Any
-        /// remaining mismatch (a last partial split) is accepted as-is.
-        mutating func advance(over split: Split, track: [CLLocation], startDate: Date) -> Int {
-            let targetDistance = cumulative + split.distanceMeters
-            while trackIdx + 1 < track.count, cumulative < targetDistance {
-                cumulative += track[trackIdx + 1].distance(from: track[trackIdx])
-                trackIdx += 1
-            }
-            guard track.indices.contains(trackIdx) else {
-                return startOffsetSec + Int(split.durationSeconds.rounded())
-            }
-            return Int(track[trackIdx].timestamp.timeIntervalSince(startDate))
-        }
     }
 
     // MARK: - Decoupling & Efficiency Factor
@@ -713,13 +688,17 @@ enum WorkoutAnalyzer {
     /// where the fix belongs. This is the second line: an encoder that cannot
     /// crash regardless of what reaches it, because a fixed importer is one
     /// caller and this is shared by every track-producing path.
+    ///
+    /// The clamp is ±`Int.max / 8`, not `Int.min ... Int.max`: the encoders
+    /// subtract the previous value (`lat - prevLat`) and then shift the
+    /// difference left one bit, so a value at `Int.max` after one at a negative
+    /// value would trap on the subtraction. Two values within ±2⁶⁰ differ by at
+    /// most 2⁶¹, which survives both the subtraction and the shift. Real
+    /// coordinates (±18 000 000 at 1e5) and altitudes are far inside it.
     private static func scaledInt(_ value: Double, by factor: Double) -> Int {
         guard value.isFinite else { return 0 }
-        let scaled = (value * factor).rounded()
-        guard scaled >= Double(Int.min), scaled <= Double(Int.max) else {
-            return scaled < 0 ? Int.min : Int.max
-        }
-        return Int(scaled)
+        let limit = Double(Int.max / 8)
+        return Int(min(max((value * factor).rounded(), -limit), limit))
     }
 
     private static func encode(coordinates: [CLLocationCoordinate2D]) -> String {
@@ -798,12 +777,5 @@ enum WorkoutAnalyzer {
             }
             return point.t_ms + correctionMs
         }
-    }
-
-    private static func averageHR(samples: [HRWallClockSample], from: Date, to: Date) -> Double? {
-        let window = samples.filter { $0.timestamp >= from && $0.timestamp <= to }
-        guard !window.isEmpty else { return nil }
-        let total = window.reduce(0.0) { $0 + $1.hr }
-        return total / Double(window.count)
     }
 }

@@ -1,0 +1,281 @@
+{
+ "file": "Emuqu/Sources/Services/LocationFinder.swift",
+ "hash": "c083d7a6ea8e0054",
+ "role": "One-shot 'where am I' fix: ensures location authorization (status read and prompt on the main actor through one retained manager, prompting if undetermined), then races CLLocationUpdate.liveUpdates off the main actor against a timeout for the first fresh, reasonably accurate fix. Callers geocode it themselves.",
+ "types": [
+  "LocationFinder: enum @MainActor — static one-shot fix; the fix path is nonisolated",
+  "LocationFinder.LookupError: enum — permissionDenied, locationServicesDisabled, timeout, noFix"
+ ],
+ "state": [
+  "mem:LocationFinder.authorizationManager (static CLLocationManager created on the main actor, kept for process life)",
+  "mem:LocationFinder.maxUsableAccuracyMeters = 200, maxUsableAgeSeconds = 60 (static)"
+ ],
+ "toplevel": "No top-level code beyond declarations; `@preconcurrency import CoreLocation`.",
+ "flags": [
+  {
+   "kind": "untested",
+   "sev": "low",
+   "text": "No test references LocationFinder.",
+   "evidence": [
+    "Emuqu/Sources/Services/LocationFinder.swift:63"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func LocationFinder.detachedFirstUsableLocation(timeoutSec:)",
+   "hash": "43e7ee52ab0d7675",
+   "does": "Ensures authorization and returns the first usable raw CLLocation within timeoutSec (no geocode). Used by the AppLaunchTasks road-context prewarm (8 s) and the assistant's cold routing fix (AppFactResolver+LiveNavigation, 5 s).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.ensureAuthorization()",
+    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.firstUsableLocation(timeoutSec:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.ensureAuthorization()": "aa2ac6921c224086",
+    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.firstUsableLocation(timeoutSec:)": "d8a19285ddd16ed0"
+   }
+  },
+  {
+   "key": "func LocationFinder.ensureAuthorization()",
+   "hash": "1ac551a97bd1bb7b",
+   "does": "Reads the authorization status on the main actor (authorizationStatus): authorized → continue, denied/restricted/unknown → throw permissionDenied, notDetermined → prompt and wait; then throws locationServicesDisabled if location services are off.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.locationAuthorizationStatus()",
+    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.promptForAuthorization()",
+    "ext:CLLocationManager.locationServicesEnabled"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .authorizedWhenInUse, .authorizedAlways",
+     "effect": "continue to services check"
+    },
+    {
+     "at": "+4",
+     "cond": "case .denied, .restricted",
+     "effect": "throw permissionDenied"
+    },
+    {
+     "at": "+6",
+     "cond": "case .notDetermined",
+     "effect": "await promptForAuthorization (may throw)"
+    },
+    {
+     "at": "+8",
+     "cond": "@unknown default",
+     "effect": "throw permissionDenied"
+    },
+    {
+     "at": "+11",
+     "cond": "locationServicesEnabled() false",
+     "effect": "throw locationServicesDisabled"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.locationAuthorizationStatus()": "fae74b5835684832",
+    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.promptForAuthorization()": "6b530420e5c6caaa"
+   }
+  },
+  {
+   "key": "func LocationFinder.promptForAuthorization()",
+   "hash": "bf178bbf72df1771",
+   "does": "Shows the When-In-Use prompt on the main actor, then polls the status (on the main actor) every 250 ms for up to 10 s; returns when authorized, throws permissionDenied on denial or if still undetermined after 10 s.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.requestAuthorizationOnMainActor()",
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)",
+    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.locationAuthorizationStatus()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for 40 iterations",
+     "effect": "sleep 250 ms then probe status"
+    },
+    {
+     "at": "+5",
+     "cond": "status authorized",
+     "effect": "return"
+    },
+    {
+     "at": "+6",
+     "cond": "status denied/restricted",
+     "effect": "throw permissionDenied"
+    },
+    {
+     "at": "+10",
+     "cond": "loop ran out",
+     "effect": "throw permissionDenied"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.locationAuthorizationStatus()": "fae74b5835684832",
+    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.requestAuthorizationOnMainActor()": "6fee928161010a89",
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "c0fa5e77e7dfe851"
+   }
+  },
+  {
+   "key": "func LocationFinder.mainThreadManager()",
+   "hash": "7a5872aab37e0f1d",
+   "does": "On the main actor, returns the retained authorizationManager, creating and storing a CLLocationManager on first use.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:LocationFinder.authorizationManager"
+   ],
+   "writes": [
+    "mem:LocationFinder.authorizationManager"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "?? — no manager yet",
+     "effect": "create one"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func LocationFinder.locationAuthorizationStatus()",
+   "hash": "6137c5639e5fca4f",
+   "does": "On the main actor, the retained manager's authorizationStatus.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.mainThreadManager()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.mainThreadManager()": "c1b2bcc142dd9850"
+   }
+  },
+  {
+   "key": "func LocationFinder.requestAuthorizationOnMainActor()",
+   "hash": "07b584dfcbc537e1",
+   "does": "On the main actor, calls requestWhenInUseAuthorization() on the retained manager (mainThreadManager).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.mainThreadManager()",
+    "ext:CLLocationManager.requestWhenInUseAuthorization"
+   ],
+   "reads": [
+    "mem:LocationFinder.authorizationManager"
+   ],
+   "writes": [
+    "mem:LocationFinder.authorizationManager"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.mainThreadManager()": "c1b2bcc142dd9850"
+   }
+  },
+  {
+   "key": "func LocationFinder.firstUsableLocation(timeoutSec:)",
+   "hash": "012fd182ce9d486d",
+   "does": "Wraps raceFirstFix with latency logging; rethrows failures after logging a warning.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.raceFirstFix(timeoutSec:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "catch from raceFirstFix",
+     "effect": "log elapsed + error at warning, rethrow"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.raceFirstFix(timeoutSec:)": "f927c172f584b119",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func LocationFinder.raceFirstFix(timeoutSec:)",
+   "hash": "18e1583b021e3e2e",
+   "does": "Task group racing firstUsableLiveFix against a timeoutSec sleep that throws timeout; returns the first child's result and cancels the other.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.firstUsableLiveFix()",
+    "ext:Task.sleep"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "group.next() returned a value",
+     "effect": "false (nil): throw noFix; true: return it; a thrown child error (timeout/noFix) propagates"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.firstUsableLiveFix()": "7211f3f5c2fa0a0b",
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.cancelAll()": "be8542994382987c",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "9b0181db6472cf0d"
+   }
+  },
+  {
+   "key": "func LocationFinder.firstUsableLiveFix()",
+   "hash": "243f0ff1a44df1e9",
+   "does": "Iterates CLLocationUpdate.liveUpdates() and returns the first update whose location isUsable (accuracy 0…200 m, at most 60 s old); throws noFix if the stream ends.",
+   "entry": null,
+   "calls": [
+    "ext:CLLocationUpdate.liveUpdates",
+    "ext:Task.checkCancellation",
+    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.isUsable(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each live update",
+     "effect": "check cancellation"
+    },
+    {
+     "at": "+3",
+     "cond": "location present and usable",
+     "effect": "false: continue; true: return location"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.isUsable(_:)": "edaa91ae9db3ede8"
+   }
+  },
+  {
+   "key": "func LocationFinder.isUsable(_:)",
+   "hash": "dbd6ca2d5fc9771d",
+   "does": "True when horizontal accuracy is within 0…maxUsableAccuracyMeters (200 m) and the fix is no older than maxUsableAgeSeconds (60 s).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

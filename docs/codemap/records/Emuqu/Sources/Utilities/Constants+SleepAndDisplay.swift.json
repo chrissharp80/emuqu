@@ -1,0 +1,137 @@
+{
+ "file": "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift",
+ "hash": "22620db76d2e7f7f",
+ "role": "HRV sleep-stage classifier thresholds/weights, baseline replacement thresholds and SD floors, the two sleep fragmentation-index coefficients, history de-dup tolerances, heat-acclimation model constants, and the FeatureFlags kill-switch store (App Group UserDefaults + in-memory cache).",
+ "types": [
+  "SleepClassifierConstants: enum — stage thresholds and composite weights per feature set",
+  "BaselineConstants: enum — replacement fractions, SD floors",
+  "SleepScienceConstants: enum — fragmentation-index coefficients",
+  "HistoryConstants: enum — filter debounce and duplicate/artifact tolerances",
+  "HeatConstants: enum — WBGT stimulus, EWMA rates, bands, replay lookback",
+  "FeatureFlags: final class (Sendable) — kill-switch store",
+  "FeatureFlags.Key: enum String — 7 flags, all default true"
+ ],
+ "state": [
+  "mem:FeatureFlags.shared (static let singleton, line 347)",
+  "mem:FeatureFlags.cache (OSAllocatedUnfairLock<[String: Bool]>, line 350)",
+  "ud(suite group.com.chrissharp.flowrecovery):medicalGuardEnabled",
+  "ud(suite group.com.chrissharp.flowrecovery):providerOpenAIEnabled",
+  "ud(suite group.com.chrissharp.flowrecovery):providerAnthropicEnabled",
+  "ud(suite group.com.chrissharp.flowrecovery):providerGeminiEnabled",
+  "ud(suite group.com.chrissharp.flowrecovery):providerGrokEnabled",
+  "ud(suite group.com.chrissharp.flowrecovery):providerDeepSeekEnabled",
+  "ud(suite group.com.chrissharp.flowrecovery):beatConsistencyCardEnabled"
+ ],
+ "toplevel": "Static let constant namespaces; `import os` mid-file (line 339); FeatureFlags.suiteName = AppConfig.appGroupIdentifier and the cache lock initialised empty.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var FeatureFlags.defaults",
+   "hash": "ad8480c77357b910",
+   "does": "Resolves the App Group UserDefaults suite on every access, falling back to .standard if the suite cannot be created.",
+   "entry": null,
+   "calls": [
+    "ext:UserDefaults(suiteName:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+0",
+     "cond": "UserDefaults(suiteName: group.com.chrissharp.flowrecovery) returns nil",
+     "effect": "fallback .standard: flags are read/written in the app's own defaults instead of the App Group, silently."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "init FeatureFlags()",
+   "hash": "4f171088cdf643a5",
+   "does": "Private no-op initializer so the only instance is FeatureFlags.shared.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var FeatureFlags.Key.defaultValue",
+   "hash": "67fddfba749ae27b",
+   "does": "Returns the compiled-in default for a flag: true for all seven keys.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "self is any of the seven cases (exhaustive single case list)",
+     "effect": "returns true; there is no case that returns false, so every flag defaults on."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FeatureFlags.value(for:)",
+   "hash": "f6612c8dc030d0e0",
+   "does": "Returns a flag's value under the cache lock: cached value if present, else the stored App Group bool if the key exists, else Key.defaultValue; caches the result.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift::var FeatureFlags.defaults",
+    "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift::var FeatureFlags.Key.defaultValue",
+    "ext:UserDefaults.object(forKey:)",
+    "ext:UserDefaults.bool(forKey:)"
+   ],
+   "reads": [
+    "mem:FeatureFlags.cache",
+    "ud(suite group.com.chrissharp.flowrecovery):<Key.rawValue>"
+   ],
+   "writes": [
+    "mem:FeatureFlags.cache"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "cache already holds the key",
+     "effect": "true: return cached value without touching UserDefaults (later writes to the suite by another process are never seen until relaunch); false: resolve and cache."
+    },
+    {
+     "at": "+4",
+     "cond": "no object stored for the key in the suite",
+     "effect": "true: use defaultValue (true); false: use defaults.bool(forKey:)."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift::var FeatureFlags.Key.defaultValue": "6904ac00f3193e7f",
+    "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift::var FeatureFlags.defaults": "77b1e786bef45aae"
+   }
+  },
+  {
+   "key": "func FeatureFlags.set(_:for:)",
+   "hash": "4a72dd35d2326035",
+   "does": "Writes the flag to the App Group defaults and updates the cache. Called from the Settings → Flo provider toggles (AIAssistantSettingsPage.bindingFor).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift::var FeatureFlags.defaults",
+    "ext:UserDefaults.set(_:forKey:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ud(suite group.com.chrissharp.flowrecovery):<Key.rawValue>",
+    "mem:FeatureFlags.cache"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift::func FeatureFlags.value(for:)": "a2781a86fccf2cac",
+    "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift::var FeatureFlags.defaults": "77b1e786bef45aae"
+   }
+  }
+ ],
+ "deps": {}
+}

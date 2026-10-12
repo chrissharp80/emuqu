@@ -116,15 +116,13 @@ final class BreathingAudioManager: NSObject, AVSpeechSynthesizerDelegate {
         lastSpokenCue = .none
 
         // Releasing the claim drops `.duckOthers`. The session is deactivated
-        // only when nothing else (voice chat, a workout cue) holds it.
-        let coordinator = AppDependencies.current.services.audioSessionCoordinator
-        coordinator.release(.breathingGuide)
-        if !coordinator.hasActiveClaims() {
-            do {
-                try AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
-            } catch {
-                debugLog("[BreathingAudio] Failed to deactivate audio session: \(error)")
-            }
+        // only when nothing else (voice chat, a workout cue) holds it, decided
+        // on the cue manager's transition queue: checked here on the main
+        // actor, a workout cue activating the session in between was cut off.
+        AppDependencies.current.services.audioSessionCoordinator.release(.breathingGuide)
+        AppDependencies.current.collection.backgroundAudioManager.deactivateIfIdle { error in
+            guard let error else { return }
+            debugLog("[BreathingAudio] Failed to deactivate audio session: \(error)")
         }
 
         debugLog("[BreathingAudio] Stopped")

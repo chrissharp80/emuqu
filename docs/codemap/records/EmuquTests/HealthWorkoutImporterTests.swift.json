@@ -1,0 +1,309 @@
+{
+ "file": "EmuquTests/HealthWorkoutImporterTests.swift",
+ "hash": "cc42ed55269d3743",
+ "role": "XCTest suite for HealthWorkoutImporter's pure decisions: HKWorkoutActivityType→Sport mapping (incl. indoor twins, unsupported types → nil), duplicate detection by start-time tolerance, step windows→cadence conversion, and the two thresholds.",
+ "types": [
+  "HealthWorkoutImporterTests: class — XCTestCase over HealthWorkoutImporter static helpers"
+ ],
+ "state": [],
+ "toplevel": "private typealias Importer = HealthWorkoutImporter.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func HealthWorkoutImporterTests.testOutdoorTypesMapToTheirSports()",
+   "hash": "137f2e26cdbabae3",
+   "does": "Asserts outdoor running/walking/hiking/cycling/rowing map to run/walk/hike/bike/row.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.sport(for:isIndoor:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.sport(for:isIndoor:)": "ea7d8ada44a71fa0"
+   }
+  },
+  {
+   "key": "func HealthWorkoutImporterTests.testIndoorFlagSelectsTheIndoorSport()",
+   "hash": "da106573326fc38b",
+   "does": "Asserts indoor running → treadmill and indoor cycling → indoorBike.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.sport(for:isIndoor:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.sport(for:isIndoor:)": "ea7d8ada44a71fa0"
+   }
+  },
+  {
+   "key": "func HealthWorkoutImporterTests.testIndoorFlagDoesNotDisturbSportsWithNoIndoorTwin()",
+   "hash": "3b7e696d851cc819",
+   "does": "Asserts indoor walking/hiking/rowing still map to walk/hike/row.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.sport(for:isIndoor:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.sport(for:isIndoor:)": "ea7d8ada44a71fa0"
+   }
+  },
+  {
+   "key": "func HealthWorkoutImporterTests.testFunctionalTrainingTypesMapToCrossFit()",
+   "hash": "61aa5439c3e75fcf",
+   "does": "Asserts crossTraining, functionalStrengthTraining and HIIT map to crossFit.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.sport(for:isIndoor:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.sport(for:isIndoor:)": "ea7d8ada44a71fa0"
+   }
+  },
+  {
+   "key": "func HealthWorkoutImporterTests.testSportsTheAppDoesNotHaveAreNotImportable()",
+   "hash": "55a048fac3512afc",
+   "does": "Asserts swimming, elliptical, yoga, traditionalStrengthTraining and other map to nil (not importable).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.sport(for:isIndoor:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each of 5 unsupported activity types",
+     "effect": "asserts sport(for:) is nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.sport(for:isIndoor:)": "ea7d8ada44a71fa0"
+   }
+  },
+  {
+   "key": "func HealthWorkoutImporterTests.testWorkoutAlreadyInTheArchiveIsNotOffered()",
+   "hash": "d67246dd1756917c",
+   "does": "Asserts isAlreadyArchived is true when an archived start equals the candidate start.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.isAlreadyArchived(start:existingStarts:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.isAlreadyArchived(start:existingStarts:)": "6efdd13994d3e5ea"
+   }
+  },
+  {
+   "key": "func HealthWorkoutImporterTests.testNearbyStartsCountAsTheSameWorkout()",
+   "hash": "54d06103a9430d6f",
+   "does": "Asserts starts ±120 s away count as already archived.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.isAlreadyArchived(start:existingStarts:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.isAlreadyArchived(start:existingStarts:)": "6efdd13994d3e5ea"
+   }
+  },
+  {
+   "key": "func HealthWorkoutImporterTests.testToleranceBoundaryIsInclusiveAndFiniteInBothDirections()",
+   "hash": "28535308d211d12e",
+   "does": "Asserts a start exactly duplicateStartToleranceSec away is a duplicate and tolerance+1 s either way is not.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.isAlreadyArchived(start:existingStarts:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.isAlreadyArchived(start:existingStarts:)": "6efdd13994d3e5ea"
+   }
+  },
+  {
+   "key": "func HealthWorkoutImporterTests.testDistantWorkoutOnTheSameDayIsStillOffered()",
+   "hash": "794f23ec133003e6",
+   "does": "Asserts an evening start 9 h after an archived morning start is not a duplicate.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.isAlreadyArchived(start:existingStarts:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.isAlreadyArchived(start:existingStarts:)": "6efdd13994d3e5ea"
+   }
+  },
+  {
+   "key": "func HealthWorkoutImporterTests.testEmptyArchiveOffersEverything()",
+   "hash": "4c79039bb5ecd8ea",
+   "does": "Asserts an empty archive never reports a duplicate.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.isAlreadyArchived(start:existingStarts:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.isAlreadyArchived(start:existingStarts:)": "6efdd13994d3e5ea"
+   }
+  },
+  {
+   "key": "func HealthWorkoutImporterTests.testStepCountBecomesStepsPerMinuteAtTheSampleMidpoint()",
+   "hash": "43d4c9d8ddee84fa",
+   "does": "Asserts a 60 s window with 170 steps yields one sample of 170 spm timestamped at the 30 s midpoint.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.cadenceSamples(from:)",
+    "Emuqu/Sources/Import/HealthSampleWindow.swift::var HealthSampleWindow.duration"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/HealthSampleWindow.swift::init HealthSampleWindow(start:end:value:)": "05ac573cbf4001d6",
+    "Emuqu/Sources/Import/HealthSampleWindow.swift::var HealthSampleWindow.duration": "eb1d4f3b8568285b",
+    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.cadenceSamples(from:)": "04fab9aaa269e97f"
+   }
+  },
+  {
+   "key": "func HealthWorkoutImporterTests.testShorterWindowScalesUpToPerMinute()",
+   "hash": "853ecbe34c1605d3",
+   "does": "Asserts a 30 s window with 85 steps scales to 170 spm.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.cadenceSamples(from:)",
+    "Emuqu/Sources/Import/HealthSampleWindow.swift::var HealthSampleWindow.duration"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Indexes samples[0] without first asserting non-empty; an empty result crashes the test process (index out of range) instead of failing this one test.",
+     "evidence": [
+      "EmuquTests/HealthWorkoutImporterTests.swift:108"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Import/HealthSampleWindow.swift::init HealthSampleWindow(start:end:value:)": "05ac573cbf4001d6",
+    "Emuqu/Sources/Import/HealthSampleWindow.swift::var HealthSampleWindow.duration": "eb1d4f3b8568285b",
+    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.cadenceSamples(from:)": "04fab9aaa269e97f"
+   }
+  },
+  {
+   "key": "func HealthWorkoutImporterTests.testZeroLengthWindowIsDroppedRatherThanDividedByZero()",
+   "hash": "585e8b9d6296b015",
+   "does": "Asserts zero-length and backwards (end before start) windows produce no cadence samples.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.cadenceSamples(from:)",
+    "Emuqu/Sources/Import/HealthSampleWindow.swift::var HealthSampleWindow.duration"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/HealthSampleWindow.swift::init HealthSampleWindow(start:end:value:)": "05ac573cbf4001d6",
+    "Emuqu/Sources/Import/HealthSampleWindow.swift::var HealthSampleWindow.duration": "eb1d4f3b8568285b",
+    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.cadenceSamples(from:)": "04fab9aaa269e97f"
+   }
+  },
+  {
+   "key": "func HealthWorkoutImporterTests.testNegativeStepCountIsDropped()",
+   "hash": "69f7d5f07b90fb52",
+   "does": "Asserts a negative step count produces no cadence sample.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.cadenceSamples(from:)",
+    "Emuqu/Sources/Import/HealthSampleWindow.swift::var HealthSampleWindow.duration"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/HealthSampleWindow.swift::init HealthSampleWindow(start:end:value:)": "05ac573cbf4001d6",
+    "Emuqu/Sources/Import/HealthSampleWindow.swift::var HealthSampleWindow.duration": "eb1d4f3b8568285b",
+    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.cadenceSamples(from:)": "04fab9aaa269e97f"
+   }
+  },
+  {
+   "key": "func HealthWorkoutImporterTests.testGoodSamplesSurviveAlongsideBadOnes()",
+   "hash": "8ef70fb8f0687188",
+   "does": "Asserts a zero-length window is dropped while a valid 160-step 60 s window alongside it survives as 160 spm.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.cadenceSamples(from:)",
+    "Emuqu/Sources/Import/HealthSampleWindow.swift::var HealthSampleWindow.duration"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/HealthSampleWindow.swift::init HealthSampleWindow(start:end:value:)": "05ac573cbf4001d6",
+    "Emuqu/Sources/Import/HealthSampleWindow.swift::var HealthSampleWindow.duration": "eb1d4f3b8568285b",
+    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.cadenceSamples(from:)": "04fab9aaa269e97f"
+   }
+  },
+  {
+   "key": "func HealthWorkoutImporterTests.testThresholdsMatchTheAuditedValues()",
+   "hash": "c643bca8bc09a073",
+   "does": "Asserts minimumImportableDuration == 60 s and duplicateStartToleranceSec == 300 s.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Pins two constants to their literal values (HealthWorkoutImporter.swift:70,77); a change-detector, not a behavioural test.",
+     "evidence": [
+      "EmuquTests/HealthWorkoutImporterTests.swift:147",
+      "Emuqu/Sources/Import/HealthWorkoutImporter.swift:70",
+      "Emuqu/Sources/Import/HealthWorkoutImporter.swift:77"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

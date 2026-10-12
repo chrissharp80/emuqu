@@ -149,11 +149,7 @@ struct ChatBubble: View, Equatable {
             .accessibilityLabel(label)
             .accessibilityValue(spokenText)
             .contextMenu { bubbleMenu }
-            .alert(String(localized: "Report response", bundle: LanguageManager.appBundle), isPresented: $reportMailUnavailable) {
-                Button(String(localized: "OK", bundle: LanguageManager.appBundle)) {}
-            } message: {
-                Text(String(localized: "No mail account is set up on this device. Send your report to \(AppConfig.contactEmail).", bundle: LanguageManager.appBundle))
-            }
+            .reportMailUnavailableAlert(isPresented: $reportMailUnavailable)
     }
 
     /// Long-press actions. Regenerate only makes sense on the assistant's last
@@ -208,13 +204,15 @@ struct ChatBubble: View, Equatable {
         Self.reportURL(quoting: turn.text)
     }
 
-    /// The report email for any AI output, quoting `text`. Also used by the
-    /// chat's "Report last spoken coaching" item for lines that were only
-    /// spoken.
+    /// The report email for any AI output, quoting `text` as the user saw it
+    /// (phonetic `[[word|IPA]]` hints stripped). Also used by the chat's
+    /// "Report last spoken coaching" item for lines that were only spoken.
+    /// The quote can carry health details from the reply; the user reviews
+    /// the whole email in their mail app before choosing to send it.
     static func reportURL(quoting text: String) -> URL? {
         AppConfig.contactMailURL(
             subject: "Emuqu: reported AI response",
-            body: String(localized: "What is wrong with this response?", bundle: LanguageManager.appBundle) + "\n\n\n---\n" + text
+            body: String(localized: "What is wrong with this response?", bundle: LanguageManager.appBundle) + "\n\n\n---\n" + PhoneticOverrides.stripForDisplay(text)
         )
     }
 
@@ -377,25 +375,45 @@ struct ChatBubble: View, Equatable {
     }
 }
 
+extension View {
+    /// The "no mail account" alert for a report email that couldn't open,
+    /// telling the user where to send it. Shared by the bubble's Report
+    /// response and the chat's Report last spoken coaching.
+    func reportMailUnavailableAlert(isPresented: Binding<Bool>) -> some View {
+        alert(String(localized: "Report response", bundle: LanguageManager.appBundle), isPresented: isPresented) {
+            Button(String(localized: "OK", bundle: LanguageManager.appBundle)) {}
+        } message: {
+            Text(String(localized: "No mail account is set up on this device. Send your report to \(AppConfig.contactEmail).", bundle: LanguageManager.appBundle))
+        }
+    }
+}
+
 /// Prepares an assistant reply for the bubble's inline-only Markdown parse.
 ///
 /// Inline parsing renders bold, italic, code and links but leaves block syntax
 /// as typed, so a model's `## Heading` would show its `#` marks. Each ATX
 /// heading (up to three spaces of indent, one to six `#`, then a space or the
 /// end of the line) becomes a bold line instead; an empty heading becomes an
-/// empty line. Lines inside fenced code blocks are left alone.
+/// empty line. Lines inside fenced code blocks (``` or ~~~; a block is
+/// closed only by a fence of the same kind) are left alone.
 enum ChatMarkdown {
     static func displayText(_ text: String) -> String {
-        var insideFence = false
+        var openFence: String?
         let lines = text.components(separatedBy: "\n").map { line -> String in
-            if line.trimmingCharacters(in: .whitespaces).hasPrefix("```") {
-                insideFence.toggle()
+            if let marker = fenceMarker(line), openFence == nil || openFence == marker {
+                openFence = openFence == nil ? marker : nil
                 return line
             }
-            guard !insideFence, let title = headingTitle(line) else { return line }
+            guard openFence == nil, let title = headingTitle(line) else { return line }
             return title.isEmpty ? "" : "**\(title)**"
         }
         return lines.joined(separator: "\n")
+    }
+
+    /// "```" or "~~~" when the line opens or closes a fenced code block.
+    static func fenceMarker(_ line: String) -> String? {
+        let trimmed = line.trimmingCharacters(in: .whitespaces)
+        return ["```", "~~~"].first { trimmed.hasPrefix($0) }
     }
 
     /// The text of an ATX heading line, without its `#` marks, closing

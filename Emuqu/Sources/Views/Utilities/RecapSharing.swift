@@ -12,6 +12,10 @@ import UIKit
 /// name first, then share the URL — receivers (Photos, Files, Mail, Strava) all
 /// use the file's base name as the attachment label.
 ///
+/// The PNG carries the user's score, so it is written to `recapShareDirectory`
+/// and `presentShareSheet` deletes it when the sheet closes, rather than
+/// leaving it in tmp until iOS purges it.
+///
 /// Falls back to the raw image if the temp-file write fails (sandboxed-disk-full
 /// edge case): the filename goes generic but the share doesn't fail outright.
 func recapActivityItem(image: UIImage, score: Int, date: Date) -> Any {
@@ -22,8 +26,10 @@ func recapActivityItem(image: UIImage, score: Int, date: Date) -> Any {
     df.calendar = Calendar(identifier: .gregorian)
     df.dateFormat = "yyyy-MM-dd"
     let stem = "emuqu-\(df.string(from: date))-score-\(score)"
-    let url = FileManager.default.temporaryDirectory.appendingPathComponent("\(stem).png")
-    guard let pngData = image.pngData(), attempt("share.png.write", { try pngData.write(to: url) }) != nil else {
+    let url = recapShareDirectory.appendingPathComponent("\(stem).png")
+    guard let pngData = image.pngData(),
+          attempt("share.png.dir", { try FileManager.default.createDirectory(at: recapShareDirectory, withIntermediateDirectories: true) }) != nil,
+          attempt("share.png.write", { try pngData.write(to: url) }) != nil else {
         return image
     }
     return url
@@ -47,9 +53,32 @@ func topmostPresenter() -> UIViewController? {
     return presenter
 }
 
+/// The temporary folder recap PNGs are shared from. Only files in it are
+/// deleted after sharing; any other URL (a PDF the preview still shows) is
+/// left alone.
+private let recapShareDirectory = FileManager.default.temporaryDirectory
+    .appendingPathComponent("RecapShare", isDirectory: true)
+
+/// The item's file URL when it is a recap PNG written by `recapActivityItem`.
+private func recapShareFile(_ activityItem: Any) -> URL? {
+    guard let url = activityItem as? URL, url.isFileURL else { return nil }
+    let folder = url.deletingLastPathComponent().standardizedFileURL
+    return folder == recapShareDirectory.standardizedFileURL ? url : nil
+}
+
+/// A share-sheet completion that deletes `file`, logging a failed delete.
+private func removeAfterSharing(_ file: URL) -> UIActivityViewController.CompletionWithItemsHandler {
+    { _, _, _, _ in
+        _ = attempt("share.png.remove") { try FileManager.default.removeItem(at: file) }
+    }
+}
+
+/// Shares `activityItem` from `presenter`. A recap PNG is deleted once the
+/// sheet closes, whether the user shared it or cancelled.
 @MainActor
 func presentShareSheet(activityItem: Any, from presenter: UIViewController) {
     let activityVC = UIActivityViewController(activityItems: [activityItem], applicationActivities: nil)
+    activityVC.completionWithItemsHandler = recapShareFile(activityItem).map(removeAfterSharing)
     // iPad popover anchor — without this, presenting on iPad crashes.
     if let popover = activityVC.popoverPresentationController {
         popover.sourceView = presenter.view

@@ -421,19 +421,25 @@ extension HelpScienceCatalog {
     private static var dfaRangeSections: [ArticleSection] {
         [
             .heading("Typical resting ranges"),
-            .keyValue([
-                (label: "0.75-1.0", value: "The most common range for a resting adult recording. The app treats it as its reference range."),
-                (label: "0.60-0.75", value: "Below the reference range. Common, and on its own not a concern."),
-                (label: "~0.5", value: "Intervals close to uncorrelated. Uncommon in a resting adult recording — worth repeating the reading."),
-                (label: ">1.0", value: "More correlated than the reference range. Seen with stress and with mental load, and also simply with slow, regular breathing."),
-                (label: "<0.5", value: "Outside the range these bands were characterised over — worth a second reading before reading anything into it.")
-            ]),
+            dfaRestingRangeTable,
             .note("""
                 Where the numbers come from: the 0.75 figure is well established as a threshold marker during GRADED EXERCISE, where \u{03B1}1 falls predictably as intensity rises (Rogers & Gronwald). Its use as a fixed RESTING readiness scale is this \
                 app's own convention and is not validated. Sleep research is a good reason for caution about it: \u{03B1}1 is at its lowest during deep sleep — around 0.78 for N3 against 0.85 for N2 and 0.89 for N1 — which puts the stage most \
                 associated with physical restoration at the very bottom of the range above, not the top.
                 """)
         ] + dfaLiveExerciseNotes
+    }
+
+    /// The five DFA \u{03B1}1 resting bands. One table, shown both in the
+    /// \u{03B1}1 article and in the metrics guide, so the two cannot drift.
+    private static var dfaRestingRangeTable: ArticleSection {
+        .keyValue([
+            (label: "0.75-1.0", value: "The most common range for a resting adult recording. The app treats it as its reference range."),
+            (label: "0.60-0.75", value: "Below the reference range. Common, and on its own not a concern."),
+            (label: "~0.5", value: "Intervals close to uncorrelated. Uncommon in a resting adult recording — worth repeating the reading."),
+            (label: ">1.0", value: "More correlated than the reference range. Seen with stress and with mental load, and also simply with slow, regular breathing."),
+            (label: "<0.5", value: "Outside the range these bands were characterised over — worth a second reading before reading anything into it.")
+        ])
     }
 
     /// The two notes that qualify the resting bands — where the 0.75 anchor
@@ -539,11 +545,14 @@ extension HelpScienceCatalog {
 
     /// The band this age falls in, with `{age}` resolved in its copy.
     ///
+    /// The last band (70+) is open-ended: every age no earlier band takes
+    /// falls to it, so its `upperBound` is never compared.
+    ///
     /// Returns the band itself rather than a five-member tuple (which would be
     /// `RMSSDAgeBand` minus `upperBound`, member for member, under a
     /// `large_tuple` waiver).
     private static func rmssdContext(forAge age: Int) -> RMSSDAgeBand {
-        let band = rmssdAgeBands.first { age < $0.upperBound } ?? rmssdAgeBands[rmssdAgeBands.count - 1]
+        let band = rmssdAgeBands.dropLast().first { age < $0.upperBound } ?? rmssdAgeBands[rmssdAgeBands.count - 1]
         return RMSSDAgeBand(
             upperBound: band.upperBound,
             groupLabel: band.groupLabel,
@@ -695,7 +704,7 @@ extension HelpScienceCatalog {
                     (label: "Min HR", value: "Lowest rate in the full recording. During overnight sessions, this typically occurs in deep sleep — it's a marker of your deepest recovery state."),
                     (label: "Max HR", value: "Highest rate in the full recording. Overnight spikes may indicate disrupted sleep, movement, or stress dreams.")
                 ]),
-                .text("Your overnight heart rate, against your own baseline, moves the recovery score by up to 10 points: lower than usual adds, higher subtracts. A rise of 5+ bpm over your usual level suggests incomplete recovery even if RMSSD looks normal."),
+                .text("Your overnight heart rate, against your own baseline, moves the HRV part of the recovery score by up to 10 points: lower than usual adds, higher subtracts. On a night with sleep data the HRV part is one weighted share of the score, so the effect on the final number is smaller. A rise of 5+ bpm over your usual level suggests incomplete recovery even if RMSSD looks normal."),
                 .note("Resting HR above baseline with RMSSD below baseline is a pattern worth watching. It commonly follows hard training, short sleep, alcohol or stress, and sometimes illness. If it lasts several days, an easier day is reasonable."),
                 .divider
         ]
@@ -816,13 +825,7 @@ extension HelpScienceCatalog {
         [
                 .heading("DFA \u{03B1}1 — Correlation Structure"),
                 .text("Detrended Fluctuation Analysis. Where RMSSD measures how much your intervals vary, \u{03B1}1 describes how those variations are patterned — whether successive intervals are correlated with one another or drift independently. It is a different question, not a better answer."),
-                .keyValue([
-                    (label: "0.75-1.0", value: "The app's resting reference range, and where most resting adult recordings sit."),
-                    (label: "0.60-0.75", value: "Below the reference range. Common on its own."),
-                    (label: "~0.5", value: "Intervals close to uncorrelated. Uncommon in a resting adult recording — worth a repeat before reading anything into it."),
-                    (label: "> 1.0", value: "More correlated than the reference range — seen with stress and mental load, and also with slow regular breathing."),
-                    (label: "< 0.5", value: "Outside the range these bands were characterised over. Worth a repeat reading before reading anything into it.")
-                ]),
+                dfaRestingRangeTable,
                 .tip("\u{03B1}1 has its own article (\"DFA \u{03B1}1 — The Hidden Gem\") covering where the numbers come from and why the resting ranges are a convention rather than a validated scale."),
                 .divider
         ]
@@ -873,7 +876,7 @@ extension HelpScienceCatalog {
                 ]),
                 .text("Once your Recovery Score activates, it becomes the primary indicator on your dashboard. Readiness remains in your detailed report as a quick sanity check."),
                 .tip("""
-                    When Readiness and Recovery Score disagree, that's information: Readiness only sees HRV; Recovery Score integrates sleep and vitals. High Readiness + low Recovery Score = your HRV looks fine today but poor sleep or elevated breathing \
+                    When Readiness and Recovery Score disagree, that's information: Readiness sees only HRV and your recent training; Recovery Score integrates sleep and vitals. High Readiness + low Recovery Score = your HRV looks fine today but poor sleep or elevated breathing \
                     rate is showing up. Low Readiness + decent Recovery Score = today's HRV dipped but your sleep and vitals fundamentals look solid.
                     """)
         ]

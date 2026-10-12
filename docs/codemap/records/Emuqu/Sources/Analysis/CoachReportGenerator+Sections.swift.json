@@ -1,0 +1,66 @@
+{
+ "file": "Emuqu/Sources/Analysis/CoachReportGenerator+Sections.swift",
+ "hash": "9f3b7a87c115f8f6",
+ "role": "Distance and duration formatters for the Coach Report email; formatDistance is also used by WorkoutRecoveryService.",
+ "types": [
+  "CoachReportGenerator: extension — formatters"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func CoachReportGenerator.formatDistance(_:units:)",
+   "hash": "7eeb89000bb9f3e1",
+   "does": "'—' when metres are nil or ≤0; otherwise UnitsPreference.formatDistance(meters:) for the given preference (.auto resolved against the locale; number and unit in the app language, 2 decimals).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "meters nil or <= 0",
+     "effect": "returns '—'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)": "a36dafa82ad91f58"
+   }
+  },
+  {
+   "key": "func CoachReportGenerator.formatDuration(_:)",
+   "hash": "924758d339c8be87",
+   "does": "Formats seconds as 'h:mm:ss' when ≥1 h, else 'm:ss' (not localized digits).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "hours > 0",
+     "effect": "'h:mm:ss'; else 'm:ss'"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Identical h:mm:ss / m:ss formatting to WorkoutStatsCards.formatDuration(sec:); GPXExporter.durationLabel and TCXExporter.humanSummary durLabel do the m:ss form without hours.",
+     "evidence": [
+      "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift:23",
+      "Emuqu/Sources/Analysis/GPXExporter.swift:66",
+      "Emuqu/Sources/Analysis/TCXExporter.swift:61"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

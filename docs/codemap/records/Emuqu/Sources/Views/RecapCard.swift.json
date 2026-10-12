@@ -1,0 +1,417 @@
+{
+ "file": "Emuqu/Sources/Views/RecapCard.swift",
+ "hash": "a8f176fca270a026",
+ "role": "Fixed 360x640pt shareable card (recovery-score or workout variant) rendered offscreen with ImageRenderer at x3 into a 1080x1920 image for the share sheet, plus a MapKit satellite snapshot helper that draws the workout route.",
+ "types": [
+  "RecapCard: struct View — share artwork",
+  "RecapCard.Variant: enum — .recovery(score,verdict,date) / .workout(distance,duration,pace,verdict,summary,date,routeMap)",
+  "extension RecapCard (@MainActor) — renderImage / renderRouteMap helpers"
+ ],
+ "state": [
+  "static layoutSize = 360x640",
+  "static exportSize = 1080x1920"
+ ],
+ "toplevel": "Hard-coded .system(size:) fonts are intentional (fixed canvas). The render extension is @MainActor (line 282).",
+ "flags": [],
+ "units": [
+  {
+   "key": "var RecapCard.body",
+   "hash": "7051a40ba1492125",
+   "does": "cardContent framed to the 360x640 layout size.",
+   "entry": "SwiftUI body (rendered offscreen by ImageRenderer in renderImage, and by CardSnapshotTests).",
+   "calls": [
+    "Emuqu/Sources/Views/RecapCard.swift::var RecapCard.cardContent"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecapCard.swift::var RecapCard.cardContent": "bb3697d856ec47a0"
+   }
+  },
+  {
+   "key": "var RecapCard.cardContent",
+   "hash": "5943512740b24210",
+   "does": "Switches on variant: recovery → recoveryCard; workout → workoutCard with all associated values.",
+   "entry": "SwiftUI view composition.",
+   "calls": [
+    "Emuqu/Sources/Views/RecapCard.swift::func RecapCard.recoveryCard(score:verdict:date:)",
+    "Emuqu/Sources/Views/RecapCard.swift::func RecapCard.workoutCard(distance:duration:pace:verdict:summary:date:routeMap:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "case .recovery(score, verdict, date)",
+     "effect": "recoveryCard(score:verdict:date:)."
+    },
+    {
+     "at": "+5",
+     "cond": "case .workout(...)",
+     "effect": "workoutCard(distance:duration:pace:verdict:summary:date:routeMap:)."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecapCard.swift::func RecapCard.recoveryCard(score:verdict:date:)": "6356a5896934a366",
+    "Emuqu/Sources/Views/RecapCard.swift::func RecapCard.workoutCard(distance:duration:pace:verdict:summary:date:routeMap:)": "c9fea8e98fe79d53"
+   }
+  },
+  {
+   "key": "func RecapCard.staticScoreRing(score:verdict:)",
+   "hash": "ff66107af6e75047",
+   "does": "Non-animated score ring: background circle, trimmed arc of score/100 clamped 0…1 in verdict colour, 96pt score and uppercase verdict word.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.color",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.localizedWord"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.color": "dc2f3b06b79e333d",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.localizedWord": "36e143abcc4cadb1"
+   }
+  },
+  {
+   "key": "func RecapCard.recoveryCard(score:verdict:date:)",
+   "hash": "599ab30298a4bb27",
+   "does": "Dark→verdict-colour gradient behind recoveryCardStack.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.color",
+    "Emuqu/Sources/Views/RecapCard.swift::func RecapCard.recoveryCardStack(score:verdict:date:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.color": "dc2f3b06b79e333d",
+    "Emuqu/Sources/Views/RecapCard.swift::func RecapCard.recoveryCardStack(score:verdict:date:)": "d47ab63f3317dc69"
+   }
+  },
+  {
+   "key": "func RecapCard.recoveryCardStack(score:verdict:date:)",
+   "hash": "7ab29e81adfdfb10",
+   "does": "\"EMUQU\" label, 280pt static ring, verdict texts and formatted date.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecapCard.swift::func RecapCard.staticScoreRing(score:verdict:)",
+    "Emuqu/Sources/Views/RecapCard.swift::func RecapCard.recoveryVerdictText(_:)",
+    "Emuqu/Sources/Views/RecapCard.swift::func RecapCard.dateFormatted(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecapCard.swift::func RecapCard.dateFormatted(_:)": "8b3efb180da6f943",
+    "Emuqu/Sources/Views/RecapCard.swift::func RecapCard.recoveryVerdictText(_:)": "d02993eea14bb7b1",
+    "Emuqu/Sources/Views/RecapCard.swift::func RecapCard.staticScoreRing(score:verdict:)": "2946417eff1b8cad"
+   }
+  },
+  {
+   "key": "func RecapCard.recoveryVerdictText(_:)",
+   "hash": "bab525cca12317f3",
+   "does": "Verdict word (38pt) and localized subverdict.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.localizedWord",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.localizedSubverdict"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.localizedSubverdict": "faf1dbfaddf2ced8",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.localizedWord": "36e143abcc4cadb1"
+   }
+  },
+  {
+   "key": "func RecapCard.workoutCard(distance:duration:pace:verdict:summary:date:routeMap:)",
+   "hash": "f0ca11b6a13a16f2",
+   "does": "Dark gradient behind three stacked panels: route, headline, summary.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecapCard.swift::func RecapCard.routePanel(routeMap:)",
+    "Emuqu/Sources/Views/RecapCard.swift::func RecapCard.headlinePanel(distance:duration:pace:verdict:)",
+    "Emuqu/Sources/Views/RecapCard.swift::func RecapCard.summaryPanel(summary:date:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecapCard.swift::func RecapCard.headlinePanel(distance:duration:pace:verdict:)": "ee26f9d4aa165dfe",
+    "Emuqu/Sources/Views/RecapCard.swift::func RecapCard.routePanel(routeMap:)": "6224330bc1f1666b",
+    "Emuqu/Sources/Views/RecapCard.swift::func RecapCard.summaryPanel(summary:date:)": "6b9bcd8d573ea741"
+   }
+  },
+  {
+   "key": "var RecapCard.panelHeight",
+   "hash": "4842c6753794995d",
+   "does": "One third of layoutSize.height (213.3pt).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RecapCard.routePanel(routeMap:)",
+   "hash": "86a905e4227c9bc7",
+   "does": "Top third: the route map image (scaled to fill, dark gradient overlay) or a primary-colour gradient strip.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecapCard.swift::var RecapCard.panelHeight"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "routeMap non-nil",
+     "effect": "true: Image(uiImage:) filled and clipped. false: gradient rectangle fallback."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecapCard.swift::var RecapCard.panelHeight": "877a23441f8f044d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "func RecapCard.headlinePanel(distance:duration:pace:verdict:)",
+   "hash": "4b543e0eb88261b6",
+   "does": "Middle third: big distance, Time and Pace columns, verdict pill.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecapCard.swift::func RecapCard.statColumn(value:caption:)",
+    "Emuqu/Sources/Views/RecapCard.swift::func RecapCard.verdictPill(_:)",
+    "Emuqu/Sources/Views/RecapCard.swift::var RecapCard.panelHeight",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecapCard.swift::func RecapCard.statColumn(value:caption:)": "ba96ab88723f64b0",
+    "Emuqu/Sources/Views/RecapCard.swift::func RecapCard.verdictPill(_:)": "f7f890a3c24400a1",
+    "Emuqu/Sources/Views/RecapCard.swift::var RecapCard.panelHeight": "877a23441f8f044d"
+   }
+  },
+  {
+   "key": "func RecapCard.statColumn(value:caption:)",
+   "hash": "92cf62e8c4c98150",
+   "does": "Value over caption column.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RecapCard.verdictPill(_:)",
+   "hash": "1a1177a456e5c7c7",
+   "does": "Capsule-bordered verdict text in wongOptimal colour.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RecapCard.summaryPanel(summary:date:)",
+   "hash": "22b818cae8dbf966",
+   "does": "Bottom third: summary text (max 4 lines) and attribution row.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecapCard.swift::func RecapCard.attributionRow(date:)",
+    "Emuqu/Sources/Views/RecapCard.swift::var RecapCard.panelHeight"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecapCard.swift::func RecapCard.attributionRow(date:)": "8a452e62a51db035",
+    "Emuqu/Sources/Views/RecapCard.swift::var RecapCard.panelHeight": "877a23441f8f044d"
+   }
+  },
+  {
+   "key": "func RecapCard.attributionRow(date:)",
+   "hash": "a29dbbba8b11e615",
+   "does": "\"EMUQU\" and formatted date row.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecapCard.swift::func RecapCard.dateFormatted(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecapCard.swift::func RecapCard.dateFormatted(_:)": "8b3efb180da6f943"
+   }
+  },
+  {
+   "key": "func RecapCard.dateFormatted(_:)",
+   "hash": "7485975acfac6928",
+   "does": "Formats date with LocalizedDateFormat template \"yMMMd\" in the app language.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/LocalizedDateFormat.swift::func LocalizedDateFormat.string(from:template:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/LocalizedDateFormat.swift::func LocalizedDateFormat.string(from:template:)": "3f04b1b2d2a2db68"
+   }
+  },
+  {
+   "key": "func RecapCard.renderImage()",
+   "hash": "cccee06d32917d25",
+   "does": "ImageRenderer of self at scale exportSize.width/layoutSize.width (3) → uiImage (nil if rendering fails).",
+   "entry": null,
+   "calls": [
+    "ext:SwiftUI.ImageRenderer"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func PoincareGeometry.scale(_:)": "bc287f5cdfc2a532"
+   }
+  },
+  {
+   "key": "func RecapCard.renderRouteMap(coordinates:tint:)",
+   "hash": "bc723ac8665cc2a4",
+   "does": "Returns nil for empty coordinates or no region; awaits MKMapSnapshotter(options).start() (satelliteFlyover 1080x640), returning nil on any error; otherwise draws the route over the snapshot.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecapCard.swift::func RecapCard.snapshotOptions(for:)",
+    "Emuqu/Sources/Views/RecapCard.swift::func RecapCard.overlayRoute(_:on:tint:)",
+    "ext:MapKit.MKMapSnapshotter.start"
+   ],
+   "reads": [
+    "net:Apple Maps tiles"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "!coordinates.isEmpty && snapshotOptions non-nil (guard)",
+     "effect": "fails: return nil (card falls back to gradient strip)."
+    },
+    {
+     "at": "+5",
+     "cond": "try? snapshotter.start() (guard)",
+     "effect": "throws: error discarded via try?, return nil (no log); card uses gradient fallback."
+    }
+   ],
+   "flags": [
+    {
+     "kind": "privacy",
+     "sev": "low",
+     "text": "The workout recap card draws the full, untrimmed GPS route on a satellite snapshot (route start and end included) into an image meant for social sharing; no privacy-zone or start/end trimming exists anywhere in the repo (grep for privacy zone / trim returns nothing), so a shared card can reveal the user's home location.",
+     "evidence": [
+      "Emuqu/Sources/Views/RecapCard.swift:300-307",
+      "Emuqu/Sources/Views/RecapCard.swift:347-357",
+      "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift:69-76"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/RecapCard.swift::func RecapCard.overlayRoute(_:on:tint:)": "67db29698136c6c2",
+    "Emuqu/Sources/Views/RecapCard.swift::func RecapCard.snapshotOptions(for:)": "f8631f71337f7a1d"
+   }
+  },
+  {
+   "key": "func RecapCard.overlayRoute(_:on:tint:)",
+   "hash": "8df6bee300b6d807",
+   "does": "Draws the snapshot image then the route (coordinates projected via snapshot.point(for:)) into a new UIImage of the same size.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecapCard.swift::func RecapCard.drawRoute(_:in:tint:)",
+    "ext:UIGraphicsImageRenderer"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecapCard.swift::func RecapCard.drawRoute(_:in:tint:)": "ab8c7c39d84d4ee0"
+   }
+  },
+  {
+   "key": "func RecapCard.snapshotOptions(for:)",
+   "hash": "1bdfe6e54d99c737",
+   "does": "Bounding box of the coordinates → centered region with span ×1.24 (min 0.001°), 1080x640 at scale 1, satelliteFlyover, no buildings.",
+   "entry": null,
+   "calls": [
+    "ext:MKMapSnapshotter.Options"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "min/max lat and lon exist (guard)",
+     "effect": "fail (empty array): return nil. Unreachable from renderRouteMap which checks isEmpty first."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func PoincareGeometry.scale(_:)": "bc287f5cdfc2a532"
+   }
+  },
+  {
+   "key": "func RecapCard.drawRoute(_:in:tint:)",
+   "hash": "a28d24a7d28d0ab6",
+   "does": "Strokes the polyline twice: 12pt 45% black glow then 6pt tint, round caps/joins.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "points.first exists (guard)",
+     "effect": "empty: return without drawing."
+    },
+    {
+     "at": "+4",
+     "cond": "for (width,color) in two stroke passes",
+     "effect": "always two iterations: glow then tint."
+    },
+    {
+     "at": "+8",
+     "cond": "for p in points.dropFirst()",
+     "effect": "adds a line segment to each subsequent point."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

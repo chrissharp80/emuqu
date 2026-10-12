@@ -9,7 +9,10 @@ import Observation
 /// and the paused-session recovery cache.
 ///
 /// `RRCollector` is the orchestration shell that wires sub-objects
-/// together and holds dependencies; it publishes no state of its own.
+/// together and holds dependencies. What it still observes itself is the
+/// recording's control state (capture choice, device-fetch policy, the
+/// overnight backup and ending flags, the cached training load); the
+/// session and its analysis live here.
 ///
 /// Writers: RRCollector's extension files (lifecycle, streaming,
 /// overnight, acceptance, recovery, analysis). The collector exposes

@@ -74,14 +74,18 @@ final class GPXMalformedInputTests: XCTestCase {
 
     /// The conversion that kills the process without the guard. If it regresses,
     /// this does not fail — the runner dies.
+    ///
+    /// One track through every ordered pair of extremes, so the delta step
+    /// (`scaled - prev`, then the shift) runs between values that saturate in
+    /// opposite directions, as well as from the first point against zero.
     func testPolylineEncoderSurvivesNonFiniteAltitudes() {
-        for altitude in [Double.nan, .infinity, -.infinity, .greatestFiniteMagnitude] {
-            let track = [CLLocation(coordinate: CLLocationCoordinate2D(latitude: 51.5, longitude: -0.12),
-                                    altitude: altitude, horizontalAccuracy: 5, verticalAccuracy: 5,
-                                    timestamp: Date())]
-            XCTAssertNotNil(WorkoutAnalyzer.encodePolyline(track: track),
-                            "Encoder returned nil for altitude \(altitude)")
+        let extremes: [Double] = [.nan, .infinity, -.infinity, .greatestFiniteMagnitude, -.greatestFiniteMagnitude, 0]
+        let altitudes = extremes.flatMap { first in extremes.flatMap { [first, $0] } }
+        let track = altitudes.map { altitude in
+            CLLocation(coordinate: CLLocationCoordinate2D(latitude: 51.5, longitude: -0.12),
+                       altitude: altitude, horizontalAccuracy: 5, verticalAccuracy: 5, timestamp: Date())
         }
+        XCTAssertNotNil(WorkoutAnalyzer.encodePolyline(track: track), "Encoder returned nil for extreme altitudes")
     }
 
     func testPolylineEncoderSurvivesNonFiniteCoordinates() {

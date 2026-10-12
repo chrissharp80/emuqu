@@ -1,0 +1,763 @@
+{
+ "file": "EmuquTests/AnalysisSummaryGeneratorTests.swift",
+ "hash": "043d18c9ef6c7e15",
+ "role": "XCTest suite for AnalysisSummaryGenerator: diagnostic score ranges/clamping, headline verdict (recovery score vs diagnostic fallback), key findings, actionable steps, trend insight, explanation, probable causes, AnalysisSleepInput flags, English narrative scope and FeelingCopy medical-safety wording.",
+ "types": [
+  "AnalysisSummaryGeneratorTests: class — @MainActor XCTestCase over AnalysisSummaryGenerator and FeelingCopy"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func AnalysisSummaryGeneratorTests.setUp()",
+   "hash": "aed33f0704c2c3c0",
+   "does": "Async per-test setUp: calls super then pinEnglishLanguage() so English copy assertions pass on any host language.",
+   "entry": "XCTest: instance setUp() async before each test",
+   "calls": [
+    "EmuquTests/Helpers/TestHelpers.swift::func XCTestCase.pinEnglishLanguage()"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:AppleLanguages (via LanguageManager.setLanguage when host is non-English)",
+    "notif:LanguageManager.languageDidChangeNotification (posted by setLanguage, also in the registered teardown)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/Helpers/TestHelpers.swift::func XCTestCase.pinEnglishLanguage()": "ee2c07f9e537359c"
+   }
+  },
+  {
+   "key": "func AnalysisSummaryGeneratorTests.makeTimeDomain(rmssd:pnn50:meanHR:)",
+   "hash": "364a715dad99bd62",
+   "does": "Builds TimeDomainMetrics fixture from rmssd/pnn50/meanHR (sdnn=1.2*rmssd, sdsd=0.95*rmssd, sdHR 3, triangular index 12).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)": "501c2b4e36fffb8e"
+   }
+  },
+  {
+   "key": "func AnalysisSummaryGeneratorTests.makeNonlinear(dfaAlpha1:)",
+   "hash": "e766a6e457741c5f",
+   "does": "Builds NonlinearMetrics fixture with the given DFA alpha1 and fixed SD1/SD2/entropy/alpha2 values.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AnalysisSummaryGeneratorTests.makeFrequencyDomain(lfHfRatio:)",
+   "hash": "17896a7148da28e7",
+   "does": "Builds FrequencyDomainMetrics fixture with LF=800 and HF=800/lfHfRatio.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "lfHfRatio is nil",
+     "effect": "HF uses divisor 1.0 (HF=800); otherwise HF=800/ratio"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AnalysisSummaryGeneratorTests.makeANSMetrics(stressIndex:readinessScore:)",
+   "hash": "038b37a2718a0e06",
+   "does": "Builds ANSMetrics fixture with given stress index/readiness and fixed PNS/SNS/respiration/HR-dip values.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AnalysisSummaryGeneratorTests.makeResult(rmssd:pnn50:meanHR:stressIndex:lfHfRatio:dfaAlpha1:isConsolidated:isOrganizedRecovery:)",
+   "hash": "33df91ae6d444d1d",
+   "does": "Builds an HRVAnalysisResult (window 100-400, 3% artifacts, 290 beats, now) from the metric factories and sets isConsolidated, isOrganizedRecovery and windowHRStability=0.04.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeTimeDomain(rmssd:pnn50:meanHR:)",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeFrequencyDomain(lfHfRatio:)",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeNonlinear(dfaAlpha1:)",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeANSMetrics(stressIndex:readinessScore:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.isOrganizedRecovery": "4179ba1b72db50c1",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeANSMetrics(stressIndex:readinessScore:)": "7f00ddff0d3cf712",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeFrequencyDomain(lfHfRatio:)": "c799eb26ea5d9812",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeNonlinear(dfaAlpha1:)": "3736b81857640c4c",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeTimeDomain(rmssd:pnn50:meanHR:)": "02a171d07657eaa5",
+    "EmuquTests/RecoveryBlockClassificationTests.swift::func RecoveryBlockClassificationTests.isConsolidated(_:)": "8f7224c0359ecb0f"
+   }
+  },
+  {
+   "key": "func AnalysisSummaryGeneratorTests.makeSession(analysisResult:)",
+   "hash": "694f9f90ca696cb6",
+   "does": "Builds a complete overnight HRVSession spanning the last 8 hours with the given analysis result and no RR series.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f"
+   }
+  },
+  {
+   "key": "func AnalysisSummaryGeneratorTests.testExcellentRecoveryHighScore()",
+   "hash": "4e16bf4cb3dc9974",
+   "does": "Asserts strong metrics give diagnosticScore >= 70 and, with no recovery score, analysisTitle equals ScoreVerdict(score: diagnosticScore).word.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::init AnalysisSummaryGenerator(result:session:recentSessions:selectedTags:sleep:sleepTrend:trainingContext:userAge:biologicalSex:currentReadiness:todayTrimp:liveLoadSnapshot:canonicalBaselineRMSSD:canonicalBaselineHR:referenceDate:)",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.generate()",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeResult(rmssd:pnn50:meanHR:stressIndex:lfHfRatio:dfaAlpha1:isConsolidated:isOrganizedRecovery:)",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeSession(analysisResult:)",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::init ScoreVerdict(score:)",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.word"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.analysisTitle": "14b7d507978ba64d",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.generate()": "dbee6f6b31b89e1c",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::init AnalysisSummaryGenerator(result:session:recentSessions:selectedTags:sleep:sleepTrend:trainingContext:userAge:biologicalSex:currentReadiness:todayTrimp:liveLoadSnapshot:canonicalBaselineRMSSD:canonicalBaselineHR:referenceDate:)": "b7df17a4529f5624",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::init ScoreVerdict(score:)": "89445abed2b3e6c9",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.word": "e60a9c87b899ea3d",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeResult(rmssd:pnn50:meanHR:stressIndex:lfHfRatio:dfaAlpha1:isConsolidated:isOrganizedRecovery:)": "240853a07341d6e3",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeSession(analysisResult:)": "999a61e4bed7d859"
+   }
+  },
+  {
+   "key": "func AnalysisSummaryGeneratorTests.testPoorRecoveryLowScore()",
+   "hash": "31c729a3c4396189",
+   "does": "Asserts poor metrics (RMSSD 15, stress 350, LF/HF 4, DFA 1.4) give diagnosticScore <= 40.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::init AnalysisSummaryGenerator(result:session:recentSessions:selectedTags:sleep:sleepTrend:trainingContext:userAge:biologicalSex:currentReadiness:todayTrimp:liveLoadSnapshot:canonicalBaselineRMSSD:canonicalBaselineHR:referenceDate:)",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.generate()",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeResult(rmssd:pnn50:meanHR:stressIndex:lfHfRatio:dfaAlpha1:isConsolidated:isOrganizedRecovery:)",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeSession(analysisResult:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.generate()": "dbee6f6b31b89e1c",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::init AnalysisSummaryGenerator(result:session:recentSessions:selectedTags:sleep:sleepTrend:trainingContext:userAge:biologicalSex:currentReadiness:todayTrimp:liveLoadSnapshot:canonicalBaselineRMSSD:canonicalBaselineHR:referenceDate:)": "b7df17a4529f5624",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeResult(rmssd:pnn50:meanHR:stressIndex:lfHfRatio:dfaAlpha1:isConsolidated:isOrganizedRecovery:)": "240853a07341d6e3",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeSession(analysisResult:)": "999a61e4bed7d859"
+   }
+  },
+  {
+   "key": "func AnalysisSummaryGeneratorTests.testScoreClampedTo0And100()",
+   "hash": "a3f6363d81bb43a5",
+   "does": "Asserts extreme poor metrics keep diagnosticScore within 0...100.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::init AnalysisSummaryGenerator(result:session:recentSessions:selectedTags:sleep:sleepTrend:trainingContext:userAge:biologicalSex:currentReadiness:todayTrimp:liveLoadSnapshot:canonicalBaselineRMSSD:canonicalBaselineHR:referenceDate:)",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.generate()",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeResult(rmssd:pnn50:meanHR:stressIndex:lfHfRatio:dfaAlpha1:isConsolidated:isOrganizedRecovery:)",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeSession(analysisResult:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.generate()": "dbee6f6b31b89e1c",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::init AnalysisSummaryGenerator(result:session:recentSessions:selectedTags:sleep:sleepTrend:trainingContext:userAge:biologicalSex:currentReadiness:todayTrimp:liveLoadSnapshot:canonicalBaselineRMSSD:canonicalBaselineHR:referenceDate:)": "b7df17a4529f5624",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeResult(rmssd:pnn50:meanHR:stressIndex:lfHfRatio:dfaAlpha1:isConsolidated:isOrganizedRecovery:)": "240853a07341d6e3",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeSession(analysisResult:)": "999a61e4bed7d859"
+   }
+  },
+  {
+   "key": "func AnalysisSummaryGeneratorTests.testHeadlineSpeaksRecoveryScoreVerdict()",
+   "hash": "b6e4e1bc1c3a5e47",
+   "does": "With session.recoveryScore=4.0, asserts title is ScoreVerdict.low.word, icon is low.glyphName and headlineScore == 40 despite good HRV metrics.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::init AnalysisSummaryGenerator(result:session:recentSessions:selectedTags:sleep:sleepTrend:trainingContext:userAge:biologicalSex:currentReadiness:todayTrimp:liveLoadSnapshot:canonicalBaselineRMSSD:canonicalBaselineHR:referenceDate:)",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.generate()",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeResult(rmssd:pnn50:meanHR:stressIndex:lfHfRatio:dfaAlpha1:isConsolidated:isOrganizedRecovery:)",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeSession(analysisResult:)",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.word",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.glyphName",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.headlineScore"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.analysisTitle": "14b7d507978ba64d",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.diagnosticIcon": "e50101eb5fbba11b",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.headlineScore": "ae7af921e8c3faaa",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.generate()": "dbee6f6b31b89e1c",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::init AnalysisSummaryGenerator(result:session:recentSessions:selectedTags:sleep:sleepTrend:trainingContext:userAge:biologicalSex:currentReadiness:todayTrimp:liveLoadSnapshot:canonicalBaselineRMSSD:canonicalBaselineHR:referenceDate:)": "b7df17a4529f5624",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.glyphName": "a6ccfed84ddc0ce9",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.word": "e60a9c87b899ea3d",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeResult(rmssd:pnn50:meanHR:stressIndex:lfHfRatio:dfaAlpha1:isConsolidated:isOrganizedRecovery:)": "240853a07341d6e3",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeSession(analysisResult:)": "999a61e4bed7d859"
+   }
+  },
+  {
+   "key": "func AnalysisSummaryGeneratorTests.testHeadlineFallsBackToDiagnosticScoreWithoutRecoveryScore()",
+   "hash": "7c7ea62470fe1708",
+   "does": "Without recovery score, asserts headlineScore == diagnosticScore and icon equals ScoreVerdict(score:diagnosticScore).glyphName.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::init AnalysisSummaryGenerator(result:session:recentSessions:selectedTags:sleep:sleepTrend:trainingContext:userAge:biologicalSex:currentReadiness:todayTrimp:liveLoadSnapshot:canonicalBaselineRMSSD:canonicalBaselineHR:referenceDate:)",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.generate()",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeResult(rmssd:pnn50:meanHR:stressIndex:lfHfRatio:dfaAlpha1:isConsolidated:isOrganizedRecovery:)",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeSession(analysisResult:)",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::init ScoreVerdict(score:)",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.glyphName"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.diagnosticIcon": "e50101eb5fbba11b",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.headlineScore": "ae7af921e8c3faaa",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.generate()": "dbee6f6b31b89e1c",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::init AnalysisSummaryGenerator(result:session:recentSessions:selectedTags:sleep:sleepTrend:trainingContext:userAge:biologicalSex:currentReadiness:todayTrimp:liveLoadSnapshot:canonicalBaselineRMSSD:canonicalBaselineHR:referenceDate:)": "b7df17a4529f5624",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::init ScoreVerdict(score:)": "89445abed2b3e6c9",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.glyphName": "a6ccfed84ddc0ce9",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeResult(rmssd:pnn50:meanHR:stressIndex:lfHfRatio:dfaAlpha1:isConsolidated:isOrganizedRecovery:)": "240853a07341d6e3",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeSession(analysisResult:)": "999a61e4bed7d859"
+   }
+  },
+  {
+   "key": "func AnalysisSummaryGeneratorTests.testKeyFindingsContainStressInfo()",
+   "hash": "ce0d7d5584dc1284",
+   "does": "Asserts stress index 350 yields a key finding containing 'stress'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::init AnalysisSummaryGenerator(result:session:recentSessions:selectedTags:sleep:sleepTrend:trainingContext:userAge:biologicalSex:currentReadiness:todayTrimp:liveLoadSnapshot:canonicalBaselineRMSSD:canonicalBaselineHR:referenceDate:)",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.generate()",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeResult(rmssd:pnn50:meanHR:stressIndex:lfHfRatio:dfaAlpha1:isConsolidated:isOrganizedRecovery:)",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeSession(analysisResult:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.keyFindings": "6c4b6babab02d102",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.generate()": "dbee6f6b31b89e1c",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::init AnalysisSummaryGenerator(result:session:recentSessions:selectedTags:sleep:sleepTrend:trainingContext:userAge:biologicalSex:currentReadiness:todayTrimp:liveLoadSnapshot:canonicalBaselineRMSSD:canonicalBaselineHR:referenceDate:)": "b7df17a4529f5624",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeResult(rmssd:pnn50:meanHR:stressIndex:lfHfRatio:dfaAlpha1:isConsolidated:isOrganizedRecovery:)": "240853a07341d6e3",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeSession(analysisResult:)": "999a61e4bed7d859"
+   }
+  },
+  {
+   "key": "func AnalysisSummaryGeneratorTests.testKeyFindingsContainDFAInfo()",
+   "hash": "7ef202d49fba6947",
+   "does": "Asserts DFA alpha1 1.4 yields a key finding containing 'fatigue' or 'rhythm'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::init AnalysisSummaryGenerator(result:session:recentSessions:selectedTags:sleep:sleepTrend:trainingContext:userAge:biologicalSex:currentReadiness:todayTrimp:liveLoadSnapshot:canonicalBaselineRMSSD:canonicalBaselineHR:referenceDate:)",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.generate()",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeResult(rmssd:pnn50:meanHR:stressIndex:lfHfRatio:dfaAlpha1:isConsolidated:isOrganizedRecovery:)",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeSession(analysisResult:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.keyFindings": "6c4b6babab02d102",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.generate()": "dbee6f6b31b89e1c",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::init AnalysisSummaryGenerator(result:session:recentSessions:selectedTags:sleep:sleepTrend:trainingContext:userAge:biologicalSex:currentReadiness:todayTrimp:liveLoadSnapshot:canonicalBaselineRMSSD:canonicalBaselineHR:referenceDate:)": "b7df17a4529f5624",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeResult(rmssd:pnn50:meanHR:stressIndex:lfHfRatio:dfaAlpha1:isConsolidated:isOrganizedRecovery:)": "240853a07341d6e3",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeSession(analysisResult:)": "999a61e4bed7d859"
+   }
+  },
+  {
+   "key": "func AnalysisSummaryGeneratorTests.testKeyFindingsWithSleepData()",
+   "hash": "d7eef27434d4bf35",
+   "does": "Asserts 4h total sleep input yields a key finding containing 'sleep'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::init AnalysisSummaryGenerator(result:session:recentSessions:selectedTags:sleep:sleepTrend:trainingContext:userAge:biologicalSex:currentReadiness:todayTrimp:liveLoadSnapshot:canonicalBaselineRMSSD:canonicalBaselineHR:referenceDate:)",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.generate()",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeResult(rmssd:pnn50:meanHR:stressIndex:lfHfRatio:dfaAlpha1:isConsolidated:isOrganizedRecovery:)",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeSession(analysisResult:)",
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::init AnalysisSleepInput(totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:awakeMinutes:sleepEfficiency:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::init AnalysisSleepInput(totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:awakeMinutes:sleepEfficiency:)": "8aa3c485c86068ba",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.keyFindings": "6c4b6babab02d102",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.generate()": "dbee6f6b31b89e1c",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::init AnalysisSummaryGenerator(result:session:recentSessions:selectedTags:sleep:sleepTrend:trainingContext:userAge:biologicalSex:currentReadiness:todayTrimp:liveLoadSnapshot:canonicalBaselineRMSSD:canonicalBaselineHR:referenceDate:)": "b7df17a4529f5624",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeResult(rmssd:pnn50:meanHR:stressIndex:lfHfRatio:dfaAlpha1:isConsolidated:isOrganizedRecovery:)": "240853a07341d6e3",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeSession(analysisResult:)": "999a61e4bed7d859"
+   }
+  },
+  {
+   "key": "func AnalysisSummaryGeneratorTests.testActionableStepsForGoodRecovery()",
+   "hash": "667c10113b1f4f02",
+   "does": "Asserts good-recovery metrics produce a non-empty actionableSteps list.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::init AnalysisSummaryGenerator(result:session:recentSessions:selectedTags:sleep:sleepTrend:trainingContext:userAge:biologicalSex:currentReadiness:todayTrimp:liveLoadSnapshot:canonicalBaselineRMSSD:canonicalBaselineHR:referenceDate:)",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.generate()",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeResult(rmssd:pnn50:meanHR:stressIndex:lfHfRatio:dfaAlpha1:isConsolidated:isOrganizedRecovery:)",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeSession(analysisResult:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Only checks actionableSteps is non-empty; any content (including poor-recovery advice) passes.",
+     "evidence": [
+      "EmuquTests/AnalysisSummaryGeneratorTests.swift:222"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::var AnalysisSummaryGenerator.actionableSteps": "6450fdb41f000d0b",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.generate()": "dbee6f6b31b89e1c",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::init AnalysisSummaryGenerator(result:session:recentSessions:selectedTags:sleep:sleepTrend:trainingContext:userAge:biologicalSex:currentReadiness:todayTrimp:liveLoadSnapshot:canonicalBaselineRMSSD:canonicalBaselineHR:referenceDate:)": "b7df17a4529f5624",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeResult(rmssd:pnn50:meanHR:stressIndex:lfHfRatio:dfaAlpha1:isConsolidated:isOrganizedRecovery:)": "240853a07341d6e3",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeSession(analysisResult:)": "999a61e4bed7d859"
+   }
+  },
+  {
+   "key": "func AnalysisSummaryGeneratorTests.testActionableStepsForPoorRecovery()",
+   "hash": "b8899a9d570ad00e",
+   "does": "Asserts poor metrics plus 200-minute sleep yield an actionable step containing 'rest' or 'easy'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::init AnalysisSummaryGenerator(result:session:recentSessions:selectedTags:sleep:sleepTrend:trainingContext:userAge:biologicalSex:currentReadiness:todayTrimp:liveLoadSnapshot:canonicalBaselineRMSSD:canonicalBaselineHR:referenceDate:)",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.generate()",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeResult(rmssd:pnn50:meanHR:stressIndex:lfHfRatio:dfaAlpha1:isConsolidated:isOrganizedRecovery:)",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeSession(analysisResult:)",
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::init AnalysisSleepInput(totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:awakeMinutes:sleepEfficiency:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::init AnalysisSleepInput(totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:awakeMinutes:sleepEfficiency:)": "8aa3c485c86068ba",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::var AnalysisSummaryGenerator.actionableSteps": "6450fdb41f000d0b",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.generate()": "dbee6f6b31b89e1c",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::init AnalysisSummaryGenerator(result:session:recentSessions:selectedTags:sleep:sleepTrend:trainingContext:userAge:biologicalSex:currentReadiness:todayTrimp:liveLoadSnapshot:canonicalBaselineRMSSD:canonicalBaselineHR:referenceDate:)": "b7df17a4529f5624",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeResult(rmssd:pnn50:meanHR:stressIndex:lfHfRatio:dfaAlpha1:isConsolidated:isOrganizedRecovery:)": "240853a07341d6e3",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeSession(analysisResult:)": "999a61e4bed7d859"
+   }
+  },
+  {
+   "key": "func AnalysisSummaryGeneratorTests.testTrendInsightWithNoHistory()",
+   "hash": "6d54b7c77e434c8f",
+   "does": "Asserts with no recentSessions trendInsight contains 'more sessions'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::init AnalysisSummaryGenerator(result:session:recentSessions:selectedTags:sleep:sleepTrend:trainingContext:userAge:biologicalSex:currentReadiness:todayTrimp:liveLoadSnapshot:canonicalBaselineRMSSD:canonicalBaselineHR:referenceDate:)",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.generate()",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeResult(rmssd:pnn50:meanHR:stressIndex:lfHfRatio:dfaAlpha1:isConsolidated:isOrganizedRecovery:)",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeSession(analysisResult:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.generate()": "dbee6f6b31b89e1c",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::init AnalysisSummaryGenerator(result:session:recentSessions:selectedTags:sleep:sleepTrend:trainingContext:userAge:biologicalSex:currentReadiness:todayTrimp:liveLoadSnapshot:canonicalBaselineRMSSD:canonicalBaselineHR:referenceDate:)": "b7df17a4529f5624",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeResult(rmssd:pnn50:meanHR:stressIndex:lfHfRatio:dfaAlpha1:isConsolidated:isOrganizedRecovery:)": "240853a07341d6e3",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeSession(analysisResult:)": "999a61e4bed7d859"
+   }
+  },
+  {
+   "key": "func AnalysisSummaryGeneratorTests.testTrendInsightWithHistory()",
+   "hash": "c355876de51584ae",
+   "does": "Builds 5 prior-day sessions at RMSSD 40 and asserts trendInsight is non-empty and does not ask for 'more sessions'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::init AnalysisSummaryGenerator(result:session:recentSessions:selectedTags:sleep:sleepTrend:trainingContext:userAge:biologicalSex:currentReadiness:todayTrimp:liveLoadSnapshot:canonicalBaselineRMSSD:canonicalBaselineHR:referenceDate:)",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.generate()",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeResult(rmssd:pnn50:meanHR:stressIndex:lfHfRatio:dfaAlpha1:isConsolidated:isOrganizedRecovery:)",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeSession(analysisResult:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "for i in 0..<5",
+     "effect": "builds a history session dated i+1 days ago; the makeSession result is immediately overwritten by a new HRVSession"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.generate()": "dbee6f6b31b89e1c",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::init AnalysisSummaryGenerator(result:session:recentSessions:selectedTags:sleep:sleepTrend:trainingContext:userAge:biologicalSex:currentReadiness:todayTrimp:liveLoadSnapshot:canonicalBaselineRMSSD:canonicalBaselineHR:referenceDate:)": "b7df17a4529f5624",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeResult(rmssd:pnn50:meanHR:stressIndex:lfHfRatio:dfaAlpha1:isConsolidated:isOrganizedRecovery:)": "240853a07341d6e3",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeSession(analysisResult:)": "999a61e4bed7d859"
+   }
+  },
+  {
+   "key": "func AnalysisSummaryGeneratorTests.testDiagnosticExplanationNotEmpty()",
+   "hash": "5b7faa3c635d3e7a",
+   "does": "Asserts analysisExplanation is non-empty for default metrics.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::init AnalysisSummaryGenerator(result:session:recentSessions:selectedTags:sleep:sleepTrend:trainingContext:userAge:biologicalSex:currentReadiness:todayTrimp:liveLoadSnapshot:canonicalBaselineRMSSD:canonicalBaselineHR:referenceDate:)",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.generate()",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeResult(rmssd:pnn50:meanHR:stressIndex:lfHfRatio:dfaAlpha1:isConsolidated:isOrganizedRecovery:)",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeSession(analysisResult:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.analysisExplanation": "617cc10550b1ed20",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.generate()": "dbee6f6b31b89e1c",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::init AnalysisSummaryGenerator(result:session:recentSessions:selectedTags:sleep:sleepTrend:trainingContext:userAge:biologicalSex:currentReadiness:todayTrimp:liveLoadSnapshot:canonicalBaselineRMSSD:canonicalBaselineHR:referenceDate:)": "b7df17a4529f5624",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeResult(rmssd:pnn50:meanHR:stressIndex:lfHfRatio:dfaAlpha1:isConsolidated:isOrganizedRecovery:)": "240853a07341d6e3",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeSession(analysisResult:)": "999a61e4bed7d859"
+   }
+  },
+  {
+   "key": "func AnalysisSummaryGeneratorTests.testDiagnosticExplanationIncludesRMSSD()",
+   "hash": "e8eb04202c529519",
+   "does": "Asserts analysisExplanation contains '45' for RMSSD 45.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::init AnalysisSummaryGenerator(result:session:recentSessions:selectedTags:sleep:sleepTrend:trainingContext:userAge:biologicalSex:currentReadiness:todayTrimp:liveLoadSnapshot:canonicalBaselineRMSSD:canonicalBaselineHR:referenceDate:)",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.generate()",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeResult(rmssd:pnn50:meanHR:stressIndex:lfHfRatio:dfaAlpha1:isConsolidated:isOrganizedRecovery:)",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeSession(analysisResult:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Substring '45' can be satisfied by any other number in the explanation (e.g. a score or percentage), so the RMSSD mention is not actually pinned.",
+     "evidence": [
+      "EmuquTests/AnalysisSummaryGeneratorTests.swift:311"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.analysisExplanation": "617cc10550b1ed20",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.generate()": "dbee6f6b31b89e1c",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::init AnalysisSummaryGenerator(result:session:recentSessions:selectedTags:sleep:sleepTrend:trainingContext:userAge:biologicalSex:currentReadiness:todayTrimp:liveLoadSnapshot:canonicalBaselineRMSSD:canonicalBaselineHR:referenceDate:)": "b7df17a4529f5624",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeResult(rmssd:pnn50:meanHR:stressIndex:lfHfRatio:dfaAlpha1:isConsolidated:isOrganizedRecovery:)": "240853a07341d6e3",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeSession(analysisResult:)": "999a61e4bed7d859"
+   }
+  },
+  {
+   "key": "func AnalysisSummaryGeneratorTests.testProbableCausesLimitedToThree()",
+   "hash": "49ad3546b5702e73",
+   "does": "Asserts probableCauses.count <= 3 for very poor metrics with short sleep.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::init AnalysisSummaryGenerator(result:session:recentSessions:selectedTags:sleep:sleepTrend:trainingContext:userAge:biologicalSex:currentReadiness:todayTrimp:liveLoadSnapshot:canonicalBaselineRMSSD:canonicalBaselineHR:referenceDate:)",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.generate()",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeResult(rmssd:pnn50:meanHR:stressIndex:lfHfRatio:dfaAlpha1:isConsolidated:isOrganizedRecovery:)",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeSession(analysisResult:)",
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::init AnalysisSleepInput(totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:awakeMinutes:sleepEfficiency:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::init AnalysisSleepInput(totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:awakeMinutes:sleepEfficiency:)": "8aa3c485c86068ba",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.probableCauses": "2f2390113c3460a2",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.generate()": "dbee6f6b31b89e1c",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::init AnalysisSummaryGenerator(result:session:recentSessions:selectedTags:sleep:sleepTrend:trainingContext:userAge:biologicalSex:currentReadiness:todayTrimp:liveLoadSnapshot:canonicalBaselineRMSSD:canonicalBaselineHR:referenceDate:)": "b7df17a4529f5624",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeResult(rmssd:pnn50:meanHR:stressIndex:lfHfRatio:dfaAlpha1:isConsolidated:isOrganizedRecovery:)": "240853a07341d6e3",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeSession(analysisResult:)": "999a61e4bed7d859"
+   }
+  },
+  {
+   "key": "func AnalysisSummaryGeneratorTests.testProbableCausesHaveRequiredFields()",
+   "hash": "56571059ab65059f",
+   "does": "Asserts every probable cause has non-empty cause, confidence and explanation.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::init AnalysisSummaryGenerator(result:session:recentSessions:selectedTags:sleep:sleepTrend:trainingContext:userAge:biologicalSex:currentReadiness:todayTrimp:liveLoadSnapshot:canonicalBaselineRMSSD:canonicalBaselineHR:referenceDate:)",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.generate()",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeResult(rmssd:pnn50:meanHR:stressIndex:lfHfRatio:dfaAlpha1:isConsolidated:isOrganizedRecovery:)",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeSession(analysisResult:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "for each probable cause",
+     "effect": "asserts the three fields non-empty; zero causes means no assertion runs"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Loop-only assertions: if probableCauses is empty the test passes without asserting anything.",
+     "evidence": [
+      "EmuquTests/AnalysisSummaryGeneratorTests.swift:344"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.probableCauses": "2f2390113c3460a2",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.generate()": "dbee6f6b31b89e1c",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::init AnalysisSummaryGenerator(result:session:recentSessions:selectedTags:sleep:sleepTrend:trainingContext:userAge:biologicalSex:currentReadiness:todayTrimp:liveLoadSnapshot:canonicalBaselineRMSSD:canonicalBaselineHR:referenceDate:)": "b7df17a4529f5624",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeResult(rmssd:pnn50:meanHR:stressIndex:lfHfRatio:dfaAlpha1:isConsolidated:isOrganizedRecovery:)": "240853a07341d6e3",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeSession(analysisResult:)": "999a61e4bed7d859"
+   }
+  },
+  {
+   "key": "func AnalysisSummaryGeneratorTests.testSleepInputShortSleep()",
+   "hash": "5241c580147fe8fc",
+   "does": "Asserts 240-minute sleep is short and not good.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::init AnalysisSleepInput(totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:awakeMinutes:sleepEfficiency:)",
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::var AnalysisSleepInput.isShortSleep",
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::var AnalysisSleepInput.isGoodSleep"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::init AnalysisSleepInput(totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:awakeMinutes:sleepEfficiency:)": "8aa3c485c86068ba",
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::var AnalysisSleepInput.isGoodSleep": "77fddba22b4b8546",
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::var AnalysisSleepInput.isShortSleep": "d971dbe731a9e976"
+   }
+  },
+  {
+   "key": "func AnalysisSummaryGeneratorTests.testSleepInputGoodSleep()",
+   "hash": "3cf4fb65a95aab62",
+   "does": "Asserts 450-minute sleep is good and not short.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::init AnalysisSleepInput(totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:awakeMinutes:sleepEfficiency:)",
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::var AnalysisSleepInput.isShortSleep",
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::var AnalysisSleepInput.isGoodSleep"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::init AnalysisSleepInput(totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:awakeMinutes:sleepEfficiency:)": "8aa3c485c86068ba",
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::var AnalysisSleepInput.isGoodSleep": "77fddba22b4b8546",
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::var AnalysisSleepInput.isShortSleep": "d971dbe731a9e976"
+   }
+  },
+  {
+   "key": "func AnalysisSummaryGeneratorTests.testSleepInputFragmented()",
+   "hash": "488c680ff6c4ba55",
+   "does": "Asserts 60 awake minutes is fragmented.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::init AnalysisSleepInput(totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:awakeMinutes:sleepEfficiency:)",
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::var AnalysisSleepInput.isFragmented"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::init AnalysisSleepInput(totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:awakeMinutes:sleepEfficiency:)": "8aa3c485c86068ba",
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::var AnalysisSleepInput.isFragmented": "9be0a2ac3cd93216"
+   }
+  },
+  {
+   "key": "func AnalysisSummaryGeneratorTests.testEmptySleepInput()",
+   "hash": "91e5e02332917267",
+   "does": "Asserts AnalysisSleepInput.empty is neither short, good nor fragmented.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::var AnalysisSleepInput.isShortSleep",
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::var AnalysisSleepInput.isGoodSleep",
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::var AnalysisSleepInput.isFragmented"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::var AnalysisSleepInput.isFragmented": "9be0a2ac3cd93216",
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::var AnalysisSleepInput.isGoodSleep": "77fddba22b4b8546",
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::var AnalysisSleepInput.isShortSleep": "d971dbe731a9e976"
+   }
+  },
+  {
+   "key": "func AnalysisSummaryGeneratorTests.testEnglishScopeWritesEnglishUnderAnotherAppLanguage()",
+   "hash": "f0e60828033866fa",
+   "does": "Generates an English summary, switches app language to German, regenerates inside NarrativeLanguage.english and asserts title, explanation, findings and steps are identical; restores the original language on exit.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::init AnalysisSummaryGenerator(result:session:recentSessions:selectedTags:sleep:sleepTrend:trainingContext:userAge:biologicalSex:currentReadiness:todayTrimp:liveLoadSnapshot:canonicalBaselineRMSSD:canonicalBaselineHR:referenceDate:)",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.generate()",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeResult(rmssd:pnn50:meanHR:stressIndex:lfHfRatio:dfaAlpha1:isConsolidated:isOrganizedRecovery:)",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeSession(analysisResult:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.setLanguage(_:)",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppLanguage.current"
+   ],
+   "reads": [
+    "ud:AppleLanguages (app persistent domain)"
+   ],
+   "writes": [
+    "ud:AppleLanguages (via LanguageManager.setLanguage)",
+    "notif:LanguageManager.languageDidChangeNotification"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.analysisExplanation": "617cc10550b1ed20",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.analysisTitle": "14b7d507978ba64d",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.keyFindings": "6c4b6babab02d102",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::var AnalysisSummaryGenerator.actionableSteps": "6450fdb41f000d0b",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.generate()": "dbee6f6b31b89e1c",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::init AnalysisSummaryGenerator(result:session:recentSessions:selectedTags:sleep:sleepTrend:trainingContext:userAge:biologicalSex:currentReadiness:todayTrimp:liveLoadSnapshot:canonicalBaselineRMSSD:canonicalBaselineHR:referenceDate:)": "b7df17a4529f5624",
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.setLanguage(_:)": "632a885ec90f6c05",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)": "35f7ec6a1e50e9a0",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppLanguage.current": "219e669a24b19238",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeResult(rmssd:pnn50:meanHR:stressIndex:lfHfRatio:dfaAlpha1:isConsolidated:isOrganizedRecovery:)": "240853a07341d6e3",
+    "EmuquTests/AnalysisSummaryGeneratorTests.swift::func AnalysisSummaryGeneratorTests.makeSession(analysisResult:)": "999a61e4bed7d859"
+   }
+  },
+  {
+   "key": "func AnalysisSummaryGeneratorTests.testProbableCauseKeepsTheConfidenceKey()",
+   "hash": "9bb5d9d7d9d96782",
+   "does": "Asserts DetectedCause(confidence:.high).toProbableCause() keeps confidence as the raw English key and confidenceLabel as CauseConfidence.high.label.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::func DetectedCause.toProbableCause()",
+    "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::var DetectedCause.CauseConfidence.label",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::var AnalysisSummaryGenerator.ProbableCause.confidenceLabel"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::var AnalysisSummaryGenerator.ProbableCause.confidenceLabel": "8d42c57265c06cf9",
+    "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::func DetectedCause.toProbableCause()": "94d41e0150b4c95c",
+    "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::var DetectedCause.CauseConfidence.label": "7167d2f3f7427333"
+   }
+  },
+  {
+   "key": "func AnalysisSummaryGeneratorTests.testSymptomTagAdviceRemindsToCheckWithADoctor()",
+   "hash": "914d85e096cc690d",
+   "does": "In English scope asserts unwell(both)/stomach/headache copy contains 'check with a doctor', and that those plus allergies/hangover copy contain none of the banned medical phrases.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func FeelingCopy.unwell(hrvGood:)",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::var FeelingCopy.stomach",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::var FeelingCopy.headache",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::var FeelingCopy.allergies",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func FeelingCopy.hangover(hrvGood:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "for each symptom line",
+     "effect": "asserts 'check with a doctor' present"
+    },
+    {
+     "at": "+10",
+     "cond": "for each of 7 lines",
+     "effect": "lowercases and checks banned phrases"
+    },
+    {
+     "at": "+12",
+     "cond": "for each banned phrase",
+     "effect": "asserts absent"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func FeelingCopy.hangover(hrvGood:)": "c132f43f0fe8d44a",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func FeelingCopy.unwell(hrvGood:)": "494c39d6e5b7e09d",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::var FeelingCopy.allergies": "7a46d89c7a14b34c",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::var FeelingCopy.headache": "b5ded0b8f64c1513",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::var FeelingCopy.stomach": "558918263375e013",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)": "35f7ec6a1e50e9a0"
+   }
+  },
+  {
+   "key": "func AnalysisSummaryGeneratorTests.testLowMoodAdvicePointsToSomeoneToTalkTo()",
+   "hash": "4521e716897aac02",
+   "does": "In English scope asserts both down(hrvGood:) lines contain 'talk to someone you trust or a health professional'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func FeelingCopy.down(hrvGood:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each of 2 lines",
+     "effect": "asserts the phrase present"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func FeelingCopy.down(hrvGood:)": "ef5c9403e2f3858d",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)": "35f7ec6a1e50e9a0"
+   }
+  }
+ ],
+ "deps": {}
+}

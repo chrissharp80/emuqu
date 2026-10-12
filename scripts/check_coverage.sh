@@ -6,10 +6,12 @@ source "$(dirname "$0")/lib/preflight.sh"
 # Coverage gate.
 #
 # A floor set at an aspiration — 90% line coverage of the whole `Emuqu.app`
-# target, say — can never pass. The real figure is ~16%: 109,595 of the
-# target's 218,660 executable lines — just over half — are SwiftUI view bodies
-# in `Emuqu/Sources/Views`, which unit tests cannot meaningfully execute, and
-# a 90% floor over that denominator is not reachable.
+# target, say — can never pass. When this gate was written the real figure was
+# ~16%: 109,595 of the target's 218,660 executable lines — just over half — were
+# SwiftUI view bodies in `Emuqu/Sources/Views`, which unit tests cannot
+# meaningfully execute, and a 90% floor over that denominator was not
+# reachable. The floors have been ratcheted up from measurement since; the
+# committed values in `.ci/min_coverage*.txt` are the current ones.
 #
 # A gate set to an aspiration is worse than no gate: it is documented in CI and
 # the README as though it holds, and the first person to run it works around it.
@@ -20,13 +22,23 @@ source "$(dirname "$0")/lib/preflight.sh"
 # Two numbers are enforced, because one alone is misleading:
 #
 #   • OVERALL  — whole app target. Guards against total coverage sliding.
-#   • LOGIC    — everything except `Sources/Views`. This is the number that
-#                actually reflects test discipline, because it covers the code
-#                unit tests can reach: Analysis, Storage, Services, Models,
-#                Collection, Assistant, Import, Export, Utilities.
+#   • LOGIC    — every path not under `/Sources/Views/`. This is the number
+#                that actually reflects test discipline, because it covers the
+#                code unit tests can reach: Analysis, Storage, Services, Models,
+#                Collection, Assistant, Import, Export, Utilities. The
+#                Assistant's own SwiftUI files (`Sources/Assistant/Views/`)
+#                fall in this bucket too; the floors were measured that way.
+#   • VIEWS    — paths under `/Sources/Views/`. Snapshot tests move it.
 #
 # Raising LOGIC is the meaningful goal. Raising OVERALL materially requires
 # snapshot tests for the view layer — tracked as its own piece of work.
+#
+# The floors come from the committed files and nowhere else can lower them. A
+# missing or unreadable floor file is an error, not a reason to fall back to a
+# built-in number far below the committed one. `MIN_COVERAGE` (or the second
+# argument), `MIN_LOGIC_COVERAGE` and `MIN_VIEWS_COVERAGE` may RAISE a floor
+# for a run; a value below the committed floor is ignored, and the floor in
+# force is printed either way.
 #
 # Usage: check_coverage.sh <xcresult_path> [minimum_overall_percent]
 
@@ -36,28 +48,34 @@ if [[ $# -lt 1 || $# -gt 2 ]]; then
 fi
 
 RESULT_BUNDLE="$1"
-MIN_COVERAGE="${2:-${MIN_COVERAGE:-}}"
-COVERAGE_FILE="${MIN_COVERAGE_FILE:-.ci/min_coverage.txt}"
-LOGIC_COVERAGE_FILE="${MIN_LOGIC_COVERAGE_FILE:-.ci/min_coverage_logic.txt}"
-# Views floor. Snapshot tests are what move it.
-VIEWS_COVERAGE_FILE="${MIN_VIEWS_COVERAGE_FILE:-.ci/min_coverage_views.txt}"
 
-if [[ -z "$MIN_COVERAGE" && -f "$COVERAGE_FILE" ]]; then
-    MIN_COVERAGE="$(tr -d '[:space:]' < "$COVERAGE_FILE")"
-fi
-MIN_COVERAGE="${MIN_COVERAGE:-16}"
+is_number() { [[ "$1" =~ ^[0-9]+(\.[0-9]+)?$ ]]; }
 
-MIN_LOGIC_COVERAGE="${MIN_LOGIC_COVERAGE:-}"
-if [[ -z "$MIN_LOGIC_COVERAGE" && -f "$LOGIC_COVERAGE_FILE" ]]; then
-    MIN_LOGIC_COVERAGE="$(tr -d '[:space:]' < "$LOGIC_COVERAGE_FILE")"
-fi
-MIN_LOGIC_COVERAGE="${MIN_LOGIC_COVERAGE:-30}"
+# floor <committed file> <override, may be empty>: prints the floor in force.
+# Exits 66 when the committed file is missing or not a number, 64 when the
+# override is not a number.
+floor() {
+    local file="$1" override="$2" committed
+    if [[ ! -f "$file" ]]; then
+        echo "Coverage floor file missing: $file. The committed floor is the gate." >&2
+        exit 66
+    fi
+    committed="$(tr -d '[:space:]' < "$file")"
+    if ! is_number "$committed"; then
+        echo "Coverage floor file does not hold a number: $file ('$committed')." >&2
+        exit 66
+    fi
+    if [[ -z "$override" ]]; then printf '%s' "$committed"; return; fi
+    if ! is_number "$override"; then
+        echo "Coverage floor override is not a number: '$override'." >&2
+        exit 64
+    fi
+    awk -v a="$override" -v b="$committed" 'BEGIN { print (a > b) ? a : b }'
+}
 
-MIN_VIEWS_COVERAGE="${MIN_VIEWS_COVERAGE:-}"
-if [[ -z "$MIN_VIEWS_COVERAGE" && -f "$VIEWS_COVERAGE_FILE" ]]; then
-    MIN_VIEWS_COVERAGE="$(tr -d '[:space:]' < "$VIEWS_COVERAGE_FILE")"
-fi
-MIN_VIEWS_COVERAGE="${MIN_VIEWS_COVERAGE:-0}"
+MIN_COVERAGE="$(floor .ci/min_coverage.txt "${2:-${MIN_COVERAGE:-}}")" || exit $?
+MIN_LOGIC_COVERAGE="$(floor .ci/min_coverage_logic.txt "${MIN_LOGIC_COVERAGE:-}")" || exit $?
+MIN_VIEWS_COVERAGE="$(floor .ci/min_coverage_views.txt "${MIN_VIEWS_COVERAGE:-}")" || exit $?
 
 if [[ ! -d "$RESULT_BUNDLE" ]]; then
     echo "Result bundle not found: $RESULT_BUNDLE" >&2

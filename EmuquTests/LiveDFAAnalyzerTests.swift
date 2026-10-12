@@ -174,12 +174,17 @@ final class LiveDFAAnalyzerTests: XCTestCase {
 
     // MARK: - The rejection thresholds
 
+    /// Below this corrected fraction artifact correction biases α1 minimally
+    /// (Gronwald & Rogers 2022). Nothing in the analyzer acts on it; it is the
+    /// band an ordinary strap glitch has to stay inside.
+    private static let minimalBiasCorrectedFraction = 0.03
+
     func testRejectionThresholdsMatchThePublishedBias() {
         // Gronwald & Rogers 2022 (Front. Physiol. 13:879071): artifact
         // correction biases α1 minimally below 3 %, with negligible shift in
-        // the derived threshold even at 6 %. Pinning them here means moving a
-        // threshold requires saying so, rather than drifting.
-        XCTAssertEqual(LiveDFAAnalyzer.lowConfidenceCorrectedFraction, 0.03, accuracy: 0.0001)
+        // the derived threshold even at 6 %. 6 % is the threshold the analyzer
+        // and the offline re-analyzer reject on; pinning it here means moving
+        // it requires saying so, rather than drifting.
         XCTAssertEqual(LiveDFAAnalyzer.maxCorrectedFraction, 0.06, accuracy: 0.0001)
     }
 
@@ -202,7 +207,7 @@ final class LiveDFAAnalyzerTests: XCTestCase {
         rrs[50] = 2_400
         let cleaned = LiveDFAAnalyzer.cleanRRForDFA(rrs)
         XCTAssertEqual(cleaned.correctedCount, 1)
-        XCTAssertLessThan(cleaned.correctedFraction, LiveDFAAnalyzer.lowConfidenceCorrectedFraction)
+        XCTAssertLessThan(cleaned.correctedFraction, Self.minimalBiasCorrectedFraction)
     }
 
     // MARK: - The two-minute gate

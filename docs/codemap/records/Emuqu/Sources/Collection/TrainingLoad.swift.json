@@ -1,0 +1,99 @@
+{
+ "file": "Emuqu/Sources/Collection/TrainingLoad.swift",
+ "hash": "249eab55ff2bd46c",
+ "role": "Readiness-context training load value (VO2, recent workouts, weekly score, days since hard workout, ACWR, metrics); aliased as HealthKitManager.TrainingLoad.",
+ "types": [
+  "TrainingLoad: struct — training-load summary"
+ ],
+ "state": [
+  "mem:TrainingLoad.empty (const)"
+ ],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "init TrainingLoad(vo2Max:recentWorkouts:weeklyLoadScore:daysSinceHardWorkout:acuteChronicRatio:metrics:)",
+   "hash": "b774ad31ca496303",
+   "does": "Memberwise init that sorts recentWorkouts newest first.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/TrainingLoad.swift::func TrainingLoad.daysSinceHardWorkout(in:anchors:relativeTo:)": "cd200634574141b1"
+   }
+  },
+  {
+   "key": "func TrainingLoad.daysSinceHardWorkout(in:anchors:relativeTo:)",
+   "hash": "4efc8d83f09c4095",
+   "does": "Calendar days between the most recent hard workout's day and referenceDate's day.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.isHardWorkout(anchors:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "no hard workout",
+     "effect": "nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.isHardWorkout(anchors:)": "be75fd37ce7b2266",
+    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
+   }
+  },
+  {
+   "key": "var TrainingLoad.readinessAdjustment",
+   "hash": "30a3136632ebc932",
+   "does": "Readiness adjustment: -2 same day, -1 one day, -0.5 two days after a hard workout, else 0.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "daysSinceHardWorkout nil",
+     "effect": "0"
+    },
+    {
+     "at": "+4",
+     "cond": "days == 0",
+     "effect": "-2"
+    },
+    {
+     "at": "+5",
+     "cond": "days == 1",
+     "effect": "-1"
+    },
+    {
+     "at": "+6",
+     "cond": "days == 2",
+     "effect": "-0.5; else 0"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "untested",
+     "sev": "low",
+     "text": "No test references readinessAdjustment, which RRCollector applies to readiness.",
+     "evidence": [
+      "Emuqu/Sources/Collection/TrainingLoad.swift:62",
+      "Emuqu/Sources/Collection/RRCollector.swift:507"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/TrainingLoad.swift::func TrainingLoad.daysSinceHardWorkout(in:anchors:relativeTo:)": "cd200634574141b1"
+   }
+  }
+ ],
+ "deps": {}
+}

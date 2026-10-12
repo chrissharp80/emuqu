@@ -1,0 +1,220 @@
+{
+ "file": "EmuquTests/ProviderModelCatalogTests.swift",
+ "hash": "afaa8484ef95f24d",
+ "role": "XCTest suite pinning the shipped cloud model catalogue: exact API IDs per provider (verified 5 Oct 2026), per-MTok prices, no retired ID shipped, one default per provider and no cross-provider entries, retired IDs keep display names in ProviderRegistry, and the English Help 'ai-providers' article lists every model and marks the default '(recommended)'.",
+ "types": [
+  "ProviderModelCatalogTests: class — @MainActor XCTestCase over provider model tables, ProviderRegistry.retiredDisplayNames and HelpContent"
+ ],
+ "state": [
+  "mem:ProviderModelCatalogTests.retiredIDs (static Set of 9 retired IDs)",
+  "mem:ProviderModelCatalogTests.cloudCatalogs (static (ProviderID, [ModelOption]) list)"
+ ],
+ "toplevel": "Static lets hold the retired-ID set and the five provider catalogues.",
+ "flags": [
+  {
+   "kind": "test-defect",
+   "sev": "low",
+   "text": "The file header lists docs/USERS_MANUAL.md as part of the procedure for changing a model list, but nothing asserts the manual's provider table (USERS_MANUAL.md:483-487) matches the shipped models; only the in-app Help article is checked.",
+   "evidence": [
+    "EmuquTests/ProviderModelCatalogTests.swift:16",
+    "docs/USERS_MANUAL.md:483",
+    "EmuquTests/ProviderModelCatalogTests.swift:105"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "var ProviderModelCatalogTests.allModels",
+   "hash": "662bada027c20f6c",
+   "does": "Static helper: all ModelOptions across the five cloud catalogues.",
+   "entry": null,
+   "calls": [
+    "ext:AnthropicProvider.models / OpenAIProvider.models / GeminiProvider.models / GrokProvider.models / DeepSeekProvider.models static tables"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ProviderModelCatalogTests.testAnthropicShipsTheVerifiedIDs()",
+   "hash": "acd81fcc08d5cc4b",
+   "does": "Asserts Anthropic model IDs are [claude-haiku-4-5-20251001, claude-sonnet-4-6, claude-opus-4-7].",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "ext:AnthropicProvider.models / OpenAIProvider.models / GeminiProvider.models / GrokProvider.models / DeepSeekProvider.models static tables"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ProviderModelCatalogTests.testOpenAIShipsTheVerifiedIDs()",
+   "hash": "33aa9bc914e302ed",
+   "does": "Asserts OpenAI model IDs are [gpt-6-luna, gpt-5.4-mini, gpt-5.4].",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "ext:AnthropicProvider.models / OpenAIProvider.models / GeminiProvider.models / GrokProvider.models / DeepSeekProvider.models static tables"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ProviderModelCatalogTests.testGeminiShipsTheVerifiedIDs()",
+   "hash": "118a76ddba0f3f1a",
+   "does": "Asserts Gemini model IDs are [gemini-3.5-flash-lite, gemini-3.8-flash, gemini-3.1-pro-preview].",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "ext:AnthropicProvider.models / OpenAIProvider.models / GeminiProvider.models / GrokProvider.models / DeepSeekProvider.models static tables"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ProviderModelCatalogTests.testGrokShipsTheVerifiedIDs()",
+   "hash": "44baa36111fbb3df",
+   "does": "Asserts Grok model IDs are [grok-4.3, grok-4.7].",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "ext:AnthropicProvider.models / OpenAIProvider.models / GeminiProvider.models / GrokProvider.models / DeepSeekProvider.models static tables"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ProviderModelCatalogTests.testDeepSeekShipsTheVerifiedIDs()",
+   "hash": "1d4b8459c17bbe6d",
+   "does": "Asserts DeepSeek model IDs are [deepseek-flash, deepseek-v4-pro].",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "ext:AnthropicProvider.models / OpenAIProvider.models / GeminiProvider.models / GrokProvider.models / DeepSeekProvider.models static tables"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ProviderModelCatalogTests.testPricesMatchTheVendorsLists()",
+   "hash": "edc2d8e3f28c7dc6",
+   "does": "Asserts each shipped model's input/output price per MTok equals the hard-coded vendor list.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ProviderModelCatalogTests.swift::var ProviderModelCatalogTests.allModels",
+    "ext:AnthropicProvider.models / OpenAIProvider.models / GeminiProvider.models / GrokProvider.models / DeepSeekProvider.models static tables"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "for each shipped model",
+     "effect": "asserts input and output prices equal the expected pair (nil expected when the ID is not in the table, failing for an unknown model)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/ProviderModelCatalogTests.swift::var ProviderModelCatalogTests.allModels": "5e1c50a5083ac64a"
+   }
+  },
+  {
+   "key": "func ProviderModelCatalogTests.testNoRetiredIDShips()",
+   "hash": "6304871ed45b7b66",
+   "does": "Asserts no shipped API ID is in the retired set.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ProviderModelCatalogTests.swift::var ProviderModelCatalogTests.allModels",
+    "ext:AnthropicProvider.models / OpenAIProvider.models / GeminiProvider.models / GrokProvider.models / DeepSeekProvider.models static tables"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/ProviderModelCatalogTests.swift::var ProviderModelCatalogTests.allModels": "5e1c50a5083ac64a"
+   }
+  },
+  {
+   "key": "func ProviderModelCatalogTests.testEachProviderHasOneDefaultAndOnlyItsOwnModels()",
+   "hash": "56e0585c4caedb3d",
+   "does": "Asserts each provider catalogue has exactly one default and only models whose providerID is that provider.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "ext:AnthropicProvider.models / OpenAIProvider.models / GeminiProvider.models / GrokProvider.models / DeepSeekProvider.models static tables"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each (provider, models)",
+     "effect": "asserts one isDefault and matching providerID"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ProviderModelCatalogTests.testRetiredModelsKeepTheirNamesInSavedChats()",
+   "hash": "e3735a00ff01317f",
+   "does": "Asserts ProviderRegistry.retiredDisplayNames keys equal the retired set and deepseek-chat maps to 'DeepSeek Chat (V3.2)'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "ext:ProviderRegistry.retiredDisplayNames static table"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ProviderModelCatalogTests.testHelpListsEveryShippedModel()",
+   "hash": "7116b178aee4effa",
+   "does": "Finds the English Help 'ai-providers' article, collects its key-value rows, and asserts each provider row names every model display name and '<default> (recommended)'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Views/HelpContent+Science.swift::func HelpContent.englishCategories(forAge:)",
+    "ext:AnthropicProvider.models / OpenAIProvider.models / GeminiProvider.models / GrokProvider.models / DeepSeekProvider.models static tables"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "section is .keyValue",
+     "effect": "contributes its pairs; other sections contribute none"
+    },
+    {
+     "at": "+11",
+     "cond": "for each provider catalogue",
+     "effect": "finds the provider's row by label (XCTUnwrap fails if missing) and checks it"
+    },
+    {
+     "at": "+13",
+     "cond": "for each model of the provider",
+     "effect": "asserts the row value contains its displayName"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HelpContent+Science.swift::func HelpContent.englishCategories(forAge:)": "fa6d8626eb19f40e"
+   }
+  }
+ ],
+ "deps": {}
+}

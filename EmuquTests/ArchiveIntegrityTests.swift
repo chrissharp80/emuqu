@@ -335,27 +335,43 @@ final class ArchiveIntegrityTests: XCTestCase {
         }
     }
 
-    /// Test concurrent reads
+    /// Twenty concurrent reads of one archived session all return it.
+    ///
+    /// Same shape as `testConcurrentAccess`, for the same reasons: the reads
+    /// run on a concurrent queue and the wait is bounded with
+    /// `DispatchGroup.wait(timeout:)`, so a wedged `retrieve` fails the test
+    /// instead of hanging the suite, and failures are collected under a lock
+    /// and asserted on the test thread.
     func testConcurrentReads() throws {
         let session = createTestSession()
         testSessionIds.append(session.id)
         _ = try archive.archive(session)
 
-        let expectation = expectation(description: "Concurrent reads")
-        expectation.expectedFulfillmentCount = 20
+        let group = DispatchGroup()
+        let queue = DispatchQueue(label: "test.concurrent.reads", attributes: .concurrent)
+        let failures = OSAllocatedUnfairLock<[String]>(initialState: [])
         let archive = archive
+        let sessionId = session.id
 
-        DispatchQueue.concurrentPerform(iterations: 20) { _ in
-            do {
-                let retrieved = try archive.retrieve(session.id)
-                XCTAssertNotNil(retrieved)
-                expectation.fulfill()
-            } catch {
-                XCTFail("Concurrent read failed: \(error)")
+        for index in 0 ..< 20 {
+            queue.async(group: group) {
+                do {
+                    if try archive.retrieve(sessionId) == nil {
+                        failures.withLock { $0.append("read \(index): session not found") }
+                    }
+                } catch {
+                    failures.withLock { $0.append("read \(index): \(error)") }
+                }
             }
         }
 
-        wait(for: [expectation], timeout: 5.0)
+        if group.wait(timeout: .now() + 30) == .timedOut {
+            XCTFail("Concurrent reads did not complete within 30s — the archive read path is wedged.")
+            return
+        }
+
+        let collected = failures.withLock { $0 }
+        XCTAssertTrue(collected.isEmpty, "Concurrent reads failed: \(collected.joined(separator: "; "))")
     }
 
     // MARK: - Batch Operations

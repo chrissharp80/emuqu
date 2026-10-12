@@ -1,0 +1,17 @@
+{
+ "file": "scripts/check_gates_wired.sh",
+ "hash": "9545ef585407892f",
+ "role": "Meta-gate: every scripts/check_*.sh and enforce_*.sh must run in .github/workflows/ci.yml, and in the push workflow gates.yml unless listed in NOT_ON_PUSH (enforce_swiftlint_budget.sh, check_thread_sanitizer.sh); check_coverage.sh is exempt from both (NOT_A_STEP).",
+ "types": [],
+ "state": [
+  "file:.github/workflows/ci.yml",
+  "file:.github/workflows/gates.yml",
+  "file:Makefile",
+  "env:GATES_WORKFLOW_FILE",
+  "env:GATES_PUSH_WORKFLOW_FILE"
+ ],
+ "toplevel": "set -euo pipefail; cd to repo root. WORKFLOW (GATES_WORKFLOW_FILE or ci.yml), PUSH_WORKFLOW (GATES_PUSH_WORKFLOW_FILE or gates.yml) and Makefile; any missing -> exit 2. Python: run_text() collects only `run:` command text (inline or block scalar) of steps not disabled by a literal `if: false` (step or job level), YAML/shell comments stripped; expand_make() appends the recipes of every make target named (and their prerequisites, recursively). A gate runs if its name appears as a token in that text. No gates -> 2. Gates not run in ci.yml, or (outside NOT_ON_PUSH) not run in gates.yml -> exit 1. An exemption naming a missing script -> exit 1. Else clean. Red until gates.yml runs coremotion-isolation-guard, hr-feed-link-guard and check_privacy_manifest_vocabulary.sh (handoff). Wired: gates.yml, ci.yml, Makefile gates-wired-guard.",
+ "flags": [],
+ "units": [],
+ "deps": {}
+}

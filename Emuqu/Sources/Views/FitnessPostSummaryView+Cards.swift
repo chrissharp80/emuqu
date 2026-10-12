@@ -68,28 +68,24 @@ extension FitnessSummaryCards {
     @ViewBuilder
     var environmentCard: some View {
         if let weather = session.workoutMetadata?.weatherSnapshot {
-            let unit = AppDependencies.current.app.settingsManager.settings.temperatureUnit
+            let unit = settingsManager.settings.temperatureUnit
             let exposure = HeatAcclimationCache.exposure(from: session, weather: weather)
             let stimulus = HeatAcclimation.sessionStimulus(exposure)
-            let wbgt = HeatAcclimation.wbgtEstimate(
-                tempC: weather.temperatureC,
-                relativeHumidity: weather.relativeHumidityPercent
-            )
-            environmentBody(weather, unit: unit, stimulus: stimulus, wbgt: wbgt)
+            environmentBody(weather, unit: unit, stimulus: stimulus)
         }
     }
 
-    private func environmentBody(_ weather: WorkoutWeatherSnapshot, unit: TemperatureUnit, stimulus: Double, wbgt: Double) -> some View {
+    private func environmentBody(_ weather: WorkoutWeatherSnapshot, unit: TemperatureUnit, stimulus: Double) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(String(localized: "Conditions", bundle: LanguageManager.appBundle))
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(AppTheme.textSecondary)
             headlineRow(
                 String(localized: "Temperature", bundle: LanguageManager.appBundle),
-                value: Self.formatTemp(weather.temperatureC, unit: unit),
+                value: formatTemp(weather.temperatureC, unit: unit),
                 caption: Self.conditionsCaption(weather)
             )
-            Text(verbatim: Self.heatContributionLine(stimulus: stimulus, wbgt: wbgt))
+            Text(verbatim: heatContributionLine(stimulus: stimulus))
                 .font(.caption)
                 .foregroundStyle(AppTheme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -119,26 +115,6 @@ extension FitnessSummaryCards {
                 .font(.caption2)
                 .foregroundStyle(AppTheme.textTertiary)
         }
-    }
-
-    private static func formatTemp(_ tempC: Double, unit: TemperatureUnit) -> String {
-        let shown = unit == .fahrenheit ? tempC * 9 / 5 + 32 : tempC
-        let symbol = unit == .fahrenheit ? "°F" : "°C"
-        return "\(Int(shown.rounded()))\(symbol)"
-    }
-
-    private static func heatContributionLine(stimulus: Double, wbgt: Double) -> String {
-        if stimulus <= 0 {
-            return String(localized: "Cool enough that this session didn't add heat-acclimatization stress — that's about the effort, not the weather.", bundle: LanguageManager.appBundle)
-        }
-        let pct = Int((stimulus * 100).rounded())
-        if stimulus >= 0.85 {
-            return String(localized: "A strong heat stimulus — this run pushed your heat acclimatization hard. Sessions like this are how you adapt to summer racing.", bundle: LanguageManager.appBundle)
-        }
-        if stimulus >= 0.5 {
-            return String(localized: "A solid heat stimulus (\(pct)% of a full dose) — this run moved your heat acclimatization forward.", bundle: LanguageManager.appBundle)
-        }
-        return String(localized: "A mild heat stimulus (\(pct)% of a full dose) — every hot session adds up toward heat acclimatization.", bundle: LanguageManager.appBundle)
     }
 
     /// `splits` is already resolved to the user's unit, so the unit label is
@@ -171,7 +147,7 @@ extension FitnessSummaryCards {
     /// pace/HR data on the prior sessions.
     ///
     /// Reads the `routeHistory` @State populated by
-    /// `loadRouteHistorySummary()` instead of running the archive walk
+    /// `FitnessPostSummaryView.loadRouteHistorySummary()` instead of running the archive walk
     /// inline. While the async load is in flight `routeHistory` is nil,
     /// which renders the same nothing-at-all as the nil-summary cases
     /// above — no separate loading UI.
@@ -188,10 +164,10 @@ extension FitnessSummaryCards {
         VStack(alignment: .leading, spacing: 10) {
             routeHistoryHeader(routeName, priorCount: summary.priorCount)
             if let row = summary.paceRow {
-                routeHistoryRow(label: String(localized: "Pace", bundle: LanguageManager.appBundle), today: row.today, baseline: row.baseline, deltaCaption: row.deltaCaption, lowerIsBetter: true)
+                routeHistoryRow(label: String(localized: "Pace", bundle: LanguageManager.appBundle), today: row.today, baseline: row.baseline, deltaCaption: row.deltaCaption)
             }
             if let row = summary.hrRow {
-                routeHistoryRow(label: String(localized: "Avg HR", bundle: LanguageManager.appBundle), today: row.today, baseline: row.baseline, deltaCaption: row.deltaCaption, lowerIsBetter: true)
+                routeHistoryRow(label: String(localized: "Avg HR", bundle: LanguageManager.appBundle), today: row.today, baseline: row.baseline, deltaCaption: row.deltaCaption)
             }
         }
         .padding(14)
@@ -200,7 +176,7 @@ extension FitnessSummaryCards {
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 
-    func routeHistoryRow(label: String, today: String, baseline: String, deltaCaption: String, lowerIsBetter _: Bool) -> some View {
+    func routeHistoryRow(label: String, today: String, baseline: String, deltaCaption: String) -> some View {
         HStack(spacing: 8) {
             Text(label)
                 .font(.subheadline)
@@ -227,32 +203,8 @@ extension FitnessSummaryCards {
         }
     }
 
-    /// Async loader for the route-history card. Snapshots
-    /// the session + resolved units on the MainActor, runs the archive
-    /// walk (disk reads + decodes) on a detached task, and lands the
-    /// result in the `routeHistory` @State the card reads. Called from
-    /// the `.task(id: session.id)` block on open and again from
-    /// `reloadFromArchive()` whenever the archive-change signal fires.
-    func loadRouteHistorySummary() async {
-        guard let routeName = session.workoutMetadata?.recognizedRouteName,
-              !routeName.isEmpty
-        else {
-            routeHistory = nil
-            return
-        }
-        let sessionSnapshot = session
-        let unitsResolved = units.resolved
-        routeHistory = await Task.detached(priority: .userInitiated) {
-            Self.routeHistorySummary(
-                routeName: routeName,
-                session: sessionSnapshot,
-                unitsResolved: unitsResolved
-            )
-        }.value
-    }
-
     /// Pure summary walk — static with explicit
-    /// inputs so `loadRouteHistorySummary()` can run it off the main
+    /// inputs so `FitnessPostSummaryView.loadRouteHistorySummary()` can run it off the main
     /// thread without capturing the view.
     nonisolated static func routeHistorySummary(
         routeName: String,
@@ -261,7 +213,7 @@ extension FitnessSummaryCards {
     ) -> RouteHistorySummary? {
         let candidates = priorRuns(ofRoute: routeName, excluding: session.id)
         guard !candidates.isEmpty else { return nil }
-        let baseline = routeBaseline(candidates)
+        let baseline = RouteBaseline(priorRuns: candidates)
         return RouteHistorySummary(
             priorCount: candidates.count,
             paceRow: paceComparisonRow(session: session, baseline: baseline, unitsResolved: unitsResolved),
@@ -270,50 +222,16 @@ extension FitnessSummaryCards {
     }
 
     /// The most recent 20 other workouts the route recogniser matched to the
-    /// same named route.
+    /// same named route. `entries` is newest first and the walk is lazy, so
+    /// decoding stops once 20 matches are found.
     nonisolated private static func priorRuns(ofRoute routeName: String, excluding sessionId: UUID) -> [HRVSession] {
         let archive = AppDependencies.current.storage.sessionArchive
-        return archive.entries
+        return archive.entries.lazy
             .filter { $0.sessionType == .workout && $0.sessionId != sessionId }
             .compactMap { try? archive.retrieveLightweight($0.sessionId) }
             .filter { $0.workoutMetadata?.recognizedRouteName == routeName }
-            .sorted { $0.startDate > $1.startDate }
             .prefix(20)
-            .map { $0 }
-    }
-
-    /// Distance-weighted pace baseline plus a sample-weighted mean HR.
-    nonisolated private static func routeBaseline(_ candidates: [HRVSession]) -> RouteBaseline {
-        var baseline = RouteBaseline()
-        for prior in candidates {
-            accumulatePace(&baseline, from: prior)
-            accumulateHR(&baseline, from: prior)
-        }
-        return baseline
-    }
-
-    /// Only efforts long enough to be a real repeat of the route contribute
-    /// (>100 m and >60 s).
-    nonisolated private static func accumulatePace(_ baseline: inout RouteBaseline, from prior: HRVSession) {
-        guard let dist = prior.workoutMetadata?.distanceMeters, dist > 100,
-              let dur = prior.duration, dur > 60
-        else { return }
-        baseline.totalDistance += dist
-        baseline.totalDuration += dur
-    }
-
-    nonisolated private static func accumulateHR(_ baseline: inout RouteBaseline, from prior: HRVSession) {
-        for hr in (prior.workoutMetadata?.samples ?? []).compactMap(\.heartRate) where hr > 0 {
-            baseline.hrSum += Double(hr)
-            baseline.hrCount += 1
-        }
-    }
-
-    struct RouteBaseline {
-        var totalDistance: Double = 0
-        var totalDuration: Double = 0
-        var hrSum: Double = 0
-        var hrCount: Int = 0
+            .sorted { $0.startDate > $1.startDate }
     }
 
     /// Today's pace from this session's metadata, against the weighted baseline.
@@ -413,8 +331,8 @@ extension FitnessSummaryCards {
     /// "Add this walk to my route library" card. Shown only when the
     /// session has a GPS polyline (saving an indoor session as a route
     /// is meaningless) and the route hasn't already been saved this
-    /// session. After save, swap to a "Saved as 'Daily 1' — view library"
-    /// confirmation row so the user knows it stuck.
+    /// session. After save, swap to a "Saved as "Run 3"…" confirmation row
+    /// so the user knows it stuck.
     @ViewBuilder
     var saveRouteCard: some View {
         if session.workoutMetadata?.gpsPolyline != nil {
@@ -460,8 +378,8 @@ extension FitnessSummaryCards {
 
     private var addToLibraryButton: some View {
         Button {
-            // Pre-fill a sensible default ("Daily N") so the
-            // common case is one tap. User can edit before
+            // Pre-fill a sensible default ("<sport> N", e.g. "Run 3")
+            // so the common case is one tap. User can edit before
             // confirming.
             newRouteName = defaultSavedRouteName()
             showSaveRouteSheet = true
@@ -492,7 +410,7 @@ extension FitnessSummaryCards {
     }
 
     func defaultSavedRouteName() -> String {
-        let sportName = session.workoutMetadata?.sport.localizedName ?? "Workout"
+        let sportName = session.workoutMetadata?.sport.localizedName ?? String(localized: "Workout", bundle: LanguageManager.appBundle)
         // Count how many already-saved routes for this sport exist; new
         // route gets the next ordinal as a placeholder. User can edit.
         let existingForSport = savedRouteStore.routes.filter {
@@ -501,10 +419,12 @@ extension FitnessSummaryCards {
         return "\(sportName) \(existingForSport + 1)"
     }
 
+    /// A name left blank saves under the default "<sport> N" name rather than
+    /// closing the alert with nothing saved.
     func commitSavedRoute() {
         let trimmed = newRouteName.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
-        guard let saved = SavedRoute.from(session: session, name: trimmed) else { return }
+        let name = trimmed.isEmpty ? defaultSavedRouteName() : trimmed
+        guard let saved = SavedRoute.from(session: session, name: name) else { return }
         savedRouteStore.add(saved)
         savedRouteIDForThisSession = saved.id
         // Kick off the road-name enrichment in the background. The user
@@ -739,11 +659,7 @@ extension FitnessSummaryCards {
         elevResmoothing = true
         defer { elevResmoothing = false }
         do {
-            let archive = AppDependencies.current.storage.sessionArchive
-            guard let updated = try Self.updateArchived(session.id, in: archive, { stored in
-                stored.workoutMetadata?.elevationGainMeters = gain
-                stored.workoutMetadata?.elevationLossMeters = loss
-            }) else {
+            guard let updated = try writeResmoothedElevation(gain: gain, loss: loss) else {
                 elevResmoothError = String(localized: "Session not found in archive.", bundle: LanguageManager.appBundle)
                 return
             }
@@ -753,6 +669,19 @@ extension FitnessSummaryCards {
             debugLog("[ResmoothElevation] rewrote gain=\(Int(gain)) loss=\(Int(loss)) for session \(session.id)")
         } catch {
             elevResmoothError = String(localized: "Couldn't save: \(error.localizedDescription)", bundle: LanguageManager.appBundle)
+        }
+    }
+
+    /// Stores the new gain / loss on the archived session and rebuilds its
+    /// analysis snapshot (VAM, grade-adjusted pace, narratives) from them;
+    /// nil when the session is no longer in the archive.
+    private func writeResmoothedElevation(gain: Double, loss: Double) throws -> HRVSession? {
+        let archive = AppDependencies.current.storage.sessionArchive
+        let settings = UserSettingsBridge.snapshot()
+        return try Self.updateArchived(session.id, in: archive) { stored in
+            stored.workoutMetadata?.elevationGainMeters = gain
+            stored.workoutMetadata?.elevationLossMeters = loss
+            rebuildAnalysisSnapshot(&stored, settings: settings)
         }
     }
 
@@ -882,18 +811,27 @@ extension FitnessSummaryCards {
             return
         }
         refreshedSession = updated
+        // The α1 stats cache is keyed on which samples carry α1, not on the
+        // values, so a re-analysis that rewrites values in place would keep
+        // serving the old card. Cleared in the same main-actor turn that
+        // publishes the new session, before any re-render can re-fill it.
+        AppDependencies.current.app.alpha1StatsCache.cachedKey = nil
         collector.notifyArchiveChanged()
         debugLog("[Alpha1Reanalyze] rewrote \(readingCount) α1 readings for session \(session.id)")
     }
 
     /// Stores the re-analysed samples and their α1-enriched splits on the
-    /// archived session; nil when the session is no longer in the archive.
+    /// archived session and rebuilds its analysis snapshot (α1 mean / min /
+    /// max, band seconds, narratives) from them; nil when the session is no
+    /// longer in the archive.
     private func writeReanalyzedSamples(_ refreshedSamples: [WorkoutSample]) throws -> HRVSession? {
         let enrichedSplits = alpha1EnrichedSplits(samples: refreshedSamples)
         let archive = AppDependencies.current.storage.sessionArchive
+        let settings = UserSettingsBridge.snapshot()
         return try Self.updateArchived(session.id, in: archive) { stored in
             stored.workoutMetadata?.samples = refreshedSamples
             if let enrichedSplits { stored.workoutMetadata?.splits = enrichedSplits }
+            rebuildAnalysisSnapshot(&stored, settings: settings)
         }
     }
 
@@ -996,5 +934,79 @@ private func routeHistoryValues(today: String, baseline: String) -> some View {
         Text(baseline)
             .font(.subheadline)
             .foregroundStyle(AppTheme.textSecondary)
+    }
+}
+
+// MARK: - File-scope helpers (no FitnessSummaryCards state)
+
+private func formatTemp(_ tempC: Double, unit: TemperatureUnit) -> String {
+    let shown = unit == .fahrenheit ? tempC * 9 / 5 + 32 : tempC
+    let symbol = unit == .fahrenheit ? "°F" : "°C"
+    return "\(Int(shown.rounded()))\(symbol)"
+}
+
+private func heatContributionLine(stimulus: Double) -> String {
+    if stimulus <= 0 {
+        return String(localized: "Cool enough that this session didn't add heat-acclimatization stress — that's about the effort, not the weather.", bundle: LanguageManager.appBundle)
+    }
+    let pct = Int((stimulus * 100).rounded())
+    if stimulus >= 0.85 {
+        return String(localized: "A strong heat stimulus — this run pushed your heat acclimatization hard. Sessions like this are how you adapt to summer racing.", bundle: LanguageManager.appBundle)
+    }
+    if stimulus >= 0.5 {
+        return String(localized: "A solid heat stimulus (\(pct)% of a full dose) — this run moved your heat acclimatization forward.", bundle: LanguageManager.appBundle)
+    }
+    return String(localized: "A mild heat stimulus (\(pct)% of a full dose) — every hot session adds up toward heat acclimatization.", bundle: LanguageManager.appBundle)
+}
+
+/// Replaces the stored analysis snapshot with one built from `stored` as
+/// it now stands, so the figures and narratives the assistant and the PDF
+/// read follow an in-place edit of samples, splits or elevation. Leaves the
+/// old snapshot when the workout has no samples or no duration to build from.
+private func rebuildAnalysisSnapshot(_ stored: inout HRVSession, settings: UserSettingsBridge) {
+    guard let meta = stored.workoutMetadata,
+          let samples = meta.samples, !samples.isEmpty,
+          let duration = stored.duration
+    else { return }
+    stored.workoutMetadata?.analysisSnapshot = WorkoutAnalysisSnapshotBuilder.build(.init(
+        sport: meta.sport, durationSec: duration, distanceMeters: meta.distanceMeters,
+        elevationGainMeters: meta.elevationGainMeters, elevationLossMeters: meta.elevationLossMeters,
+        meanHR: stored.meanHR, userMaxHR: settings.userMaxHR, bodyWeightKg: settings.weightKg,
+        samples: samples, splits: meta.splits ?? [], trimp: meta.luciaTRIMP,
+        decouplingPercent: meta.decouplingPercent
+    ))
+}
+
+/// Distance-weighted pace baseline plus a sample-weighted mean HR over the
+/// prior runs of a route (`FitnessSummaryCards.routeHistorySummary`).
+struct RouteBaseline {
+    var totalDistance: Double = 0
+    var totalDuration: Double = 0
+    var hrSum: Double = 0
+    var hrCount: Int = 0
+
+    init(priorRuns candidates: [HRVSession]) {
+        for prior in candidates {
+            accumulatePace(from: prior)
+            accumulateHR(from: prior)
+        }
+    }
+
+    /// Only efforts long enough to be a real repeat of the route contribute
+    /// (>100 m and >60 s).
+    private mutating func accumulatePace(from prior: HRVSession) {
+        guard let dist = prior.workoutMetadata?.distanceMeters, dist > 100,
+              let dur = prior.duration, dur > 60
+        else { return }
+        totalDistance += dist
+        totalDuration += dur
+    }
+
+    /// Zero readings (strap dropouts) are left out.
+    private mutating func accumulateHR(from prior: HRVSession) {
+        for hr in (prior.workoutMetadata?.samples ?? []).compactMap(\.heartRate) where hr > 0 {
+            hrSum += Double(hr)
+            hrCount += 1
+        }
     }
 }

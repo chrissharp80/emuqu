@@ -8,17 +8,21 @@
 #
 # The rule set below is pinned to what this codebase actually is, not to
 # SwiftFormat's defaults. Every rule that would have caused mass churn is
-# disabled explicitly, with the reason, so `make format` is idempotent and safe
-# to run at any time rather than a 416-file surprise.
+# disabled explicitly, with the reason. That removes the worst of the churn but
+# not all of it: the tree does not conform to this file (see the formatting note
+# in `.githooks/pre-commit`), so `make format` still rewrites a large share of
+# the files. Run it as a deliberate change of its own, never alongside other
+# work.
+#
+# Options for rules disabled below (`wrapArguments`, `trailingSpace`,
+# `fileHeader`) are left out: a rule that does not run reads no options.
 
---swiftversion 5.10
+# The language mode every target compiles in (SWIFT_VERSION in
+# project.pbxproj). SwiftFormat gates version-dependent rewrites on it.
+--swiftversion 6.0
 --indent 4
 --linebreaks lf
---trimwhitespace always
---wraparguments before-first
---wrapcollections before-first
 --elseposition same-line
---header strip
 --exclude .build,build,DerivedData,Emuqu.xcodeproj
 
 # ---------------------------------------------------------------------------
@@ -79,8 +83,8 @@
 #                           consistently made the other way. Changing them is a
 #                           taste decision, not a cleanup.
 #
-#   fileHeader              181 sites. `--header strip` below already governs
-#                           this; the rule additionally rewrites files that have
+#   fileHeader              181 sites. It would rewrite or strip the header
+#                           comment of every file, including files that have
 #                           deliberate provenance headers.
 #
 #   numberFormatting        163 sites. Would rewrite numeric literals in the

@@ -41,8 +41,7 @@ enum HRSleepEstimator {
         let windowedHR = computeWindowedHR(rrPoints: rrPoints)
         guard windowedHR.count >= 3 else { return nil }
         let (rawOnsetMs, wakeMs) = detectSleepBoundariesFromHR(windowedHR)
-        let maxOnsetLatencyMs = Int64(SleepConstants.maxHREstimatedOnsetLatencyMin) * 60 * 1000
-        let sleepOnsetMs = rawOnsetMs.map { min($0, maxOnsetLatencyMs) }
+        let sleepOnsetMs = rawOnsetMs.map { clampedOnsetMs($0, in: rrPoints) }
         let stageResult = HRVSleepStageClassifier.classify(
             rrPoints: rrPoints,
             sleepStartMs: sleepOnsetMs ?? 0,
@@ -55,9 +54,20 @@ enum HRSleepEstimator {
         )
     }
 
+    /// The onset clamp is a latency after the recording started, so it is
+    /// measured on the wall clock: on the beat-sum clock a stretch of beats
+    /// lost early in the night let the onset land more than the ceiling
+    /// after bedtime. Returns the onset unchanged when it is within the
+    /// ceiling, else the beat-sum time whose wall-clock time is the ceiling.
+    nonisolated static func clampedOnsetMs(_ onsetMs: Int64, in rrPoints: [RRPoint]) -> Int64 {
+        let maxOnsetLatencyMs = Int64(SleepConstants.maxHREstimatedOnsetLatencyMin) * 60 * 1000
+        guard wallClockMs(forBeatSumMs: onsetMs, in: rrPoints) > maxOnsetLatencyMs else { return onsetMs }
+        return min(onsetMs, beatSumMs(forWallClockMs: maxOnsetLatencyMs, in: rrPoints))
+    }
+
     /// Assemble the SleepData for the RR-inferred path. Total sleep prefers the
-    /// classifier's staged minutes when it produced any, falling back to the
-    /// raw onset→wake duration. Efficiency is that same total over time in
+    /// classifier's staged minutes when it produced any (a result with none
+    /// staged counts as none), falling back to the raw onset→wake duration. Efficiency is that same total over time in
     /// bed, so the two figures on screen agree.
     ///
     /// Onset and wake are found on the beat-sum clock (`t_ms`), which the
@@ -77,7 +87,7 @@ enum HRSleepEstimator {
         let sleepEnd = wakeWallMs.map { recordingStart.addingTimeInterval(Double($0) / 1000.0) }
         let sleepDurationMinutes = estimateSleepDuration(rrPoints: rrPoints, sleepOnsetMs: onsetWallMs, wakeMs: wakeWallMs)
         let inBedMinutes = Int((rrPoints.map(\.exportTimeMs).max() ?? 0) / 60000)
-        let classifiedMinutes = stageResult.map { $0.deepSleepMinutes + $0.remSleepMinutes + $0.coreSleepMinutes } ?? sleepDurationMinutes
+        let classifiedMinutes = stageResult.map { $0.deepSleepMinutes + $0.remSleepMinutes + $0.coreSleepMinutes }.flatMap { $0 > 0 ? $0 : nil } ?? sleepDurationMinutes
         let efficiency = SleepData.efficiencyPercent(sleep: classifiedMinutes, inBed: inBedMinutes)
         return SleepData(
             date: recordingStart, inBedStart: recordingStart,
@@ -110,10 +120,17 @@ enum HRSleepEstimator {
         return result
     }
 
+    /// Mean heart rate over the window's physiologically valid beats
+    /// (`HRVConstants.RRInterval.isValid`), as `SleepBoundaryResolver` does:
+    /// averaged in, dropout and artifact intervals moved the night's max/min
+    /// and with them the threshold, onset and wake. Nil when the window has
+    /// fewer than 10 beats or half or more of them are artifacts.
     nonisolated static func windowedHR(_ rrPoints: [RRPoint], from windowStart: Int64, to windowEnd: Int64) -> Double? {
         let windowPoints = rrPoints.filter { $0.t_ms >= windowStart && $0.t_ms < windowEnd }
         guard windowPoints.count >= 10 else { return nil }
-        let avgRR = windowPoints.map { Double($0.rr_ms) }.reduce(0, +) / Double(windowPoints.count)
+        let validRRs = windowPoints.filter { HRVConstants.RRInterval.isValid($0.rr_ms) }
+        guard validRRs.count * 2 > windowPoints.count else { return nil }
+        let avgRR = validRRs.map { Double($0.rr_ms) }.reduce(0, +) / Double(validRRs.count)
         return 60000.0 / avgRR
     }
 
@@ -174,6 +191,14 @@ enum HRSleepEstimator {
     nonisolated static func wallClockMs(forBeatSumMs ms: Int64, in rrPoints: [RRPoint]) -> Int64 {
         guard let anchor = rrPoints.first(where: { $0.t_ms >= ms }) ?? rrPoints.last else { return ms }
         return ms + (anchor.exportTimeMs - anchor.t_ms)
+    }
+
+    /// The inverse of `wallClockMs(forBeatSumMs:in:)`: a wall-clock time
+    /// moved onto the beat-sum clock by the offset of the first beat at or
+    /// after it on the wall clock (the last beat when none is).
+    nonisolated static func beatSumMs(forWallClockMs ms: Int64, in rrPoints: [RRPoint]) -> Int64 {
+        guard let anchor = rrPoints.first(where: { $0.exportTimeMs >= ms }) ?? rrPoints.last else { return ms }
+        return ms - (anchor.exportTimeMs - anchor.t_ms)
     }
 
     /// Midpoint between the night's max (awake baseline, same logic as the

@@ -1,0 +1,524 @@
+{
+ "file": "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift",
+ "hash": "dffb24b7149d508f",
+ "role": "'Trend Analysis' card comparing today's RMSSD, resting HR, stress index and readiness with averages over reliable completed overnight sessions (RMSSD/HR use the canonical score baseline when available) and composing a text insight.",
+ "types": [
+  "TrendComparisonCard: struct (View) — constructed by RecoveryScoreDetailView+Sections.swift:47 (when recentSessions.count >= 2) and CardSnapshotTests",
+  "TrendComparisonCard.TrendStats: struct (private) — averages, baselines, session count, 7-day trend",
+  "TrendComparisonCard.TrendAverages: struct (private) — intermediate averages/baselines"
+ ],
+ "state": [],
+ "toplevel": "baselineStats is an optional var defaulting to nil; TrendStats/TrendAverages are plain memberwise structs.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var TrendComparisonCard.body",
+   "hash": "88cd56d5bf0b17e3",
+   "does": "zenCard VStack of the header and comparison section.",
+   "entry": "SwiftUI View.body evaluation",
+   "calls": [
+    "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift::var TrendComparisonCard.trendHeader",
+    "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift::var TrendComparisonCard.comparisonStatsSection",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenCard()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift::var TrendComparisonCard.comparisonStatsSection": "bc9b6427c8ce85ce",
+    "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift::var TrendComparisonCard.trendHeader": "5659b69462cc0038",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenCard()": "d0ad0fd7fe9ef4fb"
+   }
+  },
+  {
+   "key": "var TrendComparisonCard.trendHeader",
+   "hash": "81581581a277a7d6",
+   "does": "Trend icon + localized 'Trend Analysis' headline.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+   }
+  },
+  {
+   "key": "var TrendComparisonCard.comparisonStatsSection",
+   "hash": "322910d561fb5308",
+   "does": "Shows trend rows, a divider and the insight card when stats have data; otherwise a 'More sessions needed' message.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift::var TrendComparisonCard.trendStats",
+    "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift::func TrendComparisonCard.trendRows(_:)",
+    "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift::func TrendComparisonCard.trendInsightCard(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "stats.hasData (≥2 valid sessions)",
+     "effect": "rows + insight; else placeholder text"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift::func TrendComparisonCard.trendInsightCard(_:)": "1aef4749dc5f785a",
+    "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift::func TrendComparisonCard.trendRows(_:)": "f446078741eca819",
+    "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift::var TrendComparisonCard.trendStats": "1438a0519bb7279b",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "func TrendComparisonCard.trendRows(_:)",
+   "hash": "96360b2f025857e7",
+   "does": "VStack of HRV, HR, stress and readiness rows.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift::func TrendComparisonCard.hrvTrendRow(_:)",
+    "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift::func TrendComparisonCard.heartRateTrendRow(_:)",
+    "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift::func TrendComparisonCard.stressTrendRow(_:)",
+    "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift::func TrendComparisonCard.readinessTrendRow(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift::func TrendComparisonCard.heartRateTrendRow(_:)": "73608f53026e701b",
+    "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift::func TrendComparisonCard.hrvTrendRow(_:)": "ebfaf466c1752cd5",
+    "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift::func TrendComparisonCard.readinessTrendRow(_:)": "c216890d403f20fc",
+    "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift::func TrendComparisonCard.stressTrendRow(_:)": "3fb14f590446f25a"
+   }
+  },
+  {
+   "key": "func TrendComparisonCard.hrvTrendRow(_:)",
+   "hash": "e89f26b325e5feb9",
+   "does": "TrendComparisonRow for RMSSD (ms, higher is better) vs avg/baseline RMSSD.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func TrendComparisonCard.heartRateTrendRow(_:)",
+   "hash": "b9e00afc70895b9f",
+   "does": "TrendComparisonRow for mean HR (bpm, lower is better) vs avg/baseline HR.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func TrendComparisonCard.stressTrendRow(_:)",
+   "hash": "f464f66555bc7a3e",
+   "does": "TrendComparisonRow for stress index (lower better, no baseline) when today's stress and an average exist.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "today's stressIndex AND avgStress present",
+     "effect": "row shown; else omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func TrendComparisonCard.readinessTrendRow(_:)",
+   "hash": "63e0e789cfd5ff0e",
+   "does": "TrendComparisonRow for readiness /10 when today's readiness and an average exist.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "today's readinessScore AND avgReadiness present",
+     "effect": "row shown; else omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func TrendComparisonCard.trendInsightCard(_:)",
+   "hash": "7ae92290193d6465",
+   "does": "Tinted box with 'Trend Insight' title and the composed insight text.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift::func TrendComparisonCard.trendInsight(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift::func TrendComparisonCard.trendInsight(for:)": "5eaa159cc5da9be7",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var TrendComparisonCard.trendStats",
+   "hash": "43fd6a1855e62276",
+   "does": "Filters recentSessions to complete overnight sessions with an analysis that pass isReliableForHRVAggregates; fewer than 2 → empty stats, else populated stats.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates",
+    "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift::func TrendComparisonCard.populatedStats(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+11",
+     "cond": "guard validSessions.count >= 2",
+     "effect": "fewer → hasData=false with zeros/nils; else populatedStats"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "030630d0c2004d4f",
+    "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift::func TrendComparisonCard.populatedStats(_:)": "e7f995dfeabfbab3"
+   }
+  },
+  {
+   "key": "func TrendComparisonCard.populatedStats(_:)",
+   "hash": "b2161cfd2211c14d",
+   "does": "Wraps trendAverages into TrendStats with hasData=true and the session count.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift::func TrendComparisonCard.trendAverages(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift::func TrendComparisonCard.trendAverages(_:)": "24bcfefa9bf3fcf6"
+   }
+  },
+  {
+   "key": "func TrendComparisonCard.trendAverages(_:)",
+   "hash": "ac603969fdc0294b",
+   "does": "Averages: RMSSD = exp(baseline lnRmssdMean) else arithmetic mean; HR = baseline meanHRBaseline else arithmetic mean; stress/readiness arithmetic means or nil; baselines from baselineStats; stress baseline nil; 7-day trend from TrendVerdict.weeklyRMSSDChange.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.rmssd",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.meanHR",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.readinessScore",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.weeklyRMSSDChange(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "geomBaseline ?? arithmetic RMSSD mean",
+     "effect": "canonical geometric baseline when baselineStats set; arithmetic mean before baseline forms"
+    },
+    {
+     "at": "+7",
+     "cond": "rmssdValues.isEmpty",
+     "effect": "0 when no RMSSD values; else mean"
+    },
+    {
+     "at": "+8",
+     "cond": "baselineStats?.meanHRBaseline ?? arithmetic HR mean",
+     "effect": "baseline HR when set; else mean"
+    },
+    {
+     "at": "+8",
+     "cond": "hrValues.isEmpty",
+     "effect": "0 when no HR values; else mean"
+    },
+    {
+     "at": "+9",
+     "cond": "stressValues.isEmpty",
+     "effect": "nil; else mean"
+    },
+    {
+     "at": "+10",
+     "cond": "readinessValues.isEmpty",
+     "effect": "nil; else mean"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.weeklyRMSSDChange(_:)": "26eac7e02c76e2ca",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.meanHR": "a5bf3abe9c530fa0",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.readinessScore": "3bb644a1151f4f3f",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.rmssd": "64652e57c90f256a",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb"
+   }
+  },
+  {
+   "key": "func TrendComparisonCard.trendInsight(for:)",
+   "hash": "1690fbdfc333f779",
+   "does": "No data → 'Record more sessions' text; else joins the non-nil RMSSD, HR, stress, weekly-trend and session-count sentences with spaces.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift::func TrendComparisonCard.rmssdInsight(_:)",
+    "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift::func TrendComparisonCard.heartRateInsight(_:)",
+    "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift::func TrendComparisonCard.stressInsight(_:)",
+    "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift::func TrendComparisonCard.weeklyTrendInsight(_:)",
+    "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift::func TrendComparisonCard.sessionCountInsight(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "guard stats.hasData",
+     "effect": "no data → fallback sentence (unreachable from the card, which only calls this when hasData); else composed text"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift::func TrendComparisonCard.heartRateInsight(_:)": "7a5888f83be3cd40",
+    "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift::func TrendComparisonCard.rmssdInsight(_:)": "e9c6035a1aa9a9dd",
+    "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift::func TrendComparisonCard.sessionCountInsight(_:)": "80ce2b5147337e43",
+    "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift::func TrendComparisonCard.stressInsight(_:)": "fc9fdef55820e192",
+    "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift::func TrendComparisonCard.weeklyTrendInsight(_:)": "cb4c7bad99241ada"
+   }
+  },
+  {
+   "key": "func TrendComparisonCard.rmssdInsight(_:)",
+   "hash": "68a816e27211dd84",
+   "does": "Percent difference of today's RMSSD vs avgRMSSD: |pct|<10 → 'consistent'; >10 → above-average text (strong when >20); <−10 → below-average text (strong when <−20); exactly ±10 → nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift::func TrendComparisonCard.rmssdAboveAverage(pct:avg:strong:)",
+    "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift::func TrendComparisonCard.rmssdBelowAverage(pct:avg:strong:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "abs(pct) < 10",
+     "effect": "consistent sentence"
+    },
+    {
+     "at": "+7",
+     "cond": "pct > 10",
+     "effect": "above-average sentence"
+    },
+    {
+     "at": "+8",
+     "cond": "pct < -10",
+     "effect": "below-average sentence; exactly ±10 (or NaN) → nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift::func TrendComparisonCard.rmssdAboveAverage(pct:avg:strong:)": "036b301fc666b013",
+    "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift::func TrendComparisonCard.rmssdBelowAverage(pct:avg:strong:)": "083ff71dbf3b5e05"
+   }
+  },
+  {
+   "key": "func TrendComparisonCard.rmssdAboveAverage(pct:avg:strong:)",
+   "hash": "8e187a365e6a2eec",
+   "does": "Above-average RMSSD sentence; strong variant advises reading the jump with feelings/training.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "strong (pct > 20)",
+     "effect": "'well above' sentence; else 'above … indicating good recovery'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func TrendComparisonCard.rmssdBelowAverage(pct:avg:strong:)",
+   "hash": "103c019ed37a704c",
+   "does": "Below-average RMSSD sentence; strong variant advises taking it easy.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "strong (pct < -20)",
+     "effect": "'significantly below' sentence; else 'below your usual range'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func TrendComparisonCard.heartRateInsight(_:)",
+   "hash": "02e839ab65831537",
+   "does": "HR insight when today's mean HR differs from avgHR by more than 5 bpm: elevated vs lower sentence.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "guard |hrDiff| > 5",
+     "effect": "within 5 bpm → nil"
+    },
+    {
+     "at": "+6",
+     "cond": "hrDiff > 5",
+     "effect": "elevated sentence; else lower-than-average sentence"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "func TrendComparisonCard.stressInsight(_:)",
+   "hash": "3e43079cc1374e55",
+   "does": "Stress sentence when today's stress index > 1.3× average and > 200.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "guard stress & avg present AND stress > avg*1.3 AND stress > 200",
+     "effect": "else nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func TrendComparisonCard.weeklyTrendInsight(_:)",
+   "hash": "24cc9ccc8e1f798a",
+   "does": "7-day RMSSD trend sentence (improving / decline) when the shared verdict reports a trend.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "guard trend7Day present",
+     "effect": "nil → no sentence"
+    },
+    {
+     "at": "+3",
+     "cond": "trend > 0",
+     "effect": "improving sentence"
+    },
+    {
+     "at": "+6",
+     "cond": "trend < 0",
+     "effect": "decline sentence; exactly 0 → nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "func TrendComparisonCard.sessionCountInsight(_:)",
+   "hash": "358dba68364aa5b7",
+   "does": "Adds 'With N sessions recorded…' when fewer than 7 valid sessions.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "guard sessionCount < 7",
+     "effect": "≥7 → nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  }
+ ],
+ "deps": {}
+}

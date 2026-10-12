@@ -1,0 +1,212 @@
+{
+ "file": "EmuquTests/CardSnapshotTests.swift",
+ "hash": "57d149d273556c07",
+ "role": "Snapshot tests for shareable RecapCard variants, TrendComparisonCard (6 sessions and 1 session) and LiveWaveformView (120 beats and empty).",
+ "types": [
+  "CardSnapshotTests: class — @MainActor XCTestCase snapshotting cards and live waveform"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "test-defect",
+   "sev": "low",
+   "text": "RecapCard is snapshotted as a SwiftUI view through the harness renderer, not through RecapCard.renderImage() (ImageRenderer at export scale) which produces the PNG actually shared, so the shared image path the header calls uncorrectable is not pinned.",
+   "evidence": [
+    "EmuquTests/CardSnapshotTests.swift:7",
+    "Emuqu/Sources/Views/RecapCard.swift:286"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "test-defect",
+   "sev": "low",
+   "text": "Both TrendComparisonCard tests omit baselineStats, so only the nil-baseline (cold start) rendering is snapshotted; the baseline-backed figures the card's comment says must agree with the hero are never rendered.",
+   "evidence": [
+    "EmuquTests/CardSnapshotTests.swift:63",
+    "EmuquTests/CardSnapshotTests.swift:77",
+    "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift:12"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func CardSnapshotTests.hosted(_:)",
+   "hash": "c817f9f364e9a427",
+   "does": "Injects RRCollector() and SettingsManager.shared into the view's SwiftUI environment.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()"
+   ],
+   "reads": [
+    "mem:SettingsManager.shared",
+    "mem:AppDependencies.current"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()": "cee8619a3d38e814",
+    "EmuquTests/BigScreenSnapshotTests.swift::func BigScreenSnapshotTests.environment(_:)": "fe0869f551e25b93"
+   }
+  },
+  {
+   "key": "func CardSnapshotTests.testRecapCardRecoveryRenders()",
+   "hash": "4c4d0467d96de288",
+   "does": "Snapshots RecapCard .recovery(score 78, verdict .good, fixture anchor date) as 'card-recap-recovery'.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CardSnapshotTests.swift::func CardSnapshotTests.hosted(_:)",
+    "Emuqu/Sources/Views/RecapCard.swift::var RecapCard.body",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery": "0720dc2c9968a3e7",
+    "Emuqu/Sources/Views/RecapCard.swift::var RecapCard.body": "3f293a2bef61d6c9",
+    "EmuquTests/CardSnapshotTests.swift::func CardSnapshotTests.hosted(_:)": "53d2f36d7159e9f0",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  },
+  {
+   "key": "func CardSnapshotTests.testRecapCardWorkoutRenders()",
+   "hash": "6879593e32e56610",
+   "does": "Snapshots RecapCard .workout (10.8 km, 40:00, 3:42 /km, verdict and summary strings, no route map) as 'card-recap-workout'.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CardSnapshotTests.swift::func CardSnapshotTests.hosted(_:)",
+    "Emuqu/Sources/Views/RecapCard.swift::var RecapCard.body",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecapCard.swift::var RecapCard.body": "3f293a2bef61d6c9",
+    "EmuquTests/CardSnapshotTests.swift::func CardSnapshotTests.hosted(_:)": "53d2f36d7159e9f0",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  },
+  {
+   "key": "func CardSnapshotTests.testRecapCardVeryLowRenders()",
+   "hash": "1c91ec2b4dd8d916",
+   "does": "Snapshots RecapCard .recovery(score 18, verdict .veryLow) as 'card-recap-very-low'.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CardSnapshotTests.swift::func CardSnapshotTests.hosted(_:)",
+    "Emuqu/Sources/Views/RecapCard.swift::var RecapCard.body",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery": "0720dc2c9968a3e7",
+    "Emuqu/Sources/Views/RecapCard.swift::var RecapCard.body": "3f293a2bef61d6c9",
+    "EmuquTests/CardSnapshotTests.swift::func CardSnapshotTests.hosted(_:)": "53d2f36d7159e9f0",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  },
+  {
+   "key": "func CardSnapshotTests.testTrendComparisonCardRenders()",
+   "hash": "dcd18527438340c3",
+   "does": "Snapshots TrendComparisonCard for the fixture analysis result with 6 prior nightly sessions as 'card-trend-comparison'.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CardSnapshotTests.swift::func CardSnapshotTests.hosted(_:)",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.analysisResult()",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.overnightSession(dayOffset:)",
+    "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift::var TrendComparisonCard.body",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift::var TrendComparisonCard.body": "4f0f434946d7ac6c",
+    "EmuquTests/CardSnapshotTests.swift::func CardSnapshotTests.hosted(_:)": "53d2f36d7159e9f0",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.analysisResult()": "c6360e6fb9ef3864",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.overnightSession(dayOffset:)": "3121b86335aa9ee5",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  },
+  {
+   "key": "func CardSnapshotTests.testTrendComparisonCardWithOneSessionRenders()",
+   "hash": "401a58250e082515",
+   "does": "Snapshots TrendComparisonCard with a single prior session as 'card-trend-comparison-sparse'.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CardSnapshotTests.swift::func CardSnapshotTests.hosted(_:)",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.analysisResult()",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.overnightSession(dayOffset:)",
+    "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift::var TrendComparisonCard.body",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift::var TrendComparisonCard.body": "4f0f434946d7ac6c",
+    "EmuquTests/CardSnapshotTests.swift::func CardSnapshotTests.hosted(_:)": "53d2f36d7159e9f0",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.analysisResult()": "c6360e6fb9ef3864",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.overnightSession(dayOffset:)": "3121b86335aa9ee5",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  },
+  {
+   "key": "func CardSnapshotTests.testLiveWaveformRenders()",
+   "hash": "b05362b326f98413",
+   "does": "Snapshots LiveWaveformView with 120 fixture RR points, maxPoints 120, grid shown, blue accent as 'live-waveform'.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CardSnapshotTests.swift::func CardSnapshotTests.hosted(_:)",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.rrSeries(beats:)",
+    "Emuqu/Sources/Views/LiveWaveformView.swift::init LiveWaveformView(rrPoints:maxPoints:showGrid:accentColor:)",
+    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.body",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/LiveWaveformView.swift::init LiveWaveformView(rrPoints:maxPoints:showGrid:accentColor:)": "d5f519d5f06649a0",
+    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.body": "302ab8d0ef031670",
+    "EmuquTests/CardSnapshotTests.swift::func CardSnapshotTests.hosted(_:)": "53d2f36d7159e9f0",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.rrSeries(beats:)": "0efc8f7067b76e4f",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  },
+  {
+   "key": "func CardSnapshotTests.testLiveWaveformEmptyRenders()",
+   "hash": "547bb89e45b0fd0a",
+   "does": "Snapshots LiveWaveformView with no RR points as 'live-waveform-empty' (pre-first-beat state).",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CardSnapshotTests.swift::func CardSnapshotTests.hosted(_:)",
+    "Emuqu/Sources/Views/LiveWaveformView.swift::init LiveWaveformView(rrPoints:maxPoints:showGrid:accentColor:)",
+    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.body",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/LiveWaveformView.swift::init LiveWaveformView(rrPoints:maxPoints:showGrid:accentColor:)": "d5f519d5f06649a0",
+    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.body": "302ab8d0ef031670",
+    "EmuquTests/CardSnapshotTests.swift::func CardSnapshotTests.hosted(_:)": "53d2f36d7159e9f0",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  }
+ ],
+ "deps": {}
+}

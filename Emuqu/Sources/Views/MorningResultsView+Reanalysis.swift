@@ -320,19 +320,13 @@ extension MorningReanalysisControls {
             windowStatColumn(
                 title: String(localized: "Auto", bundle: LanguageManager.appBundle),
                 score: autoScore, rmssd: auto.timeDomain.rmssd, tint: AppTheme.primary)
-            windowComparisonDivider
+            comparisonDivider(height: 56)
             windowStatColumn(
                 title: String(localized: "Yours", bundle: LanguageManager.appBundle),
                 score: yoursScore, rmssd: vm.displayResult.timeDomain.rmssd, tint: AppTheme.sage)
-            windowComparisonDivider
+            comparisonDivider(height: 56)
             persistentScoreDiffColumn(autoScore: autoScore, yoursScore: yoursScore)
         }
-    }
-
-    var windowComparisonDivider: some View {
-        Rectangle()
-            .fill(AppTheme.textTertiary.opacity(0.3))
-            .frame(width: 1, height: 56)
     }
 
     @ViewBuilder
@@ -341,7 +335,7 @@ extension MorningReanalysisControls {
             Text(title)
                 .font(.caption2.bold())
                 .foregroundColor(AppTheme.textSecondary)
-            Text(score.map { String(format: "%.0f", locale: LanguageManager.appLocale, $0 * 10) } ?? "—")
+            Text(score.map { String(format: "%d", locale: LanguageManager.appLocale, ScoreVerdict.safeDisplayScore($0 * 10)) } ?? "—")
                 .font(.title3.bold().monospacedDigit())
                 .foregroundColor(tint)
             Text(String(localized: "Score", bundle: LanguageManager.appBundle))
@@ -372,21 +366,26 @@ extension MorningReanalysisControls {
         .cornerRadius(10)
     }
 
-    /// The automatic window to compare against: the one kept from before the
-    /// user's first manual pick, else the current result (which follows a
-    /// method switch). The `result` the sheet opened with is neither once the
-    /// night was adjusted or re-analysed.
+    /// The automatic window to compare against: while the night carries a
+    /// manual pick (`windowUserAdjusted`), the auto window kept from before
+    /// that pick; otherwise the current result, which follows a method
+    /// switch. A method switch clears `windowUserAdjusted` but leaves the old
+    /// `autoWindowResult` on the session, so that field alone is stale then.
+    /// The `result` the sheet opened with is neither once the night was
+    /// adjusted or re-analysed.
     private var autoComparisonResult: HRVAnalysisResult {
-        vm.displaySession.autoWindowResult ?? vm.displayResult
+        guard vm.displaySession.windowUserAdjusted == true,
+              let kept = vm.displaySession.autoWindowResult else { return vm.displayResult }
+        return kept
     }
 
     /// Auto | Yours | Diff, side by side.
     private func comparisonColumns(manual: HRVAnalysisResult) -> some View {
         HStack(spacing: 0) {
             rmssdColumn(titleKey: "Auto", from: autoComparisonResult, tint: AppTheme.primary)
-            comparisonDivider
+            comparisonDivider(height: 50)
             rmssdColumn(titleKey: "Yours", from: manual, tint: AppTheme.sage)
-            comparisonDivider
+            comparisonDivider(height: 50)
             diffColumn(manual: manual)
         }
     }
@@ -402,12 +401,6 @@ extension MorningReanalysisControls {
                 WindowSelector.RecoveryWindow.WindowClassification(rawValue: $0)?.shortLabel
             } ?? manual.displayWindowClassification
         )
-    }
-
-    private var comparisonDivider: some View {
-        Rectangle()
-            .fill(AppTheme.textTertiary.opacity(0.3))
-            .frame(width: 1, height: 50)
     }
 
     /// Apply / Cancel actions. Without these, the user's chosen
@@ -567,26 +560,42 @@ extension MorningReanalysisControls {
         if vm.hasRawData, vm.displaySession.sessionType == .overnight { available.insert(.overnightStats) }
         if let sleep = vm.healthKitSleep, sleep.nightSleepMinutes > 0 { available.insert(.sleep) }
         if vm.displayResult.trainingContext != nil || vm.displaySession.trainingSnapshot != nil { available.insert(.trainingLoad) }
-        let vitals = vm.isHistoricalSession ? (session.vitalsSnapshot ?? vm.recoveryVitals) : vm.recoveryVitals
-        if vitals != nil { available.insert(.vitals) }
+        if reportVitals != nil { available.insert(.vitals) }
         if vm.compositeRecoveryScore > 0 { available.insert(.scoreBreakdown) }
         if vm.hasRawData { available.insert(.charts) }
         if vm.hasRawData { available.insert(.deepDive) }
         return available
     }
 
-    func exportPDF(style: PDFReportGenerator.ReportStyle = .comprehensive, sections: PDFReportGenerator.ReportSections = .all) {
+    /// Vitals for the report: the frozen snapshot for a historical session
+    /// (live vitals when it has none), live vitals for today's. Shared by the
+    /// section picker and the report inputs so the two cannot drift.
+    private var reportVitals: RecoveryVitals? {
+        vm.isHistoricalSession ? (session.vitalsSnapshot ?? vm.recoveryVitals) : vm.recoveryVitals
+    }
+
+    /// `onFailure` receives the user-facing reason when no PDF was produced.
+    func exportPDF(
+        style: PDFReportGenerator.ReportStyle = .comprehensive,
+        sections: PDFReportGenerator.ReportSections = .all,
+        onFailure: @escaping @MainActor (String) -> Void
+    ) {
         vm.isGeneratingPDF = true
         Task {
             let url = await renderPDFAsync(style: style, sections: sections)
-            await MainActor.run { finishExportPDF(url) }
+            await MainActor.run { finishExportPDF(url, onFailure: onFailure) }
         }
     }
 
     @MainActor
-    private func finishExportPDF(_ url: URL?) {
+    private func finishExportPDF(_ url: URL?, onFailure: @MainActor (String) -> Void) {
         vm.isGeneratingPDF = false
-        if let url { exportURL = IdentifiableURL(url: url) }
+        guard let url else { return onFailure(reportFailureMessage) }
+        exportURL = IdentifiableURL(url: url)
+    }
+
+    private var reportFailureMessage: String {
+        String(localized: "Couldn't generate the recovery PDF. The session may not have enough data.", bundle: LanguageManager.appBundle)
     }
 
     /// `renderPDFAsync` returns the URL and only the targeted state
@@ -595,18 +604,23 @@ extension MorningReanalysisControls {
     /// PDFPreview sheet — a "dark popup that did nothing") and then
     /// swapping to `emailURL` mid-flight gets SwiftUI's sheet pipeline
     /// stuck so subsequent taps do nothing.
-    func emailReport(style: PDFReportGenerator.ReportStyle = .comprehensive, sections: PDFReportGenerator.ReportSections = .all) {
+    func emailReport(
+        style: PDFReportGenerator.ReportStyle = .comprehensive,
+        sections: PDFReportGenerator.ReportSections = .all,
+        onFailure: @escaping @MainActor (String) -> Void
+    ) {
         vm.isGeneratingEmailPDF = true
         Task {
             let url = await renderPDFAsync(style: style, sections: sections)
-            await MainActor.run { finishEmailPDF(url) }
+            await MainActor.run { finishEmailPDF(url, onFailure: onFailure) }
         }
     }
 
     @MainActor
-    private func finishEmailPDF(_ url: URL?) {
+    private func finishEmailPDF(_ url: URL?, onFailure: @MainActor (String) -> Void) {
         vm.isGeneratingEmailPDF = false
-        if let url { emailURL = IdentifiableURL(url: url) }
+        guard let url else { return onFailure(reportFailureMessage) }
+        emailURL = IdentifiableURL(url: url)
     }
 
     /// Renders the PDF and returns the URL. Pure return-style, no
@@ -697,9 +711,7 @@ extension MorningReanalysisControls {
     /// the PMC section can't freeze a stale TSB/ACWR left behind by an
     /// archive-write invalidation.
     private func reportInputs(healthKitHR: HeartRateStats?) async -> ReportInputs {
-        let effectiveVitals = vm.isHistoricalSession
-            ? (session.vitalsSnapshot ?? vm.recoveryVitals)
-            : vm.recoveryVitals
+        let effectiveVitals = reportVitals
         let hkSleep = vm.healthKitSleep
         let hkTrend = vm.sleepTrendStats
         return await ReportInputs(
@@ -810,13 +822,16 @@ extension MorningReanalysisControls {
 
     // MARK: - Export RR Data
 
-    func exportRRData() {
+    /// Writes the CSV to tmp and opens it; `onFailure` receives the
+    /// user-facing reason when there is no series or the write fails.
+    func exportRRData(onFailure: @MainActor (String) -> Void) {
+        let failure = String(localized: "Couldn't create the CSV file.", bundle: LanguageManager.appBundle)
         guard let series = vm.displaySession.rrSeries else {
             debugLog("[MorningResultsView] ERROR: No rrSeries in vm.displaySession")
-            return
+            return onFailure(failure)
         }
         debugLog("[MorningResultsView] Exporting RR data: \(series.points.count) points")
-        let csv = rrExportHeader(series: series) + rrExportRows(series: series)
+        let csv = rrExportHeader(series: series) + rrCSVRows(points: series.points)
         let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(rrExportFilename())
         do {
             try csv.write(to: tempURL, atomically: true, encoding: .utf8)
@@ -824,6 +839,7 @@ extension MorningReanalysisControls {
             exportURL = IdentifiableURL(url: tempURL)
         } catch {
             debugLog("[MorningResultsView] Failed to write RR data: \(error)")
+            onFailure(failure)
         }
     }
 
@@ -869,8 +885,9 @@ private func persistentScoreDiffColumn(autoScore: Double?, yoursScore: Double?) 
             .font(.caption2.bold())
             .foregroundColor(AppTheme.textSecondary)
         if let a = autoScore, let y = yoursScore {
-            let d = (y - a) * 10
-            Text(String(format: "%+.0f", locale: LanguageManager.appLocale, d))
+            // The difference of the two displayed (clamped) scores.
+            let d = ScoreVerdict.safeDisplayScore(y * 10) - ScoreVerdict.safeDisplayScore(a * 10)
+            Text(String(format: "%+d", locale: LanguageManager.appLocale, d))
                 .font(.title3.bold().monospacedDigit())
                 .foregroundColor(d >= 0 ? AppTheme.sage : AppTheme.terracotta)
             Text(String(localized: "Score", bundle: LanguageManager.appBundle))
@@ -922,6 +939,14 @@ private func comparisonColumn(
     .frame(maxWidth: .infinity)
 }
 
+/// The thin rule between comparison columns.
+@MainActor
+private func comparisonDivider(height: CGFloat) -> some View {
+    Rectangle()
+        .fill(AppTheme.textTertiary.opacity(0.3))
+        .frame(width: 1, height: height)
+}
+
 @MainActor
 private func provenanceRow(glyph: String, text: String) -> some View {
     HStack(spacing: 4) {
@@ -934,9 +959,12 @@ private func provenanceRow(glyph: String, text: String) -> some View {
     }
 }
 
-private func rrExportRows(series: RRSeries) -> String {
+/// The `timestamp_ms,rr_ms,hr_bpm` header and one row per beat. The hr cell
+/// is empty for a non-positive interval rather than a made-up bpm.
+/// Internal so every RR CSV export can share one row format.
+func rrCSVRows(points: [RRPoint]) -> String {
     var csv = "timestamp_ms,rr_ms,hr_bpm\n"
-    for point in series.points {
+    for point in points {
         // POSIX locale: a decimal comma would split the value into two CSV fields.
         let hr = point.rr_ms > 0 ? String(format: "%.1f", locale: Locale(identifier: "en_US_POSIX"), 60000.0 / Double(point.rr_ms)) : ""
         csv += "\(point.t_ms),\(point.rr_ms),\(hr)\n"

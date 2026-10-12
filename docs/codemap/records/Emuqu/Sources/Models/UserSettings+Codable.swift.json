@@ -1,0 +1,520 @@
+{
+ "file": "Emuqu/Sources/Models/UserSettings+Codable.swift",
+ "hash": "c9800367e0f015e7",
+ "role": "Hand-written Codable conformance for UserSettings: decode seeds from init() and fills each settings domain with tolerant per-key defaults/clamps/migrations; encode writes every stored field through encoders paired one-to-one with the decode groups.",
+ "types": [
+  "UserSettings: extension — Codable (init(from:), encode(to:)), per-domain decode/encode helpers, and the minute-of-day decode helper"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func UserSettings.decoded(_:_:from:default:)",
+   "hash": "66e32c70920a607c",
+   "does": "Decodes key with KeyedDecodingContainer.value(_:_:or:), returning fallback when absent or unreadable (unreadable is logged).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/TolerantDecoding.swift::func KeyedDecodingContainer.value(_:_:or:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/TolerantDecoding.swift::func KeyedDecodingContainer.value(_:_:or:)": "d6f846fc85f556dc"
+   }
+  },
+  {
+   "key": "func UserSettings.optional(_:_:from:)",
+   "hash": "baebc9c7bae03d2c",
+   "does": "Decodes key with optionalValue, returning nil when absent or unreadable (unreadable is logged).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/TolerantDecoding.swift::func KeyedDecodingContainer.optionalValue(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/TolerantDecoding.swift::func KeyedDecodingContainer.optionalValue(_:_:)": "c6609aba964cb801"
+   }
+  },
+  {
+   "key": "func UserSettings.decodedMinuteOfDay(_:legacy:from:)",
+   "hash": "175dbc16992a8ffe",
+   "does": "Decodes a wall-clock time as minutes after midnight: returns the Int at the minute key when present and in 0..<1440; otherwise reads the legacy absolute Date key and converts it with UserSettings.minuteOfDay in the current calendar; nil when neither is usable.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.optional(_:_:from:)",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::func UserSettings.minuteOfDay(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "minute key present, readable and within 0..<1440",
+     "effect": "return it"
+    },
+    {
+     "at": "+8",
+     "cond": "otherwise",
+     "effect": "legacy Date key mapped to its current-calendar hour*60+minute, or nil when absent/unreadable"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.optional(_:_:from:)": "f7f50a33c30ccf82",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::func UserSettings.minuteOfDay(_:)": "61b8d9160e060807"
+   }
+  },
+  {
+   "key": "init UserSettings(from:)",
+   "hash": "c8d785d6bcb83b34",
+   "does": "Decodable init: starts from UserSettings() defaults, opens the keyed container (throws only if the top level is not a keyed object), runs every domain decoder, then decodes profileFieldsFromHealth last (default []) so property didSets during decode cannot strip the markers.",
+   "entry": "Codable synthesis use: JSONDecoder.decode(UserSettings.self) in SettingsManager.load/restoreFromJSON and CloudSettingsRecord (CloudKitSyncSupport.swift:391,414).",
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeProfile(from:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeFitnessMarkers(from:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeEmailDefaults(from:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeTrainingState(from:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeNotifications(from:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeAppearance(from:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeRoutingMode(from:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeOnboarding(from:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeExportAndPerformance(from:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeCoachAutomation(from:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decoded(_:_:from:default:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeAppearance(from:)": "3c5e52a4a18a2380",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeCoachAutomation(from:)": "c554894787ecc263",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeEmailDefaults(from:)": "eaff3a7683e1deaa",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeExportAndPerformance(from:)": "a7512e1a4d8d1eb1",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeFitnessMarkers(from:)": "69f107097d073e48",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeNotifications(from:)": "f63a390b56e3f955",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeOnboarding(from:)": "a17b0a95de086413",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeProfile(from:)": "c4c5f2270bbe73f6",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeRoutingMode(from:)": "73525eb31d31f472",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeTrainingState(from:)": "d2c25da760eb3e7e",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decoded(_:_:from:default:)": "9db47be773dc5fe1",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "f1ace8ba85027f38"
+   }
+  },
+  {
+   "key": "func UserSettings.decodeProfile(from:)",
+   "hash": "12ca38f8e2d72dcd",
+   "does": "Decodes identity/sleep fields: schemaVersion (default 0) into sourceSchemaVersion, customTags ([]), birthday/fitnessLevel/biologicalSex/baselines (nil), typicalSleepHours (8, clamped 3–14), window method (.consolidatedRecovery), expectedBedtimeMinuteOfDay (minute key, else legacy expectedBedtime Date, else 22:00), merge mode (.defaultGap), customMergeGapHours (4.5, clamped 1–12), sleepSplitGapMinutes (20, floored at 0).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decoded(_:_:from:default:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.optional(_:_:from:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodedMinuteOfDay(_:legacy:from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "?? — neither the minute key nor the legacy expectedBedtime Date is usable",
+     "effect": "22 * 60 (10:00 PM)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decoded(_:_:from:default:)": "9db47be773dc5fe1",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodedMinuteOfDay(_:legacy:from:)": "a6e23fd4ff09c99b",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.optional(_:_:from:)": "f7f50a33c30ccf82",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.biologicalSex": "55c985aa6bd25115",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.birthday": "848cd8a572666b81",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.expectedBedtime": "dd295ba16a947f34"
+   }
+  },
+  {
+   "key": "func UserSettings.decodeFitnessMarkers(from:)",
+   "hash": "68fa80810e63748f",
+   "does": "Decodes fitness markers: vo2MaxOverride, useHealthKitVO2Max (false), maxHR (a stored value under MaxHeartRate.minimumUserEntered, 80, decodes as nil — a half-typed field value — and one above MaxHeartRate.maximumUserEntered (240) is clamped to it), LTHR, bodyWeightKg, userRestingHR, homeAddress, running/cycling FTP (all nil default), enableZwiftBroadcast and enableWebSearch (false).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decoded(_:_:from:default:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.optional(_:_:from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "stored maxHR >= MaxHeartRate.minimumUserEntered",
+     "effect": "min(MaxHeartRate.maximumUserEntered, value); below it → nil (unset, so MaxHeartRate.effective uses the formula)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decoded(_:_:from:default:)": "9db47be773dc5fe1",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.optional(_:_:from:)": "f7f50a33c30ccf82",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.bodyWeightKg": "832c4ee32f6110e2"
+   }
+  },
+  {
+   "key": "func UserSettings.decodeEmailDefaults(from:)",
+   "hash": "ce11a7ecb05a5793",
+   "does": "Reads the legacy single defaultEmailRecipient/defaultEmailCC into locals, decodes the four recovery/training To/CC fields with each missing one seeded from the matching legacy value, then sets defaultEmailRecipient/defaultEmailCC to nil so the legacy values are consumed and the next save drops them (a recipient the user later clears stays cleared).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.optional(_:_:from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "recovery recipient absent (?? )",
+     "effect": "legacy recipient"
+    },
+    {
+     "at": "+4",
+     "cond": "recovery CC absent",
+     "effect": "legacy CC"
+    },
+    {
+     "at": "+5",
+     "cond": "training recipient absent",
+     "effect": "legacy recipient"
+    },
+    {
+     "at": "+6",
+     "cond": "training CC absent",
+     "effect": "legacy CC"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.optional(_:_:from:)": "f7f50a33c30ccf82"
+   }
+  },
+  {
+   "key": "func UserSettings.decodeTrainingState(from:)",
+   "hash": "57e0dbe8ae8b5c92",
+   "does": "Decodes sleep/training integration toggles (sleep on, HRV augmentation off, penalize-missing off, training-load on), break dates/reason, comeback start, peaking detection (true), overreach flag/end date and trainingGoal (.maintain).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decoded(_:_:from:default:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.optional(_:_:from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decoded(_:_:from:default:)": "9db47be773dc5fe1",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.optional(_:_:from:)": "f7f50a33c30ccf82"
+   }
+  },
+  {
+   "key": "func UserSettings.decodeNotifications(from:)",
+   "hash": "99819a7237738a69",
+   "does": "Decodes daily report settings (enabled false, delivery .smart, fixed time as dailyReportFixedMinuteOfDay from the minute key or the legacy dailyReportFixedTime Date only if one is usable, format .auto) and alert toggles (HRV anomaly false, battery/sync/coach true, mile markers false with .everyDistanceUnit, turn-by-turn and turn markers false).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decoded(_:_:from:default:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodedMinuteOfDay(_:legacy:from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "minute key or legacy dailyReportFixedTime usable",
+     "effect": "assign dailyReportFixedMinuteOfDay; else keep the in-memory 07:00 default"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decoded(_:_:from:default:)": "9db47be773dc5fe1",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodedMinuteOfDay(_:legacy:from:)": "a6e23fd4ff09c99b",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.dailyReportFixedTime": "e958368b29fbc5b3"
+   }
+  },
+  {
+   "key": "func UserSettings.decodeAppearance(from:)",
+   "hash": "235df144d1408174",
+   "does": "Decodes appearanceTheme (.light), colorTheme (.blue), temperatureUnit (.regionDefault), avatarImageData, watchDisplayOnlyMode (true), preferredSTTProvider (.apple), preserveClipboardForPaste (true), all through the tolerant helpers (absent → default silently, unreadable → default and logged).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decoded(_:_:from:default:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.optional(_:_:from:)",
+    "Emuqu/Sources/Models/UserSettings.swift::var TemperatureUnit.regionDefault"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decoded(_:_:from:default:)": "9db47be773dc5fe1",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.optional(_:_:from:)": "f7f50a33c30ccf82",
+    "Emuqu/Sources/Models/UserSettings.swift::var TemperatureUnit.regionDefault": "272159fdd69b8c7f"
+   }
+  },
+  {
+   "key": "func UserSettings.decodeRoutingMode(from:)",
+   "hash": "235e7d245b3a19bd",
+   "does": "Decodes routingMode; if absent, migrates legacy smartProviderRoutingEnabled (true→.auto, false→.manual); else .manual.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.optional(_:_:from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "routingMode present",
+     "effect": "use it"
+    },
+    {
+     "at": "+3",
+     "cond": "legacy smartProviderRoutingEnabled present",
+     "effect": "translate it"
+    },
+    {
+     "at": "+4",
+     "cond": "?: legacy bool true",
+     "effect": "true: .auto; false: .manual; when neither key exists → .manual"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.optional(_:_:from:)": "f7f50a33c30ccf82"
+   }
+  },
+  {
+   "key": "func UserSettings.decodeOnboarding(from:)",
+   "hash": "e1efbb567341d8c8",
+   "does": "Decodes onboarding/migration flags (hasCompletedOnboarding default true, score-architecture/recompute/temp-asymmetry flags default false), trialStartDate, iCloudSyncEnabled (false), heatTrackingEnabled (false).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decoded(_:_:from:default:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.optional(_:_:from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decoded(_:_:from:default:)": "9db47be773dc5fe1",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.optional(_:_:from:)": "f7f50a33c30ccf82",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func trialStartDate(_:)": "7315789c1639b2b9"
+   }
+  },
+  {
+   "key": "func UserSettings.decodeCoachAutomation(from:)",
+   "hash": "ed5640172a5155a2",
+   "does": "Decodes enablePeriodicCoachUpdates (true), periodicCoachCadenceSec (300) and enableAutoCoachReport (false).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decoded(_:_:from:default:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decoded(_:_:from:default:)": "9db47be773dc5fe1"
+   }
+  },
+  {
+   "key": "func UserSettings.encodeCoachAutomation(into:)",
+   "hash": "ea39ae2f0697fddb",
+   "does": "Encodes the three coach automation fields.",
+   "entry": null,
+   "calls": [
+    "ext:KeyedEncodingContainer.encode"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func UserSettings.decodeExportAndPerformance(from:)",
+   "hash": "72984835b6ef674a",
+   "does": "Decodes Health export toggles (export off, SDNN/HR/RHR on, sleep off), defaultCaptureMode ('both'), forceAIEnglish/hideFitnessTab (false), and the AI/voice/watch/keep-screen-on toggles (true).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decoded(_:_:from:default:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decoded(_:_:from:default:)": "9db47be773dc5fe1"
+   }
+  },
+  {
+   "key": "func UserSettings.encode(to:)",
+   "hash": "990a8101ee8856e0",
+   "does": "Encodable: writes every stored field via the per-domain encoders, one per decode group (schemaVersion always currentSchemaVersion; legacy smartProviderRoutingEnabled never written; the legacy email fields only when non-nil, which after a decode they are not).",
+   "entry": "Codable synthesis use: JSONEncoder.encode in SettingsManager.writeSettingsToDisk/currentSettingsJSON and CloudSettingsRecord.",
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeProfile(into:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeFitnessMarkers(into:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeEmailDefaults(into:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeTrainingState(into:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeNotifications(into:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeAppearance(into:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeOnboarding(into:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeExportAndPerformance(into:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeCoachAutomation(into:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeAppearance(into:)": "053fffe8897f12e0",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeCoachAutomation(into:)": "bd94abf695f537ca",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeEmailDefaults(into:)": "f9c80d634f7bc9a8",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeExportAndPerformance(into:)": "b2c0c38b52bd25bd",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeFitnessMarkers(into:)": "ed0b137ca5428edc",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeNotifications(into:)": "ae3d00a02dffc27d",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeOnboarding(into:)": "3666ab007c9d4ce0",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeProfile(into:)": "062c22c44397f890",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeTrainingState(into:)": "9561983b71ac9640"
+   }
+  },
+  {
+   "key": "func UserSettings.encodeProfile(into:)",
+   "hash": "03f201a2bbe700ab",
+   "does": "Encodes schemaVersion, customTags, optional birthday/fitnessLevel/biologicalSex, profileFieldsFromHealth as a sorted raw-value array, baselines, typicalSleepHours, expectedBedtimeMinuteOfDay plus the legacy expectedBedtime Date (for older builds), merge settings and window method.",
+   "entry": null,
+   "calls": [
+    "ext:KeyedEncodingContainer.encode",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.expectedBedtime"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.biologicalSex": "55c985aa6bd25115",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.birthday": "848cd8a572666b81",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.expectedBedtime": "dd295ba16a947f34"
+   }
+  },
+  {
+   "key": "func UserSettings.encodeFitnessMarkers(into:)",
+   "hash": "023c3506b273a4ee",
+   "does": "Encodes VO2max override/flag, maxHR, LTHR, body weight, resting HR, home address, FTPs, Zwift and web-search toggles (optionals only when present).",
+   "entry": null,
+   "calls": [
+    "ext:KeyedEncodingContainer.encode"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.bodyWeightKg": "832c4ee32f6110e2"
+   }
+  },
+  {
+   "key": "func UserSettings.encodeEmailDefaults(into:)",
+   "hash": "a0a44e5fede3d9e6",
+   "does": "Encodes the six email recipient fields when present (legacy pair included, so it persists forever).",
+   "entry": null,
+   "calls": [
+    "ext:KeyedEncodingContainer.encode"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func UserSettings.encodeTrainingState(into:)",
+   "hash": "faa621e2ee003d7c",
+   "does": "Encodes sleep/training integration toggles, break dates/reason, comeback start, peaking, overreach flag and end date, and trainingGoal (the keys decodeTrainingState reads).",
+   "entry": null,
+   "calls": [
+    "ext:KeyedEncodingContainer.encode"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func UserSettings.encodeNotifications(into:)",
+   "hash": "35da973542b8318b",
+   "does": "Encodes daily report settings (dailyReportFixedMinuteOfDay plus the legacy dailyReportFixedTime Date for older builds), alert toggles and mile-marker/turn settings (the keys decodeNotifications reads).",
+   "entry": null,
+   "calls": [
+    "ext:KeyedEncodingContainer.encode",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.dailyReportFixedTime"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.dailyReportFixedTime": "e958368b29fbc5b3"
+   }
+  },
+  {
+   "key": "func UserSettings.encodeAppearance(into:)",
+   "hash": "5422828601727fcf",
+   "does": "Encodes appearance and color theme, temperature unit, avatar, watch display mode, preferredSTTProvider and preserveClipboardForPaste (the keys decodeAppearance reads).",
+   "entry": null,
+   "calls": [
+    "ext:KeyedEncodingContainer.encode"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func UserSettings.encodeOnboarding(into:)",
+   "hash": "6564e405dafc1cce",
+   "does": "Encodes routingMode, the onboarding and one-time migration flags, trialStartDate (if set), iCloudSyncEnabled and heatTrackingEnabled (the keys decodeRoutingMode and decodeOnboarding read).",
+   "entry": null,
+   "calls": [
+    "ext:KeyedEncodingContainer.encode"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/StoreKitManager.swift::func trialStartDate(_:)": "7315789c1639b2b9"
+   }
+  },
+  {
+   "key": "func UserSettings.encodeExportAndPerformance(into:)",
+   "hash": "8545287a688b5c94",
+   "does": "Encodes Health export toggles, capture mode, forceAIEnglish, hideFitnessTab and the four performance toggles.",
+   "entry": null,
+   "calls": [
+    "ext:KeyedEncodingContainer.encode"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

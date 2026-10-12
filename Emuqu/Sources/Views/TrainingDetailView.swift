@@ -6,6 +6,11 @@ struct TrainingDetailView: View {
     @Environment(\.dependencies) var dependencies
     let trainingMetrics: HealthKitManager.TrainingMetrics?
     let trainingContext: TrainingContext?
+    /// Whether the screen shows today's live load (the shared
+    /// `TrainingMetricsCache`) when no `trainingMetrics` are passed in. True
+    /// for today's reading; false for a past night, whose screen reads the
+    /// load frozen with it rather than today's.
+    var followsLiveLoad = false
     @State private var isRefreshing: Bool = false
 
     /// The four load numbers this screen renders. `acr` is optional because a
@@ -32,6 +37,12 @@ struct TrainingDetailView: View {
         }
     }
 
+    /// The live metrics on screen: those passed in, else the shared cache
+    /// when following today's load (it updates when a refresh lands), else none.
+    private var liveMetrics: HealthKitManager.TrainingMetrics? {
+        trainingMetrics ?? (followsLiveLoad ? dependencies.analysis.trainingMetricsCache.current : nil)
+    }
+
     private var metrics: LoadMetrics? {
         // Prefer the live cache, but DO NOT show a frozen
         // all-zero context as the source of truth when the live cache
@@ -41,10 +52,10 @@ struct TrainingDetailView: View {
         // ctl=0. Without this filter, the dashboard fell back to that
         // 0-context even when the live cache had real values, because
         // the priority order didn't account for a frozen-zero state.
-        if let m = trainingMetrics, liveLooksReal(m) { return LoadMetrics(m) }
+        if let m = liveMetrics, liveLooksReal(m) { return LoadMetrics(m) }
         if let c = trainingContext, frozenLooksReal(c) { return LoadMetrics(c) }
         // Both look empty / cold. Prefer live (it'll auto-refresh).
-        if let m = trainingMetrics { return LoadMetrics(m) }
+        if let m = liveMetrics { return LoadMetrics(m) }
         if let c = trainingContext { return LoadMetrics(c) }
         return nil
     }
@@ -92,7 +103,7 @@ struct TrainingDetailView: View {
 
     @ViewBuilder
     private var recentWorkoutsSection: some View {
-        if let liveWorkouts = trainingMetrics?.recentWorkouts, !liveWorkouts.isEmpty {
+        if let liveWorkouts = liveMetrics?.recentWorkouts, !liveWorkouts.isEmpty {
             liveWorkoutsCard(liveWorkouts)
         } else if let context = trainingContext, let workouts = context.recentWorkouts, !workouts.isEmpty {
             recentWorkoutsCard(workouts)
@@ -111,7 +122,8 @@ struct TrainingDetailView: View {
     }
 
     /// Self-healing refresh: navigating here with a cold or missing cache
-    /// repopulates it without the user tapping anything.
+    /// repopulates it without the user tapping anything. The new values reach
+    /// the screen through `liveMetrics`, which reads the cache.
     private func refreshIfCold() async {
         // Auto-refresh on view appear when the
         // displayed metrics look like a cold/zero state. Self-
@@ -130,10 +142,12 @@ struct TrainingDetailView: View {
     /// `.task` modifier. No explicit button — the priority-order fix
     /// in `metrics` plus the auto-fetch on view appear means the
     /// page is self-healing for all the cases the manual button was
-    /// papering over.
+    /// papering over. Only a screen that shows the cache refreshes it: with
+    /// metrics passed in, or a past night's frozen load, a refresh could not
+    /// change what is on screen.
     @MainActor
     private func runRefresh() async {
-        guard !isRefreshing else { return }
+        guard followsLiveLoad, trainingMetrics == nil, !isRefreshing else { return }
         isRefreshing = true
         defer { isRefreshing = false }
         await dependencies.analysis.trainingMetricsCache.refresh(forMorningReading: false)
@@ -149,7 +163,7 @@ struct TrainingDetailView: View {
     /// score; hidden when the warning is not raised or the week has no load.
     @ViewBuilder
     private var monotonyBannerIfHigh: some View {
-        if let dailyTrimp = trainingMetrics?.dailyTrimp,
+        if let dailyTrimp = liveMetrics?.dailyTrimp,
            let foster = RecoveryScoreCalculator.fosterMonotonyStrain(dailyTrimp: dailyTrimp),
            FosterMonotonyWarning.isRaised(foster) {
             monotonyBanner(foster)
@@ -297,12 +311,14 @@ struct TrainingDetailView: View {
     private var zoneRows: some View {
         VStack(spacing: 8) {
             ForEach(ACWRBand.allCases, id: \.self) { band in
-                ZoneRow(range: band.rangeText, label: band.label, description: band.detail, color: zoneColor(band))
+                ZoneRow(range: band.rangeText, label: band.label, description: band.detail, color: Self.zoneColor(band))
             }
         }
     }
 
-    private func zoneColor(_ band: ACWRBand) -> Color {
+    /// The band's colour, shared with the gauge so the legend and the gauge
+    /// draw the same five bands.
+    @MainActor static func zoneColor(_ band: ACWRBand) -> Color {
         switch band {
         case .belowUsual: return AppTheme.mist
         case .maintenance: return AppTheme.sage.opacity(0.7)
@@ -522,17 +538,25 @@ private struct MetricColumn: View {
     }
 }
 
-/// Linear 0.5–2.0 scale whose bands match the zone thresholds used for the
-/// colour and label above (0.8, 1.3, 1.5). Drawn left-to-right in every
-/// layout direction: it is a number line, not reading-order content.
+/// Linear 0.5–2.0 scale whose bands match the `ACWRBand` thresholds used for
+/// the colour, label and legend above (0.8, 1.0, 1.3, 1.5), in the legend's
+/// colours. Drawn left-to-right in every layout direction: it is a number
+/// line, not reading-order content.
 private struct ACRGaugeBar: View {
     let acr: Double
 
     private static let scaleMin = 0.5
     private static let scaleMax = 2.0
-    /// Upper edge of each band, in order: below usual, in range, above, high.
+    /// Upper edge of each band, in order: below usual, maintenance, in range,
+    /// above usual, sharp increase (open-ended, drawn to the scale's end).
     @MainActor private static var bandEdges: [(upper: Double, color: Color)] {
-        [(0.8, AppTheme.mist), (1.3, AppTheme.sage), (1.5, AppTheme.softGold), (2.0, AppTheme.alert)]
+        [
+            (0.8, TrainingDetailView.zoneColor(.belowUsual)),
+            (1.0, TrainingDetailView.zoneColor(.maintenance)),
+            (1.3, TrainingDetailView.zoneColor(.inRange)),
+            (1.5, TrainingDetailView.zoneColor(.aboveUsual)),
+            (scaleMax, TrainingDetailView.zoneColor(.sharpIncrease))
+        ]
     }
 
     var body: some View {

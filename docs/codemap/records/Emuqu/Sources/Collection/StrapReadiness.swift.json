@@ -1,0 +1,201 @@
+{
+ "file": "Emuqu/Sources/Collection/StrapReadiness.swift",
+ "hash": "00251d99c9387c38",
+ "role": "SDK-independent model of per-link strap feature readiness: generation counter, linked/settled flags, per-feature pending/ready/unavailable, and what a waiter should be told.",
+ "types": [
+  "StrapFeature: enum — heartRate/h10Recording/offlineRecording/onlineStreaming",
+  "StrapFeatureState: enum — pending/ready/unavailable",
+  "StrapFeatureWait: enum — ready/unconfirmed/unavailable/timedOut",
+  "StrapReadiness: struct — stored as PolarManager.readiness"
+ ],
+ "state": [
+  "static StrapReadiness.initial"
+ ],
+ "toplevel": "No code outside units.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func StrapReadiness.state(of:)",
+   "hash": "119e0ce95c8aec2b",
+   "does": "State of `feature` on the current link: pending when unlinked or not reported.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "isLinked",
+     "effect": "false: .pending; true: lookup"
+    },
+    {
+     "at": "+2",
+     "cond": "states[feature] missing (??)",
+     "effect": "→ .pending"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func StrapReadiness.isReady(_:)",
+   "hash": "223d44c497bd89c5",
+   "does": "True when state(of:) is .ready.",
+   "entry": "Read by PolarManager.isH10RecordingFeatureReady/isHrStreamingReady/isOfflineRecordingReady (PolarManager.swift:93-95); tests.",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.state(of:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.state(of:)": "4a37b06c313d6ed4"
+   }
+  },
+  {
+   "key": "func StrapReadiness.waitOutcome(for:)",
+   "hash": "fc0017ccfed964be",
+   "does": "Waiter answer: nil when unlinked or pending and unsettled; .ready / .unavailable per state; .unconfirmed for pending after the SDK settled.",
+   "entry": "Called from StrapLinkCoordinator.awaitFeature/isUsable/requireUsable; tests.",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.state(of:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "isLinked",
+     "effect": "false: nil (keep waiting); true: switch"
+    },
+    {
+     "at": "+3",
+     "cond": "state .ready",
+     "effect": "→ .ready"
+    },
+    {
+     "at": "+4",
+     "cond": "state .unavailable",
+     "effect": "→ .unavailable"
+    },
+    {
+     "at": "+5",
+     "cond": "state .pending",
+     "effect": "isSettled → .unconfirmed; else nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.state(of:)": "4a37b06c313d6ed4"
+   }
+  },
+  {
+   "key": "func StrapReadiness.linkEstablished()",
+   "hash": "a58d048a63e2fa7c",
+   "does": "New link: generation+1, linked, unsettled, every feature pending.",
+   "entry": "Called from StrapLinkCoordinator.linkEstablished; tests.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func StrapReadiness.linkLost()",
+   "hash": "9ad4811785f8ab67",
+   "does": "Link gone: unlinked, unsettled, states cleared (generation kept).",
+   "entry": "Called from StrapLinkCoordinator.linkDropped and noteUserDisconnect.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func StrapReadiness.markReady(_:)",
+   "hash": "fd2924ece607a4e6",
+   "does": "Marks a feature ready if linked.",
+   "entry": "Called from StrapLinkCoordinator.featureReported; tests.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "isLinked",
+     "effect": "false: ignored; true: set .ready"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func StrapReadiness.applySummary(ready:unavailable:)",
+   "hash": "4d8033540a43b7d7",
+   "does": "Applies the SDK summary if linked: ready features → .ready, unavailable ones → .unavailable unless already ready; marks settled.",
+   "entry": "Called from StrapLinkCoordinator.summaryReported.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "isLinked",
+     "effect": "false: ignored; true: apply"
+    },
+    {
+     "at": "+2",
+     "cond": "for each ready feature",
+     "effect": "set .ready"
+    },
+    {
+     "at": "+3",
+     "cond": "for each unavailable feature not already ready",
+     "effect": "set .unavailable (a feature confirmed ready keeps .ready)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func StrapReadiness.settleWithoutSummary()",
+   "hash": "79c47810c4271696",
+   "does": "Marks settled without a summary if linked.",
+   "entry": "Called from StrapLinkCoordinator.scheduleReadinessSettle task; tests.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "isLinked",
+     "effect": "false: ignored; true: isSettled = true"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func StrapReadiness.confirm(_:)",
+   "hash": "c7e41073e86e928a",
+   "does": "Marks a feature ready after a successful operation, if linked.",
+   "entry": "Called from StrapLinkCoordinator.confirm.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "isLinked",
+     "effect": "false: ignored; true: set .ready"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

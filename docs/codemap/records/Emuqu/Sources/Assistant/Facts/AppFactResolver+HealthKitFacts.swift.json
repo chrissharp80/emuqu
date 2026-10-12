@@ -1,0 +1,263 @@
+{
+ "file": "Emuqu/Sources/Assistant/Facts/AppFactResolver+HealthKitFacts.swift",
+ "hash": "fbda194d02551887",
+ "role": "Declares AppHealthKitNamespace (registered under head 'app'): app.healthkit.available, app.healthkit.heart_rate_latest (async HealthKit query), app.healthkit.today_activity (async rollup) and the parameterized app.help.lookup($topic) manual section.",
+ "types": [
+  "AppHealthKitNamespace: struct (FactNamespaceResolver) — HealthKit availability/HR/activity + app help lookup"
+ ],
+ "state": [
+  "let namespace = 'app'",
+  "static let appHealthkitHeartRateLatestDescription",
+  "static let appHealthkitTodayActivityDescription (lists every missing case: unavailable, all-zero rollup, 3 s timeout)"
+ ],
+ "toplevel": "Struct conformance; registered by AppFactResolverFactory.registerAppNamespaces (AppFactResolver.swift:218).",
+ "flags": [],
+ "units": [
+  {
+   "key": "var AppHealthKitNamespace.entries",
+   "hash": "842e220bdeeded86",
+   "does": "Returns the 4 entries: healthkit.available, heart_rate_latest, today_activity, help.lookup.",
+   "entry": "FactNamespaceResolver protocol requirement",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+HealthKitFacts.swift::var AppHealthKitNamespace.appHealthkitAvailableEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+HealthKitFacts.swift::var AppHealthKitNamespace.appHealthkitHeartRateLatestEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+HealthKitFacts.swift::var AppHealthKitNamespace.appHealthkitTodayActivityEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+HealthKitFacts.swift::var AppHealthKitNamespace.appHelpLookupTopicEntry"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+HealthKitFacts.swift::var AppHealthKitNamespace.appHealthkitAvailableEntry": "77234c15f3248f5f",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+HealthKitFacts.swift::var AppHealthKitNamespace.appHealthkitHeartRateLatestEntry": "433bc092212da165",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+HealthKitFacts.swift::var AppHealthKitNamespace.appHealthkitTodayActivityEntry": "b6e7556b5424457e",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+HealthKitFacts.swift::var AppHealthKitNamespace.appHelpLookupTopicEntry": "d67200390c499b31"
+   }
+  },
+  {
+   "key": "var AppHealthKitNamespace.appHealthkitAvailableEntry",
+   "hash": "4840252c206220d2",
+   "does": "Fixed fact `app.healthkit.available`: HKHealthStore availability via HealthKitManager.isHealthKitAvailable.",
+   "entry": "invoked by FactResolverRegistry when the namespace entries list is built (FactNamespaceResolver.resolve/resolveAsync walking entries) for tool dispatch / key resolution",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.healthKitManager",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable"
+   ],
+   "reads": [
+    "ext:HKHealthStore.isHealthDataAvailable"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable": "6a80ac7c585d4e2f",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "3b77b2139e8273b8",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.healthKitManager": "06772931aba0baf2"
+   }
+  },
+  {
+   "key": "var AppHealthKitNamespace.appHealthkitHeartRateLatestEntry",
+   "hash": "97d0b4cead4227f3",
+   "does": "Async fixed fact `app.healthkit.heart_rate_latest` executing resolveAppHealthkitHeartRateLatest.",
+   "entry": "invoked by FactResolverRegistry when the namespace entries list is built (FactNamespaceResolver.resolve/resolveAsync walking entries) for tool dispatch / key resolution",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixedAsync(key:description:valueType:resolve:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+HealthKitFacts.swift::func AppHealthKitNamespace.resolveAppHealthkitHeartRateLatest()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+HealthKitFacts.swift::func AppHealthKitNamespace.resolveAppHealthkitHeartRateLatest()": "b01e246a5c8cc6f3",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixedAsync(key:description:valueType:resolve:)": "7ac0cf1ea91ba5f2"
+   }
+  },
+  {
+   "key": "func AppHealthKitNamespace.resolveAppHealthkitHeartRateLatest()",
+   "hash": "a740cc030024ee03",
+   "does": "On the main actor: if HealthKit is available, fetches the last 24 h of heart-rate samples (3 s timeout) and returns {bpm (rounded), source, age_seconds} for the newest sample; a timeout is reported as a timeout (notYetComputed), not as 'no samples'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.healthKitManager",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+HealthKitFacts.swift::func AppHealthKitNamespace.fetchedHeartRateSamples(since:)"
+   ],
+   "reads": [
+    "hk:HKQuantityType.heartRate"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "HealthKit available",
+     "effect": "continues; else missing notRecorded 'HealthKit not available'"
+    },
+    {
+     "at": "+6",
+     "cond": "switch on the fetch result",
+     "effect": "success → samples; failure → missing notRecorded 'HealthKit query failed: …'; nil (timeout) → missing notYetComputed 'didn't answer within 3 s … try again'"
+    },
+    {
+     "at": "+13",
+     "cond": "at least one sample",
+     "effect": "returns newest; else missing notRecorded 'no HR samples in the last 24 hours'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+HealthKitFacts.swift::func AppHealthKitNamespace.fetchedHeartRateSamples(since:)": "18dc3d6da8445cb9",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable": "6a80ac7c585d4e2f",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "3b77b2139e8273b8",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.healthKitManager": "06772931aba0baf2"
+   }
+  },
+  {
+   "key": "func AppHealthKitNamespace.fetchedHeartRateSamples(since:)",
+   "hash": "14a0bac367ff6a93",
+   "does": "Races HealthKitManager.fetchHeartRateSamplesDetailed(from: dayAgo, to: now) against a 3 s FactResolveTimeout; returns .success(samples), .failure(error) or nil on timeout.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolveTimeout.withTimeout(seconds:_:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.healthKitManager",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.fetchHeartRateSamplesDetailed(from:to:)"
+   ],
+   "reads": [
+    "hk:HKQuantityType.heartRate"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "fetch throws",
+     "effect": "catch → returns .failure(error) to the caller (reported as query failed)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolveTimeout.withTimeout(seconds:_:)": "ee8ecd721e21103a",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.fetchHeartRateSamplesDetailed(from:to:)": "c3c09c2b158780ca",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "3b77b2139e8273b8",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.healthKitManager": "06772931aba0baf2",
+    "EmuquTests/OverpassClientTests.swift::var Result.failure": "0476d3f57d94bf98"
+   }
+  },
+  {
+   "key": "var AppHealthKitNamespace.appHealthkitTodayActivityEntry",
+   "hash": "7e2a9b42997b9611",
+   "does": "Async fixed fact `app.healthkit.today_activity` executing resolveAppHealthkitTodayActivity.",
+   "entry": "invoked by FactResolverRegistry when the namespace entries list is built (FactNamespaceResolver.resolve/resolveAsync walking entries) for tool dispatch / key resolution",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixedAsync(key:description:valueType:resolve:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+HealthKitFacts.swift::func AppHealthKitNamespace.resolveAppHealthkitTodayActivity()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+HealthKitFacts.swift::func AppHealthKitNamespace.resolveAppHealthkitTodayActivity()": "91e4a31273390c3e",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixedAsync(key:description:valueType:resolve:)": "7ac0cf1ea91ba5f2"
+   }
+  },
+  {
+   "key": "func AppHealthKitNamespace.resolveAppHealthkitTodayActivity()",
+   "hash": "b1b08379da40917b",
+   "does": "On the main actor: if HealthKit is available, fetches today's DailyActivity (first element of fetchDailyActivity(days:1)) under a 3 s timeout and returns activityValue(summary); a timeout is missing notYetComputed (retry).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.healthKitManager",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolveTimeout.withTimeout(seconds:_:)",
+    "Emuqu/Sources/Collection/HealthKitManager+VitalsForwarding.swift::func HealthKitManager.fetchDailyActivity(days:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+HealthKitFacts.swift::func AppHealthKitNamespace.activityValue(_:)"
+   ],
+   "reads": [
+    "hk:stepCount",
+    "hk:distanceWalkingRunning",
+    "hk:flightsClimbed"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "HealthKit available",
+     "effect": "continues; else missing notRecorded"
+    },
+    {
+     "at": "+9",
+     "cond": "summary returned before timeout",
+     "effect": "activityValue(summary); else missing notYetComputed 'didn't come back within 3 s'"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "med",
+     "text": "VitalsHealthQueries sums return 0 when a query yields nil (no read authorization or no data, VitalsHealthQueries+Queries.swift:465-480). The resolver now refuses an all-zero rollup, but when only some types are readable the unreadable ones are still reported as real zeros (e.g. 0 flights). Needs DailyActivity to keep nil sums (handoff).",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+HealthKitFacts.swift:110",
+      "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift:465"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+HealthKitFacts.swift::func AppHealthKitNamespace.activityValue(_:)": "95faee94f76abf3a",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolveTimeout.withTimeout(seconds:_:)": "ee8ecd721e21103a",
+    "Emuqu/Sources/Collection/HealthKitManager+VitalsForwarding.swift::func HealthKitManager.fetchDailyActivity(days:)": "af16c19e3d220755",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable": "6a80ac7c585d4e2f",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "3b77b2139e8273b8",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.healthKitManager": "06772931aba0baf2"
+   }
+  },
+  {
+   "key": "func AppHealthKitNamespace.activityValue(_:)",
+   "hash": "248e65ea9bdd042e",
+   "does": "Returns {step_count, walking_running_distance_meters, flights_climbed}; when all three are 0 returns missing notRecorded instead (nothing recorded yet today, or no read access — the sums read 0 for both), telling the model not to report 0 steps.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "steps, distance and flights all 0",
+     "effect": "missing notRecorded; else the record"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppHealthKitNamespace.appHelpLookupTopicEntry",
+   "hash": "8a770246e07e54bf",
+   "does": "Parameterized fact `app.help.lookup($topic)`: returns AppKnowledgeBase.lookup(topic) — the matching reference section, the full reference for 'all', or the compact reference for unknown topics. Its description's valid-topic list is AppKnowledgeBase.helpTopics; its example is 'what's TRIMP'.",
+   "entry": "invoked by FactResolverRegistry when the namespace entries list is built (FactNamespaceResolver.resolve/resolveAsync walking entries) for tool dispatch / key resolution",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.parameterized(pattern:paramExample:description:resolve:)",
+    "Emuqu/Sources/Assistant/Context/AppKnowledgeBase.swift::func AppKnowledgeBase.lookup(topic:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/AppKnowledgeBase.swift::func AppKnowledgeBase.lookup(topic:)": "722740dc8e250678",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.parameterized(pattern:paramExample:description:resolve:)": "29b268940e76c9f8"
+   }
+  }
+ ],
+ "deps": {}
+}

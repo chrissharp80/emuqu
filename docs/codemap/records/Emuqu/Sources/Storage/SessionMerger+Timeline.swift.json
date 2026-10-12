@@ -1,0 +1,212 @@
+{
+ "file": "Emuqu/Sources/Storage/SessionMerger+Timeline.swift",
+ "hash": "d8e282a3dd1e9031",
+ "role": "SessionMerger extension: the shared time rules for combining recordings — relation (sameRecording/sameSleep/separate under the merge gap), overlap, gap, spans, run splitting, and RR point rebasing onto a common clock. Used by archive merge-target search, morning same-night merge, recovery and relink migration.",
+ "types": [
+  "SessionMerger.RecordingRelation: enum — sameRecording | sameSleep | separate"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func SessionMerger.relation(of:to:mergeGap:)",
+   "hash": "d0312d04ee45960a",
+   "does": "Classifies two spans: overlapping → sameRecording; else gap <= mergeGap → sameSleep; else separate.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.overlaps(_:_:)",
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.gapBetween(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "spans overlap",
+     "effect": "return .sameRecording"
+    },
+    {
+     "at": "+4",
+     "cond": "gap <= mergeGap",
+     "effect": "true: .sameSleep; false: .separate"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.gapBetween(_:_:)": "08fd193c19fa98a7",
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.overlaps(_:_:)": "ed84ed5b604c4027"
+   }
+  },
+  {
+   "key": "func SessionMerger.overlaps(_:_:)",
+   "hash": "2566d9a56f1cfce5",
+   "does": "True when spans share positive time, or one is zero-length and lies within/touching the other.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "shared > 0",
+     "effect": "return true; else true only if either duration is 0 and shared >= 0"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SessionMerger.gapBetween(_:_:)",
+   "hash": "cc0248e16fc1da46",
+   "does": "Gap between the earlier-starting span's end and the later's start, floored at 0.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "lhs.start <= rhs.start",
+     "effect": "lhs is first; else rhs first"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SessionMerger.span(start:end:)",
+   "hash": "7a07a049ab08bc74",
+   "does": "DateInterval from start to max(end ?? start, start).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "end nil",
+     "effect": "?? start → zero-length span; an end before start collapses to start"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SessionMerger.span(of: SessionArchiveEntry)",
+   "hash": "bd2ceaca8af91178",
+   "does": "Span of an archive entry from its date and endDate.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.span(start:end:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.span(start:end:)": "d1c97d2e8b4a93e2"
+   }
+  },
+  {
+   "key": "func SessionMerger.span(of: HRVSession)",
+   "hash": "74c114d2a3909c77",
+   "does": "Span of a session: endDate, else the rrSeries actual end date, else start.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.span(start:end:)",
+    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.actualEndDate"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "endDate nil",
+     "effect": "?? rrSeries?.actualEndDate; nil series → zero-length span at start"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.actualEndDate": "f961d573995876a3",
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.span(start:end:)": "d1c97d2e8b4a93e2"
+   }
+  },
+  {
+   "key": "func SessionMerger.runsWithinGap(_:gap:span:)",
+   "hash": "f3912d68f6bb228b",
+   "does": "Sorts items by span start and splits them into runs whenever the next start is more than gap after the run's latest end.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "for each item in start order",
+     "effect": "iterates"
+    },
+    {
+     "at": "+7",
+     "cond": "a run exists AND start - runEnd <= gap",
+     "effect": "append to last run and extend runEnd; else start a new run"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SessionMerger.rebased(_:by:)",
+   "hash": "95f11b2023e1add1",
+   "does": "Shifts every point by offsetMs (RRPoint.shifted); returns the array unchanged when offset is 0.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::func RRPoint.shifted(by:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "offsetMs == 0",
+     "effect": "return points unchanged"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::func RRPoint.shifted(by:)": "6bd9e605fb3d11ea"
+   }
+  },
+  {
+   "key": "func SessionMerger.rebased(_:from:onto:)",
+   "hash": "c09e2610ca06fbd2",
+   "does": "Rebases points from start onto clockStart using the millisecond offset between them (fallback 0).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)",
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.rebased(_:by:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.rebased(_:by:)": "472fc0ecac85f98c",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "532ac87707a256ac"
+   }
+  },
+  {
+   "key": "func SessionMerger.commonClockStart(of:and:)",
+   "hash": "a465966b36735458",
+   "does": "Earlier of the two sessions' startDates.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

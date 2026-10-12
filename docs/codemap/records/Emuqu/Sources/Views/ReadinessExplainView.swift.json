@@ -1,0 +1,619 @@
+{
+ "file": "Emuqu/Sources/Views/ReadinessExplainView.swift",
+ "hash": "e8c1f35b719958b2",
+ "role": "'Why is readiness here?' explainer pushed from the Dashboard readiness medallion (DashboardV2View.swift:524): recap ring, the LiveReadiness headline, five plain-language signal rows (morning recovery, today's training, acute fatigue, load vs fitness, hours since reading) and an optional link to the morning report.",
+ "types": [
+  "ReadinessExplainView: struct (View) — readiness explainer screen"
+ ],
+ "state": [
+  "let readiness: LiveReadiness (input)",
+  "var onViewMorningReport: (() -> Void)? (closure input set by DashboardV2View)"
+ ],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "var ReadinessExplainView.scoreInt",
+   "hash": "ef987d8613edaa8b",
+   "does": "Display integer for the live readiness score via the non-finite-safe clamp.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)": "4b09e0431d20aa06"
+   }
+  },
+  {
+   "key": "var ReadinessExplainView.verdict",
+   "hash": "f0de6915f536315f",
+   "does": "Verdict bucket for the live readiness score.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/ScoreVerdict.swift::init ScoreVerdict(score:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/ScoreVerdict.swift::init ScoreVerdict(score:)": "89445abed2b3e6c9"
+   }
+  },
+  {
+   "key": "var ReadinessExplainView.morningInt",
+   "hash": "71f6aec616cd2b0f",
+   "does": "The morning recovery score as the trap-proof display integer (RecoveryScoreCalculator.displayScore: clamped 0–100, non-finite → 0, rounded), like scoreInt.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)": "df038a321f56f948"
+   }
+  },
+  {
+   "key": "var ReadinessExplainView.morningVerdict",
+   "hash": "4df567bace47f3f2",
+   "does": "Verdict bucket for the morning recovery score.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/ScoreVerdict.swift::init ScoreVerdict(score:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/ScoreVerdict.swift::init ScoreVerdict(score:)": "89445abed2b3e6c9"
+   }
+  },
+  {
+   "key": "var ReadinessExplainView.body",
+   "hash": "3b0b90613db01dd4",
+   "does": "ScrollView of stack with background and inline 'Readiness' title.",
+   "entry": "SwiftUI view-tree evaluation of ReadinessExplainView; pushed from DashboardV2View readinessDestination",
+   "calls": [
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.stack"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.stack": "08a31c9649c67727",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "053cc91a5a90d115"
+   }
+  },
+  {
+   "key": "var ReadinessExplainView.stack",
+   "hash": "ce6c3a049c17cecc",
+   "does": "Vertical stack: hero recap, headline, signal rows, and the morning-report link when a callback was supplied.",
+   "entry": "SwiftUI view-tree evaluation of ReadinessExplainView",
+   "calls": [
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.heroRecap",
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.headlineObservation",
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.signalStack",
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.morningReportLink"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "onViewMorningReport != nil",
+     "effect": "true: shows 'View morning report' button; false: omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.headlineObservation": "35a70f4e37d7003f",
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.heroRecap": "08e8e627f68fd668",
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.morningReportLink": "7597b77e2f293e87",
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.signalStack": "5a13e559cb8b0063"
+   }
+  },
+  {
+   "key": "var ReadinessExplainView.heroRecap",
+   "hash": "00ef9c46931a1988",
+   "does": "Card-size ScoreRing for the live score with verdict word and 'Readiness right now' caption.",
+   "entry": "SwiftUI view-tree evaluation of ReadinessExplainView",
+   "calls": [
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.body",
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.scoreInt",
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.verdict",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.localizedWord",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.textColor",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.localizedWord": "36e143abcc4cadb1",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.textColor": "d1b20461dd94a948",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.scoreInt": "f294e28c4a5f924f",
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.verdict": "36d5b71fc70da92a",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.body": "7698d574175ed7fc",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var ReadinessExplainView.headlineObservation",
+   "hash": "7651b2227141b701",
+   "does": "Renders readiness.headline (sentence built in LiveReadiness).",
+   "entry": "SwiftUI view-tree evaluation of ReadinessExplainView",
+   "calls": [
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::var LiveReadiness.headline",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::var LiveReadiness.headline": "ea16fa39d7e037ce",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+   }
+  },
+  {
+   "key": "var ReadinessExplainView.morningRow",
+   "hash": "4cf4020ffd61ef04",
+   "does": "'This morning' row: 'N · verdict' tinted by morning verdict colour.",
+   "entry": "SwiftUI view-tree evaluation of ReadinessExplainView",
+   "calls": [
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::func ReadinessExplainView.row(label:value:tint:)",
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.morningInt",
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.morningVerdict",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.localizedWord",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.color"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.color": "dc2f3b06b79e333d",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.localizedWord": "36e143abcc4cadb1",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::func ReadinessExplainView.row(label:value:tint:)": "3bfc41b471d1a5a3",
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.morningInt": "2e4d703bd6199405",
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.morningVerdict": "e3cc7c2ae792b742"
+   }
+  },
+  {
+   "key": "var ReadinessExplainView.todayTrainingRow",
+   "hash": "40f8e59237bb5f3c",
+   "does": "'Today's training' row.",
+   "entry": "SwiftUI view-tree evaluation of ReadinessExplainView",
+   "calls": [
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::func ReadinessExplainView.row(label:value:tint:)",
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.todayTrainingValue",
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.todayTrainingTint"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::func ReadinessExplainView.row(label:value:tint:)": "3bfc41b471d1a5a3",
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.todayTrainingTint": "e69d26c234921153",
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.todayTrainingValue": "a383991ca796527b"
+   }
+  },
+  {
+   "key": "var ReadinessExplainView.acuteFatigueRow",
+   "hash": "cd5a7db8d3f4b31f",
+   "does": "'Acute fatigue' row.",
+   "entry": "SwiftUI view-tree evaluation of ReadinessExplainView",
+   "calls": [
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::func ReadinessExplainView.row(label:value:tint:)",
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.acuteFatigueValue",
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.acuteFatigueTint"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::func ReadinessExplainView.row(label:value:tint:)": "3bfc41b471d1a5a3",
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.acuteFatigueTint": "5652571424ee31a7",
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.acuteFatigueValue": "28870e9ded7590a3"
+   }
+  },
+  {
+   "key": "var ReadinessExplainView.loadVsFitnessRow",
+   "hash": "4dc06075021e076f",
+   "does": "'Load vs fitness' row.",
+   "entry": "SwiftUI view-tree evaluation of ReadinessExplainView",
+   "calls": [
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::func ReadinessExplainView.row(label:value:tint:)",
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.loadVsFitnessValue",
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.loadVsFitnessTint"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::func ReadinessExplainView.row(label:value:tint:)": "3bfc41b471d1a5a3",
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.loadVsFitnessTint": "098f60daff10738d",
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.loadVsFitnessValue": "c2b20d2abc20eb4c"
+   }
+  },
+  {
+   "key": "var ReadinessExplainView.hoursSinceRow",
+   "hash": "d6ea8538f1896ada",
+   "does": "'Hours since reading' row in secondary colour.",
+   "entry": "SwiftUI view-tree evaluation of ReadinessExplainView",
+   "calls": [
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::func ReadinessExplainView.row(label:value:tint:)",
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.hoursSinceValue"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::func ReadinessExplainView.row(label:value:tint:)": "3bfc41b471d1a5a3",
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.hoursSinceValue": "8781b29530ec156d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var ReadinessExplainView.signalStack",
+   "hash": "a6528e6157078dfa",
+   "does": "Card stacking the five rows separated by dividers.",
+   "entry": "SwiftUI view-tree evaluation of ReadinessExplainView",
+   "calls": [
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.morningRow",
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.todayTrainingRow",
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.acuteFatigueRow",
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.loadVsFitnessRow",
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.hoursSinceRow",
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.divider"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.acuteFatigueRow": "b594e69b8858b529",
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.divider": "3dbf0b2b37c7ac21",
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.hoursSinceRow": "58599208534ddcb7",
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.loadVsFitnessRow": "0365c7d2afa3193e",
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.morningRow": "9a93af8fd6a9320e",
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.todayTrainingRow": "605a48a6115ea855",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "func ReadinessExplainView.row(label:value:tint:)",
+   "hash": "f683b03aa427a253",
+   "does": "Label/value row; value tinted.",
+   "entry": "SwiftUI view-tree evaluation of ReadinessExplainView",
+   "calls": [
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var ReadinessExplainView.divider",
+   "hash": "a7af70fbe517a593",
+   "does": "Thin inset divider.",
+   "entry": "SwiftUI view-tree evaluation of ReadinessExplainView",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var ReadinessExplainView.todayTrainingValue",
+   "hash": "4f5a443d61f898ce",
+   "does": "Today's training text: capitalised workout phrase if a primary workout exists, else bucket of rounded TRIMP.",
+   "entry": "SwiftUI view-tree evaluation of ReadinessExplainView",
+   "calls": [
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::var WorkoutDescriptor.phrase",
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.todayTrimpRounded"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "readiness.todayPrimaryWorkout non-nil",
+     "effect": "true: phrase with capitalised first letter; false: TRIMP bucket"
+    },
+    {
+     "at": "+7",
+     "cond": "rounded TRIMP == 0",
+     "effect": "'None yet'"
+    },
+    {
+     "at": "+11",
+     "cond": "t < 30",
+     "effect": "'Easy'"
+    },
+    {
+     "at": "+12",
+     "cond": "t < 80",
+     "effect": "'Moderate'"
+    },
+    {
+     "at": "+13",
+     "cond": "t < 150",
+     "effect": "'Hard'; else 'Very hard'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::var WorkoutDescriptor.phrase": "27d5529f8df02124",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.todayTrimpRounded": "5d0d3f4827e76873"
+   }
+  },
+  {
+   "key": "var ReadinessExplainView.todayTrimpRounded",
+   "hash": "dcade0f5c31b874d",
+   "does": "Today's TRIMP rounded to an Int — the value both the row's word and its tint bucket.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var ReadinessExplainView.todayTrainingTint",
+   "hash": "5a9f7d2784138cf6",
+   "does": "Tint for today's training from the rounded TRIMP (todayTrimpRounded), the same value the word buckets.",
+   "entry": "SwiftUI view-tree evaluation of ReadinessExplainView",
+   "calls": [
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.todayTrimpRounded"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "t == 0",
+     "effect": "textSecondary"
+    },
+    {
+     "at": "+3",
+     "cond": "t < 30",
+     "effect": "textPrimary"
+    },
+    {
+     "at": "+4",
+     "cond": "t < 80",
+     "effect": "wongGood"
+    },
+    {
+     "at": "+5",
+     "cond": "t < 150",
+     "effect": "wongCaution; else wongAttention"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.todayTrimpRounded": "5d0d3f4827e76873",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var ReadinessExplainView.acuteFatigueValue",
+   "hash": "26744ab25086170b",
+   "does": "Acute fatigue word: 'Low' under 10; without an ACR 'Moderate' <50 else 'Elevated'; with ACR bucketed at 0.8/1.0/1.3.",
+   "entry": "SwiftUI view-tree evaluation of ReadinessExplainView",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "acuteFatigueLoad < 10",
+     "effect": "'Low' (regardless of ACR)"
+    },
+    {
+     "at": "+6",
+     "cond": "acuteChronicRatio nil",
+     "effect": "guard else: uses absolute af thresholds"
+    },
+    {
+     "at": "+7",
+     "cond": "af < 50 (no ACR)",
+     "effect": "'Moderate'; else 'Elevated'"
+    },
+    {
+     "at": "+10",
+     "cond": "acr < 0.8",
+     "effect": "'Low — well within fitness'"
+    },
+    {
+     "at": "+11",
+     "cond": "acr < 1.0",
+     "effect": "'Moderate'"
+    },
+    {
+     "at": "+12",
+     "cond": "acr < 1.3",
+     "effect": "'Elevated'; else 'High — recent load above usual'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var ReadinessExplainView.acuteFatigueTint",
+   "hash": "898b8c10ba29feb3",
+   "does": "Tint for acute fatigue on the same cuts as acuteFatigueValue: textPrimary for the 'Low' under 10; without an ACR af<50 → textPrimary else wongCaution; with ACR wongOptimal <1.0, wongCaution <1.3, else wongAttention.",
+   "entry": "SwiftUI view-tree evaluation of ReadinessExplainView",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "acuteFatigueLoad < 10",
+     "effect": "textPrimary"
+    },
+    {
+     "at": "+2",
+     "cond": "acuteChronicRatio nil",
+     "effect": "af<50 → textPrimary, else wongCaution"
+    },
+    {
+     "at": "+6",
+     "cond": "acr < 1.0",
+     "effect": "wongOptimal"
+    },
+    {
+     "at": "+7",
+     "cond": "acr < 1.3",
+     "effect": "wongCaution; else wongAttention"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+   }
+  },
+  {
+   "key": "var ReadinessExplainView.loadVsFitnessValue",
+   "hash": "ac37d4ed806637bd",
+   "does": "Load vs fitness text: 'N.NN×' ACR in app locale, or 'Building baseline' without ACR.",
+   "entry": "SwiftUI view-tree evaluation of ReadinessExplainView",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "acuteChronicRatio nil",
+     "effect": "'Building baseline'; else formatted ratio"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "var ReadinessExplainView.loadVsFitnessTint",
+   "hash": "0990bc421025ade1",
+   "does": "Tint for load vs fitness.",
+   "entry": "SwiftUI view-tree evaluation of ReadinessExplainView",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "acr nil",
+     "effect": "textSecondary"
+    },
+    {
+     "at": "+2",
+     "cond": "acr < 1.0",
+     "effect": "textPrimary"
+    },
+    {
+     "at": "+3",
+     "cond": "acr < 1.3",
+     "effect": "wongCaution; else wongAttention"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var ReadinessExplainView.hoursSinceValue",
+   "hash": "007e8cc57c31a9bb",
+   "does": "Hours since the morning reading as 'Just now', 'N h', 'Yesterday's reading' or 'N days ago'.",
+   "entry": "SwiftUI view-tree evaluation of ReadinessExplainView",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "h < 1",
+     "effect": "'Just now'"
+    },
+    {
+     "at": "+3",
+     "cond": "h < 24",
+     "effect": "'N h' (rounded)"
+    },
+    {
+     "at": "+4",
+     "cond": "h < 48",
+     "effect": "'Yesterday's reading'; else 'N days ago' (floor h/24)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var ReadinessExplainView.morningReportLink",
+   "hash": "5c01e08f594920bb",
+   "does": "Plain button 'View morning report' that invokes onViewMorningReport.",
+   "entry": "SwiftUI view-tree evaluation of ReadinessExplainView; button tap",
+   "calls": [
+    "closure:onViewMorningReport — set by DashboardV2View (viewMorningReportAction, DashboardV2View.swift:524)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  }
+ ],
+ "deps": {}
+}

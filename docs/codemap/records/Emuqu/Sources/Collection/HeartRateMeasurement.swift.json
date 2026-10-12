@@ -1,0 +1,86 @@
+{
+ "file": "Emuqu/Sources/Collection/HeartRateMeasurement.swift",
+ "hash": "414984c1ede6708b",
+ "role": "Decoder for the Bluetooth SIG Heart Rate Measurement characteristic (0x2A37) used by StandardHeartRateLink (StandardHeartRateLink.swift:228), reproducing the Polar SDK's flag handling and 1/1024 s → ms rounding.",
+ "types": [
+  "HeartRateMeasurement: enum (namespace) — 0x2A37 parser"
+ ],
+ "state": [],
+ "toplevel": "No top-level code.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func HeartRateMeasurement.parse(_:)",
+   "hash": "09d5213b5e9362ab",
+   "does": "Parses one 0x2A37 notification into StrapHRSample(hr, rrsMs, rrAvailable): reads flags, 8- or 16-bit HR, skips 2-byte energy expended when flagged, decodes RR intervals when bit 4 is set. Returns nil for packets shorter than their flags require.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.intervals(in:from:)"
+   ],
+   "reads": [
+    "ble:Heart Rate Measurement 0x2A37"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "fewer than 2 bytes",
+     "effect": "returns nil; else continues"
+    },
+    {
+     "at": "+5",
+     "cond": "16-bit rate flagged but fewer than 3 bytes",
+     "effect": "returns nil; else continues"
+    },
+    {
+     "at": "+6",
+     "cond": "bit 0 (wide rate) set",
+     "effect": "HR = little-endian u16 of bytes 1–2; else HR = byte 1"
+    },
+    {
+     "at": "+7",
+     "cond": "wide rate",
+     "effect": "RR offset starts at 3; else at 2"
+    },
+    {
+     "at": "+8",
+     "cond": "bit 3 energy-expended present",
+     "effect": "requires 2 more bytes (else returns nil at line 34) and advances offset by 2; else offset unchanged"
+    },
+    {
+     "at": "+9",
+     "cond": "energy field would run past packet end",
+     "effect": "returns nil"
+    },
+    {
+     "at": "+13",
+     "cond": "bit 4 RR present",
+     "effect": "decodes intervals from offset; else empty list (rrAvailable false)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.intervals(in:from:)": "cab2cc006b4ecb88"
+   }
+  },
+  {
+   "key": "func HeartRateMeasurement.intervals(in:from:)",
+   "hash": "1e254fd065fd28ef",
+   "does": "Walks 2-byte little-endian RR values from `start`, converting each raw 1/1024 s count to whole ms with Float rounding (raw/1024*1000 rounded); a trailing odd byte is ignored.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "at least two bytes remain",
+     "effect": "decodes one interval and advances 2; loop ends otherwise"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

@@ -46,20 +46,6 @@ struct DeviceProvenance: Codable, Equatable {
         )
     }
 
-    /// Create provenance for imported data
-    static func imported(source: String) -> DeviceProvenance {
-        let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown"
-        let osVersion = DeviceInfo.systemVersion
-        return DeviceProvenance(
-            deviceId: "imported",
-            deviceModel: source,
-            firmwareVersion: nil,
-            recordingMode: .imported,
-            appVersion: appVersion,
-            osVersion: osVersion,
-            capturedAt: Date()
-        )
-    }
 }
 
 // MARK: - Session Type
@@ -105,6 +91,14 @@ enum HRVDataQuality: String, Codable {
     case preSleep
     /// Recording too short for reliable analysis (< 2 minutes of clean data)
     case insufficient
+
+    /// Whether a reading of this quality may feed HRV aggregates: everything
+    /// but `.insufficient` and `.preSleep`, and a legacy `nil` (unrated)
+    /// reading qualifies. The one rule `HRVSession` and `SessionArchiveEntry`
+    /// both apply.
+    static func allowsHRVAggregates(_ quality: HRVDataQuality?) -> Bool {
+        quality != .insufficient && quality != .preSleep
+    }
 }
 
 // MARK: - HRV Session
@@ -125,6 +119,13 @@ struct HRVSession: Codable, Identifiable, Sendable {
     /// lossy copy, permanently destroying the v2-only fields. Decoding still
     /// SUCCEEDS for display compatibility; `SessionArchive._archive` consults
     /// this flag and refuses the destructive re-write.
+    ///
+    /// What decodes leniently: unknown keys (dropped), and a `SessionState`,
+    /// `SessionType` or `HRVDataQuality` case this build does not know (read
+    /// as `.complete`, `.quick` and `.insufficient`, and the payload then
+    /// reads as newer than this build — `payloadSchemaVersion`). A field whose
+    /// TYPE a newer build changed still fails the decode; that is a breaking
+    /// format change and needs a migration, not a lenient read.
     var sourceSchemaVersion: Int?
 
     let id: UUID
@@ -231,7 +232,7 @@ struct HRVSession: Codable, Identifiable, Sendable {
     /// ad-hoc `!= .insufficient`, so `.insufficient` and `.preSleep` are always
     /// treated consistently.
     var isReliableForHRVAggregates: Bool {
-        hrvDataQuality != .insufficient && hrvDataQuality != .preSleep
+        HRVDataQuality.allowsHRVAggregates(hrvDataQuality)
     }
 
     /// Timestamp of when this workout was successfully
@@ -338,9 +339,11 @@ struct HRVSession: Codable, Identifiable, Sendable {
             self.deviceModel = deviceModel
         }
 
+        /// "Verity" names the sensor; "sense" alone would also match any
+        /// other device with the word in its name.
         private var isVeritySense: Bool {
             guard let model = deviceModel?.lowercased() else { return false }
-            return model.contains("verity") || model.contains("sense")
+            return model.contains("verity")
         }
 
         /// What happened to the data, in the app's language, for the Morning
@@ -352,7 +355,7 @@ struct HRVSession: Codable, Identifiable, Sendable {
                 let pct = beatDifferencePercent.map { String(format: "%.1f", locale: LanguageManager.appLocale, $0) } ?? "?"
                 return String(localized: "Streamed + strap merged — \(pct)% more beats recovered", bundle: b)
             case "internal":
-                if let db = deviceBeats, streamingBeats > 0 {
+                if let db = deviceBeats, db > 0 {
                     return String(localized: "Strap recording (\(db) beats)", bundle: b)
                 }
                 return String(localized: "Strap recording", bundle: b)
@@ -499,12 +502,12 @@ struct HRVSession: Codable, Identifiable, Sendable {
         // Schema version: absent in legacy data → defaults to 0. Kept on the
         // session (not discarded) so the archive can refuse to destructively
         // re-write payloads from a NEWER schema than this build.
-        sourceSchemaVersion = try container.decodeIfPresent(Int.self, forKey: .schemaVersion) ?? 0
+        sourceSchemaVersion = try Self.payloadSchemaVersion(in: container)
         id = try container.decode(UUID.self, forKey: .id)
         startDate = try container.decode(Date.self, forKey: .startDate)
         endDate = try container.decodeIfPresent(Date.self, forKey: .endDate)
-        state = try container.decode(SessionState.self, forKey: .state)
-        sessionType = try container.decodeIfPresent(SessionType.self, forKey: .sessionType) ?? .overnight
+        state = try container.decodeKnown(SessionState.self, forKey: .state, unknown: .complete)
+        sessionType = try container.decodeKnownIfPresent(SessionType.self, forKey: .sessionType, unknown: .quick) ?? .overnight
         // Skip heavyweight rrSeries when the lightweight flag is set (dashboard loading)
         rrSeries = decoder.userInfo[.skipRRSeries] as? Bool == true
             ? nil
@@ -538,7 +541,7 @@ struct HRVSession: Codable, Identifiable, Sendable {
         windowUserAdjusted = try container.decodeIfPresent(Bool.self, forKey: .windowUserAdjusted)
         autoWindowResult = try container.decodeIfPresent(HRVAnalysisResult.self, forKey: .autoWindowResult)
         autoWindowScore = try container.decodeIfPresent(Double.self, forKey: .autoWindowScore)
-        hrvDataQuality = try container.decodeIfPresent(HRVDataQuality.self, forKey: .hrvDataQuality)
+        hrvDataQuality = try container.decodeKnownIfPresent(HRVDataQuality.self, forKey: .hrvDataQuality, unknown: .insufficient)
 
         // MARK: subjective — mirrors encodeSubjective
         aiContext = try container.decodeIfPresent([String: String].self, forKey: .aiContext)
@@ -553,6 +556,19 @@ struct HRVSession: Codable, Identifiable, Sendable {
         healthKitExportedAt = try container.decodeIfPresent(Date.self, forKey: .healthKitExportedAt)
         healthKitExportFailureCount = try container.decodeIfPresent(Int.self, forKey: .healthKitExportFailureCount)
         modifiedAt = try container.decodeIfPresent(Date.self, forKey: .modifiedAt)
+    }
+
+    /// The payload's schema version (0 when absent) — or, when it carries a
+    /// `SessionState`, `SessionType` or `HRVDataQuality` case this build does
+    /// not know, one newer than `currentSchemaVersion` whatever it states: a
+    /// newer build wrote it, and the decode is lossy, so the archive must
+    /// refuse to re-write it.
+    private static func payloadSchemaVersion(in container: KeyedDecodingContainer<CodingKeys>) throws -> Int {
+        let stated = try container.decodeIfPresent(Int.self, forKey: .schemaVersion) ?? 0
+        let unknownCase = try container.holdsUnknownCase(SessionState.self, forKey: .state)
+            || container.holdsUnknownCase(SessionType.self, forKey: .sessionType)
+            || container.holdsUnknownCase(HRVDataQuality.self, forKey: .hrvDataQuality)
+        return unknownCase ? max(stated, currentSchemaVersion + 1) : stated
     }
 
     func encode(to encoder: Encoder) throws {
@@ -674,9 +690,6 @@ struct HRVSession: Codable, Identifiable, Sendable {
 
     // MARK: - Workout Convenience
 
-    /// Whether this session represents a workout (fitness/effort capture).
-    var isWorkout: Bool { sessionType == .workout }
-
     /// Sport for workout sessions; nil for all other session types.
     var sport: Sport? { workoutMetadata?.sport }
 }
@@ -709,6 +722,12 @@ struct OfflineSession: Codable, Identifiable {
 /// Sendable.
 struct SessionArchiveEntry: Codable, Sendable {
     static let currentSchemaVersion = 1
+
+    /// Schema version read from the index entry during decode (0 when the
+    /// entry predates it); nil for an entry built in memory. Kept, not
+    /// discarded, so an index written by a newer build can be told apart
+    /// before this build re-saves it; `encode` writes `currentSchemaVersion`.
+    var sourceSchemaVersion: Int?
 
     let sessionId: UUID
     let date: Date
@@ -785,7 +804,7 @@ struct SessionArchiveEntry: Codable, Sendable {
     /// aggregation paths that operate on `SessionArchiveEntry` (AI facts,
     /// voice intents) rather than full sessions.
     var isReliableForHRVAggregates: Bool {
-        hrvDataQuality != .insufficient && hrvDataQuality != .preSleep
+        HRVDataQuality.allowsHRVAggregates(hrvDataQuality)
     }
 
     // spec:long-function A memberwise initializer is one assignment per stored
@@ -856,7 +875,7 @@ struct SessionArchiveEntry: Codable, Sendable {
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         // Schema version: absent in legacy data → defaults to 0
-        _ = try container.decodeIfPresent(Int.self, forKey: .schemaVersion) ?? 0
+        sourceSchemaVersion = try container.decodeIfPresent(Int.self, forKey: .schemaVersion) ?? 0
         sessionId = try container.decode(UUID.self, forKey: .sessionId)
         date = try container.decode(Date.self, forKey: .date)
         endDate = try container.decodeIfPresent(Date.self, forKey: .endDate)
@@ -870,7 +889,7 @@ struct SessionArchiveEntry: Codable, Sendable {
         tags = try container.decodeIfPresent([ReadingTag].self, forKey: .tags) ?? []
         notes = try container.decodeIfPresent(String.self, forKey: .notes)
         // Default to overnight for existing data that doesn't have sessionType
-        sessionType = try container.decodeIfPresent(SessionType.self, forKey: .sessionType) ?? .overnight
+        sessionType = try container.decodeKnownIfPresent(SessionType.self, forKey: .sessionType, unknown: .quick) ?? .overnight
         linkedSessionIds = try container.decodeIfPresent([UUID].self, forKey: .linkedSessionIds)
         sleepEnd = try container.decodeIfPresent(Date.self, forKey: .sleepEnd)
         sleepSegmentCount = try container.decodeIfPresent(Int.self, forKey: .sleepSegmentCount)
@@ -881,7 +900,7 @@ struct SessionArchiveEntry: Codable, Sendable {
         coreSleepMinutes = try container.decodeIfPresent(Int.self, forKey: .coreSleepMinutes)
         awakeMinutes = try container.decodeIfPresent(Int.self, forKey: .awakeMinutes)
         nocturnalDipPercent = try container.decodeIfPresent(Double.self, forKey: .nocturnalDipPercent)
-        hrvDataQuality = try container.decodeIfPresent(HRVDataQuality.self, forKey: .hrvDataQuality)
+        hrvDataQuality = try container.decodeKnownIfPresent(HRVDataQuality.self, forKey: .hrvDataQuality, unknown: .insufficient)
         modifiedAt = try container.decodeIfPresent(Date.self, forKey: .modifiedAt)
     }
 
@@ -939,5 +958,28 @@ struct SessionArchiveEntry: Codable, Sendable {
         case nocturnalDipPercent
         case hrvDataQuality
         case modifiedAt
+    }
+}
+
+// MARK: - Lenient enum decoding
+
+extension KeyedDecodingContainer {
+    /// A `String`-backed enum, with a case this build does not know (written
+    /// by a newer build) read as `unknown` instead of failing the whole
+    /// payload. A missing key or a non-string value still throws, as
+    /// `decode` does.
+    func decodeKnown<T: RawRepresentable>(_ type: T.Type, forKey key: Key, unknown: T) throws -> T where T.RawValue == String {
+        T(rawValue: try decode(String.self, forKey: key)) ?? unknown
+    }
+
+    /// `decodeKnown` for an optional field: nil when the key is absent.
+    func decodeKnownIfPresent<T: RawRepresentable>(_ type: T.Type, forKey key: Key, unknown: T) throws -> T? where T.RawValue == String {
+        try decodeIfPresent(String.self, forKey: key).map { T(rawValue: $0) ?? unknown }
+    }
+
+    /// Whether the key holds a string that is not a case of `T`.
+    func holdsUnknownCase<T: RawRepresentable>(_ type: T.Type, forKey key: Key) throws -> Bool where T.RawValue == String {
+        guard let raw = try decodeIfPresent(String.self, forKey: key) else { return false }
+        return T(rawValue: raw) == nil
     }
 }

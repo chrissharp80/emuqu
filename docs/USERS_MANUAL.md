@@ -134,7 +134,7 @@ Three icons live in the top-right toolbar:
   Tapping any of the questions auto-sends it and switches to the Flo tab. The "Open" entry just navigates without sending.
 
 ### Before Your First Reading
-With no readings yet, a **Get started** checklist (Pair device, Connect Apple Health, Take your first reading) replaces the chips and strip, with a **"Take your first reading"** button below it.
+With no readings yet, a **Get started** checklist (Pair device, Connect Apple Health, Take your first reading) replaces the chips and strip; its **Take your first reading** row opens the Record tab.
 
 ---
 
@@ -175,26 +175,15 @@ With no readings yet, a **Get started** checklist (Pair device, Connect Apple He
 
 #### Adjust Sleep Screen
 
-Tap the **"Adjust Sleep"** button on the Sleep Detail View to open the timeline editor. The timeline is draggable so you can land precisely on the boundary you want.
+Tap **Adjust** on the Sleep Detail View (or **Edit sleep** in its options menu) to open the sleep timeline editor.
 
-**Session Tiles:**
-- Each tile shows the session time range, duration, and a proportional stage color bar (Deep/Light/REM/Awake)
-- Normal nights show 1 tile; split nights show 2 or more tiles with gap indicators between them
-- Tap a tile to expand it into the full timeline editor
-
-**Timeline Editor (expanded):**
-- A horizontal timeline shows the full sleep window with stage segments color-coded
-- **Drag the left handle** to set when you actually fell asleep
-- **Drag the right handle** to set when you actually woke up
-- The timeline expands past the original recording window, so you can pull boundaries outside the recorded range if the actual sleep extended beyond it
-- **Stage breakdown pills**: Deep, Light, REM, and Awake durations recompute live as you drag
-- **Duration delta**: Shows how your adjustment differs from the original (e.g., "+12m from original" or "-8m from original")
-- **Exclude session**: For multi-session nights, toggle to exclude a session from totals
-
-**Totals Card** (multi-session only):
-- Shows adjusted total sleep time across all included sessions
-- Displays delta from original total
-- Notes how many sessions are excluded
+- **One timeline** shows every sleep segment of the night, color-coded by stage. **Tap a segment** to select it.
+- **Drag a selected segment's handles** to move when it starts or ends. A boundary never crosses into the neighbouring segment, and edits snap to whole minutes.
+- With a segment selected, the toolbar offers **Split** (with a preview of the cut), **Carve Awake** (marks a range as awake), **Merge** and **Delete**.
+- **Long-press the timeline** to add sleep the recording missed. Sleep you add counts toward your total but has no stage detail (no deep or REM).
+- **Stage pills** (Deep, Light, REM, Asleep, Awake) recompute live as you drag.
+- The **Total Sleep** summary shows your adjusted total and a signed change from where you started (for example "+12m").
+- **Undo** steps back through your last 5 edits; **Reset** returns to where you started; **Refresh from Apple Health** pulls the latest sleep from Health and discards your current edits.
 
 Tap **"Done"** to accept your adjustments or **"Cancel"** to discard them. **Saving an adjustment automatically rescores the session** — your recovery score updates to reflect the new sleep boundaries.
 
@@ -407,23 +396,21 @@ After recording completes, shows:
 - **"Dismiss"** button
 
 **If the app crashed mid-recording:**
-- The Dashboard shows a banner: "Resume your walk?" / "Interrupted
-  recording detected" with the elapsed time, distance, and how long
-  ago it started.
-- **Resume** — picks up from where you left off (within the resumable
-  age window).
-- **Save as is** — finalizes whatever was captured.
-- **× (Dismiss)** — small icon in the corner. Tapping it shows a
-  confirmation: "This clears the prompt AND discards the backed-up
-  beats. Tap 'Save as is' instead if you want to keep what was
-  captured." Cancel keeps the banner up. Use Dismiss only when you
-  really don't care about the data; otherwise pick Save as is.
+- On the next launch a **Session Interrupted** alert names the session
+  type and when it started, and says your data was backed up.
+- **Resume** — picks up from where you left off (offered only while the
+  session can still be resumed).
+- **Save as Complete** (or **Save to Archive** when the session can't be
+  resumed) — saves whatever was captured to your archive.
+- **Dismiss** — stops the alert coming back for that session. Nothing is
+  deleted: the backup stays on your iPhone, and you can still restore it
+  from **Settings → iCloud & Data → Recover Lost Sessions**.
 
 ---
 
 ## Flo Tab (the AI Assistant)
 
-The ✨ **Flo** tab opens an in-app chat with one of six AI providers. Every message you send is automatically given your live recovery context — today's session, yesterday's session, last 14 days, baselines, 7-day and 30-day trends, training load, and your morning feeling — so Flo answers from real numbers, not guesses.
+The ✨ **Flo** tab opens an in-app chat with one of six AI providers. Flo answers from your real numbers, not guesses. Every message carries the current time and your training-load headline numbers. With **Apple Intelligence**, which runs on your iPhone, it also carries your recovery context (today's and yesterday's sessions, the last 14 days, baselines, 7-day and 30-day trends, and your morning feeling). A **cloud model** gets only a short block with today's and yesterday's recovery score, RMSSD and heart rate (plus your location during a live workout) and looks up anything else it needs with tools (see *How the assistant fetches your data* below), so only what it asks for is sent to that vendor.
 
 > **Naming.** Flo is the chat assistant in this tab. **Coach** is the audible mid-workout observational voice (different subsystem; you'll hear "Coach here" instead of "Flo here" the first time it speaks during a workout). **Flo Report** is the auto-generated daily/weekly email. All three are the same model + history surface; what differs is the rendering channel.
 
@@ -431,11 +418,13 @@ The ✨ **Flo** tab opens an in-app chat with one of six AI providers. Every mes
 
 Routing only acts while **Apple Intelligence** is the selected model. Pick a mode in **Settings → Flo → AI routing**. With any other model selected, every turn goes to that model and the routing picker is disabled.
 
+With Apple Intelligence selected the chat has no text field: you ask by tapping one of the suggestion chips, or by voice. Voice turns skip the tiers (see *Voice and action requests* below), so the modes below decide where the suggestion-chip questions go. Free typing, and so typed requests like "email this", needs a connected cloud model selected, and then routing does not apply.
+
 The footer under the picker:
 
 > "Routing applies while Apple Intelligence is the selected model. In Quick, Auto and Deep, voice turns and requests to send email, get directions or search the web go to a cloud model whose data-sharing notice you've accepted, if you have one. Manual keeps every turn on the selected model. If the model a turn goes to fails, Auto and Deep may answer with another model whose notice you've accepted, and Quick with Apple Intelligence; Manual and a selected cloud model never switch."
 
-- **Quick** — typed questions are answered on the iPhone by Apple Intelligence. May refuse complex multi-week analyses (Apple's safety filter occasionally blocks health-adjacent prompts).
+- **Quick** — questions are answered on the iPhone by Apple Intelligence. May refuse complex multi-week analyses (Apple's safety filter occasionally blocks health-adjacent prompts).
 - **Auto** — **session-sticky** with **capability-axis classification**. An on-device classifier asks four binary questions of every message:
   - **Does it need a tool?** ("email this", "save this route", per-workout deep-dive)
   - **Does it need the web?** (weather, news, product recommendations)
@@ -445,7 +434,7 @@ The footer under the picker:
   Zero flags → Apple. One or more flags → xAI Grok, then DeepSeek: the first of those you've added a key for and whose data-sharing notice you've accepted. With neither, the turn stays on Apple. Each axis is gated by **both** a keyword marker AND on-device embedding similarity ≥ 0.55, so plain lookups like "what's my recovery score" don't get flagged just because the word "recovery" embeds near history-depth prototypes.
 
   Tier persists once chosen so the conversation doesn't drift mid-thread. Within the first **3 settling turns** the proposed tier is taken as-is; after that the session sticks to the higher tier unless a message scores zero capability flags (clean lookups can drop back to Apple). On older OS versions where contextual embeddings aren't available, the classifier falls back to keyword markers.
-  - **Adversarial-spend cap.** A daily ceiling of 50 top-tier turns guards against a runaway loop; once hit, further top-tier turns drop to the Auto tier for the rest of the day.
+  - **Adversarial-spend cap.** After 50 Deep turns in a day that go to a cloud model, further Deep turns are marked as Auto for the rest of the day. While Apple Intelligence is selected, Auto and Deep use the same Grok or DeepSeek model, so the cap does not move those turns to a cheaper model or keep them on the device.
 - **Deep** — every turn goes to the same consented Grok or DeepSeek model Auto would use; Apple when you have neither. Same daily cap.
 - **Manual** — every turn goes to whatever you picked in the model picker.
 
@@ -862,7 +851,7 @@ From top to bottom:
 - **Metric chart** — pick Recovery, RMSSD, SDNN, Mean HR, Balance (LF/HF), HF Power or Stress. Drag across the chart to read a day's value against your baseline. A ±1 SD band appears once there are 4 overnight readings in the last 60 days.
 - **Stats grid** — Recovery avg, RMSSD avg, Heart Complexity and Stress avg, each against your baseline.
 - **Insights** — direction of the chosen metric, day-to-day variation and outliers. Trends need at least 3 readings in the view.
-- **Calendar** — a Sun–Sat month grid. Each cell is shaded by that day's training load, with a small dot for how you said you felt that morning. Swipe or use the chevrons to change month; weekly totals sit at the end of each row and the month total in the header. Tap a day to list its sessions, then tap one to open it.
+- **Calendar** — a Sun–Sat month grid. Each cell is shaded by that day's training load, with a small dot for how you said you felt that morning. Swipe or use the chevrons to change month; weekly totals sit at the end of each row and the month total in the header. Tap a day to list its readings with their headline numbers; long-press a reading to delete it. Open a reading from History. An overnight sits on the morning it ended.
 
 ---
 
@@ -878,12 +867,8 @@ Comprehensive recovery report accessed from Dashboard or History.
 - Analysis window info (e.g., "Best 4.9 min window from overnight recording")
 
 ### Key Metrics Section
-- **HRV Hero Card**: Large RMSSD display with:
-  - Value in ms
-  - Label (Excellent/Good/Fair/Reduced/Low)
-  - Age-adjusted context (if age configured)
-  - Tap for explanation popover
-- **Heart Rate Stats Row**: Min HR, Avg HR, Max HR, SDNN
+- **HRV card** (half width, beside the Sleep card): RMSSD in ms with a label (Excellent / Good / Fair / Reduced / Low) from how it compares with your own baseline; before you have a baseline, from bands adjusted for your age and sex when set. Tap it to open the HRV detail view, which shows the same label for the night along with heart-rate stats.
+- **Sleep card**: tap it to open the Sleep detail view.
 
 ### Readiness Section
 - "Recovery Readiness" header with info button
@@ -907,9 +892,9 @@ Comprehensive recovery report accessed from Dashboard or History.
 - **Best Recovery (Default)** — Picks the most stable, organized recovery window during deep sleep. This is what most HRV apps report.
 - **Highest RMSSD** — Finds your highest parasympathetic activity regardless of stability.
 - **Highest SDNN** — Finds your highest total heart rate variability (sympathetic + parasympathetic).
-- **Highest Total Power** — Finds the window with the most overall autonomic nervous system activity.
+- **Highest Total Power** — Uses SDNN as a stand-in for total power, so it picks the same window as Highest SDNN: your highest total heart rate variability (sympathetic + parasympathetic).
 
-Selecting a method instantly re-runs the analysis and updates all metrics on the page.
+Selecting a method instantly re-runs this night's analysis and updates all metrics on the page. The app also remembers your pick: every report you open afterwards shows it in this picker, and the Dashboard's re-analyze uses it, even though each of those nights keeps the method it was analysed with until you re-run it. New recordings are always analysed with Best Recovery.
 
 **Choose Your Own Window**: Tap the "Choose Window" button to enter manual mode. In this mode:
 1. The HRV chart shows a hint: "Drag across the chart to analyze that window"
@@ -950,14 +935,14 @@ Chart labels adapt to context: "Overnight Summary" / "Heart Rate Overnight" / "H
 
 ### Notes Section
 - Text field for session notes
-- Auto-saves when changed
+- Notes and tag changes are saved when you tap **Done** or close the report (a swipe down included)
 
 ### Action Buttons
 - **"Email Report"**: Choose the sections; Emuqu builds a PDF report and attaches it to a new email:
   - **Metrics & Data**: Summary card (RMSSD hero, readiness gauge, HR stats), overnight stats, sleep analysis (duration, efficiency, stages), training load (CTL/ATL/TSB/ACWR), recovery vitals (respiratory rate, SpO2, temperature, resting HR), full metrics grids (time domain, frequency domain, nonlinear, ANS), tags and notes
   - **Visualizations** (only for sessions with raw RR data): Overnight HR chart with analysis window highlight, Poincaré plot with SD1/SD2 ellipse, PSD graph with VLF/LF/HF band coloring, RR tachogram with artifact markers, data quality summary, window selection info
   - **Analysis Summary**: Full narrative analysis from the summary generator
-- **"Delete"** (if viewing from History): Permanently deletes session
+- **"Delete"** (if viewing from History): after a confirmation, moves the reading to the Trash. You can restore it from **Settings → iCloud & Data → Trash** for 90 days; after that it is deleted
 - **"Reanalyze"**: Re-runs analysis using the current window selection method. Useful when algorithm updates improve scoring.
 
 ---
@@ -1038,19 +1023,21 @@ Footpod disconnects the moment the workout ends.
 
 1. Pick a sport — Run, Trail Run, Walk, Hike, Ride, Indoor Ride, Treadmill,
    Row, Air Bike, CrossFit.
-2. Pick an HR source — **Strap** (full HRV metrics via RR intervals),
-   **Apple Watch** (HR only, no RR-dependent metrics), or **None**
-   (time, distance, cadence only).
-3. Optionally set a **target HR zone** (1–5). When set, the voice coach
-   gently nudges you if you drift out of zone for ≥30 s.
+2. Heart-rate source is automatic — your strap when one is connected or
+   paired (it reconnects in the background while the workout starts),
+   otherwise Apple Watch.
+3. Optionally set a **target HR zone** (1–5). The voice coach does not
+   speak up when you drift out of the zone; ask it "am I in my zone?"
+   for an answer.
 4. Optionally pick a **structured interval plan** — the coach will announce
    each step as it starts.
-5. Optionally add **ambient-coach thresholds** — pre-declare physiological
-   constraints ("HR > 135 for 30s", "stay above zone 2 power", "pace below
-   9:00/mi"). The coach stays silent (your audiobook keeps playing) and
-   only ducks in when a threshold breaches past its debounce. Each
-   threshold has its own debounce + cooldown so it never nags. HR /
-   HR-zone / power / power-%FTP / pace / DFA α1 / cadence are supported.
+5. Optionally add **ambient-coach thresholds** — pre-declare cues in
+   plain words ("HR over 135", "tell me when 30 minutes have passed",
+   "over 90% of FTP", "1000 feet of climb", "8 percent grade", "5 km").
+   The coach stays silent (your audiobook keeps playing) and only ducks
+   in when a threshold breaches past its debounce. Each threshold has its
+   own debounce + cooldown so it never nags. Supported: heart rate (bpm),
+   power as % of FTP, elevation gain, grade, elapsed time and distance.
 6. Optionally bind a **route** — three ways to do this:
    - **Discover trails near me** (the big terracotta button) searches
      OpenStreetMap for hiking / mountain biking / road cycling trails in
@@ -1101,12 +1088,18 @@ metrics:
   stroke rate, distance, drag factor, and instantaneous power.
 
 Set your **running FTP** and **cycling FTP** separately in **Settings →
-Biometrics**. The post-workout summary surfaces
-**Normalised Power (NP)**, **Intensity Factor (IF = NP / FTP)**,
-**power-based training load** (`(NP/FTP)² × hours × 100`), and **Variability Index**
-alongside the HR-based HRSS. Without an FTP, the power-derived metrics
-sit out and the card tells you where to set it — the app never invents a
-denominator.
+Biometrics**. Every workout with power records average and peak power,
+**Normalised Power (NP)** and **Variability Index (NP / average)**; with an
+FTP for that sport it also records **Intensity Factor (IF = NP / FTP)** and
+**power-based training load** (`(NP/FTP)² × hours × 100`). Without an FTP,
+IF and the power-based load are left out (the app never invents a
+denominator) and the summary shows no prompt to set one.
+
+Where they appear: the post-workout summary's **LOAD** tile shows the
+power-based load when there is one, with an **HRSS** tile beside it for
+the HR-based number; the History calendar's workout row shows NP. IF and
+Variability Index are not shown on any screen; Flo can read them when you
+ask about a workout.
 
 ### My Routes (route library + route-aware coaching)
 
@@ -1167,8 +1160,11 @@ only useful indoors.
 ### Voice coach
 
 The voice coach (AirPods recommended) evaluates a rule engine each tick.
-It speaks only when a real signal fires (α1 crossing, HR drift, zone
-drift, climb ahead, strap dropped) — silence is a feature. When active,
+Of its rules, only the thresholds you add before starting (step 5 of
+*Starting a workout*) speak on their own. The built-in signals (α1
+crossings, HR drift, zone drift, climb ahead, a dropped strap) are kept
+in the workout's event history but are not spoken; the coach does not
+announce a dropped strap either. Silence is a feature. When active,
 the AI receives a complete live snapshot each tick including wall-clock
 time, GPS position + heading, grade, current/peak HR, α1 status, units
 preference, recent splits, strap quality. This is what lets the coach

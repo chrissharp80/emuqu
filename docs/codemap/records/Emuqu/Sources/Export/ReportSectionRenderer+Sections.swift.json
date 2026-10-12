@@ -1,0 +1,1767 @@
+{
+ "file": "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift",
+ "hash": "f43cae066fbf63f5",
+ "role": "Draws the HRV report's header, summary hero (RMSSD + badge rated against the user's canonical baseline, or age/sex norms before one exists + readiness gauge + HR stats), the shared compact stat-box row, metric grids (time/frequency/nonlinear/ANS/quality), analysis-window card, page footer with wellness disclaimer, auto-pagination, and the recovery score breakdown with its measured height.",
+ "types": [
+  "ReportSectionRenderer: extension — header/summary/metric/footer/score-breakdown drawing",
+  "ReportSectionRenderer.HeroHRVRating: struct — the hero's RMSSD category and its optional age phrase"
+ ],
+ "state": [
+  "ReportSectionRenderer.compositeBadgeHeight = 28 (private static let)",
+  "ReportSectionRenderer.factorRowHeight = 38 (private static let)"
+ ],
+ "toplevel": "Private static lets compositeBadgeHeight (28) and factorRowHeight (38). File-scope private helpers are listed as units.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func ReportSectionRenderer.drawHeader(session:result:in:pageRect:)",
+   "hash": "620fb65bc1103326",
+   "does": "Draws the header block from the top margin: brand+subtitle, session date/recording line, optional age/sex line; returns y below it.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawHeaderBrand(yPosition:contentWidth:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawHeaderSessionInfo(session:yPosition:contentWidth:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawHeaderDemographics(yPosition:contentWidth:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawHeaderBrand(yPosition:contentWidth:)": "ef443031796da2bc",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawHeaderDemographics(yPosition:contentWidth:)": "c03456a2cad8c36f",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawHeaderSessionInfo(session:yPosition:contentWidth:)": "5e286f8e54dab403",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.drawHeaderBrand(yPosition:contentWidth:)",
+   "hash": "0d96ad89a3aa1a56",
+   "does": "Draws a 4×44pt primary accent bar and 'Emuqu' in the title font, then the subtitle.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(in:withAttributes:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawHeaderSubtitle(yPosition:contentWidth:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(in:withAttributes:)": "259840329617caee",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawHeaderSubtitle(yPosition:contentWidth:)": "b8976f1510dffe75",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.drawHeaderSubtitle(yPosition:contentWidth:)",
+   "hash": "4d062f423f18eedc",
+   "does": "Draws the localized 'Recovery Report' subtitle under the brand and returns y+50.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(in:withAttributes:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(in:withAttributes:)": "259840329617caee",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.drawHeaderSessionInfo(session:yPosition:contentWidth:)",
+   "hash": "c775f1d865441f5a",
+   "does": "Draws the session info line (date and recording length / summary-import note) and returns y+18.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func headerSessionInfoText(session:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(in:withAttributes:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(in:withAttributes:)": "259840329617caee",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func headerSessionInfoText(session:)": "3c3781ea1e7ee563",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.drawHeaderDemographics(yPosition:contentWidth:)",
+   "hash": "982aa6db8266a662",
+   "does": "Draws 'Age: n  •  Sex: x' in caption grey when either is set (+16), then adds 14pt spacing (two consecutive += 7).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.headerDemographicParts()",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(in:withAttributes:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "demographic parts non-empty",
+     "effect": "draws the line and advances 16; empty → skips the line"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(in:withAttributes:)": "259840329617caee",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.headerDemographicParts()": "e70f220721ce9387",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.headerDemographicParts()",
+   "hash": "d48b823f321200f1",
+   "does": "Reads user settings and returns localized 'Age: n' when age is set and 'Sex: x' when biological sex is set and not .other.",
+   "entry": null,
+   "calls": [
+    "closure:settingsProvider — PDFReportGenerator.init default reads AppDependencies.current.app.settingsManager.settingsSnapshot; tests inject UserSettings()",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.age",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.BiologicalSex.displayName",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:SettingsManager.settingsSnapshot (via settingsProvider)",
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "settings.age non-nil",
+     "effect": "appends Age part"
+    },
+    {
+     "at": "+7",
+     "cond": "biologicalSex set and != .other",
+     "effect": "appends Sex part; nil/.other → omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.settingsProvider": "962bc6e493a1aa94",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.BiologicalSex.displayName": "e8d64cefdaf3d4d7",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.age": "ca00f16b8dca855b",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.biologicalSex": "55c985aa6bd25115",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.drawSummaryCard(result:ans:compositeScore:baselineRMSSD:yPosition:in:pageRect:)",
+   "hash": "33385741de879f2f",
+   "does": "Rates tonight's RMSSD once (heroHRVRating against baselineRMSSD), draws the summary hero with that rating and then the HR stats row; returns y below.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.heroHRVRating(_:baselineRMSSD:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawSummaryHero(result:rating:ans:compositeScore:y:contentWidth:in:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawSummaryHRStats(result:y:contentWidth:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawSummaryHRStats(result:y:contentWidth:)": "e935600632341c94",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawSummaryHero(result:rating:ans:compositeScore:y:contentWidth:in:)": "72c7c627898aa5b0",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.heroHRVRating(_:baselineRMSSD:)": "422785feab70c71f",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.drawSummaryHero(result:rating:ans:compositeScore:y:contentWidth:in:)",
+   "hash": "5a7371e647f05c53",
+   "does": "Fills a 90pt grey rounded hero box, draws the big RMSSD value in the rating's colour and the assessment (badge + optional age phrase), and a readiness gauge on the right using composite score/10 or else ANS readiness; returns y+100.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.hrvCategoryColor(_:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawHeroRMSSDValue(result:color:y:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawHeroAssessment(_:y:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawReadinessGauge(score:centerX:centerY:radius:in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "compositeScore is nil",
+     "effect": "gauge uses ans?.readinessScore; non-nil → compositeScore/10 (0–100 → 0–10)"
+    },
+    {
+     "at": "+11",
+     "cond": "no gauge score",
+     "effect": "no gauge drawn"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.category(_:caller:file:line:)": "315f6413360002af",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawHeroAssessment(_:y:)": "7e3725220677f389",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawHeroRMSSDValue(result:color:y:)": "d232ccf446485aae",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawReadinessGauge(score:centerX:centerY:radius:in:)": "4302fed691f76ac0",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.hrvCategoryColor(_:)": "dfdd8f68204caa66",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.drawHeroRMSSDValue(result:color:y:)",
+   "hash": "b44bba8ac3000b93",
+   "does": "Draws the 48pt RMSSD value in the given colour and 'ms' after it, kept left-to-right on a mirrored page.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.drawingLeftToRight(minX:width:_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [
+    "mem:LanguageManager.appLocale"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.drawingLeftToRight(minX:width:_:)": "630996939f5382bb",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "29c985d5d464ee1e",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.drawHeroAssessment(_:y:)",
+   "hash": "4370729bc511c71b",
+   "does": "Draws the 'HRV (RMSSD)' caption, the assessment badge for the rating's category, and — for a population (age/sex) rating only — the age-context phrase 8pt after the badge's drawn right edge.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawHeroBadge(_:y:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawHeroAgeContext(_:x:y:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "rating has an age phrase (no personal baseline)",
+     "effect": "draws it after the badge; otherwise nothing more"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.category(_:caller:file:line:)": "315f6413360002af",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "29c985d5d464ee1e",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawHeroAgeContext(_:x:y:)": "dff24dfae5971d8d",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawHeroBadge(_:y:)": "4fd7409e59b5aace",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var ReportSectionRenderer.heroBadgeX",
+   "hash": "6eb862512b2342fb",
+   "does": "x of the badge: margin + max(85, caption width + 28) so a long translated caption is not overlapped.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.drawHeroBadge(_:y:)",
+   "hash": "b3f5b731e47aafec",
+   "does": "Draws the category's localized label in a 9pt semibold pill tinted with hrvCategoryColor at heroBadgeX; returns the pill's right edge.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.hrvCategoryColor(_:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::var ReportSectionRenderer.heroBadgeX",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "29c985d5d464ee1e",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.hrvCategoryColor(_:)": "dfdd8f68204caa66",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::var ReportSectionRenderer.heroBadgeX": "7cf14a5e5661f640"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.drawHeroAgeContext(_:x:y:)",
+   "hash": "fd7f88af5be31b46",
+   "does": "Draws the age-context phrase in 8pt grey at the given x, level with the badge.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "29c985d5d464ee1e"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.drawSummaryHRStats(result:y:contentWidth:)",
+   "hash": "729efb47ff9f0406",
+   "does": "Fills a 50pt stats row and draws four boxes (Min HR, Avg HR, Max HR in bpm, SDNN in ms, from the analysis window) through drawStatBoxRow, 38pt tall at y+6; returns y+65.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawStatBoxRow(_:y:boxWidth:boxHeight:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle",
+    "mem:LanguageManager.appLocale"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawStatBoxRow(_:y:boxWidth:boxHeight:)": "7103664dc82eeac5",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accentColor": "1bf17e24334cbbf7"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.drawStatBoxRow(_:y:boxWidth:boxHeight:)",
+   "hash": "91897e907a138beb",
+   "does": "Draws one row of compact stat boxes, column i at margin + i*boxWidth inset 4pt, boxHeight tall; items with an empty title leave their column blank. Shared by the summary HR row and PDFReportGenerator's sleep/training/vitals rows.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawCompactStatBox(title:value:color:rect:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each item where title non-empty",
+     "effect": "draws a box; empty-title items skipped"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawCompactStatBox(title:value:color:rect:)": "98aed09ae3b1f90e",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.drawReadinessGauge(score:centerX:centerY:radius:in:)",
+   "hash": "39ff09522d1cba4a",
+   "does": "Draws the readiness gauge: arcs, score text and 'Recovery' label.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawGaugeArcs(score:centerX:centerY:radius:in:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawGaugeScoreText(score:centerX:centerY:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func drawGaugeLabel(centerX:centerY:radius:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawGaugeArcs(score:centerX:centerY:radius:in:)": "bf0b190cd090217b",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawGaugeScoreText(score:centerX:centerY:)": "598784e6487f8b7d",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func drawGaugeLabel(centerX:centerY:radius:)": "56fba68da907d325"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.drawGaugeArcs(score:centerX:centerY:radius:in:)",
+   "hash": "9aeb78fd6148fdff",
+   "does": "Saves state, strokes the grey track and the coloured sweep, restores state.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func strokeGaugeTrack(centerX:centerY:radius:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.strokeGaugeSweep(score:centerX:centerY:radius:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.strokeGaugeSweep(score:centerX:centerY:radius:)": "1629118d864f3048",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func strokeGaugeTrack(centerX:centerY:radius:)": "d18dc877dd5cb5c1"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.strokeGaugeSweep(score:centerX:centerY:radius:)",
+   "hash": "475bcb53a507c5f8",
+   "does": "Strokes an 8pt round-capped arc from 135° spanning 270°×score/10 in the readiness colour (score is not clamped to 0–10).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.readinessColor(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.readinessColor(_:)": "98bde78185a02fab",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.Size.lineWidth": "2d14bae4bbb8fc1d"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.drawGaugeScoreText(score:centerX:centerY:)",
+   "hash": "8ae8529a2872ad25",
+   "does": "Draws the score (1 decimal, 18pt, readiness colour) centred and '/10' below.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.readinessColor(_:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [
+    "mem:LanguageManager.appLocale"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "29c985d5d464ee1e",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.readinessColor(_:)": "98bde78185a02fab",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.drawCompactStatBox(title:value:color:rect:)",
+   "hash": "6961b0cdcdda2064",
+   "does": "Draws a 7pt grey title and a 13pt bold coloured value in the rect.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "29c985d5d464ee1e"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.ageAdjustedInterpretation(_:)",
+   "hash": "4239a9bf12ca7e2f",
+   "does": "Maps settings biological sex to AgeAdjustedHRV.Sex and returns AgeAdjustedHRV.interpret(rmssd, age, sex).",
+   "entry": null,
+   "calls": [
+    "closure:settingsProvider — default AppDependencies settingsSnapshot",
+    "Emuqu/Sources/Analysis/HRVThresholds.swift::func AgeAdjustedHRV.interpret(rmssd:age:sex:)"
+   ],
+   "reads": [
+    "mem:SettingsManager.settingsSnapshot (via settingsProvider)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "sex == .male",
+     "effect": ".male"
+    },
+    {
+     "at": "+4",
+     "cond": "sex == .female",
+     "effect": ".female"
+    },
+    {
+     "at": "+5",
+     "cond": "sex .other or nil",
+     "effect": "nil (sex-agnostic norms)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVThresholds.swift::func AgeAdjustedHRV.interpret(rmssd:age:sex:)": "d0a2214abeefe3bd",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.settingsProvider": "962bc6e493a1aa94",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.biologicalSex": "55c985aa6bd25115"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.heroHRVRating(_:baselineRMSSD:)",
+   "hash": "70b8df312174560c",
+   "does": "Rates RMSSD for the hero: with a positive baselineRMSSD, AnalysisSummaryGenerator.personalCategory(ratio: rmssd/baseline) and no age phrase (as the report's summary and Today rate it); otherwise the age/sex-adjusted category and its localized age phrase.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.personalCategory(ratio:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.ageAdjustedInterpretation(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "baselineRMSSD non-nil and > 0",
+     "effect": "personal category; else population interpretation"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.personalCategory(ratio:)": "dc4d1279a4428011",
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.category(_:caller:file:line:)": "315f6413360002af",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.ageAdjustedInterpretation(_:)": "63d7e53732bb4423"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.hrvCategoryColor(_:)",
+   "hash": "44b8434de5512240",
+   "does": "Colour for an RMSSD category: excellent secondary green, good green at 0.8 alpha, fair amber, reduced orange, low accent red.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "switch category",
+     "effect": "one colour per case"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accentColor": "1bf17e24334cbbf7"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.readinessColor(_:)",
+   "hash": "4d2621a97049e51f",
+   "does": "Gauge colour by 0–10 readiness on RecoveryScoreConstants.ReadinessLabels (ready 7.0 → green, moderate 4.5 → amber, fatigued 2.0 → red accent, else dusty rose).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "score >= readyThreshold (7.0)",
+     "effect": "secondary green"
+    },
+    {
+     "at": "+3",
+     "cond": "score >= moderateThreshold (4.5)",
+     "effect": "amber"
+    },
+    {
+     "at": "+4",
+     "cond": "score >= fatiguedThreshold (2.0)",
+     "effect": "accent red; below → dusty rose"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accentColor": "1bf17e24334cbbf7"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.drawTimeDomainSection(_:yPosition:in:pageRect:)",
+   "hash": "f5b377baadbad2d8",
+   "does": "Draws 'Time Domain HRV' heading and a grid of Mean NN, SDNN, RMSSD, pNN50, Mean HR, SDSD and (if present) HRV triangular index; returns y+8.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::func ReportSectionRenderer.drawSectionHeading(_:yPosition:pageRect:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::func ReportSectionRenderer.drawCompactMetricsGrid(_:yPosition:pageRect:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle",
+    "mem:LanguageManager.appLocale"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+14",
+     "cond": "triangularIndex non-nil",
+     "effect": "appends 'HRV TI'; nil → omitted"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "ARCHITECTURE.md and USERS_MANUAL.md list the full metric grids (time, frequency, nonlinear, ANS) as page-1 content of every report, but drawDetailedMetricTables (which calls these grid sections) runs only for style == .comprehensive with .deepDive selected, so Summary and Sleep presets have no metric grids.",
+     "evidence": [
+      "docs/ARCHITECTURE.md:699",
+      "docs/USERS_MANUAL.md:957",
+      "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift:88"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::func ReportSectionRenderer.drawCompactMetricsGrid(_:yPosition:pageRect:)": "4c33342e0041fb55",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::func ReportSectionRenderer.drawSectionHeading(_:yPosition:pageRect:)": "26b21142858fa5f4",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.drawFrequencyDomainSection(_:yPosition:in:pageRect:)",
+   "hash": "1dbaf95a4d9567fd",
+   "does": "Draws 'Frequency Domain HRV' heading and the frequency metric grid; returns y+8.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::func ReportSectionRenderer.drawSectionHeading(_:yPosition:pageRect:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::func ReportSectionRenderer.drawCompactMetricsGrid(_:yPosition:pageRect:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func frequencyGridMetrics(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func frequencyGridMetrics(_:)": "f94467b74e88f530",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::func ReportSectionRenderer.drawCompactMetricsGrid(_:yPosition:pageRect:)": "4c33342e0041fb55",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::func ReportSectionRenderer.drawSectionHeading(_:yPosition:pageRect:)": "26b21142858fa5f4",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.drawNonlinearSection(_:yPosition:in:pageRect:)",
+   "hash": "8a82863b4e7bd291",
+   "does": "Draws 'Nonlinear HRV' heading and nonlinear grid; returns y+8.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::func ReportSectionRenderer.drawSectionHeading(_:yPosition:pageRect:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::func ReportSectionRenderer.drawCompactMetricsGrid(_:yPosition:pageRect:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func nonlinearGridMetrics(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func nonlinearGridMetrics(_:)": "06e5b59f1162bc07",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::func ReportSectionRenderer.drawCompactMetricsGrid(_:yPosition:pageRect:)": "4c33342e0041fb55",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::func ReportSectionRenderer.drawSectionHeading(_:yPosition:pageRect:)": "26b21142858fa5f4",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.drawANSSection(_:yPosition:in:pageRect:)",
+   "hash": "f216d49081f9333b",
+   "does": "Draws 'ANS Indexes' heading and the ANS grid; returns y+8.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::func ReportSectionRenderer.drawSectionHeading(_:yPosition:pageRect:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::func ReportSectionRenderer.drawCompactMetricsGrid(_:yPosition:pageRect:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ansGridMetrics(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ansGridMetrics(_:)": "95df1e4aff1fd080",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::func ReportSectionRenderer.drawCompactMetricsGrid(_:yPosition:pageRect:)": "4c33342e0041fb55",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::func ReportSectionRenderer.drawSectionHeading(_:yPosition:pageRect:)": "26b21142858fa5f4",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.drawQualitySection(_:session:yPosition:in:pageRect:)",
+   "hash": "398b0ba4eefd0346",
+   "does": "Draws 'Data Quality' heading, the quality grid and the analysis-window caveat; returns y+30.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::func ReportSectionRenderer.drawSectionHeading(_:yPosition:pageRect:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::func ReportSectionRenderer.drawCompactMetricsGrid(_:yPosition:pageRect:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func qualityGridMetrics(_:session:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawQualityNote(y:pageRect:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawQualityNote(y:pageRect:)": "1adcedd380edf5ad",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func qualityGridMetrics(_:session:)": "3966e7bcf7125de5",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::func ReportSectionRenderer.drawCompactMetricsGrid(_:yPosition:pageRect:)": "4c33342e0041fb55",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::func ReportSectionRenderer.drawSectionHeading(_:yPosition:pageRect:)": "26b21142858fa5f4",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.drawQualityNote(y:pageRect:)",
+   "hash": "84de2fbe70de65d3",
+   "does": "Draws the caption note that metrics come from a short selected window, not the full recording.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(in:withAttributes:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(in:withAttributes:)": "259840329617caee",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.drawWindowSelectionSection(result:yPosition:in:pageRect:)",
+   "hash": "7409e2306f9972c3",
+   "does": "Draws 'Analysis Window' heading and a 70pt card with time range, window HR/stability and selection reason; returns y+80.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::func ReportSectionRenderer.drawSectionHeading(_:yPosition:pageRect:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawWindowCardBackground(y:height:contentWidth:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawWindowTimeRange(result:infoY:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawWindowStats(result:infoY:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawWindowSelectionReason(result:infoY:contentWidth:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawWindowCardBackground(y:height:contentWidth:)": "4411eb5f1e648556",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawWindowSelectionReason(result:infoY:contentWidth:)": "483f33845e5fa092",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawWindowStats(result:infoY:)": "bbc2de39cb93683b",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawWindowTimeRange(result:infoY:)": "b99f7a6cab4fa8df",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::func ReportSectionRenderer.drawSectionHeading(_:yPosition:pageRect:)": "26b21142858fa5f4",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.drawWindowCardBackground(y:height:contentWidth:)",
+   "hash": "fd5a28b516e788d0",
+   "does": "Fills the grey rounded card background.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.drawWindowTimeRange(result:infoY:)",
+   "hash": "e443369e7afc2ecd",
+   "does": "When both window start/end ms exist, draws 'Time Range: m:ss – m:ss (duration)' (offsets into the recording) and advances 16.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.formatTimeMs(_:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.formatDurationMs(_:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "windowStartMs and windowEndMs both non-nil",
+     "effect": "draws the line, y+16; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "29c985d5d464ee1e",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.formatDurationMs(_:)": "610f21d6e6f7ba79",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.formatTimeMs(_:)": "7b59be239cc05eb7",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.drawWindowStats(result:infoY:)",
+   "hash": "1ee35009e0d689bc",
+   "does": "Draws window mean HR then stability on one line; returns y+16.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawWindowMeanHR(result:x:y:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawWindowStability(result:x:y:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawWindowMeanHR(result:x:y:)": "d19f58bde3d19bee",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawWindowStability(result:x:y:)": "24757d6d1b72a077",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.drawWindowMeanHR(result:x:y:)",
+   "hash": "a8581d514fc0846b",
+   "does": "Draws 'Window HR: n bpm' when present and shifts x by 100.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle",
+    "mem:LanguageManager.appLocale"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "windowMeanHR non-nil",
+     "effect": "draws and returns x+100; nil → returns x unchanged"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.windowMeanHR(_:windowSize:)": "b87d947521f454f0",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "29c985d5d464ee1e",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.drawWindowStability(result:x:y:)",
+   "hash": "3d9b854942deb6f3",
+   "does": "Draws 'Stability: <label> (CV: x.xx)' coloured by CV when stability exists.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.stabilityLabelFor(_:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.stabilityColorFor(_:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle",
+    "mem:LanguageManager.appLocale"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "windowHRStability non-nil",
+     "effect": "draws; nil → nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "29c985d5d464ee1e",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.stabilityColorFor(_:)": "0a074227c20ca2df",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.stabilityLabelFor(_:)": "82ad3e1957f06586",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.drawWindowSelectionReason(result:infoY:contentWidth:)",
+   "hash": "8d08cbd3b6075640",
+   "does": "Draws the localized window-selection reason, wrapped into a 24pt box, when non-empty.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.displayWindowSelectionReason",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(in:withAttributes:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "displayWindowSelectionReason non-nil and non-empty",
+     "effect": "draws it; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(in:withAttributes:)": "259840329617caee",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.displayWindowSelectionReason": "834a63eff5ab2bf1"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.formatTimeMs(_:)",
+   "hash": "7f72407f115ba109",
+   "does": "Formats ms as h:mm:ss when ≥1 h else m:ss.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "hours > 0",
+     "effect": "'%d:%02d:%02d'; else '%d:%02d'"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ReportSectionRenderer.formatDurationMs(_:)",
+   "hash": "1fdd92fa5cfb3377",
+   "does": "Formats a ms duration via PDFDurationText.minutesSeconds (seconds clamped into Int).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func PDFDurationText.minutesSeconds(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func PDFDurationText.minutesSeconds(_:)": "e14bca4a03fb5255"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.stabilityLabelFor(_:)",
+   "hash": "1c5508abd9660bc4",
+   "does": "Localized stability label by coefficient of variation.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "cv < 0.03",
+     "effect": "Excellent"
+    },
+    {
+     "at": "+3",
+     "cond": "cv < 0.05",
+     "effect": "Good"
+    },
+    {
+     "at": "+4",
+     "cond": "cv < 0.08",
+     "effect": "Fair; else Variable"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.stabilityColorFor(_:)",
+   "hash": "99045bc4b7c5d449",
+   "does": "Stability colour by CV.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "cv < 0.03",
+     "effect": "secondary green"
+    },
+    {
+     "at": "+2",
+     "cond": "cv < 0.05",
+     "effect": "primary blue"
+    },
+    {
+     "at": "+3",
+     "cond": "cv < 0.08",
+     "effect": "orange; else accent red"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accentColor": "1bf17e24334cbbf7"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.drawFooter(pageNumber:in:pageRect:)",
+   "hash": "dfded0fc01e9a6e3",
+   "does": "Draws the centred page footer line and the wellness disclaimer below it.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawPageFooterLine(pageNumber:pageRect:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawWellnessDisclaimer(below:pageRect:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawPageFooterLine(pageNumber:pageRect:)": "d5c62567e2bd4da6",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawWellnessDisclaimer(below:pageRect:)": "150adbae03f163fd"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.drawPageFooterLine(pageNumber:pageRect:)",
+   "hash": "7875b986e2ca9270",
+   "does": "Draws centred 'Emuqu • Page n • <now, medium date short time>' 15pt below the bottom margin line; returns its size.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(in:withAttributes:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle",
+    "mem:LanguageManager.appLocale"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(in:withAttributes:)": "259840329617caee",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.drawWellnessDisclaimer(below:pageRect:)",
+   "hash": "a435ec9cdfae504a",
+   "does": "Draws the 'wellness and fitness use only; not a medical device' disclaimer under the footer, full content width.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(in:withAttributes:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(in:withAttributes:)": "259840329617caee",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.ensureSpace(needed:y:pageNumber:context:pageRect:)",
+   "hash": "54c2ed7a47623d35",
+   "does": "Pagination: if y+needed exceeds pageHeight−bottomMargin−20, draws the footer, increments the page number, begins a new (RTL-mirrored if needed) page and returns the top margin; else returns y.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawFooter(pageNumber:in:pageRect:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.beginPage(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "y + needed > bottom limit",
+     "effect": "footer + new page, returns margins.top; false → returns y unchanged"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.beginPage(_:)": "3f7b4f90582a0bda",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawFooter(pageNumber:in:pageRect:)": "6b06292a385667e7",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.factorImpactColour(_:)",
+   "hash": "51e7d37f9107b5d5",
+   "does": "Colour for a factor's impact: positive green, neutral yellow, negative red.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".positive",
+     "effect": "secondary green"
+    },
+    {
+     "at": "+3",
+     "cond": ".neutral",
+     "effect": "systemYellow"
+    },
+    {
+     "at": "+4",
+     "cond": ".negative",
+     "effect": "accent red"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accentColor": "1bf17e24334cbbf7"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.drawScoreBreakdownSection(breakdown:loadLevel:yPosition:in:pageRect:)",
+   "hash": "9179c4afb4f5a77e",
+   "does": "Draws 'Recovery Score Breakdown' heading, composite badge, verdict message, one bar per factor, vitals penalties and the weighted-average note; returns y below. Draws no page break itself: its caller reserves scoreBreakdownHeight first.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::func ReportSectionRenderer.drawSectionHeading(_:yPosition:pageRect:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawCompositeScoreBadge(breakdown:y:contentWidth:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawCompositeMessage(breakdown:loadLevel:y:contentWidth:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawFactorBars(breakdown:y:contentWidth:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawVitalsPenalties(breakdown:y:contentWidth:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawWeightedAverageNote(breakdown:y:contentWidth:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawCompositeMessage(breakdown:loadLevel:y:contentWidth:)": "5a81dfb210c24d00",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawCompositeScoreBadge(breakdown:y:contentWidth:)": "9f40e1bb0b98ad1f",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawFactorBars(breakdown:y:contentWidth:)": "5631ebe0b0b9a272",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawVitalsPenalties(breakdown:y:contentWidth:)": "22974fae5c67a82b",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawWeightedAverageNote(breakdown:y:contentWidth:)": "7806b0849a74edc6",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::func ReportSectionRenderer.drawSectionHeading(_:yPosition:pageRect:)": "26b21142858fa5f4",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.drawCompositeScoreBadge(breakdown:y:contentWidth:)",
+   "hash": "eca0bc75803c4540",
+   "does": "Fills a 28pt badge tinted by diagnosticColorForScore(composite) — the ScoreVerdict ladder colour the app uses — and draws score and tier labels; returns the same y (caller adds the badge height).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::func ReportSectionRenderer.diagnosticColorForScore(_:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawCompositeScoreBadgeLabels(breakdown:badgeColor:y:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawCompositeScoreBadgeLabels(breakdown:badgeColor:y:)": "5dc2e788d2f13198",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::func ReportSectionRenderer.diagnosticColorForScore(_:)": "14f28e6f5c63c0e0",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.drawCompositeScoreBadgeLabels(breakdown:badgeColor:y:)",
+   "hash": "8e331d707e93bd6f",
+   "does": "Draws the composite score (0 decimals, 16pt mono) and 'Tier n' caption inside the badge.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle",
+    "mem:LanguageManager.appLocale"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "29c985d5d464ee1e",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.drawCompositeMessage(breakdown:loadLevel:y:contentWidth:)",
+   "hash": "0717ca6e789ea4d9",
+   "does": "Draws the ScoreBreakdownCopy verdict message (with the advice gate's load level), laid out by compositeMessageLayout, wrapped across the content width under the badge; returns y after it +8.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.compositeMessageLayout(breakdown:loadLevel:contentWidth:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(in:withAttributes:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(in:withAttributes:)": "259840329617caee",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.compositeMessageLayout(breakdown:loadLevel:contentWidth:)": "7c279ce86087f749",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.compositeMessageLayout(breakdown:loadLevel:contentWidth:)",
+   "hash": "01744991d75b1b2e",
+   "does": "The verdict message from ScoreBreakdownCopy.message(for:loadLevel:), its 9pt dark-grey attributes, and its wrapped height (ceil) at contentWidth-16.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:loadLevel:)",
+    "ext:NSString.boundingRect"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:loadLevel:)": "fcd09acf3383cea3"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.scoreBreakdownHeight(breakdown:loadLevel:contentWidth:)",
+   "hash": "4a6915e4b3c58445",
+   "does": "Height drawScoreBreakdownSection advances for this breakdown: heading 20 + badge 28 + 4 + message height + 8 + (factorRowHeight+4) per factor + penalties block (18 + 12 per penalty + 28, when any) + math line 14 (when showsWeightedAverageNote) + 8. Used by the caller to start a new page first.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.compositeMessageLayout(breakdown:loadLevel:contentWidth:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.showsWeightedAverageNote(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "penalties empty",
+     "effect": "no penalty block height"
+    },
+    {
+     "at": "+6",
+     "cond": "showsWeightedAverageNote",
+     "effect": "adds the 14pt math line"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.compositeMessageLayout(breakdown:loadLevel:contentWidth:)": "7c279ce86087f749",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.showsWeightedAverageNote(_:)": "6562be34a521e80a"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.drawFactorBars(breakdown:y:contentWidth:)",
+   "hash": "b8a1e897454eab78",
+   "does": "Draws a row per factor, advancing 42pt each.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawFactorRow(factor:y:contentWidth:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each factor",
+     "effect": "draws one row; no factors → y unchanged"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawFactorRow(factor:y:contentWidth:)": "cc595338a468ec23"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.drawFactorRow(factor:y:contentWidth:)",
+   "hash": "cab06a1273ba61ad",
+   "does": "Draws a factor row: grey background, impact dot, localized factor label (stored English key looked up in the app bundle), score×weight, progress bar and detail.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.factorImpactColour(_:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawFactorScoreAndWeight(factor:y:contentWidth:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawFactorProgressBar(factor:y:contentWidth:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "29c985d5d464ee1e",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawFactorProgressBar(factor:y:contentWidth:)": "c3d2b591447d07d6",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawFactorScoreAndWeight(factor:y:contentWidth:)": "e96957796b933431",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.factorImpactColour(_:)": "c459ae9538c9d4b5",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.drawFactorScoreAndWeight(factor:y:contentWidth:)",
+   "hash": "ec72a0b502634b3d",
+   "does": "Draws right-aligned '<score> × <weight>%' kept left-to-right on mirrored pages.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.factorImpactColour(_:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.drawingLeftToRight(minX:width:_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [
+    "mem:LanguageManager.appLocale"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.drawingLeftToRight(minX:width:_:)": "630996939f5382bb",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "29c985d5d464ee1e",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.factorImpactColour(_:)": "c459ae9538c9d4b5",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.drawFactorProgressBar(factor:y:contentWidth:)",
+   "hash": "c9af76756da4d14b",
+   "does": "Draws a grey 4pt track and a fill proportional to min(score,100)/100 in the impact colour, then the detail line.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.factorImpactColour(_:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawFactorDetail(factor:y:contentWidth:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawFactorDetail(factor:y:contentWidth:)": "2b38ccb15803b8b1",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.factorImpactColour(_:)": "c459ae9538c9d4b5",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.drawFactorDetail(factor:y:contentWidth:)",
+   "hash": "6f1dc82ba43dfdf9",
+   "does": "Draws the factor's display detail (with the user's temperature unit) in 7.5pt, truncated to a 10pt-high rect inside the row.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::func RecoveryScoreCalculator.ScoreFactor.displayDetail(temperatureUnit:)",
+    "closure:settingsProvider — default AppDependencies settingsSnapshot",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(in:withAttributes:)"
+   ],
+   "reads": [
+    "mem:SettingsManager.settingsSnapshot (via settingsProvider)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::func RecoveryScoreCalculator.ScoreFactor.displayDetail(temperatureUnit:)": "c9b14f11b904eab6",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(in:withAttributes:)": "259840329617caee",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.settingsProvider": "962bc6e493a1aa94",
+    "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift::var ScoreBreakdownCard.temperatureUnit": "063a6053cf5ccc9d"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.drawVitalsPenalties(breakdown:y:contentWidth:)",
+   "hash": "d392c40d5dedee4f",
+   "does": "When penalties exist, draws 'Vitals Penalties Applied:' and one '⚠ <penalty>' line per display penalty, then the explanation; returns y+28 past them.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreBreakdown.displayPenalties",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawPenaltyExplanation(y:contentWidth:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "breakdown.penalties empty",
+     "effect": "returns y unchanged; else draws block"
+    },
+    {
+     "at": "+11",
+     "cond": "for each display penalty",
+     "effect": "draws a line, +12"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreBreakdown.displayPenalties": "b00211681964aa8b",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "29c985d5d464ee1e",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawPenaltyExplanation(y:contentWidth:)": "5c3d89359ef36ffd",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accentColor": "1bf17e24334cbbf7"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.drawPenaltyExplanation(y:contentWidth:)",
+   "hash": "297e2948fba8bd19",
+   "does": "Draws a 7.5pt wrapped explanation that penalties are deducted after the weighted composite.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func NSAttributedString.pdfDraw(in:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func NSAttributedString.pdfDraw(in:)": "9025a4c33d5fb3c1",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.showsWeightedAverageNote(_:)",
+   "hash": "f173a531892acc49",
+   "does": "True when penalties applied and the composite is more than a point under the weighted factor average (breakdown.gapFromFactors > 1) — the condition ScoreBreakdownCopy's penalty message uses.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreBreakdown.gapFromFactors"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreBreakdown.gapFromFactors": "7ab83d289abeb803"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.drawWeightedAverageNote(breakdown:y:contentWidth:)",
+   "hash": "7e97bd7ad1ea358c",
+   "does": "When showsWeightedAverageNote: draws 'Weighted average: (composite + gap) − Vitals: gap = Final: composite' using breakdown.gapFromFactors; returns y+8 (+14 more when drawn).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.showsWeightedAverageNote(_:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreBreakdown.gapFromFactors",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle",
+    "mem:LanguageManager.appLocale"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "showsWeightedAverageNote",
+     "effect": "draws the math line (+14); else nothing"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "The math line labels the whole gap below the weighted average 'Vitals' whenever any penalty applied, though the gap can also hold baseline drift and the penalties can include non-vitals ones; penalties are stored as strings without amounts, so the split cannot be shown (ScoreBreakdownCopy.vitalsPenaltyMessage attributes the gap the same way).",
+     "evidence": [
+      "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift:836",
+      "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift:131"
+     ],
+     "found": "fix batch b13"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreBreakdown.gapFromFactors": "7ab83d289abeb803",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "29c985d5d464ee1e",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.showsWeightedAverageNote(_:)": "6562be34a521e80a",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "func headerSessionInfoText(session:)",
+   "hash": "82ac1abf1bb66e9b",
+   "does": "Builds the header info line: 'Date: <end-or-start date>  •  Recording: x.x min (n beats)' when the series has beats, else '… Summary import (no raw beat data)'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.durationMinutes",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle",
+    "mem:LanguageManager.appLocale"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "rrSeries nil",
+     "effect": "totalBeats = 0"
+    },
+    {
+     "at": "+7",
+     "cond": "endDate nil",
+     "effect": "uses startDate"
+    },
+    {
+     "at": "+10",
+     "cond": "totalBeats > 0",
+     "effect": "recording line; else summary-import line"
+    },
+    {
+     "at": "+11",
+     "cond": "rrSeries nil (inside true branch)",
+     "effect": "durationMinutes 0 — unreachable since totalBeats>0 implies a series"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.durationMinutes": "67f80c7be07e0044",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "func strokeGaugeTrack(centerX:centerY:radius:)",
+   "hash": "d00f854f07275c6a",
+   "does": "Strokes the 8pt light-grey 270° gauge track from 135° to 405°.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.Size.lineWidth": "2d14bae4bbb8fc1d"
+   }
+  },
+  {
+   "key": "func drawGaugeLabel(centerX:centerY:radius:)",
+   "hash": "6e306653ad7dc62d",
+   "does": "Draws the 7pt 'Recovery' label below the gauge.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "29c985d5d464ee1e",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func frequencyGridMetrics(_:)",
+   "hash": "c534925142b903a4",
+   "does": "Frequency grid rows: VLF (if present), LF, HF, LF/HF (if present), Total, LF/HF n.u. (if both present).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle",
+    "mem:LanguageManager.appLocale"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "vlf non-nil",
+     "effect": "adds VLF"
+    },
+    {
+     "at": "+8",
+     "cond": "lfHfRatio non-nil",
+     "effect": "adds LF/HF"
+    },
+    {
+     "at": "+12",
+     "cond": "lfNu and hfNu both non-nil",
+     "effect": "adds both n.u. rows"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::var FrequencyDomainMetrics.hfNu": "ac3b054fa2322008",
+    "Emuqu/Sources/Models/RRModels.swift::var FrequencyDomainMetrics.lfNu": "df4252212a128c2f",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "func nonlinearGridMetrics(_:)",
+   "hash": "4543b180c5797abb",
+   "does": "Nonlinear grid rows: SD1, SD2, SD1/SD2 always; ApEn, SampEn, DFA α1, α2 when present.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [
+    "mem:LanguageManager.appLocale"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "approxEntropy non-nil",
+     "effect": "adds ApEn"
+    },
+    {
+     "at": "+10",
+     "cond": "sampleEntropy non-nil",
+     "effect": "adds SampEn"
+    },
+    {
+     "at": "+13",
+     "cond": "dfaAlpha1 non-nil",
+     "effect": "adds DFA α1"
+    },
+    {
+     "at": "+16",
+     "cond": "dfaAlpha2 non-nil",
+     "effect": "adds DFA α2"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "func ansGridMetrics(_:)",
+   "hash": "32490756a96535b7",
+   "does": "ANS grid rows: Stress Index, PNS, SNS, HRV Readiness (/10), Resp Rate, each only when present.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle",
+    "mem:LanguageManager.appLocale"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "stressIndex non-nil",
+     "effect": "adds"
+    },
+    {
+     "at": "+6",
+     "cond": "pnsIndex non-nil",
+     "effect": "adds"
+    },
+    {
+     "at": "+9",
+     "cond": "snsIndex non-nil",
+     "effect": "adds"
+    },
+    {
+     "at": "+12",
+     "cond": "readinessScore non-nil",
+     "effect": "adds"
+    },
+    {
+     "at": "+15",
+     "cond": "respirationRate non-nil",
+     "effect": "adds"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "func qualityGridMetrics(_:session:)",
+   "hash": "700927885fdee6d7",
+   "does": "Quality grid rows: recorded beats, analysis-window minutes ('—' when unknown/0), window clean beats, artifact %.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle",
+    "mem:LanguageManager.appLocale"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "windowEndMs nil",
+     "effect": "duration 0"
+    },
+    {
+     "at": "+3",
+     "cond": "windowStartMs nil (end present)",
+     "effect": "duration 0"
+    },
+    {
+     "at": "+6",
+     "cond": "window minutes > 0",
+     "effect": "'x.x min'; else '—'"
+    },
+    {
+     "at": "+11",
+     "cond": "rrSeries nil",
+     "effect": "recorded beats 0"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.artifactPercentage(_:start:end:)": "1e5446d785cdc9fc",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  }
+ ],
+ "deps": {}
+}

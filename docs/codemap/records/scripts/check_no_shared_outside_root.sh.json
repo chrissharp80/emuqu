@@ -1,0 +1,14 @@
+{
+ "file": "scripts/check_no_shared_outside_root.sh",
+ "hash": "82bb7d4a4fc01545",
+ "role": "CI gate: `.shared` reads in Emuqu and the watch app are allowed only in AppDependencies.swift, EmuquApp.swift and WatchApp.swift (system singletons and `static let/var shared` declarations excluded).",
+ "types": [],
+ "state": [
+  "dir:Emuqu",
+  "dir:EmuquWatch Watch App"
+ ],
+ "toplevel": "cd to repo root; sources preflight. No Swift -> 2. grep -rnE `.shared` reads, drop // comment lines, SYSTEM types and static declarations; any remaining hit outside ROOT_FILES -> printed, exit 1; else clean.",
+ "flags": [],
+ "units": [],
+ "deps": {}
+}

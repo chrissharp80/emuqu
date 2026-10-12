@@ -1,0 +1,562 @@
+{
+ "file": "EmuquTests/CapabilityClassifierTests.swift",
+ "hash": "90af880bf31226fc",
+ "role": "Contract tests for CapabilityClassifier: which utterances set the tools/web/historical-depth/speculation axes, the flag-count → SmartProviderRouter.Tier truth table, and empty/whitespace input.",
+ "types": [
+  "CapabilityClassifierTests: class — @MainActor XCTestCase against CapabilityClassifier.shared"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "fragile",
+   "sev": "med",
+   "text": "CapabilityClassifier.classify takes the keyword-AND-embedding path only when SmartProviderRouter.embed returns a vector (NLContextualEmbedding asset present); otherwise it returns the keyword heuristic alone. Which code path these tests exercise therefore depends on the simulator's downloaded embedding assets, and positive tests can flip if embedding scores fall below 0.55.",
+   "evidence": [
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift:137",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift:147",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift:164"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Header claims the suite asserts ~30 utterances including tool questions that look short ('can you see the top of the last hill') and a >=95% acceptance gate; the file has 15 classify cases, none for the 'top of the last hill' case, and no accuracy gate.",
+   "evidence": [
+    "EmuquTests/CapabilityClassifierTests.swift:6",
+    "EmuquTests/CapabilityClassifierTests.swift:11",
+    "EmuquTests/CapabilityClassifierTests.swift:14"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "test-defect",
+   "sev": "low",
+   "text": "Five positive-axis utterances are lowercase copies of phrases that are themselves averaged into that axis's prototype centroid (tools/speculation/depth), which biases their cosine upward toward the 0.55 threshold; the tests therefore exercise in-sample phrases and cannot detect a threshold or paraphrase regression on unseen wording.",
+   "evidence": [
+    "EmuquTests/CapabilityClassifierTests.swift:32",
+    "EmuquTests/CapabilityClassifierTests.swift:45",
+    "EmuquTests/CapabilityClassifierTests.swift:77",
+    "EmuquTests/CapabilityClassifierTests.swift:94",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift:260",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift:173"
+   ],
+   "found": "second read"
+  }
+ ],
+ "units": [
+  {
+   "key": "func CapabilityClassifierTests.testEmailRequestNeedsTools()",
+   "hash": "8cd316d73b74bfc1",
+   "does": "Classifies 'email this report to my coach' and asserts needsTools is true and requiredTier is not .quick.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.isLikelyEnglish(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.keywordHeuristic(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.embeddingClassify(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::var CapabilityClassifier.Requirement.requiredTier",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.asksToEmail(_:)"
+   ],
+   "reads": [
+    "mem:CapabilityClassifier.shared",
+    "mem:AppDependencies.current"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.asksToEmail(_:)": "f46307606349eab9",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)": "67f299962bb530f2",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.embeddingClassify(_:)": "598ed05d4c3d5227",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.isLikelyEnglish(_:)": "415ee598e877b051",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.keywordHeuristic(_:)": "bcb34519a50b7349",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::var CapabilityClassifier.Requirement.requiredTier": "b6c76a8b4046cb8c"
+   }
+  },
+  {
+   "key": "func CapabilityClassifierTests.testNavigationRequestNeedsTools()",
+   "hash": "e3fee91a2ec342f6",
+   "does": "Classifies 'lead me back to where I parked' and asserts needsTools and a non-.quick tier.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.isLikelyEnglish(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.keywordHeuristic(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.embeddingClassify(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::var CapabilityClassifier.Requirement.requiredTier"
+   ],
+   "reads": [
+    "mem:CapabilityClassifier.shared",
+    "mem:AppDependencies.current"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)": "67f299962bb530f2",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.embeddingClassify(_:)": "598ed05d4c3d5227",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.isLikelyEnglish(_:)": "415ee598e877b051",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.keywordHeuristic(_:)": "bcb34519a50b7349",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::var CapabilityClassifier.Requirement.requiredTier": "b6c76a8b4046cb8c"
+   }
+  },
+  {
+   "key": "func CapabilityClassifierTests.testRouteSaveNeedsTools()",
+   "hash": "db5db5548fe7c50e",
+   "does": "Classifies 'save this workout as a route called Morning Loop' and asserts needsTools and a non-.quick tier.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.isLikelyEnglish(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.keywordHeuristic(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.embeddingClassify(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::var CapabilityClassifier.Requirement.requiredTier"
+   ],
+   "reads": [
+    "mem:CapabilityClassifier.shared",
+    "mem:AppDependencies.current"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)": "67f299962bb530f2",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.embeddingClassify(_:)": "598ed05d4c3d5227",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.isLikelyEnglish(_:)": "415ee598e877b051",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.keywordHeuristic(_:)": "bcb34519a50b7349",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::var CapabilityClassifier.Requirement.requiredTier": "b6c76a8b4046cb8c"
+   }
+  },
+  {
+   "key": "func CapabilityClassifierTests.testWeatherNeedsWeb()",
+   "hash": "04b42129129dcde0",
+   "does": "Classifies 'what's the weather right now' and asserts needsWeb and a non-.quick tier.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.isLikelyEnglish(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.keywordHeuristic(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.embeddingClassify(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::var CapabilityClassifier.Requirement.requiredTier"
+   ],
+   "reads": [
+    "mem:CapabilityClassifier.shared",
+    "mem:AppDependencies.current"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)": "67f299962bb530f2",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.embeddingClassify(_:)": "598ed05d4c3d5227",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.isLikelyEnglish(_:)": "415ee598e877b051",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.keywordHeuristic(_:)": "bcb34519a50b7349",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::var CapabilityClassifier.Requirement.requiredTier": "b6c76a8b4046cb8c"
+   }
+  },
+  {
+   "key": "func CapabilityClassifierTests.testProductSearchNeedsWeb()",
+   "hash": "35f50f862e23937e",
+   "does": "Classifies 'are there AI voices I can buy and use commercially' and asserts needsTools or needsWeb, and a non-.quick tier.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.isLikelyEnglish(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.keywordHeuristic(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.embeddingClassify(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::var CapabilityClassifier.Requirement.requiredTier"
+   ],
+   "reads": [
+    "mem:CapabilityClassifier.shared",
+    "mem:AppDependencies.current"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)": "67f299962bb530f2",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.embeddingClassify(_:)": "598ed05d4c3d5227",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.isLikelyEnglish(_:)": "415ee598e877b051",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.keywordHeuristic(_:)": "bcb34519a50b7349",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::var CapabilityClassifier.Requirement.requiredTier": "b6c76a8b4046cb8c"
+   }
+  },
+  {
+   "key": "func CapabilityClassifierTests.testMortalitySpeculationNeedsSpeculation()",
+   "hash": "d353d98dbc73bdde",
+   "does": "Classifies 'do your best guess on how long I'm gonna live' and asserts needsSpeculation and a non-.quick tier.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.isLikelyEnglish(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.keywordHeuristic(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.embeddingClassify(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::var CapabilityClassifier.Requirement.requiredTier"
+   ],
+   "reads": [
+    "mem:CapabilityClassifier.shared",
+    "mem:AppDependencies.current"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)": "67f299962bb530f2",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.embeddingClassify(_:)": "598ed05d4c3d5227",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.isLikelyEnglish(_:)": "415ee598e877b051",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.keywordHeuristic(_:)": "bcb34519a50b7349",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::var CapabilityClassifier.Requirement.requiredTier": "b6c76a8b4046cb8c"
+   }
+  },
+  {
+   "key": "func CapabilityClassifierTests.testForecastNeedsSpeculation()",
+   "hash": "fd08d0113548bea9",
+   "does": "Classifies 'predict what my recovery will look like next week' and asserts needsSpeculation.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.isLikelyEnglish(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.keywordHeuristic(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.embeddingClassify(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::var CapabilityClassifier.Requirement.requiredTier"
+   ],
+   "reads": [
+    "mem:CapabilityClassifier.shared",
+    "mem:AppDependencies.current"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)": "67f299962bb530f2",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.embeddingClassify(_:)": "598ed05d4c3d5227",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.isLikelyEnglish(_:)": "415ee598e877b051",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.keywordHeuristic(_:)": "bcb34519a50b7349",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::var CapabilityClassifier.Requirement.requiredTier": "b6c76a8b4046cb8c"
+   }
+  },
+  {
+   "key": "func CapabilityClassifierTests.testWhatIfNeedsSpeculation()",
+   "hash": "3612b6f77aa67ec8",
+   "does": "Classifies 'what if I rested for five days straight, how would I respond' and asserts needsSpeculation.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.isLikelyEnglish(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.keywordHeuristic(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.embeddingClassify(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::var CapabilityClassifier.Requirement.requiredTier"
+   ],
+   "reads": [
+    "mem:CapabilityClassifier.shared",
+    "mem:AppDependencies.current"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)": "67f299962bb530f2",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.embeddingClassify(_:)": "598ed05d4c3d5227",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.isLikelyEnglish(_:)": "415ee598e877b051",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.keywordHeuristic(_:)": "bcb34519a50b7349",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::var CapabilityClassifier.Requirement.requiredTier": "b6c76a8b4046cb8c"
+   }
+  },
+  {
+   "key": "func CapabilityClassifierTests.testEightWeekTrendNeedsDepth()",
+   "hash": "0e05442fc0030fd0",
+   "does": "Classifies 'explain my recovery trend over the last 8 weeks' and asserts needsHistoricalDepth.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.isLikelyEnglish(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.keywordHeuristic(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.embeddingClassify(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::var CapabilityClassifier.Requirement.requiredTier"
+   ],
+   "reads": [
+    "mem:CapabilityClassifier.shared",
+    "mem:AppDependencies.current"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)": "67f299962bb530f2",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.embeddingClassify(_:)": "598ed05d4c3d5227",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.isLikelyEnglish(_:)": "415ee598e877b051",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.keywordHeuristic(_:)": "bcb34519a50b7349",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::var CapabilityClassifier.Requirement.requiredTier": "b6c76a8b4046cb8c"
+   }
+  },
+  {
+   "key": "func CapabilityClassifierTests.testQuarterComparisonNeedsDepth()",
+   "hash": "42c84ced4b6a4727",
+   "does": "Classifies 'across the past quarter, when did I peak' and asserts needsHistoricalDepth.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.isLikelyEnglish(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.keywordHeuristic(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.embeddingClassify(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::var CapabilityClassifier.Requirement.requiredTier"
+   ],
+   "reads": [
+    "mem:CapabilityClassifier.shared",
+    "mem:AppDependencies.current"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)": "67f299962bb530f2",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.embeddingClassify(_:)": "598ed05d4c3d5227",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.isLikelyEnglish(_:)": "415ee598e877b051",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.keywordHeuristic(_:)": "bcb34519a50b7349",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::var CapabilityClassifier.Requirement.requiredTier": "b6c76a8b4046cb8c"
+   }
+  },
+  {
+   "key": "func CapabilityClassifierTests.testRecoveryScoreLookupIsQuick()",
+   "hash": "326383c1921d7a72",
+   "does": "Classifies 'what's my recovery score' and asserts requiredTier == .quick.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.isLikelyEnglish(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.keywordHeuristic(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.embeddingClassify(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::var CapabilityClassifier.Requirement.requiredTier"
+   ],
+   "reads": [
+    "mem:CapabilityClassifier.shared",
+    "mem:AppDependencies.current"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)": "67f299962bb530f2",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.embeddingClassify(_:)": "598ed05d4c3d5227",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.isLikelyEnglish(_:)": "415ee598e877b051",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.keywordHeuristic(_:)": "bcb34519a50b7349",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::var CapabilityClassifier.Requirement.requiredTier": "b6c76a8b4046cb8c"
+   }
+  },
+  {
+   "key": "func CapabilityClassifierTests.testRHRLookupIsQuick()",
+   "hash": "1bb9171e40bbeea3",
+   "does": "Classifies 'what's my resting heart rate' and asserts requiredTier == .quick.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.isLikelyEnglish(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.keywordHeuristic(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.embeddingClassify(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::var CapabilityClassifier.Requirement.requiredTier"
+   ],
+   "reads": [
+    "mem:CapabilityClassifier.shared",
+    "mem:AppDependencies.current"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)": "67f299962bb530f2",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.embeddingClassify(_:)": "598ed05d4c3d5227",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.isLikelyEnglish(_:)": "415ee598e877b051",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.keywordHeuristic(_:)": "bcb34519a50b7349",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::var CapabilityClassifier.Requirement.requiredTier": "b6c76a8b4046cb8c"
+   }
+  },
+  {
+   "key": "func CapabilityClassifierTests.testHRVLookupIsQuick()",
+   "hash": "95e4a0584279dea4",
+   "does": "Classifies 'how was my HRV last night' and asserts requiredTier == .quick.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.isLikelyEnglish(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.keywordHeuristic(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.embeddingClassify(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::var CapabilityClassifier.Requirement.requiredTier"
+   ],
+   "reads": [
+    "mem:CapabilityClassifier.shared",
+    "mem:AppDependencies.current"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)": "67f299962bb530f2",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.embeddingClassify(_:)": "598ed05d4c3d5227",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.isLikelyEnglish(_:)": "415ee598e877b051",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.keywordHeuristic(_:)": "bcb34519a50b7349",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::var CapabilityClassifier.Requirement.requiredTier": "b6c76a8b4046cb8c"
+   }
+  },
+  {
+   "key": "func CapabilityClassifierTests.testPastTenseEmailStatementIsQuick()",
+   "hash": "663ad0a9a137ca9f",
+   "does": "Asserts 'i did email yesterday' classifies to Requirement.none (past-tense email is not a request).",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.isLikelyEnglish(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.keywordHeuristic(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.embeddingClassify(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::var CapabilityClassifier.Requirement.requiredTier",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.asksToEmail(_:)"
+   ],
+   "reads": [
+    "mem:CapabilityClassifier.shared",
+    "mem:AppDependencies.current"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.asksToEmail(_:)": "f46307606349eab9",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)": "67f299962bb530f2",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.embeddingClassify(_:)": "598ed05d4c3d5227",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.isLikelyEnglish(_:)": "415ee598e877b051",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.keywordHeuristic(_:)": "bcb34519a50b7349",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::var CapabilityClassifier.Requirement.requiredTier": "b6c76a8b4046cb8c"
+   }
+  },
+  {
+   "key": "func CapabilityClassifierTests.testNewsInConversationIsQuick()",
+   "hash": "f6b49336e3493e68",
+   "does": "Asserts 'the news is good' classifies to Requirement.none (conversational 'news').",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.isLikelyEnglish(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.keywordHeuristic(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.embeddingClassify(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::var CapabilityClassifier.Requirement.requiredTier"
+   ],
+   "reads": [
+    "mem:CapabilityClassifier.shared",
+    "mem:AppDependencies.current"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)": "67f299962bb530f2",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.embeddingClassify(_:)": "598ed05d4c3d5227",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.isLikelyEnglish(_:)": "415ee598e877b051",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.keywordHeuristic(_:)": "bcb34519a50b7349",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::var CapabilityClassifier.Requirement.requiredTier": "b6c76a8b4046cb8c"
+   }
+  },
+  {
+   "key": "func CapabilityClassifierTests.testZeroFlagsResolveToQuick()",
+   "hash": "6b1a014ce1098bed",
+   "does": "Builds a Requirement with no flags set and asserts requiredTier == .quick.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::var CapabilityClassifier.Requirement.requiredTier"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::var CapabilityClassifier.Requirement.requiredTier": "b6c76a8b4046cb8c"
+   }
+  },
+  {
+   "key": "func CapabilityClassifierTests.testOneFlagResolvesToAuto()",
+   "hash": "f94c5120e8061375",
+   "does": "Builds a Requirement with only needsTools and asserts requiredTier == .auto.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::var CapabilityClassifier.Requirement.requiredTier"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::var CapabilityClassifier.Requirement.requiredTier": "b6c76a8b4046cb8c"
+   }
+  },
+  {
+   "key": "func CapabilityClassifierTests.testTwoOrMoreFlagsResolveToDeep()",
+   "hash": "c346cab1bb7cb738",
+   "does": "Builds a Requirement with needsTools and needsWeb and asserts requiredTier == .deep.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::var CapabilityClassifier.Requirement.requiredTier"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::var CapabilityClassifier.Requirement.requiredTier": "b6c76a8b4046cb8c"
+   }
+  },
+  {
+   "key": "func CapabilityClassifierTests.testAllFlagsResolveToDeep()",
+   "hash": "73a794eaba03249c",
+   "does": "Builds a Requirement with all four flags and asserts requiredTier == .deep.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::var CapabilityClassifier.Requirement.requiredTier"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::var CapabilityClassifier.Requirement.requiredTier": "b6c76a8b4046cb8c"
+   }
+  },
+  {
+   "key": "func CapabilityClassifierTests.testEmptyInputIsNone()",
+   "hash": "7ebb59f08ecd830d",
+   "does": "Classifies the empty string and asserts the result equals .none and its tier is .quick.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::var CapabilityClassifier.Requirement.requiredTier"
+   ],
+   "reads": [
+    "mem:CapabilityClassifier.shared"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)": "67f299962bb530f2",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::var CapabilityClassifier.Requirement.requiredTier": "b6c76a8b4046cb8c"
+   }
+  },
+  {
+   "key": "func CapabilityClassifierTests.testWhitespaceInputIsNone()",
+   "hash": "2a333279aceca292",
+   "does": "Classifies a whitespace/newline/tab-only string and asserts the result equals .none.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)"
+   ],
+   "reads": [
+    "mem:CapabilityClassifier.shared"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)": "67f299962bb530f2"
+   }
+  }
+ ],
+ "deps": {}
+}

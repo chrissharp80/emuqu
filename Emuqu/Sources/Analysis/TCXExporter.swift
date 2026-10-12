@@ -43,28 +43,13 @@ enum TCXExporter {
     /// tags would break TrainingPeaks / Garmin Connect imports. The machine
     /// payload stays metric, and this human-readable line goes into an XML
     /// comment at the top — plus a `<Notes>` block, so Garmin Connect surfaces
-    /// it in the activity UI.
+    /// it in the activity UI. The totals are the GPX export's
+    /// (`GPXExporter.summaryTotals`), so both files describe a workout alike
+    /// and a total the session did not record is left out, not written as 0.
     private static func humanSummary(session: HRVSession) -> String {
-        let metadata = session.workoutMetadata
-        let distMetersRaw = metadata?.distanceMeters ?? 0
-        let elevMetersRaw = metadata?.elevationGainMeters ?? 0
-        let durationSecRaw = session.duration ?? 0
         let imperial = UnitsPreferenceStore.current.resolved == .imperial
-        let distLabel: String = {
-            if imperial { return String(format: "%.2f mi", distMetersRaw / 1609.344) }
-            return String(format: "%.2f km", distMetersRaw / 1000.0)
-        }()
-        let elevLabel: String = {
-            if imperial { return String(format: "%.0f ft", elevMetersRaw * UnitConstants.feetPerMeter) }
-            return String(format: "%.0f m", elevMetersRaw)
-        }()
-        let durLabel: String = {
-            let mins = Int(durationSecRaw) / 60
-            let secs = Int(durationSecRaw) % 60
-            return String(format: "%d:%02d", mins, secs)
-        }()
-        let humanSummary = "Emuqu export (preferred units: \(imperial ? "imperial" : "metric")). Distance \(distLabel), elevation gain \(elevLabel), duration \(durLabel). Values below are metric per TCX v2 schema."
-        return humanSummary
+        let totals = GPXExporter.summaryTotals(session: session, imperial: imperial).map { " \($0)." } ?? ""
+        return "Emuqu export (preferred units: \(imperial ? "imperial" : "metric")).\(totals) Values below are metric per TCX v2 schema."
     }
 
     private static func header(
@@ -165,7 +150,12 @@ enum TCXExporter {
             xml += "              <LatitudeDegrees>\(String(format: "%.6f", fix.coordinate.latitude))</LatitudeDegrees>\n"
             xml += "              <LongitudeDegrees>\(String(format: "%.6f", fix.coordinate.longitude))</LongitudeDegrees>\n"
             xml += "            </Position>\n"
-            xml += "            <AltitudeMeters>\(String(format: "%.1f", fix.altitude))</AltitudeMeters>\n"
+            // A fix without a stored altitude carries a negative vertical
+            // accuracy (`GPXExporter.decode`); its element is left out, as
+            // the GPX writer leaves out <ele>, rather than written as 0 m.
+            if fix.altitude != 0 || fix.verticalAccuracy >= 0 {
+                xml += "            <AltitudeMeters>\(String(format: "%.1f", fix.altitude))</AltitudeMeters>\n"
+            }
             xml += "            <DistanceMeters>\(String(format: "%.1f", cumulative))</DistanceMeters>\n"
 
             if let heartRate {
@@ -209,33 +199,39 @@ enum TCXExporter {
 
 }
 
-/// Heart rate by time offset for the trackpoints. Prefers the recorder's
-/// smoothed 1 Hz samples; falls back to per-beat HR from the RR series.
-/// Either way each trackpoint gets the median of the readings within
-/// ±`halfWindow` seconds, so one missed or extra beat can't export as a 30
-/// or 250 bpm spike. Fixes arrive in time order, so a moving start index
-/// keeps the pass linear instead of rescanning every beat per fix.
+/// Heart rate by wall-clock offset for the trackpoints. Prefers per-beat HR
+/// from the RR series, whose times are on the wall clock (gap-corrected), so
+/// it lines up with trackpoint times after a pause. Falls back to the
+/// recorder's 1 Hz samples, whose `offsetSec` stops while paused — after a
+/// pause those readings sit early by the pause length, since the pause
+/// timeline is not stored with the workout. Either way each trackpoint gets
+/// the median of the readings within ±`halfWindow` seconds, so one missed or
+/// extra beat can't export as a 30 or 250 bpm spike. Readings are sorted by
+/// offset, and queries normally arrive in time order, so a moving start
+/// index keeps the pass linear; a query earlier than the last moves it back.
 private struct HRTrack {
     private let offsets: [TimeInterval]
     private let values: [Double]
     private var start = 0
     private let halfWindow: TimeInterval = 3
 
+    private typealias Reading = (offset: TimeInterval, value: Double)
+
     init(session: HRVSession) {
-        let samples = (session.workoutMetadata?.samples ?? []).filter { ($0.heartRate ?? 0) > 0 }
-        if !samples.isEmpty {
-            offsets = samples.map { TimeInterval($0.offsetSec) }
-            values = samples.map { Double($0.heartRate ?? 0) }
-            return
-        }
-        let beats = WorkoutAnalyzer.hrSamplesWithWallClock(
+        let beats: [Reading] = WorkoutAnalyzer.hrSamplesWithWallClock(
             rrPoints: session.rrSeries?.points ?? [], startDate: session.startDate
-        )
-        offsets = beats.map { $0.timestamp.timeIntervalSince(session.startDate) }
-        values = beats.map(\.hr)
+        ).map { ($0.timestamp.timeIntervalSince(session.startDate), $0.hr) }
+        let samples: [Reading] = (session.workoutMetadata?.samples ?? []).compactMap { sample -> Reading? in
+            guard let heartRate = sample.heartRate, heartRate > 0 else { return nil }
+            return (TimeInterval(sample.offsetSec), Double(heartRate))
+        }
+        let readings = (beats.isEmpty ? samples : beats).sorted { $0.offset < $1.offset }
+        offsets = readings.map { $0.offset }
+        values = readings.map { $0.value }
     }
 
     mutating func median(near offset: TimeInterval) -> Double? {
+        while start > 0, offsets[start - 1] >= offset - halfWindow { start -= 1 }
         while start < offsets.count, offsets[start] < offset - halfWindow { start += 1 }
         var window: [Double] = []
         var i = start

@@ -32,8 +32,9 @@ final class HRRCaptureService {
 
     // MARK: - Entry point
 
-    /// Collect HRR samples across all available tiers. Runs for up to
-    /// `captureWindowSec` seconds from `stopDate`. Each drop is measured from
+    /// Collect HRR samples across all available tiers. Runs until
+    /// `captureWindowSec` + 15 s after `stopDate` (the end of the Watch
+    /// query window), plus the HealthKit queries. Each drop is measured from
     /// `stopHR`, the heart rate at Stop (Cole 1999), which is also stored as
     /// the sample's `peakHR`. Returns the merged sample list ordered by offset.
     func captureHRR(
@@ -69,8 +70,11 @@ final class HRRCaptureService {
         // Tier 2/3 fill in.
         var samples = await captureStrapSamples(stopDate: stopDate, stopHR: stopHR)
         debugLog("[HRRCaptureService] tier 1 done — \(samples.count) strap sample(s)")
-        // Tier 2 — Watch HR samples from HealthKit. Safe to query now; the
-        // Watch has had the full capture window to write samples.
+        // Tier 2 — Watch HR samples from HealthKit. Tier 1 stops early when
+        // the strap drops (at +60 s, or right away with no strap), so wait
+        // out the rest of the query window first: a Watch sample near
+        // +120 s cannot exist before then.
+        await waitForWatchWindowEnd(stopDate: stopDate)
         let watchSamples = await captureWatchSamples(stopDate: stopDate, stopHR: stopHR)
         let dedupedWatch = watchSamples.filter { sample in
             !samples.contains { $0.offsetSec == sample.offsetSec && $0.provenance == .strap }
@@ -79,6 +83,25 @@ final class HRRCaptureService {
         debugLog("[HRRCaptureService] tier 2 done — \(watchSamples.count) watch sample(s) (after dedupe vs tier 1: +\(dedupedWatch.count))")
         return samples
     }
+
+    /// Sleeps until the end of the Watch query window
+    /// (`captureWindowSec` + 15 s after `stopDate`); returns at once when it
+    /// has already passed. A cancelled wait is logged and the query runs on
+    /// whatever has been written by then.
+    private func waitForWatchWindowEnd(stopDate: Date) async {
+        let windowEnd = stopDate.addingTimeInterval(TimeInterval(captureWindowSec) + Self.watchWindowSlackSec)
+        let remaining = windowEnd.timeIntervalSinceNow
+        guard remaining > 0 else { return }
+        do {
+            try await Task.sleep(nanoseconds: UInt64(remaining * 1_000_000_000))
+        } catch {
+            debugLog("[HRRCaptureService] tier 2 — wait for the window end cancelled; querying now")
+        }
+    }
+
+    /// The Watch query reaches this far past the capture window, for a sample
+    /// stamped just after the last target.
+    private static let watchWindowSlackSec: TimeInterval = 15
 
     /// Tier 3 — Apple's precomputed HRR, if a Watch workout detected the
     /// session. Added only when neither strap nor Watch produced a 1-minute
@@ -158,10 +181,12 @@ final class HRRCaptureService {
     /// A sample this far below the running max is contamination, not recovery.
     nonisolated private static let regressionTolerance = 10
 
+    /// Logged at `.info`, not `.warning`: a movement after Stop that undoes
+    /// part of the recovery is routine, not an app problem, and `.warning`
+    /// entries surface in Troubleshooting's "Recent Problems".
     nonisolated private static func logContaminatedSample(_ s: HRRSample, priorMax: Int, regressionTolerance: Int) {
         debugLog(
-            "[HRRCaptureService] dropping +\(s.offsetSec)s sample (drop=\(s.drop), provenance=\(s.provenance)) — \(priorMax - s.drop) bpm below prior max=\(priorMax) (tolerance=\(regressionTolerance)). Real contamination — yawn / sensor inversion.",
-            level: .warning
+            "[HRRCaptureService] dropping +\(s.offsetSec)s sample (drop=\(s.drop), provenance=\(s.provenance)) — \(priorMax - s.drop) bpm below prior max=\(priorMax) (tolerance=\(regressionTolerance)). Real contamination — yawn / sensor inversion."
         )
     }
 
@@ -170,14 +195,9 @@ final class HRRCaptureService {
     private func captureStrapSamples(stopDate: Date, stopHR: Int) async -> [HRRSample] {
         var samples: [HRRSample] = []
         for target in [60, 120] where target <= captureWindowSec {
-            let secondsToWait = target - Int(Date().timeIntervalSince(stopDate))
-            guard secondsToWait > 0 else { continue }
-            do {
-                try await Task.sleep(nanoseconds: UInt64(secondsToWait) * 1_000_000_000)
-            } catch {
-                debugLog("[HRRCaptureService] tier 1 — sleep cancelled at +\(target)s, breaking")
-                break
-            }
+            let wait = await reachTarget(target, stopDate: stopDate)
+            if wait == .cancelled { break }
+            guard wait == .ready else { continue }
             guard let hr = strapHR(at: target) else { break }
             samples.append(HRRSample(
                 offsetSec: target, hr: hr, drop: stopHR - hr,
@@ -185,6 +205,28 @@ final class HRRCaptureService {
             ))
         }
         return samples
+    }
+
+    private enum TargetWait { case ready, missed, cancelled }
+
+    /// A target already passed by at most this much is still read now, as
+    /// the Watch tier accepts a sample this far from its target.
+    private static let lateReadToleranceSec = 15
+
+    /// Sleeps until `target` s after `stopDate`. `.ready` to read now (also
+    /// when the target passed less than `lateReadToleranceSec` ago, so a
+    /// capture that starts late does not lose the offset), `.missed` when it
+    /// passed longer ago, `.cancelled` when the sleep was cancelled.
+    private func reachTarget(_ target: Int, stopDate: Date) async -> TargetWait {
+        let secondsToWait = target - Int(Date().timeIntervalSince(stopDate))
+        guard secondsToWait > 0 else { return -secondsToWait <= Self.lateReadToleranceSec ? .ready : .missed }
+        do {
+            try await Task.sleep(nanoseconds: UInt64(secondsToWait) * 1_000_000_000)
+            return .ready
+        } catch {
+            debugLog("[HRRCaptureService] tier 1 — sleep cancelled at +\(target)s, breaking")
+            return .cancelled
+        }
     }
 
     /// The strap's current HR, or nil when it has stopped supplying one — in
@@ -222,10 +264,11 @@ final class HRRCaptureService {
     /// Median HR over the tail of the Polar streaming buffer. Matches
     /// what WorkoutRecorder uses for its live HR display — single-beat
     /// HR from raw rr_ms swings 40-140 from the same heart rate, but
-    /// the median of the last ~8 beats reads like a real HR.
+    /// the median of the last ~8 beats reads like a real HR. Nil when the
+    /// newest beat is stale (`freshTailBeats`), so a stalled stream is not
+    /// stored as the HR at +60/+120 s.
     private func currentHRFromBuffer() -> Int? {
-        let recent = polarManager.streamedRRPoints.suffix(8).filter { $0.rr_ms > 0 }
-        guard !recent.isEmpty else { return nil }
+        guard let recent = freshTailBeats(), !recent.isEmpty else { return nil }
         let sorted = recent.map { Double($0.rr_ms) }.sorted()
         let median = sorted.count.isMultiple(of: 2)
             ? (sorted[sorted.count / 2 - 1] + sorted[sorted.count / 2]) / 2
@@ -238,6 +281,23 @@ final class HRRCaptureService {
         let bpm = 60_000.0 / median
         guard bpm.isFinite, bpm > 20, bpm < 250 else { return nil }
         return Int(bpm)
+    }
+
+    /// A newest beat older than this at the read is a stalled stream.
+    private static let maxBeatAgeSec: TimeInterval = 5
+
+    /// The buffer's last 8 positive beats when the newest one arrived within
+    /// `maxBeatAgeSec` of now (by its wall-clock stamp from the stream start);
+    /// nil when it is older, or its arrival time is unknown.
+    private func freshTailBeats() -> [RRPoint]? {
+        let tail = polarManager.streamedRRPoints.suffix(8).filter { $0.rr_ms > 0 }
+        guard let start = polarManager.streamingStartTime, let lastMs = tail.last?.wallClockMs else { return nil }
+        let age = Date().timeIntervalSince(start.addingTimeInterval(Double(lastMs) / 1_000))
+        guard age <= Self.maxBeatAgeSec else {
+            debugLog("[HRRCaptureService] tier 1 — newest strap beat is \(Int(age)) s old; stream stalled, not reading HR")
+            return nil
+        }
+        return Array(tail)
     }
 
     // MARK: - Tier 2 — Apple Watch HR samples
@@ -267,7 +327,7 @@ final class HRRCaptureService {
     /// not an error.
     private func watchHeartRateSamples(stopDate: Date) async -> [HKQuantitySample] {
         let start = stopDate
-        let end = stopDate.addingTimeInterval(TimeInterval(captureWindowSec) + 15)
+        let end = stopDate.addingTimeInterval(TimeInterval(captureWindowSec) + Self.watchWindowSlackSec)
         let hrType = HKQuantityType(.heartRate)
         let authStatus = healthKit.healthStore.authorizationStatus(for: hrType)
         debugLog("[HRRCaptureService] tier 2 — HR read auth status=\(authStatus.rawValue) (0=notDetermined, 1=denied, 2=granted)")
@@ -279,7 +339,9 @@ final class HRRCaptureService {
     }
 
     private func runHeartRateQuery(type hrType: HKQuantityType, start: Date, end: Date) async -> [HKQuantitySample] {
-        let predicate = HKQuery.predicateForSamples(withStart: start, end: end)
+        // This app writes the strap's HR series to HealthKit; reading it back
+        // would label the strap's own beats as Watch samples.
+        let predicate = healthKit.hrReadExcludingOwnWrites(dateRange: HKQuery.predicateForSamples(withStart: start, end: end))
         let samples: [HKQuantitySample] = await healthKit.runBoundedQuery(timeout: HealthKitManager.hrvQueryTimeoutSec) { resolve in
             HKSampleQuery(
                 sampleType: hrType,
@@ -303,31 +365,37 @@ final class HRRCaptureService {
     }
 
     /// The nearest HK sample to each target offset, rejecting anything more
-    /// than 15 s away — the Watch's passive sampling can be sparse during rest.
+    /// than 15 s away — the Watch's passive sampling can be sparse during rest
+    /// — and any reading at or above `stopHR`: HR that has not fallen since
+    /// Stop (the user moving) is not a recovery and would store a negative drop.
     private func watchHRRSamples(
         from samples: [HKQuantitySample],
         stopDate: Date,
         stopHR: Int
     ) -> [HRRSample] {
-        let bpmUnit = HKUnit(from: "count/min")
         var results: [HRRSample] = []
-        var rejectedTooFar = 0
+        var rejected = 0
         for target in [60, 120] where target <= captureWindowSec {
-            let targetTime = stopDate.addingTimeInterval(TimeInterval(target))
-            guard let nearest = samples.min(by: {
-                abs($0.startDate.timeIntervalSince(targetTime)) < abs($1.startDate.timeIntervalSince(targetTime))
-            }) else { continue }
-            guard abs(nearest.startDate.timeIntervalSince(targetTime)) <= 15 else {
-                rejectedTooFar += 1
+            guard let hr = Self.nearestHR(in: samples, at: stopDate.addingTimeInterval(TimeInterval(target))),
+                  stopHR - hr > 0 else {
+                rejected += 1
                 continue
             }
-            let hr = Int(nearest.quantity.doubleValue(for: bpmUnit).rounded())
             results.append(HRRSample(offsetSec: target, hr: hr, drop: stopHR - hr, peakHR: stopHR, provenance: .watchSamples))
         }
-        if results.isEmpty, rejectedTooFar > 0 {
-            debugLog("[HRRCaptureService] tier 2 — \(samples.count) HK samples present but all >15s from target offsets (\(rejectedTooFar) rejected)")
+        if results.isEmpty, rejected > 0 {
+            debugLog("[HRRCaptureService] tier 2 — \(samples.count) HK samples present but none within 15s of a target with HR below stop HR (\(rejected) rejected)")
         }
         return results
+    }
+
+    /// The bpm of the sample nearest `targetTime`, or nil when none lies
+    /// within 15 s of it.
+    private static func nearestHR(in samples: [HKQuantitySample], at targetTime: Date) -> Int? {
+        guard let nearest = samples.min(by: {
+            abs($0.startDate.timeIntervalSince(targetTime)) < abs($1.startDate.timeIntervalSince(targetTime))
+        }), abs(nearest.startDate.timeIntervalSince(targetTime)) <= 15 else { return nil }
+        return Int(nearest.quantity.doubleValue(for: HKUnit(from: "count/min")).rounded())
     }
 
     // MARK: - Tier 3 — Apple's computed heartRateRecoveryOneMinute

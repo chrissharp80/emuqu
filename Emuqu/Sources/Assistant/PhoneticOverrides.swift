@@ -130,9 +130,10 @@ enum PhoneticOverrides {
     ///
     /// Applied in order; a later rule that overlaps an earlier one
     /// overwrites the attribute, which is fine — `resolve()` already put AI
-    /// hints first so domain rules can't clobber them.
-    static func speechAttributedString(_ text: String) -> NSAttributedString {
-        let (plain, hints) = resolve(text)
+    /// hints first so domain rules can't clobber them. `english: false`
+    /// skips the English-only passes (see `resolve`).
+    static func speechAttributedString(_ text: String, english: Bool = true) -> NSAttributedString {
+        let (plain, hints) = resolve(text, english: english)
         let attr = NSMutableAttributedString(string: plain)
         for hint in hints where isApplicable(hint, attrLength: attr.length) {
             attr.addAttribute(.accessibilitySpeechIPANotation, value: hint.ipa, range: hint.range)
@@ -177,8 +178,13 @@ enum PhoneticOverrides {
     /// reads them digit-by-digit instead of as a number
     /// ("sixty two thousand seven hundred four"). User report: "it always
     /// says 'sixty two thousand' for my zip code."
-    static func resolve(_ input: String) -> (plain: String, hints: [Hint]) {
-        var (out, hints) = stripAuthoredMarkup(expandZipCodes(input))
+    ///
+    /// `english: false` skips the ZIP read-out (it says "dash") and the
+    /// domain rules (English "live" phrases); only the AI's own markup is
+    /// applied.
+    static func resolve(_ input: String, english: Bool = true) -> (plain: String, hints: [Hint]) {
+        var (out, hints) = stripAuthoredMarkup(english ? expandZipCodes(input) : input)
+        guard english else { return (out, hints) }
         for rule in domainRules {
             applyDomainRule(rule, to: &out, hints: &hints)
         }
@@ -309,10 +315,9 @@ enum PhoneticOverrides {
         // "postal code 62704"). Capture group 1 = label run-up so we
         // can preserve it; group 2 = the digits.
         let explicitPattern = #"(?i)(\b(?:zip(?:\s*code)?|postal\s*code)\b\s*:?\s*)(\d{5})(?:(-\d{4}))?\b"#
-        // Pattern B: 2-letter state + 5-digit ZIP. The state code must
-        // be uppercase to avoid false-positives on words like "as"
-        // followed by a number.
-        let statePattern = #"\b([A-Z]{2})\s+(\d{5})(?:(-\d{4}))?\b"#
+        // Pattern B: US state / territory code + 5-digit ZIP. Only the real
+        // codes, in uppercase: "as 12000" or "HR 12000" is not an address.
+        let statePattern = #"\b(A[KLRSZ]|C[AOT]|D[CE]|FL|G[AU]|HI|I[ADLN]|K[SY]|LA|M[ADEINOPST]|N[CDEHJMVY]|O[HKR]|P[AR]|RI|S[CD]|T[NX]|UT|V[AIT]|W[AIVY])\s+(\d{5})(?:(-\d{4}))?\b"#
         var out = input
         for pattern in [explicitPattern, statePattern] {
             out = expandZips(in: out, pattern: pattern)
@@ -339,13 +344,14 @@ enum PhoneticOverrides {
     /// The span to replace and the spaced-digit text to put there, or nil when
     /// the match isn't a well-formed ZIP. A ZIP+4 suffix is preserved as
     /// "dash 1 2 3 4" and folded into the same replacement span.
+    ///
+    /// Both callers' patterns have exactly three groups: 1 the run-up, 2 the
+    /// ZIP, 3 the optional "-1234".
     private static func zipReplacement(for match: NSTextCheckingResult, in ns: NSString) -> (NSRange, String)? {
-        guard match.numberOfRanges >= 3 else { return nil }
         let zipRange = match.range(at: 2)
         guard zipRange.location != NSNotFound, zipRange.length == 5,
               zipRange.location + zipRange.length <= ns.length else { return nil }
         let spaced = spacedDigits(ns.substring(with: zipRange))
-        guard match.numberOfRanges >= 4 else { return (zipRange, spaced) }
         let suffixRange = match.range(at: 3)
         guard suffixRange.location != NSNotFound, suffixRange.length == 5 else {
             return (zipRange, spaced)

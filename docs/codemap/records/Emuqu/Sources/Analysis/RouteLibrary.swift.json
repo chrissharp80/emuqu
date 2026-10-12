@@ -1,0 +1,305 @@
+{
+ "file": "Emuqu/Sources/Analysis/RouteLibrary.swift",
+ "hash": "88e96c9baa5435da",
+ "role": "Recognises whether the live workout GPS track follows a route saved in SavedRouteStore, in forward or reverse direction, by mean nearest-neighbour fit of a sampled live track to a thinned prefix of the saved track.",
+ "types": [
+  "RouteLibrary: enum (@MainActor) — namespace for route-matching constants and geometry",
+  "RouteLibrary.Direction: enum — forward/reverse",
+  "RouteLibrary.Match: struct — matched SavedRoute, rebuilt Route, direction, mean fit metres"
+ ],
+ "state": [
+  "static let detectionTriggerMeters = 500",
+  "static let matchToleranceMeters = 30",
+  "static let supportedSports = [.run,.trailRun,.walk,.hike,.bike]",
+  "static let maxScoredPoints = 300",
+  "static let prefixSpacingMeters = 5",
+  "static let startGateMeters = 150",
+  "static let prefixOvershootMeters = 200"
+ ],
+ "toplevel": "Only static constants; no stored mutable state.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func RouteLibrary.findMatch(currentTrack:sport:store:)",
+   "hash": "11db02437245528f",
+   "does": "Returns the best (lowest mean-fit) Match among the store's saved routes for `sport` (forward and reverse candidates), or nil if the sport is unsupported, the track has <2 points, the live track is shorter than 500 m, or no candidate fits within 30 m.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.candidates(for:liveTrack:liveTraveled:)",
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.totalDistanceMeters(of:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.savedRouteStore",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.routes(for:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location"
+   ],
+   "reads": [
+    "mem:SavedRouteStore.routes"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "store argument nil",
+     "effect": "resolve AppDependencies.current.location.savedRouteStore (SavedRouteStore.shared unless overridden); else use the passed store"
+    },
+    {
+     "at": "+7",
+     "cond": "sport in supportedSports and track has >=2 points",
+     "effect": "continue; otherwise return nil"
+    },
+    {
+     "at": "+9",
+     "cond": "live track length >= 500 m",
+     "effect": "continue; otherwise return nil"
+    },
+    {
+     "at": "+11",
+     "cond": "for each saved route of this sport (newest first)",
+     "effect": "score its candidates"
+    },
+    {
+     "at": "+12",
+     "cond": "for each candidate whose fit beats the current best",
+     "effect": "replace best"
+    },
+    {
+     "at": "+13",
+     "cond": "candidate.meanFitMeters < (best?.meanFitMeters ?? .infinity)",
+     "effect": "?? uses +infinity when no best yet so the first candidate always wins; ties keep the earlier (newer route, forward before reverse)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "untested",
+     "sev": "med",
+     "text": "No test calls RouteLibrary.findMatch, scoreDirection, candidates, location(of:), evenSample or thinned (RouteLibraryGeometryTests covers only trackPrefix/meanNearestDistance/nearestDistance), so the reverse-direction climb queue and the start gate are unverified.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/RouteLibrary.swift:65",
+      "EmuquTests/RouteLibraryGeometryTests.swift:41"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.candidates(for:liveTrack:liveTraveled:)": "29e4e418d4aebd10",
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.totalDistanceMeters(of:)": "ed55e0f71de4cd6c",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.routes(for:)": "d183aa1e85ebbd65",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location": "236ffadb120d332c",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.savedRouteStore": "984316b98ce9cac9"
+   }
+  },
+  {
+   "key": "func RouteLibrary.candidates(for:liveTrack:liveTraveled:)",
+   "hash": "1a062a013aae1d61",
+   "does": "Converts a SavedRoute to a Route, rebuilds a CLLocation track from its trackpoints with each point's saved altitude (location(of:)), and returns up to two Matches: forward against the saved Route (with its enriched climbs) and reverse against a Route rebuilt by Route.fromGPX from the reversed track, whose climb detection now sees the real altitudes. Reverse climbs carry no road names (the library's geocoding pass names only forward climbs).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRoute.toRoute()",
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.location(of:)",
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.scoreDirection(liveTrack:savedTrack:liveTraveled:saved:route:direction:)",
+    "Emuqu/Sources/Models/Route.swift::func Route.fromGPX(name:track:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "rebuilt track has >=2 points",
+     "effect": "score both directions; otherwise return []"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.location(of:)": "6a51044ce4dd5bb2",
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.scoreDirection(liveTrack:savedTrack:liveTraveled:saved:route:direction:)": "3cf43ac9e169d575",
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.trackpoints(session:track:iso:)": "a784bf4553e314a2",
+    "Emuqu/Sources/Models/Route.swift::func Route.fromGPX(name:track:)": "f86b9993b7802976",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRoute.toRoute()": "539ccc30635f66ec"
+   }
+  },
+  {
+   "key": "func RouteLibrary.location(of:)",
+   "hash": "52deee1aa7ad9cf0",
+   "does": "A saved Route.Point as a CLLocation carrying its latitude, longitude and altitudeMeters (accuracies 0, timestamp distantPast — unused by the distance and climb math).",
+   "entry": null,
+   "calls": [
+    "ext:CoreLocation.CLLocation.init(coordinate:altitude:horizontalAccuracy:verticalAccuracy:timestamp:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RouteLibrary.scoreDirection(liveTrack:savedTrack:liveTraveled:saved:route:direction:)",
+   "hash": "91f7e8ffd56552ff",
+   "does": "Scores one direction: rejects when either track is empty or the saved start is more than startGateMeters (150 m) from the live start; otherwise takes the saved prefix of (live distance + prefixOvershootMeters, 200 m), thinned to prefixSpacingMeters (5 m), computes the mean nearest distance from up to maxScoredPoints (300) evenly sampled live points, and returns a Match when it is <= matchToleranceMeters (30 m).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.trackPrefix(_:meters:)",
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.thinned(_:spacing:)",
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.evenSample(_:count:)",
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.meanNearestDistance(from:to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "both tracks have a first point",
+     "effect": "continue; otherwise nil"
+    },
+    {
+     "at": "+12",
+     "cond": "live start within startGateMeters of saved start",
+     "effect": "continue; otherwise nil (a workout started partway round a saved loop is not recognised, as documented on startGateMeters)"
+    },
+    {
+     "at": "+15",
+     "cond": "mean distance <= matchToleranceMeters",
+     "effect": "return Match; otherwise nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.evenSample(_:count:)": "9ef79a4e10fc1022",
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.meanNearestDistance(from:to:)": "11504b577601b637",
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.thinned(_:spacing:)": "ee7cc85023668301",
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.trackPrefix(_:meters:)": "838009e02228aff7"
+   }
+  },
+  {
+   "key": "func RouteLibrary.evenSample(_:count:)",
+   "hash": "a88fb0f270f1937e",
+   "does": "Returns `count` points evenly spaced by index across the track, or the track unchanged when count<=0 or the track is not longer than count.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "count > 0 and track.count > count",
+     "effect": "subsample by index step track.count/count; otherwise return track as-is"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RouteLibrary.thinned(_:spacing:)",
+   "hash": "45820d5aa2b646b7",
+   "does": "Returns the track with points closer than `spacing` metres to the last kept point dropped; first and last points are always kept.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "track has a first and last point",
+     "effect": "proceed; empty track returned as-is"
+    },
+    {
+     "at": "+3",
+     "cond": "point at least `spacing` from last kept",
+     "effect": "append and make it last kept; else skip"
+    },
+    {
+     "at": "+7",
+     "cond": "last kept point is not the same object as the track's end (identity !==)",
+     "effect": "append the end point; otherwise already present"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RouteLibrary.totalDistanceMeters(of:)",
+   "hash": "2d292e8593091e41",
+   "does": "Returns the summed segment length of the track via WorkoutGeometry.trackLengthMeters.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.trackLengthMeters(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.trackLengthMeters(_:)": "f1edad8137733746"
+   }
+  },
+  {
+   "key": "func RouteLibrary.trackPrefix(_:meters:)",
+   "hash": "07fe8bc6e336fa94",
+   "does": "Returns the leading points of the track up to and including the first point whose cumulative distance reaches `meters`; whole track when <2 points or meters<=0.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "track.count >= 2 and meters > 0",
+     "effect": "walk the track; otherwise return track unchanged"
+    },
+    {
+     "at": "+4",
+     "cond": "loop over points 1..<count",
+     "effect": "accumulate distance and append each point"
+    },
+    {
+     "at": "+7",
+     "cond": "cumulative >= meters",
+     "effect": "stop; otherwise keep walking (whole track if never reached)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RouteLibrary.meanNearestDistance(from:to:)",
+   "hash": "18d0017fe6f3667f",
+   "does": "Mean over points of `a` of the nearest distance to any point in `b`; +infinity when either is empty.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.nearestDistance(from:to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "both arrays non-empty",
+     "effect": "compute mean; otherwise return .infinity (never matches)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.nearestDistance(from:to:)": "71122270ab6b0170"
+   }
+  },
+  {
+   "key": "func RouteLibrary.nearestDistance(from:to:)",
+   "hash": "2b7ecc880cd49d3b",
+   "does": "Minimum CLLocation distance from `pa` to any point in `b`; greatestFiniteMagnitude for empty b.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each point in b",
+     "effect": "keep the minimum distance"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

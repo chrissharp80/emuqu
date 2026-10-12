@@ -14,7 +14,10 @@ import Foundation
 /// on the no-tools fallback paths.
 ///
 /// Pure data — no analysis logic lives here. If a number isn't already
-/// computed somewhere in the app, it doesn't belong in the context.
+/// computed somewhere in the app, it doesn't belong in the context. The
+/// renderers read only this value: ages and day windows are measured from
+/// `generatedAt`, and the live HR history from `liveWorkoutSamples`, so the
+/// same context renders the same text whenever it is rendered.
 struct AssistantContext: Codable {
     // MARK: - Top-level fields
 
@@ -80,6 +83,12 @@ struct AssistantContext: Codable {
     /// path in `AssistantContextSource` can refresh just this field
     /// without rebuilding the whole tree.
     var ambientLocation: AmbientLocationSnapshot?
+
+    /// The live workout's per-tick samples, captured with `liveWorkout` (and
+    /// overlaid with it in `AssistantContextSource`), so the HR-history line
+    /// renders from this context rather than from whatever the broker holds
+    /// at render time. Nil outside a workout.
+    var liveWorkoutSamples: [WorkoutSample]?
 }
 
 // MARK: - Rendering
@@ -261,8 +270,8 @@ extension AssistantContext {
     /// every provider has it, bounded at 6 buckets to keep the line short —
     /// full per-second data is still available via the timeline tool for
     /// Anthropic / OpenAI / etc. when they want detail.
-    private func liveWorkoutHRHistoryLines(_ live: LiveWorkoutSnapshot) -> [String] {
-        let recent = AppDependencies.current.assistant.liveWorkoutBroker.currentSamples()
+    private func liveWorkoutHRHistoryLines() -> [String] {
+        let recent = liveWorkoutSamples ?? []
         guard recent.count >= 6 else { return [] }
         let summaries = hrBucketSummaries(Array(recent.suffix(min(recent.count, 600))))
         guard !summaries.isEmpty else { return [] }
@@ -299,7 +308,7 @@ extension AssistantContext {
         guard let live = liveWorkout else { return [] }
         var out = ["🟢 LIVE WORKOUT: " + liveWorkoutBits(live).joined(separator: ", ")]
         out += liveWorkoutLocationLines(live)
-        out += liveWorkoutHRHistoryLines(live)
+        out += liveWorkoutHRHistoryLines()
         return out
     }
 
@@ -324,7 +333,7 @@ extension AssistantContext {
         var bits = [
             "Sport: \(live.sport)",
             "\(live.elapsedSeconds / 60)m elapsed",
-            "snapshot_age_sec=\(max(0, Int(Date().timeIntervalSince(live.snapshotAt))))"
+            "snapshot_age_sec=\(max(0, Int(generatedAt.timeIntervalSince(live.snapshotAt))))"
         ]
         if let hr = live.heartRate {
             let pct = live.userMaxHR > 0 ? Int((Double(hr) / Double(live.userMaxHR)) * 100) : nil
@@ -413,16 +422,36 @@ extension AssistantContext {
     /// is the rendered version that lives in the prompt itself.
     private func algorithmLine() -> String {
         let version = userProfile.scoreAlgorithmVersion
-        var bits = ["Algorithm: \(version) (Tier 3: HRV 60% / Sleep 25% / Vitals 15%; Tier 2: HRV 70% / Sleep 30%; Tier 1: HRV only)"]
+        var bits = ["Algorithm: \(version) (\(Self.tierWeightsText))"]
         if userProfile.comebackModeActive {
             // Stored 0-based; the user counts the first day as day 1.
             let day = userProfile.comebackModeDayInWindow.map { " — day \($0 + 1) of 21" } ?? ""
-            bits.append("Comeback mode active\(day) — on a Tier 3 day weights shift to HRV 80% / Sleep 20% / Vitals 0%; Tier 2 (no vitals) keeps its usual weights; the SpO₂ penalty still applies")
+            let weights = Self.weightsText(ScoringWeights.Comeback.hrv, ScoringWeights.Comeback.sleep, ScoringWeights.Comeback.vitals)
+            bits.append("Comeback mode active\(day) — on a Tier 3 day weights shift to \(weights); Tier 2 (no vitals) keeps its usual weights; the SpO₂ penalty still applies")
         }
         if !userProfile.scoreHistoryRecomputed {
             bits.append("Score history NOT yet recomputed under \(version) — older session scores in this context may still be under an earlier algorithm")
         }
         return bits.joined(separator: ". ")
+    }
+
+    /// The tier weights the scorer applies, read from `ScoringWeights` so the
+    /// prompt cannot drift from the score. Tier 2 includes the dampened split
+    /// `ScoreDetailBuilder.buildTier2` uses on a night with HRV more than 1 SD
+    /// below baseline and a sleep score under 50.
+    private static var tierWeightsText: String {
+        let tier3 = weightsText(ScoringWeights.Tier3.hrv, ScoringWeights.Tier3.sleep, ScoringWeights.Tier3.vitals)
+        let tier2 = weightsText(ScoringWeights.Tier2.hrvNormal, ScoringWeights.Tier2.sleepNormal)
+        let dampened = weightsText(ScoringWeights.Tier2.hrvDampened, ScoringWeights.Tier2.sleepDampened)
+        return "Tier 3: \(tier3); Tier 2: \(tier2), or \(dampened) on a night with HRV more than 1 SD below baseline "
+            + "and a sleep score under 50; Tier 1: HRV only"
+    }
+
+    /// "HRV 60% / Sleep 25% / Vitals 15%"; the vitals part only when given.
+    private static func weightsText(_ hrv: Double, _ sleep: Double, _ vitals: Double? = nil) -> String {
+        let percent = { (weight: Double) in "\(Int((weight * 100).rounded()))%" }
+        let text = "HRV \(percent(hrv)) / Sleep \(percent(sleep))"
+        return vitals.map { text + " / Vitals \(percent($0))" } ?? text
     }
 
     /// Today's session — the headline numbers the model reaches for first.
@@ -455,26 +484,17 @@ extension AssistantContext {
     }
 
     private func todayHRVLines(_ today: SessionSnapshot) -> [String] {
-        var out: [String] = []
-        if let td = today.timeDomain {
-            out.append("HRV: RMSSD \(formatNum(td.rmssd, 1))ms, SDNN \(formatNum(td.sdnn, 1))ms, mean HR \(formatNum(td.meanHR, 0))bpm")
-        }
-        return out
+        today.timeDomain.map { [hrvLine($0)] } ?? []
     }
 
+    /// Today's line adds the mean to the shared overnight-HR line.
     private func todayOvernightHRLines(_ today: SessionSnapshot) -> [String] {
-        var out: [String] = []
-        if let oh = today.overnightHR {
-            var bits = "Overnight HR: nadir \(formatNum(oh.nadirBPM, 0))bpm"
-            if let at = oh.nadirAt {
-                let df = DateFormatter()
-                df.dateFormat = "h:mm a"
-                bits += " at \(df.string(from: at))"
-            }
-            bits += ", range \(formatNum(oh.minBPM, 0))–\(formatNum(oh.maxBPM, 0)), mean \(formatNum(oh.meanBPM, 0))"
-            out.append(bits)
-        }
-        return out
+        today.overnightHR.map { [overnightHRLine($0) + ", mean \(formatNum($0.meanBPM, 0))"] } ?? []
+    }
+
+    /// "HRV: RMSSD 42.1ms, SDNN 55.0ms, mean HR 52bpm" — today and yesterday.
+    private func hrvLine(_ td: TimeDomainSnapshot) -> String {
+        "HRV: RMSSD \(formatNum(td.rmssd, 1))ms, SDNN \(formatNum(td.sdnn, 1))ms, mean HR \(formatNum(td.meanHR, 0))bpm"
     }
 
     private func todaySleepLines(_ today: SessionSnapshot) -> [String] {
@@ -494,11 +514,7 @@ extension AssistantContext {
     /// Training load and the user's own rating of how they feel.
     private func todayLoadAndFeelingLines(_ today: SessionSnapshot) -> [String] {
         var out: [String] = []
-        if let training = today.training {
-            var line = "Training: ATL \(formatNum(training.atl, 0)), CTL \(formatNum(training.ctl, 0)), TSB \(formatNum(training.tsb, 1))"
-            if let acwr = training.acwr { line += ", ACWR \(formatNum(acwr, 2))" }
-            out.append(line)
-        }
+        if let training = today.training { out.append(trainingLoadCore(training)) }
         if let feeling = today.morningFeeling {
             let label = ["Terrible", "Poor", "OK", "Good", "Great"][max(0, min(4, feeling - 1))]
             out.append("Self-rated feeling: \(feeling)/5 (\(label))")
@@ -530,9 +546,7 @@ extension AssistantContext {
             let tier = y.scoreTier.map { " (Tier \($0))" } ?? ""
             out.append("Recovery score: \(RecoveryScoreCalculator.displayScore(score * 10))/100" + tier)
         }
-        if let td = y.timeDomain {
-            out.append("HRV: RMSSD \(formatNum(td.rmssd, 1))ms, SDNN \(formatNum(td.sdnn, 1))ms, mean HR \(formatNum(td.meanHR, 0))bpm")
-        }
+        if let td = y.timeDomain { out.append(hrvLine(td)) }
         if let oh = y.overnightHR { out.append(overnightHRLine(oh)) }
         if let sleep = y.sleep {
             let (h, m) = (sleep.totalSleepMinutes / 60, sleep.totalSleepMinutes % 60)
@@ -556,9 +570,15 @@ extension AssistantContext {
 
     /// "Training: ATL 44, CTL 29, TSB -15.5, ACWR 1.54, prior-day TRIMP 88".
     private func trainingLoadLine(_ training: TrainingSnapshot) -> String {
+        trainingLoadCore(training) + ", prior-day TRIMP \(formatNum(training.yesterdayTrimp, 0))"
+    }
+
+    /// "Training: ATL 44, CTL 29, TSB -15.5, ACWR 1.54" — today's line, and
+    /// the start of yesterday's.
+    private func trainingLoadCore(_ training: TrainingSnapshot) -> String {
         var line = "Training: ATL \(formatNum(training.atl, 0)), CTL \(formatNum(training.ctl, 0)), TSB \(formatNum(training.tsb, 1))"
         if let acwr = training.acwr { line += ", ACWR \(formatNum(acwr, 2))" }
-        return line + ", prior-day TRIMP \(formatNum(training.yesterdayTrimp, 0))"
+        return line
     }
 
     /// Earlier overnight sessions (before the ones shown as today and
@@ -657,7 +677,11 @@ extension AssistantContext {
     /// One line per recent workout, plus an indented note line when the user
     /// left one — a long comment can't then swallow the metrics line.
     private func recentWorkoutDetailLines(_ recentWindow: ArraySlice<WorkoutHistoryEntry>) -> [String] {
+        // Pinned like `earlierSessionLines`, so a device on a non-Gregorian
+        // calendar still shows the model one date scheme.
         let dateOnly = DateFormatter()
+        dateOnly.locale = Locale(identifier: "en_US_POSIX")
+        dateOnly.calendar = Calendar(identifier: .gregorian)
         dateOnly.dateFormat = "yyyy-MM-dd"
         var out: [String] = []
         for w in recentWindow {
@@ -740,7 +764,7 @@ extension AssistantContext {
     /// arithmetic in its head.
     private func weeklyRollupLines() -> [String] {
         let shown = min(recentWorkouts.count, 14)
-        let last7Days = recentWorkouts.filter { Date().timeIntervalSince($0.date) / 86400 <= 7 }
+        let last7Days = recentWorkouts.filter { generatedAt.timeIntervalSince($0.date) / 86400 <= 7 }
         let totalKm7 = last7Days.compactMap { $0.distanceMeters }.reduce(0, +) / 1000.0
         let totalTrimp7 = last7Days.compactMap { $0.trimp }.reduce(0, +)
         let totalDur7Min = last7Days.compactMap { $0.durationSec }.reduce(0, +) / 60
@@ -762,7 +786,7 @@ extension AssistantContext {
     /// The 30-day total, but only when it covers more than the 7-day window
     /// already reported.
     private func thirtyDayTotalLine(sevenDayCount: Int) -> String? {
-        let last30Days = recentWorkouts.filter { Date().timeIntervalSince($0.date) / 86400 <= 30 }
+        let last30Days = recentWorkouts.filter { generatedAt.timeIntervalSince($0.date) / 86400 <= 30 }
         guard last30Days.count > sevenDayCount else { return nil }
         let totalKm30 = last30Days.compactMap { $0.distanceMeters }.reduce(0, +) / 1000.0
         return "30-day total: \(last30Days.count) sessions, \(formatNum(totalKm30, 1))km"

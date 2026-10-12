@@ -1,0 +1,1761 @@
+{
+ "file": "docs/whitepapers/01-overnight-recovery-measurement.md",
+ "hash": "e3b0c44298fc1c14",
+ "role": "Technical white paper (v1.3) specifying the overnight recovery measurement: source assembly, sleep-anchored window search, score-ranked window selection, anti-ratchet baseline, frozen versioned recovery score, RR-only sleep staging, vitals sub-score, plus prior-art comparison, verification summary, provenance, parameter table, pseudocode and source map.",
+ "types": [],
+ "state": [],
+ "toplevel": "Markdown only. Appendix C source map lists 40 repository paths; every one exists at main 8d32097. Constants in Appendix A were checked against WindowSelection+Scoring.swift, ArtifactDetection.swift, BaselineTracker.swift, Constants+SleepAndDisplay.swift, Constants+RecoveryScore.swift, Constants.swift (ScoringWeights), RecoveryScoreCalculator.swift (scoringParametersV2 bands) and SleepRefreshPolicy.swift and match.",
+ "flags": [],
+ "units": [
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals",
+   "hash": "5e03670ec2b5f644",
+   "does": "no behavioural claim: title block: version v1.3, author, source revision e028039, scoring version v3.1.oct2026 (matches ScoringVersion.current, ScoringVersion.swift), citation line.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > Executive Summary",
+   "hash": "3c15dd5f41e04347",
+   "does": "Summarizes the method: strap internal recording preferred with stream gap fill de-duplicated within 50 ms, undated strap file dated from RR sleep onset vs HealthKit sleep start, window search in 30-70% of measured sleep mapped onto the beat timeline, windows ranked by the Tier-1 HRV sub-score less the ANS term, structural anti-ratchet baseline admission with one slot per wake-date night scored only against earlier nights, frozen scores stamped with a scoring version ('unversioned' when absent), RR-only sleep staging with conservative Watch augmentation. Each claim matches the cited code (DataSourceSelector, SleepBoundaryResolver.detectSleepOnset, WindowSelector, BaselineTracker, ScoringVersion, HRVSleepStageClassifier).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)",
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.detectSleepOnset(in:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindowWithCapacity(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.rankByTier1Score(_:baseline:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.isStructurallySoundForBaseline(session:result:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.mergeIntoNight(_:sleepSchedule:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.freezeScore(on:result:inputs:)",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.classify(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.augment(watchIntervals:rrPoints:sleepStartMs:sleepEndMs:recordingStart:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "The paper says the time-domain arithmetic is checked against the 20 nsr2db records 'on every build'. That check is a unit test (HRVReferenceValidationTests), and the unit suite runs only in ci.yml, which is workflow_dispatch/workflow_call only with default scope 'gates' (no tests); the push-triggered gates.yml runs no xcodebuild test. The check runs on manual 'unit'/'full' CI runs, TestFlight releases and local make ci, not on every build.",
+     "evidence": [
+      "docs/whitepapers/01-overnight-recovery-measurement.md:28",
+      ".github/workflows/ci.yml:3",
+      ".github/workflows/ci.yml:39",
+      ".github/workflows/gates.yml:26",
+      "EmuquTests/HRVReferenceValidationTests.swift"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.isStructurallySoundForBaseline(session:result:)": "f402d620ae8d7168",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.mergeIntoNight(_:sleepSchedule:)": "bde3ab5d43fe3cf7",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.augment(watchIntervals:rrPoints:sleepStartMs:sleepEndMs:recordingStart:)": "af1b9795453e0ab3",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.classify(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)": "da561724b018c059",
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.detectSleepOnset(in:)": "d0309f14481839ab",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindowWithCapacity(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "6ea9fe23df8bc412",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.rankByTier1Score(_:baseline:)": "f3653c3dee27ee86",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)": "aa75532f95478352",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.freezeScore(on:result:inputs:)": "938f1bd588f7d0a0"
+   }
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 1. The Problem",
+   "hash": "bb38004e64c421a8",
+   "does": "no behavioural claim: section heading for the problem statement.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 1. The Problem > 1.1 What an overnight RMSSD is supposed to be",
+   "hash": "8fb11f9b474039ab",
+   "does": "no behavioural claim: background on ln(RMSSD), SWC and why an overnight recording lacks a measurement protocol.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 1. The Problem > 1.2 Sources of error",
+   "hash": "ef2bd9a3b031c1c6",
+   "does": "no behavioural claim: Table 1.1 of error sources (literature/motivation); the 32 ms MIT-BIH figure is a verification result reported in Section 6, not code behaviour.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 1. The Problem > 1.3 What existing work provides, and what this paper adds",
+   "hash": "7932db15151d7b3d",
+   "does": "no behavioural claim: positioning of the paper against published methods.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 2. Architecture Overview",
+   "hash": "844928d2ae9ac012",
+   "does": "Describes the processing phases A-M: capture with 60 s JSONL backup, source selection, segment merge, whole-series artifact flags, sleep boundary cascade (HealthKit -> RR HR -> Watch HR -> recording bounds), band mapping, window scan, selection, analysis, tiered scoring, freeze, baseline update, bounded later rescoring. Each phase maps to the listed code paths.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.appendBackup(points:sessionId:deviceId:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.childPointsOffsetToParent(data:parentSession:)",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)",
+    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.pollForSleepData(series:effectiveStartDate:totalBeats:isBackgroundRefinement:sleepSchedule:prefetchedSleepData:statusCallback:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.resolveSleepBoundaries(points:sleepStartMs:wakeTimeMs:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindowWithCapacity(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeWithAutoWindow(session:sleepStartMs:wakeTimeMs:trainingContext:ansConfig:baselineStats:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingMetrics:config:ansBalance:referenceDate:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.processAcceptance(session:inputs:enableHealthKitExport:clearPersistedRecordingState:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.update(with:sleepSchedule:)",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.sleepRefreshVerdict(session:fresh:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)": "603a4d925fb360fb",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.update(with:sleepSchedule:)": "3d630ccb9de1838f",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeWithAutoWindow(session:sleepStartMs:wakeTimeMs:trainingContext:ansConfig:baselineStats:)": "4199736e0169638a",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingMetrics:config:ansBalance:referenceDate:)": "7f20947af6a0bf60",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindowWithCapacity(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "6ea9fe23df8bc412",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.resolveSleepBoundaries(points:sleepStartMs:wakeTimeMs:)": "2120c0d326f5b3f7",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)": "aa75532f95478352",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.childPointsOffsetToParent(data:parentSession:)": "ee446e688ad9f1e1",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.sleepRefreshVerdict(session:fresh:)": "69aa588ccadc5b5e",
+    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.pollForSleepData(series:effectiveStartDate:totalBeats:isBackgroundRefinement:sleepSchedule:prefetchedSleepData:statusCallback:)": "eccc4573a72bc99f",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.processAcceptance(session:inputs:enableHealthKitExport:clearPersistedRecordingState:)": "38950e0e33ac6401",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.appendBackup(points:sessionId:deviceId:)": "69399ccda3e7a540"
+   }
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 3. Methods",
+   "hash": "5cb2f393cd7ccd7b",
+   "does": "no behavioural claim: notation: RRPoint fields, endMs = t_ms + rr_ms, valid RR 300-2000 ms (matches HRVConstants.RRInterval used by WindowSelection+Evaluation.swift:180).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 3. Methods > 3.1 Capture and source selection",
+   "hash": "a2e661aac02ea08c",
+   "does": "no behavioural claim: section heading for capture and source selection.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 3. Methods > 3.1 Capture and source selection > 3.1.1 Parallel capture and backup",
+   "hash": "6f6cc415bea58682",
+   "does": "Claims streamed beats are appended to a JSONL file (header then one object per beat, only beats beyond the stored count), flushed at least every 60 s and forced on reconnect/lifecycle, with a file protection class writable while locked, and failed appends keep beats buffered. Code: RawRRBackup.appendBackup/startAppendFormat/writeAppendData write with .completeFileProtectionUntilFirstUserAuthentication (RawRRBackup+Streaming.swift:45,55,92,108); overnight backup tick in RRCollector+OvernightStreaming.runOvernightIncrementalBackup.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.appendBackup(points:sessionId:deviceId:)",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.startAppendFormat(sessionId:deviceId:existingEntry:)",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.writeAppendData(_:to:sessionId:count:)",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.runOvernightIncrementalBackup(session:force:)",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.overnightStreamingTick()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.overnightStreamingTick()": "6ffa1f9941e8f3e3",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.runOvernightIncrementalBackup(session:force:)": "eade8d9497d8036f",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.appendBackup(points:sessionId:deviceId:)": "69399ccda3e7a540",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.startAppendFormat(sessionId:deviceId:existingEntry:)": "48d86d5fef57f79d",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.writeAppendData(_:to:sessionId:count:)": "94f4374cf14013de"
+   }
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 3. Methods > 3.1 Capture and source selection > 3.1.2 Strap rescue before clear",
+   "hash": "73547d4eb154f215",
+   "does": "Claims the strap start sequence is fixed as [rescueExisting, clearExisting, beginRecording], rescue downloads a stored recording the ledger does not hold, failure aborts instead of clearing, and a test asserts rescue precedes clear for every strap type. Code: StrapStartSequence.Step cases at StrapStartSequence.swift:39-43, rescuesBeforeClearing at :62; tests EmuquTests/StrapStartSequenceTests.swift.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/StrapStartSequence.swift::func StrapStartSequence.steps(for:)",
+    "Emuqu/Sources/Collection/StrapStartSequence.swift::func StrapStartSequence.rescuesBeforeClearing(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapStartSequence.swift::func StrapStartSequence.rescuesBeforeClearing(_:)": "e26b0e40644a1de5",
+    "Emuqu/Sources/Collection/StrapStartSequence.swift::func StrapStartSequence.steps(for:)": "9b9d45939c985f0e"
+   }
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 3. Methods > 3.1 Capture and source selection > 3.1.3 Source selection",
+   "hash": "35092a3027b60c6f",
+   "does": "Specifies source selection: valid = >=120 beats; internal preferred unless internal is shorter by >5%; then gaps where next.t_ms - prev.endMs > prev.rr + 2000; fill with streamed beats whose wallClockMs ?? t_ms lies in a gap; two-pointer merge with cluster-aware 50 ms de-dup both directions, streamed t_ms rebased to wallClockMs; composite failure falls to streaming. Code matches DataSourceSelector.swift:7-17,46-61,124-135,177-183,204-218,242-303.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectWithInternalAvailable(internalData:streamingPoints:hasValidStreaming:sessionId:sessionStart:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.compareDataSources(internalCount:streamingCount:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.compositeOrStreaming(internalData:streamingPoints:sessionId:sessionStart:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.createComposite(internalSeries:streamingSeries:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.fillableGapSummary(internalPoints:streamingPoints:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.findGaps(in:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.streamingBeatsInsideGaps(internalPoints:streamingPoints:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.mergePoints(internal:streaming:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.takeEarlier(_:_:_:_:into:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.skipStreamingDuplicates(of:in:from:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.skipInternalDuplicates(of:in:from:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.rebased(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.compareDataSources(internalCount:streamingCount:)": "eb89e558649d984d",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.compositeOrStreaming(internalData:streamingPoints:sessionId:sessionStart:)": "5ca3df1bbcf5a16d",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.createComposite(internalSeries:streamingSeries:)": "f019d8dfc57537c0",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.fillableGapSummary(internalPoints:streamingPoints:)": "b0ea6652b20f3b70",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.findGaps(in:)": "da584f5e541a4983",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.mergePoints(internal:streaming:)": "08bc9799bbccea43",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.rebased(_:)": "cf0796f4780a74b4",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)": "aa75532f95478352",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectWithInternalAvailable(internalData:streamingPoints:hasValidStreaming:sessionId:sessionStart:)": "f489012f0455925e",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.skipInternalDuplicates(of:in:from:)": "a305d9e82f18a1dd",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.skipStreamingDuplicates(of:in:from:)": "500dc772858520f9",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.streamingBeatsInsideGaps(internalPoints:streamingPoints:)": "f9b5125ea17259e1",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.takeEarlier(_:_:_:_:into:)": "228bec9eaf9ea163"
+   }
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 3. Methods > 3.1 Capture and source selection > 3.1.4 Dating an undated strap recording",
+   "hash": "34e7a6117df85497",
+   "does": "Specifies dating an undated strap recording: HealthKit sleep for the 24 h ending now with the beats; start = T_hk - onset (onset 0 if none); else now - duration. Onset detector: >300 beats, 120-beat windows in 30-beat steps with >half valid RR, >15 windows, ceiling = midpoint of night's HR range, first j in 5..count-11 with before(5)-after(10) > 8 bpm and after < ceiling, clamped to 20 min. Code: DeviceRecordingSession.healthKitAlignedStart/recordingStart (RRCollector+DeviceRecording.swift:306-329), SleepBoundaryResolver.detectSleepOnset/onsetHRWindows/windowMeanHR/firstSustainedDrop (SleepBoundaryResolver.swift:219-284).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.recordingStart(_:)",
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.healthKitAlignedStart(rrPoints:)",
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.detectSleepOnset(in:)",
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.onsetHRWindows(_:)",
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.windowMeanHR(_:windowSize:)",
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.firstSustainedDrop(in:ceiling:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "OnsetDetection.minimumWindows = 10 (SleepBoundaryResolver.swift:202) is never read; detectSleepOnset hard-codes 'hrWindows.count > 15' (:222), which is the value the paper documents. The named constant disagrees with the shipped rule.",
+     "evidence": [
+      "docs/whitepapers/01-overnight-recovery-measurement.md:148",
+      "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift:202",
+      "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift:222"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.detectSleepOnset(in:)": "d0309f14481839ab",
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.firstSustainedDrop(in:ceiling:)": "4cce8f2e0ee52df1",
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.onsetHRWindows(_:)": "9de71dc46fb03569",
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.windowMeanHR(_:windowSize:)": "b87d947521f454f0",
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.healthKitAlignedStart(rrPoints:)": "080e5641b78342c0",
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.recordingStart(_:)": "3cd2c3af57a457d9"
+   }
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 3. Methods > 3.2 Pause/resume concatenation",
+   "hash": "58ded268d09fbab6",
+   "does": "Specifies pause/resume concatenation: offset = child.start - parent.start, refused if <=0 or unrepresentable (child analyzed alone), child t_ms and wallClockMs shifted, parent beats then shifted child beats, chains accumulate, pause becomes a recording break. Code: OvernightStreamingCoordinator.childPointsOffsetToParent guards offsetMs > 0 (RRCollector+OvernightStreaming.swift:227-236), mergeParentSessionData/mergedBaseSession.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.mergeParentSessionData(data:)",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.childPointsOffsetToParent(data:parentSession:)",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.mergedBaseSession(data:parentSession:)",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.isRecordingBreak(between:and:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Backup-recovery reassembly of a parent/child pause chain uses a different offset rule, max(parentDurationMs, dateOffsetMs) (RRCollector+BackupRecovery.swift:614), than the live merge's child.start - parent.start (RRCollector+OvernightStreaming.swift:227); the paper documents only the live rule, so a recovered night can place the child segment at a different offset than the documented method.",
+     "evidence": [
+      "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift:614",
+      "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift:227",
+      "docs/whitepapers/01-overnight-recovery-measurement.md:159"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.isRecordingBreak(between:and:)": "1b25dbe12de7ff83",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.childPointsOffsetToParent(data:parentSession:)": "ee446e688ad9f1e1",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.mergeParentSessionData(data:)": "87a587c8120166f1",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.mergedBaseSession(data:parentSession:)": "c60fd91e47e8b60d"
+   }
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 3. Methods > 3.3 Artifact handling",
+   "hash": "0a6eaca22c8a7b4f",
+   "does": "no behavioural claim: section heading; states artifact handling only drops beats (consistent with WindowSelection+Evaluation and TimeDomainAnalysis, which never interpolate).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 3. Methods > 3.3 Artifact handling > 3.3.1 Whole-series classifier",
+   "hash": "70a4bb37611bb42c",
+   "does": "Specifies the whole-series classifier: centered median of up to 51 RR (+-25), flags in order technical (<300 or >2000), extra (<0.5m), ectopic (0.5-0.7m), missed (>1.5m), ectopic (1.2-1.5m), ectopic (|r-m|/m > 0.20), else clean. Code: ArtifactDetector Config windowSize 50 -> halfWindow 25 (Constants.swift Artifacts.windowSize, ArtifactDetection.swift:130-160), classify/shortBeatFlags/longBeatFlags (ArtifactDetection.swift:48-108) produce exactly this table.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.classify(rrMs:median:)",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.shortBeatFlags(rr:median:ratio:)",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.longBeatFlags(rr:median:ratio:)",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.computeRollingMedian(_:windowSize:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.classify(rrMs:median:)": "6c413577ca564e84",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.computeRollingMedian(_:windowSize:)": "deee4ec70514c56e",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)": "603a4d925fb360fb",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.longBeatFlags(rr:median:ratio:)": "9e61ebf73719db70",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.shortBeatFlags(rr:median:ratio:)": "f7caacd0c831fcf0"
+   }
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 3. Methods > 3.3 Artifact handling > 3.3.2 Per-window local ectopic gate",
+   "hash": "8768ac6c64b2b3e2",
+   "does": "Specifies the per-window local gate: keep a valid unflagged RR if |r-med|/med <= 0.20 where med is the median of up to 10 neighbours excluding the beat; windows with <=10 values keep all; reported metrics apply the same gate. Code: WindowSelector.ectopicKeepMask/keepsBeat/medianExcluding with localMedianWindow 10 and ectopicThresholdPercent 0.20 (WindowSelection+Filters.swift:48-110, WindowSelection+Scoring.swift:46-48).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.ectopicKeepMask(_:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.keepsBeat(_:window:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.medianExcluding(_:value:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.slideWindow(_:values:to:halfWindow:)",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeTimeDomain(_:flags:windowStart:windowEnd:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeTimeDomain(_:flags:windowStart:windowEnd:)": "b45f65e53d1a0cab",
+    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.ectopicKeepMask(_:)": "5b16b69db6427d70",
+    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.keepsBeat(_:window:)": "688a2ab526d4f6f1",
+    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.medianExcluding(_:value:)": "b20d57857f179916",
+    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.slideWindow(_:values:to:halfWindow:)": "5a6c472c83f0f6b4"
+   }
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 3. Methods > 3.3 Artifact handling > 3.3.3 Masked RMSSD with recording breaks",
+   "hash": "54a8390208e0ef62",
+   "does": "Specifies recording breaks (t gap > rr_prev + 2000, or wall gap > rr_i + rr_prev + 2000) and masked RMSSD over kept, originally adjacent pairs not following a break; 0 in selection, missing in reporting, with a reporting-only fallback to artifact-clean pairs. Code: TimeDomainAnalyzer.isRecordingBreak/beatsAfterRecordingBreak (TimeDomainAnalysis.swift:182-197), WindowSelector.maskedRMSSD (WindowSelection+Filters.swift:121-131).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.isRecordingBreak(between:and:)",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.beatsAfterRecordingBreak(in:range:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.maskedRMSSD(_:kept:breaks:)",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeTimeDomain(_:flags:windowStart:windowEnd:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.beatsAfterRecordingBreak(in:range:)": "705ef065c9683ac6",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeTimeDomain(_:flags:windowStart:windowEnd:)": "b45f65e53d1a0cab",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.isRecordingBreak(between:and:)": "1b25dbe12de7ff83",
+    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.maskedRMSSD(_:kept:breaks:)": "c75873750803141f"
+   }
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 3. Methods > 3.4 Sleep boundaries and the search band",
+   "hash": "a3782db20a4b5ee8",
+   "does": "no behavioural claim: section heading for sleep boundaries and search band.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 3. Methods > 3.4 Sleep boundaries and the search band > 3.4.1 Boundary sources",
+   "hash": "19fe35c643053f40",
+   "does": "Claims morning-path boundaries come from HealthKit sleep fetched with the RR series for cross-checking, else an RR HR estimate (5-min windows >=10 beats, midpoint threshold, onset = first of 3 below, clamp 20 min, wake = window after last below), else Watch passive HR (2 points, >=8 bpm range), else recording bounds; negative onset clamped to 0; HR may move onset earlier freely, later only without detailed stages and by >15 min; HR only extends wake. Code: MorningProcessingService.pollForSleepData/applySleepEstimates, HRSleepEstimator.computeWindowedHR/detectSleepBoundariesFromHR/hrSleepThreshold, SleepBoundaryResolver.reconciledStart/reconciledEnd.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.pollForSleepData(series:effectiveStartDate:totalBeats:isBackgroundRefinement:sleepSchedule:prefetchedSleepData:statusCallback:)",
+    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.readySleepData(prefetched:effectiveStartDate:recordingEnd:isBackgroundRefinement:)",
+    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.fetchSleepAttempt(series:effectiveStartDate:recordingEnd:attempt:)",
+    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.applySleepEstimates(to:series:effectiveStartDate:sleepSchedule:)",
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.estimateSleepFromHR(rrPoints:recordingStart:)",
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.computeWindowedHR(rrPoints:)",
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.detectSleepBoundariesFromHR(_:)",
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.hrSleepThreshold(_:)",
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.validateBoundaries(healthKit:hrEstimate:hasDetailedStages:)",
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.reconciledStart(healthKit:hrEstimate:hasDetailedStages:)",
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.reconciledEnd(healthKit:hrEstimate:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Step 1 says morning-path HealthKit sleep is fetched with the RR series so the HealthKit layer can cross-check it. pollForSleepData first returns prefetched or SleepDataCache data without any RR cross-check when it plausibly belongs to the recording (MorningProcessingService+Sleep.swift:51-53, 90-107; the comment at :73-89 states the bypass), so on the common cached path the HR reconciliation rules of this section do not run.",
+     "evidence": [
+      "docs/whitepapers/01-overnight-recovery-measurement.md:210",
+      "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift:96",
+      "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift:102"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.reconciledEnd(healthKit:hrEstimate:)": "ab20fe73c711ad95",
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.reconciledStart(healthKit:hrEstimate:hasDetailedStages:)": "1c982e8a65cfcdb1",
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.validateBoundaries(healthKit:hrEstimate:hasDetailedStages:)": "d044430edfd646d6",
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.computeWindowedHR(rrPoints:)": "f5e8d6f45b4ae323",
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.detectSleepBoundariesFromHR(_:)": "383647fc72c68104",
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.estimateSleepFromHR(rrPoints:recordingStart:)": "587065d915433525",
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.hrSleepThreshold(_:)": "8eeb970522a525e8",
+    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.applySleepEstimates(to:series:effectiveStartDate:sleepSchedule:)": "30864de341a2b936",
+    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.fetchSleepAttempt(series:effectiveStartDate:recordingEnd:attempt:)": "cda6475872605b79",
+    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.pollForSleepData(series:effectiveStartDate:totalBeats:isBackgroundRefinement:sleepSchedule:prefetchedSleepData:statusCallback:)": "eccc4573a72bc99f",
+    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.readySleepData(prefetched:effectiveStartDate:recordingEnd:isBackgroundRefinement:)": "758f705c6d43df97"
+   }
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 3. Methods > 3.4 Sleep boundaries and the search band > 3.4.2 Wall-clock to beat-timeline mapping",
+   "hash": "69ca34d717ec23c0",
+   "does": "Specifies wall-clock to beat-timeline mapping: identity when the first beat has no wallClockMs; otherwise t_ms offset of first beat with wallClockMs >= firstWall + offset, else last beat; sleepStart = max(0,map) or 0; sleepEnd = min(map(wake), duration) if later than start else duration. Code: WindowSelector.tMsOffset/resolveSleepBoundaries/sleepEndOffset (WindowSelection+Scoring.swift:883-937).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.tMsOffset(forWallElapsed:in:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.resolveSleepBoundaries(points:sleepStartMs:wakeTimeMs:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.sleepEndOffset(wakeTimeMs:points:after:recordingDurationMs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.resolveSleepBoundaries(points:sleepStartMs:wakeTimeMs:)": "2120c0d326f5b3f7",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.sleepEndOffset(wakeTimeMs:points:after:recordingDurationMs:)": "abc3fe2671575d10",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.tMsOffset(forWallElapsed:in:)": "3d767d1c59c92ffc"
+   }
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 3. Methods > 3.4 Sleep boundaries and the search band > 3.4.3 Band",
+   "hash": "aa1c7cfbdb0202e6",
+   "does": "Specifies the band: early/late at 30%/70% of sleep clamped to recording t_ms, index range first t>=early..last t<=late; <120 beats or empty band yields no window. Code: findSearchBand (WindowSelection+Scoring.swift:940-959), searchBand minRequiredBeats 120 (:101-130).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findSearchBand(points:boundaries:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.searchBand(points:sleepStartMs:wakeTimeMs:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindowWithCapacity(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "The paper gives 120 beats as the minimum series for a window. The production entry findBestWindowWithCapacity returns nil below config.beatsPerWindow = 400 beats (WindowSelection+Scoring.swift:450), and every production caller uses it (HRVAnalysisPipeline.swift:227, MorningProcessingService+Analysis.swift:105, ReanalysisService.swift:240, SessionRecoveryService.swift:372, RRCollector+DeviceRecording.swift:186), so a 120-399 beat recording gets no window, no peak fallback and no analysis (HRVAnalysisPipeline.swift:229-231) instead of the adaptive small window the paper describes.",
+     "evidence": [
+      "docs/whitepapers/01-overnight-recovery-measurement.md:226",
+      "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift:450",
+      "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift:229"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindowWithCapacity(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "6ea9fe23df8bc412",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findSearchBand(points:boundaries:)": "c4a46fa3aa7d6c18",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.searchBand(points:sleepStartMs:wakeTimeMs:)": "a97220d0ad2b4a93"
+   }
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 3. Methods > 3.5 Window selection",
+   "hash": "420d01e1e254af0b",
+   "does": "no behavioural claim: section heading for window selection.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 3. Methods > 3.5 Window selection > 3.5.1 Adaptive geometry",
+   "hash": "8a37a9e8fc182b6e",
+   "does": "Specifies adaptive geometry: size 400 if B>=400, B/2 if B>=240, else max(60, 0.6B); step max(10, size/10); windows end at bandStart+size stepping to <= bandEnd. Code: computeAdaptiveWindowSize (WindowSelection+Scoring.swift:966-977) and scanWindows (WindowSelection+Evaluation.swift:19-44).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.computeAdaptiveWindowSize(beatsAvailable:compact:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.scanWindows(series:flags:grid:sessionStartMs:sessionEndMs:artifactRateLimit:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanWindowsInBand(series:flags:band:boundaries:artifactRateLimit:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.scanWindows(series:flags:grid:sessionStartMs:sessionEndMs:artifactRateLimit:)": "20474a68b221cd88",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.computeAdaptiveWindowSize(beatsAvailable:compact:)": "fd73f7db1a3e1449",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanWindowsInBand(series:flags:band:boundaries:artifactRateLimit:)": "8f96ebd9c9885c80"
+   }
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 3. Methods > 3.5 Window selection > 3.5.2 Per-window evaluation",
+   "hash": "af239730a30634a6",
+   "does": "Specifies per-window evaluation: artifactRate = flagged/size vs pass limit; >=50 valid RR; clean floor min(300, max(50, 0.75 size)); masked RMSSD; population SDNN and CV over clean beats; meanHR = 5-95% trimmed sensor HR if >=10 values, plain mean if fewer, else 60000/meanRR; DFA alpha1 if >=64 clean beats (boxes 4-16 by 2^(1/8)); relativePosition from midpoint. Code: evaluateWindow/extractValidRRValues/cleanBeats/computeWindowMetrics/computeMeanHR/computeRelativePosition/scoredBlock (WindowSelection+Evaluation.swift:56-234), DFAAnalyzer.compute/logSpacedBoxSizes.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.evaluateWindow(series:flags:startIdx:endIdx:sessionStartMs:sessionEndMs:artifactRateLimit:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.windowSlice(series:flags:startIdx:endIdx:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.extractValidRRValues(windowPoints:windowFlags:startIdx:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.validateArtifactRate(_:limit:windowPoints:windowFlags:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.cleanBeats(rrValues:windowPoints:breaks:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.scoredBlock(slice:rrValues:artifactRate:clean:sessionStartMs:sessionEndMs:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.computeWindowMetrics(cleanRRs:rmssd:windowPoints:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.computeMeanHR(windowPoints:meanRR:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.computeRelativePosition(windowPoints:sessionStartMs:sessionEndMs:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "93a8b95af9c5a354",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)": "6da94147dc9db2eb",
+    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.cleanBeats(rrValues:windowPoints:breaks:)": "5ec668045e178f46",
+    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.computeMeanHR(windowPoints:meanRR:)": "9ff3b4bc24d6f20d",
+    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.computeRelativePosition(windowPoints:sessionStartMs:sessionEndMs:)": "f21cf3eee793629a",
+    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.computeWindowMetrics(cleanRRs:rmssd:windowPoints:)": "5dcc9d8279c714eb",
+    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.evaluateWindow(series:flags:startIdx:endIdx:sessionStartMs:sessionEndMs:artifactRateLimit:)": "8b634b5d27eacefa",
+    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.extractValidRRValues(windowPoints:windowFlags:startIdx:)": "9c75d1d8cbda6da1",
+    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.scoredBlock(slice:rrValues:artifactRate:clean:sessionStartMs:sessionEndMs:)": "8cf76a8202fa1eb6",
+    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.validateArtifactRate(_:limit:windowPoints:windowFlags:)": "0bcedd12cf35718b",
+    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.windowSlice(series:flags:startIdx:endIdx:)": "4f1652ef9c9023e9"
+   }
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 3. Methods > 3.5 Window selection > 3.5.3 Two-pass artifact cap",
+   "hash": "5bbdd2f6094725f3",
+   "does": "Specifies the two-pass cap: 10% first, 15% only when the strict pass yields zero windows. Code: scanBandWithArtifactFallback with maxArtifactRateStrict 0.10 / maxArtifactRate 0.15 (WindowSelection+Scoring.swift:32,41,145-170).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanBandWithArtifactFallback(series:flags:band:boundaries:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanBandWithArtifactFallback(series:flags:band:boundaries:)": "59be8afe85fb26dc"
+   }
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 3. Methods > 3.5 Window selection > 3.5.4 Spike filter and organized filter",
+   "hash": "6cea98e8dae81433",
+   "does": "Specifies the spike filter (interior window with both neighbours RMSSD>0 and >=1.5x both is removed; empty result falls back to unfiltered list) and organized test (alpha1 in 0.75-1.0 and CV<0.08; CV<0.08 alone when alpha1 is nil). Code: filterIsolatedSpikes/isIsolatedSpike (WindowSelection+Filters.swift:9-31), selectOrganizedWindow fallback (WindowSelection+Scoring.swift:192), ScoredRecoveryBlock.isOrganizedRecovery (ScoredRecoveryBlock.swift:79-94; LF/HF branch dormant because lfHfRatio is always nil).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.filterIsolatedSpikes(_:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.isIsolatedSpike(at:in:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectOrganizedWindow(from:baselineStats:)",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.isOrganizedRecovery"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "The spike test compares a window with its neighbours in the list of windows that passed evaluation, not with the overlapping windows on the scan grid: scanWindows appends only windows evaluateWindow accepts, and isIsolatedSpike reads windows[i-1]/windows[i+1] of that list. When intervening windows were rejected (artifact cap, clean-beat floor), the 'neighbours' can be far apart and share no beats, contrary to the paper's rationale that adjacent windows share about 90% of their beats; a real sustained state can then be removed as a spike, or a spike survive because its list neighbour is distant.",
+     "evidence": [
+      "docs/whitepapers/01-overnight-recovery-measurement.md:261",
+      "docs/whitepapers/01-overnight-recovery-measurement.md:284",
+      "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift:29",
+      "Emuqu/Sources/Analysis/WindowSelection+Filters.swift:24",
+      "Emuqu/Sources/Analysis/WindowSelection+Filters.swift:26"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.isOrganizedRecovery": "4179ba1b72db50c1",
+    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.filterIsolatedSpikes(_:)": "2dd11c5fbfed7c5f",
+    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.isIsolatedSpike(at:in:)": "fc3c52eba75b47fe",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectOrganizedWindow(from:baselineStats:)": "fc73dede1bc69918"
+   }
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 3. Methods > 3.5 Window selection > 3.5.5 Ranking by the scoring function",
+   "hash": "152c17ad7ab878a0",
+   "does": "Specifies ranking: with a leave-current-out baseline, organized windows ranked by Tier1(rmssd, meanHR, alpha1, base) without ANS term or legacy readiness, ties by RMSSD then later position; without baseline by RMSSD then later position; consolidated = survived spike filter and CV<0.08. Code: buildRecoveryWindow/rankByTier1Score/rankByRMSSD/recoveryWindow (WindowSelection+Scoring.swift:288-378) calling RecoveryScoreCalculator.calculateTier1 with readiness nil and no ansBalance.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.buildRecoveryWindow(from:sustainedWindows:baselineStats:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.rankByTier1Score(_:baseline:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.rankByRMSSD(_:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.recoveryWindow(from:sustainedWindows:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateTier1(rmssd:meanHR:dfaAlpha1:baselineStats:readiness:ansBalance:referenceDate:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.recoveryBaselineStats"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Ranking is said to use the same Tier-1 function and baseline as the score, but rankByTier1Score calls calculateTier1 without referenceDate, so the staleness deduction is computed against the wall clock (Date()) while the frozen score uses the session end. The deduction is equal across a night's windows, so it changes the ranking only when it pushes scores into the 0/100 clamp (ties then fall to RMSSD); on a historical rescore with a stale baseline the ranking function differs from the scoring function.",
+     "evidence": [
+      "docs/whitepapers/01-overnight-recovery-measurement.md:270",
+      "docs/whitepapers/01-overnight-recovery-measurement.md:397",
+      "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift:307",
+      "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift:26",
+      "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift:30"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.recoveryBaselineStats": "9916669422d3e401",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateTier1(rmssd:meanHR:dfaAlpha1:baselineStats:readiness:ansBalance:referenceDate:)": "89cf0881d7057b9f",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.buildRecoveryWindow(from:sustainedWindows:baselineStats:)": "03c4a89850a4ce15",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.rankByRMSSD(_:)": "dffb11794bace6d0",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.rankByTier1Score(_:baseline:)": "f3653c3dee27ee86",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.recoveryWindow(from:sustainedWindows:)": "2e3fd74aa62b0dcc"
+   }
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 3. Methods > 3.5 Window selection > 3.5.6 Fallbacks and peak capacity",
+   "hash": "5b6f7de9c25a9ca0",
+   "does": "Specifies fallbacks: no organized window -> peak-RMSSD fallback over the same band with the same two-pass scan and spike filter, flagged not organized; nothing -> whole session analyzed; peak capacity over the whole recording with compact geometry (400; N/3 if N>=360; else max(60,0.4N)), 15% cap, spike filter, max RMSSD, shown but not scored. Code: recoveryOrPeakFallback/peakRMSSDFallback/findPeakMetricWindow/scanPeakBand/findPeakCapacity (WindowSelection+Scoring.swift:466-535,589-654); HRVAnalysisPipeline.analyzeSelectedWindow analyzes the full session when recoveryWindow is nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.recoveryOrPeakFallback(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.peakRMSSDFallback(in:flags:sleepStartMs:wakeTimeMs:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findPeakMetricWindow(in:flags:sleepStartMs:wakeTimeMs:metric:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanPeakBand(series:flags:band:boundaries:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findPeakCapacity(in:flags:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.buildPeakRecoveryWindow(finalBlock:metric:)",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeSelectedWindow(session:flags:windowResult:trainingContext:ansConfig:)",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeFullSession(session:peakCapacity:trainingContext:ansConfig:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "'If even that yields nothing, the whole session is analyzed' holds only when peak capacity exists: when neither a recovery/peak-RMSSD window nor a peak-capacity window is found, findBestWindowWithCapacity returns nil (WindowSelection+Scoring.swift:455-458) and analyzeWithAutoWindow returns nil with windowSelectionFailed (HRVAnalysisPipeline.swift:227-231), so the night gets no analysis rather than a whole-session analysis.",
+     "evidence": [
+      "docs/whitepapers/01-overnight-recovery-measurement.md:277",
+      "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift:458",
+      "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift:230"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeFullSession(session:peakCapacity:trainingContext:ansConfig:)": "7cbea3ef35240ce1",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeSelectedWindow(session:flags:windowResult:trainingContext:ansConfig:)": "b2852fb1d5d1664d",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.buildPeakRecoveryWindow(finalBlock:metric:)": "f42793c670192b4f",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findPeakCapacity(in:flags:)": "dda47d3b587f6267",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findPeakMetricWindow(in:flags:sleepStartMs:wakeTimeMs:metric:)": "adbb7aa7fbdaa267",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.peakRMSSDFallback(in:flags:sleepStartMs:wakeTimeMs:)": "0a9af3059a900ce7",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.recoveryOrPeakFallback(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "3fbae8e0c12c91ce",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanPeakBand(series:flags:band:boundaries:)": "f6e528f275d48df4"
+   }
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 3. Methods > 3.6 Baseline",
+   "hash": "a7597214d38d5663",
+   "does": "no behavioural claim: section heading for the baseline.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 3. Methods > 3.6 Baseline > 3.6.1 Admission (three gates, in order)",
+   "hash": "44649cca477298c0",
+   "does": "Specifies admission gates: overnight session; quality not insufficient/preSleep; window >= 300000 ms and (organized or session >= 10800 s); the only direction-dependent exclusion comes from quality rule 3 in classifyHRVQuality. Code: BaselineTracker.admitsToBaseline/isStructurallySoundForBaseline (BaselineTracker.swift:345-413), HRVSession.isReliableForHRVAggregates, SessionAcceptanceService.classifyHRVQuality.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.admitsToBaseline(_:result:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.isStructurallySoundForBaseline(session:result:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.update(with:sleepSchedule:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.classifyHRVQuality(result:sleepData:baselineStats:recordingStart:recordingEnd:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.admitsToBaseline(_:result:)": "836597a99ab2f10d",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.isStructurallySoundForBaseline(session:result:)": "f402d620ae8d7168",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.update(with:sleepSchedule:)": "3d630ccb9de1838f",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.classifyHRVQuality(result:sleepData:baselineStats:recordingStart:recordingEnd:)": "a16adf8d0bc63625"
+   }
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 3. Methods > 3.6 Baseline > 3.6.2 One slot per night",
+   "hash": "d4ba6d97c88bea3a",
+   "does": "Specifies one slot per night keyed by wake date of the sleep schedule; replacement order: morning reading (end between window start and wake+4h) wins; consolidation (+15% / >=90%); organized (>=95%, organized incumbent beats unorganized newcomer); quality gates (artifact > max(1.5x, 2.0) or CV > 1.3x loses); else >5% readiness improvement; missing defaults 0/false/100%; 90 points kept sorted. Code: mergeIntoNight/shouldReplace/newWindowIsObjectivelyBetter/consolidationVerdict/organizedRecoveryVerdict/passesQualityGates/hrStabilityAcceptable/isMeaningfullyBetterScore (BaselineTracker.swift:440-613), SleepSchedule.nightKey/isMorningReading/morningCutoff (+4h at SleepSchedule.swift:85), maxHistoricalPoints 90.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.mergeIntoNight(_:sleepSchedule:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.shouldReplace(_:with:sleepSchedule:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.newWindowIsObjectivelyBetter(new:existing:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.consolidationVerdict(new:existing:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.organizedRecoveryVerdict(new:existing:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.passesQualityGates(new:existing:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.hrStabilityAcceptable(new:existing:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.isMeaningfullyBetterScore(new:existing:)",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.nightKey(for:)",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.isMorningReading(endDate:)",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.morningCutoff(forNightStartingAt:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.consolidationVerdict(new:existing:)": "f95d69fd35b9cdd0",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.hrStabilityAcceptable(new:existing:)": "9d8a1e9d418c0235",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.isMeaningfullyBetterScore(new:existing:)": "679f6fd006f2dd39",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.mergeIntoNight(_:sleepSchedule:)": "bde3ab5d43fe3cf7",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.newWindowIsObjectivelyBetter(new:existing:)": "4b68527ec6a73004",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.organizedRecoveryVerdict(new:existing:)": "ffaaa16a52c9be59",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.passesQualityGates(new:existing:)": "6a650b274c8b4d05",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.shouldReplace(_:with:sleepSchedule:)": "f0b53f7a21ad5d26",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.isMorningReading(endDate:)": "ed898a2e9f6f85cc",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.morningCutoff(forNightStartingAt:)": "4a8f97c3e296dfd5",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.nightKey(for:)": "b52d1b79b4d7211e"
+   }
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 3. Methods > 3.6 Baseline > 3.6.3 Statistics",
+   "hash": "0484b8a6a5149f26",
+   "does": "Specifies statistics: last 60 stored nights, >=3 points and >=3 positive RMSSD; lnMean; lnSD = max(sampleSD * w, 0.10) with w = sqrt(7/n) below 7; hrMean, hrSD floor 0.5; CV7 over last 7 (>=3 positive) else none; lastDate. Code: stats/baselineStats/widenedLnSD/sevenDayCV (BaselineTracker.swift:211-289) with lnRmssdSDFloor 0.10 and meanHRSDFloor 0.5 (Constants+SleepAndDisplay.swift:220-222).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.stats(from:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.lnRmssdValues(_:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.baselineStats(recentData:lnValues:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.widenedLnSD(_:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.sevenDayCV(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.baselineStats(recentData:lnValues:)": "0eab476b41d21f36",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.lnRmssdValues(_:)": "421a2e102c940335",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.sevenDayCV(_:)": "580a62e24720e370",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.stats(from:)": "36042c28cf8528af",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.widenedLnSD(_:)": "824c387a5657df7c"
+   }
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 3. Methods > 3.6 Baseline > 3.6.4 Leave-current-out",
+   "hash": "e777709bb5f3f61a",
+   "does": "Specifies leave-current-out: only nights with nightKey strictly earlier than the scored night are used, feeding both ranking and score. Code: recoveryBaselineStats(excludingNightOf:sleepSchedule:) (BaselineTracker.swift:200-208), used by MorningProcessingService.swift:181, ReanalysisService.swift:224, SessionRecoveryService.swift:55, RRCollector.swift:439.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.recoveryBaselineStats",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.stats(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.stats(from:)": "36042c28cf8528af",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.recoveryBaselineStats": "9916669422d3e401"
+   }
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 3. Methods > 3.7 Recovery score (v3.1.oct2026)",
+   "hash": "ae48a674b26025c9",
+   "does": "no behavioural claim: section heading naming scoring version v3.1.oct2026 (matches ScoringVersion.current).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 3. Methods > 3.7 Recovery score (v3.1.oct2026) > 3.7.1 z-mapping",
+   "hash": "b38e0ccdb9359e15",
+   "does": "Specifies z = (ln RMSSD - lnMean)/lnSD mapped piecewise-linearly through (-3,5)(-1.5,25)(-0.75,64)(-0.5,72)(0.5,72)(1.5,90), clamped at ends, NaN -> 50. Code: zToRecoveryScore/interpolate with defaultScoringParameters = scoringParametersV2 (RecoveryScoreCalculator.swift:303-367).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.zToRecoveryScore(_:parameters:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.interpolate(_:in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.interpolate(_:in:)": "075db2dc3aabc4cb",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.zToRecoveryScore(_:parameters:)": "2f5772bdaa1b8b54"
+   }
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 3. Methods > 3.7 Recovery score (v3.1.oct2026) > 3.7.2 Tier-1 HRV sub-score",
+   "hash": "282d02ff5aa76e37",
+   "does": "Specifies Tier-1: map(z) + clamp(-5 * zHR, +-10) + alpha1 term (+5 in 0.75-1.0, -5 >1.2, -3 <0.60) + CV7 term (-5 <2%, -3 >12%) + ANS term (-6 <-1.5, -3 <-0.5, +2 >=1.5) - staleness min(20, 5(1+(d-7)/7)) for d>=7, clamped 0-100; without baseline legacy readiness*10, else absolute bands 60/45/30/20 -> 85/70/55/40, else 25, no RMSSD -> 50. Code: calculateTier1/baselineNormalisedScore/rhrAdjustment/dfaAlpha1Adjustment/cvAdjustment/ansBalanceAdjustment/stalenessPenalty/absoluteRMSSDScore (RecoveryScoreCalculator+Tiers.swift:19-101, 205-262) with constants in Constants+RecoveryScore.swift:16-91.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateTier1(rmssd:meanHR:dfaAlpha1:baselineStats:readiness:ansBalance:referenceDate:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.baselineNormalisedScore(rmssd:meanHR:dfaAlpha1:stats:ansBalance:referenceDate:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.rhrAdjustment(meanHR:stats:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.stalenessPenalty(stats:referenceDate:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.absoluteRMSSDScore(_:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.dfaAlpha1Adjustment(_:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.cvAdjustment(_:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.ansBalanceAdjustment(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.absoluteRMSSDScore(_:)": "fdc70796780caa95",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.ansBalanceAdjustment(_:)": "c24879b45c062893",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.baselineNormalisedScore(rmssd:meanHR:dfaAlpha1:stats:ansBalance:referenceDate:)": "01ab74499441f595",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateTier1(rmssd:meanHR:dfaAlpha1:baselineStats:readiness:ansBalance:referenceDate:)": "89cf0881d7057b9f",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.cvAdjustment(_:)": "a58186e30ed60f27",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.dfaAlpha1Adjustment(_:)": "1677a6c322363f55",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.rhrAdjustment(meanHR:stats:)": "d68d0b1671fb7b94",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.stalenessPenalty(stats:referenceDate:)": "429f3bcd1feba0ed"
+   }
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 3. Methods > 3.7 Recovery score (v3.1.oct2026) > 3.7.3 Tiers",
+   "hash": "73d07db8a4751fce",
+   "does": "Specifies tiers: Tier 3 (sleep+vitals) 0.60/0.25/0.15, comeback 0.80/0.20/0.00 for 21 days from the set date; Tier 2 0.70/0.30 dampened to 0.85/0.15 when z<-1 and Sleep<50; Tier 1 = T1 (vitals unused). Code: ScoreDetailBuilder.buildTierComposite/buildTier3/tier3Weights/buildTier2/buildTier1, ScoringWeights (Constants.swift:400-424), UserSettings.isComebackModeActive (UserSettings+Model.swift:350-356).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.buildTierComposite(_:)",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.buildTier3(_:sleep:vitalsScore:)",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.tier3Weights(comebackModeActive:)",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.buildTier2(_:sleep:)",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.buildTier1(_:)",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isComebackModeActive",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateSleepScore(sleepData:typicalSleepHours:userAge:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Comeback mode is evaluated against today's date (UserSettings+Model.swift:350-356 uses Date()), not the scored night, so a historical rescore during an active comeback window reweights an old night 80/20/0 and one after expiry reweights a comeback night 60/25/15; the paper's '21 days from the date it is set' does not say which date governs a rescore.",
+     "evidence": [
+      "docs/whitepapers/01-overnight-recovery-measurement.md:365",
+      "Emuqu/Sources/Models/UserSettings+Model.swift:352"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateSleepScore(sleepData:typicalSleepHours:userAge:)": "7330a00595a0e155",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.buildTier1(_:)": "552b6e32661db094",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.buildTier2(_:sleep:)": "d11c9ae1d28d7e20",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.buildTier3(_:sleep:vitalsScore:)": "c56b06672fd5d0dd",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.buildTierComposite(_:)": "6dca408cb769ec28",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.tier3Weights(comebackModeActive:)": "bd6aa4da9d441b8c",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isComebackModeActive": "4a697d3be6c9e5eb"
+   }
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 3. Methods > 3.7 Recovery score (v3.1.oct2026) > 3.7.4 Final composite",
+   "hash": "4f38160ea148ba38",
+   "does": "Specifies the tail: Tier-1 missing-sleep penalty 10 when sleep integration and the opt-in are on and sleep is nil; clamp 0-100; SpO2 <95% subtracts 10 floored at 0; every deduction listed. Code: missingSleepPenaltyApplies/composeFinalScore (RecoveryScoreCalculator.swift:628-698), VitalsScoring.applyVitalsOverrides/vitalsPenaltyDescriptions.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.composeFinalScore(weightedSum:vitals:missingSleep:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.missingSleepPenaltyApplies(_:tier:config:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.computeBreakdown(_:config:ansBalance:referenceDate:)",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.applyVitalsOverrides(score:vitals:)",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.vitalsPenaltyDescriptions(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.composeFinalScore(weightedSum:vitals:missingSleep:)": "e2b0f7314f854d76",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.computeBreakdown(_:config:ansBalance:referenceDate:)": "157b8438d8f25096",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.missingSleepPenaltyApplies(_:tier:config:)": "a0db52565e02ade0",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.applyVitalsOverrides(score:vitals:)": "3b32c0981e9183bc",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.vitalsPenaltyDescriptions(_:)": "7ce480124795cabc"
+   }
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 3. Methods > 3.7 Recovery score (v3.1.oct2026) > 3.7.5 Training load is excluded",
+   "hash": "d1cecdc50cf7dbd4",
+   "does": "Claims training-load metrics are not recovery-score inputs and a separate training readiness is frozen alongside. Code: calculateWithBreakdown discards trainingMetrics/trainingContext (RecoveryScoreCalculator.swift:463,486); SessionAcceptanceService.applyFrozenScore sets frozenReadiness via ReanalysisService.computeFrozenReadiness.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingMetrics:config:ansBalance:referenceDate:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.applyFrozenScore(_:to:training:)",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.computeFrozenReadiness(compositeScore:trainingContext:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingMetrics:config:ansBalance:referenceDate:)": "7f20947af6a0bf60",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.computeFrozenReadiness(compositeScore:trainingContext:)": "7aa853f03a8994f8",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.applyFrozenScore(_:to:training:)": "3619103cd658de5f"
+   }
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 3. Methods > 3.8 Score freezing",
+   "hash": "bcc7602885da51fe",
+   "does": "no behavioural claim: section heading for score freezing.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 3. Methods > 3.8 Score freezing > 3.8.1 Snapshot",
+   "hash": "f9b8c7a49b706235",
+   "does": "Specifies the snapshot: sleep for the whole overnight window plus vitals fetched with a 10 s timeout (score without them on timeout); vitals resting HR replaced by the strap window mean HR. Code: snapshotHealthData/fetchSleepAndVitals/sleepFetchRange (SessionAcceptanceService.swift:148-185,302-317,515-532), RecoveryVitals.withStrapNocturnalRHR.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.snapshotHealthData(on:sessionEnd:sleepSchedule:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.fetchSleepAndVitals(rrPoints:fetchStart:fetchEnd:sessionEnd:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.sleepOrNil(_:from:to:rrPoints:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.sleepFetchRange(for:sessionEnd:sleepSchedule:)",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::func RecoveryVitals.withStrapNocturnalRHR(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RecoveryVitals.swift::func RecoveryVitals.withStrapNocturnalRHR(_:)": "689968153e58848a",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.fetchSleepAndVitals(rrPoints:fetchStart:fetchEnd:sessionEnd:)": "71733e809326d636",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.sleepFetchRange(for:sessionEnd:sleepSchedule:)": "2c715886654e547d",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.sleepOrNil(_:from:to:rrPoints:)": "a6976b04adeafa30",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.snapshotHealthData(on:sessionEnd:sleepSchedule:)": "910300a1dbd65504"
+   }
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 3. Methods > 3.8 Score freezing > 3.8.2 Inputs",
+   "hash": "6c6d87caa29abfae",
+   "does": "Specifies inputs: window RMSSD/meanHR/alpha1, ANS = PNS - SNS, leave-current-out baseline, reference date = session end. Code: SessionAcceptanceService.scoreBreakdown (SessionAcceptanceService.swift:322-350) passes referenceDate session.endDate ?? startDate.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.scoreBreakdown(result:session:inputs:training:useBaselineHRV:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingMetrics:config:ansBalance:referenceDate:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingMetrics:config:ansBalance:referenceDate:)": "7f20947af6a0bf60",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.scoreBreakdown(result:session:inputs:training:useBaselineHRV:)": "245c2d41dcd0a692"
+   }
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 3. Methods > 3.8 Score freezing > 3.8.3 Quality decision",
+   "hash": "9defd1d3905d2e22",
+   "does": "Specifies the quality decision: (1) short window or (unorganized and <3 h) with RMSSD < exp(lnMean) -> insufficient; (2) sleep exists and recording does not overlap it -> preSleep; (3) RMSSD < base and <3 h -> insufficient; else good. Code: classifyHRVQuality/insufficientDataDecision/overlapsSleep (SessionAcceptanceService.swift:62-121).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.classifyHRVQuality(result:sleepData:baselineStats:recordingStart:recordingEnd:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.insufficientDataDecision(result:rmssd:baselineRmssd:sessionDuration:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.overlapsSleep(_:recordingStart:recordingEnd:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.applyHRVQuality(to:result:baselineStats:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.applyHRVQuality(to:result:baselineStats:)": "03afabc428180322",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.classifyHRVQuality(result:sleepData:baselineStats:recordingStart:recordingEnd:)": "a16adf8d0bc63625",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.insufficientDataDecision(result:rmssd:baselineRmssd:sessionDuration:)": "51f71d81cd20946b",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.overlapsSleep(_:recordingStart:recordingEnd:)": "2779171f386bb65d"
+   }
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 3. Methods > 3.8 Score freezing > 3.8.4 Unusable-reading blend",
+   "hash": "ad4900f1df75a060",
+   "does": "Specifies the unusable-reading blend: score with RMSSD = exp(lnMean), meanHR = hrMean, no alpha1, no readiness; with a perceived-readiness answer HRV factor = 0.70 T1 + 0.30*100p (p clamped), recomposed through the missing-sleep and SpO2 tail. Code: FiniteHRVInputs.substitutingBaseline, blendingPerceivedReadiness/blendedFactors/subjectiveScore/composeFinalScore (RecoveryScoreCalculator.swift:476-600).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingMetrics:config:ansBalance:referenceDate:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.FiniteHRVInputs.substitutingBaseline(_:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.blendingPerceivedReadiness(_:vitals:missingSleep:into:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.blendedFactors(_:in:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.subjectiveScore(from:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.composeFinalScore(weightedSum:vitals:missingSleep:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.FiniteHRVInputs.substitutingBaseline(_:)": "d61172f6bfb07ff4",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.blendedFactors(_:in:)": "77638f6b64ff36b7",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.blendingPerceivedReadiness(_:vitals:missingSleep:into:)": "d0620f0c8638139f",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingMetrics:config:ansBalance:referenceDate:)": "7f20947af6a0bf60",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.composeFinalScore(weightedSum:vitals:missingSleep:)": "e2b0f7314f854d76",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.subjectiveScore(from:)": "4d2ec64f284e2b74"
+   }
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 3. Methods > 3.8 Score freezing > 3.8.5 What is stored",
+   "hash": "48d2a15c939bbb56",
+   "does": "Specifies storage: recoveryScore = composite/10, scoreBreakdown with scoringVersion 'v3.1.oct2026', frozen training readiness; breakdowns decoded without a version are labelled 'unversioned'. Code: applyFrozenScore/toTenScale, ScoreBreakdown init(from:) defaulting to ScoringVersion.unversioned (RecoveryScoreCalculator.swift:138-150), ScoringVersion.current.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.applyFrozenScore(_:to:training:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.toTenScale(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.toTenScale(_:)": "18aa103b513d602d",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.applyFrozenScore(_:to:training:)": "3619103cd658de5f"
+   }
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 3. Methods > 3.8 Score freezing > 3.8.6 Mutation rules",
+   "hash": "aae1a13c60c0b23f",
+   "does": "Specifies mutation rules: bulk reanalysis skips manual windows; auto sleep refresh never overwrites a user-edited snapshot but may fill a missing one without rescoring; pulled sessions fill-only; imported duplicates adopt a score only when none exists; auto upgrade only for the most recent scored overnight ending within 18 h, serialized, plausibility-checked, update on first snapshot / end later >60 s / more minutes / onset move >=15 / source upgrade, rescore on first / >=20 min / onset >=15 / upgrade, scoring boundaries moved with the snapshot; cross-device the newer whole-second modifiedAt copy wins. Code: ReanalysisService bulk skip (ReanalysisService.swift:260-263), SleepRefreshPolicy.*, SessionReanalysisCoordinator.loadTodaysOvernightSession/performAutoRefreshTodaysSleepIfImproved/freshPlausibleSleep, SessionMerger adoptRecoveryScore (SessionMerger.swift:126), CloudKitSessionFreshness.decide/wholeSeconds.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.autoSleepRefreshAllowed(for:)",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.sleepRefreshVerdict(session:fresh:)",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.onsetMoveMinutes(session:fresh:)",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.isSourceUpgradeToWatch(session:fresh:)",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.applyAutoRefresh(_:to:)",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.applyFreshSleep(_:to:)",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.applyPulledSleep(_:to:)",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.autoRefreshTodaysSleepIfImproved()",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.loadTodaysOvernightSession()",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.performAutoRefreshTodaysSleepIfImproved()",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.freshPlausibleSleep(for:sessionEnd:)",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.singleSeriesOutcome(imported:existing:)",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.decide(localModifiedAt:remoteModifiedAt:)",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.wholeSeconds(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.autoRefreshTodaysSleepIfImproved()": "56b4191237b0d263",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.freshPlausibleSleep(for:sessionEnd:)": "f78414ea2ea196fa",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.loadTodaysOvernightSession()": "659daa9a5f33a512",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.performAutoRefreshTodaysSleepIfImproved()": "116be4de76274bbe",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.applyAutoRefresh(_:to:)": "626b20745ed36b2e",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.applyFreshSleep(_:to:)": "def68e40a940835b",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.applyPulledSleep(_:to:)": "57d5c9c3f927516a",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.autoSleepRefreshAllowed(for:)": "33fbd96f656ca268",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.isSourceUpgradeToWatch(session:fresh:)": "d8d3231e47ac745b",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.onsetMoveMinutes(session:fresh:)": "bc65e91b58a590ac",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.sleepRefreshVerdict(session:fresh:)": "69aa588ccadc5b5e",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.decide(localModifiedAt:remoteModifiedAt:)": "ea2b3c0c3b9fc296",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.wholeSeconds(_:)": "e4aa63958f1544f2",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.singleSeriesOutcome(imported:existing:)": "e4161b7fe4929b14"
+   }
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 3. Methods > 3.9 RR-only sleep staging",
+   "hash": "c44c6e4fb970df3b",
+   "does": "no behavioural claim: section heading for RR-only sleep staging.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 3. Methods > 3.9 RR-only sleep staging > 3.9.1 Epochs and features",
+   "hash": "ae6705e9c2b3fc3c",
+   "does": "Specifies epochs: 5-min epochs between sleep start/end, >=10 beats and >=8 valid RR, >=6 epochs; per-epoch HR, RMSSD, population SDNN, CV, alpha1 (>=64), LF/HF and HF from the shared spectral routine. Code: HRVSleepStageClassifier.classify/buildFeatureWindows/featureWindow/windowVariability/windowAlpha1/windowFrequencyMetrics (windowSizeMs 5 min at HRVSleepStageClassifier.swift:72).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.classify(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.buildFeatureWindows(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.featureWindow(points:windowStart:windowEnd:recordingStart:)",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.windowVariability(_:avgRR:)",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.windowAlpha1(_:)",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.windowFrequencyMetrics(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.buildFeatureWindows(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)": "e5152bee7dc8280c",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.classify(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)": "da561724b018c059",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.featureWindow(points:windowStart:windowEnd:recordingStart:)": "ead6a2a14e255090",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.windowAlpha1(_:)": "e229f626fb9eadc2",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.windowFrequencyMetrics(_:)": "9dd9570dd88e91c4",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.windowVariability(_:avgRR:)": "d8d3dfc21574a285"
+   }
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 3. Methods > 3.9 RR-only sleep staging > 3.9.2 Within-night rank normalization",
+   "hash": "83b8702dbfe6411b",
+   "does": "Specifies within-night fractional ranks with mean rank for ties; missing fills alpha1 -> night median or 0.85, LF/HF -> 2.0, HF -> 0. Code: computeFeatureRanks/computeRanks/tieGroupEnd (HRVSleepStageClassifier.swift:343-495), fallbackMedianDFA 0.85.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.computeFeatureRanks(_:)",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.computeRanks(_:)",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.tieGroupEnd(_:values:from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.computeFeatureRanks(_:)": "df6fbe2188846900",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.computeRanks(_:)": "26a1bf06cf0e4350",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.tieGroupEnd(_:values:from:)": "e7bd7476f892a143"
+   }
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 3. Methods > 3.9 RR-only sleep staging > 3.9.3 Scores",
+   "hash": "0ed8b5001ed3373b",
+   "does": "Specifies deep/REM/awake scores with temporal priors and the four availability-dependent weight sets of Table 3.4, REM forced to 0 in the first 60 min. Code: computeWindowScores/windowScores/computeDeepScore/deepTemporalBonus/computeREMScore/remTemporalBonus/computeAwakeScore with weights in Constants+SleepAndDisplay.swift:36-150 (all values match the table) and minTimeBeforeREMMs 60 min (HRVSleepStageClassifier.swift:81).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.computeWindowScores(_:sleepStartMs:)",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.windowScores(ranks:index:elapsedMs:nightDurationMs:hasFreqDomain:hasDFA:)",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.computeDeepScore(ranks:index:nightFraction:hasFreqDomain:hasDFA:)",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.deepTemporalBonus(_:)",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.computeREMScore(ranks:index:nightFraction:hasFreqDomain:hasDFA:)",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.remTemporalBonus(_:)",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.computeAwakeScore(ranks:index:hasFreqDomain:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.computeAwakeScore(ranks:index:hasFreqDomain:)": "6f65cca9ff157299",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.computeDeepScore(ranks:index:nightFraction:hasFreqDomain:hasDFA:)": "f2b54b36047619fb",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.computeREMScore(ranks:index:nightFraction:hasFreqDomain:hasDFA:)": "1acb263177dc509d",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.computeWindowScores(_:sleepStartMs:)": "ca56192b37a63184",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.deepTemporalBonus(_:)": "e187005bf949e69b",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.remTemporalBonus(_:)": "fe9ee0448a663e10",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.windowScores(ranks:index:elapsedMs:nightDurationMs:hasFreqDomain:hasDFA:)": "e9758e0244a6c472"
+   }
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 3. Methods > 3.9 RR-only sleep staging > 3.9.4 Decision and smoothing",
+   "hash": "90ccc5dbc94d1173",
+   "does": "Specifies decision thresholds awake >0.80, deep >0.60 and >=rem, REM >0.63 and >deep, else core; single-epoch smoothing that never removes awake. Code: classifyStage/classifyWindows (HRVSleepStageClassifier.swift:446-466), smoothStages (HRVSleepStageClassifier+Watch.swift:10), thresholds Constants+SleepAndDisplay.swift:14-22.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.classifyStage(deepScore:remScore:awakeScore:)",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.classifyWindows(_:sleepStartMs:)",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.smoothStages(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.smoothStages(_:)": "5ad21ea661efbb1a",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.classifyStage(deepScore:remScore:awakeScore:)": "b6953085aa1e77c6",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.classifyWindows(_:sleepStartMs:)": "3fc39795d549208e"
+   }
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 3. Methods > 3.9 RR-only sleep staging > 3.9.5 Intervals",
+   "hash": "6c3f40e7550d86ce",
+   "does": "Specifies intervals of consecutive same-stage epochs, ended also by a dropped epoch. Code: buildIntervals (HRVSleepStageClassifier+Watch.swift:34).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.buildIntervals(windows:stages:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.buildIntervals(windows:stages:)": "fa274e37415edfb5"
+   }
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 3. Methods > 3.9 RR-only sleep staging > 3.9.6 Watch augmentation",
+   "hash": "d0c104e9be4fba63",
+   "does": "Specifies Watch augmentation: Watch stages anchor; each RR epoch takes the dominant covering Watch stage; overrides core->deep (deep>0.68, >rem), core->REM (LF/HF, rem>0.63, >deep), awake->REM (LF/HF, rem>0.68, awake<0.80), deep->REM (LF/HF, rem>0.72, deep<0.40), REM->deep (deep>0.72, rem<0.40); only the overridden part is repainted. Code: augment/applyOverrides/repaint/augmentationResult/decideAugmentedStage/augmentedFromCore/dominantStage (HRVSleepStageClassifier+Watch.swift:104-290), thresholds Constants+SleepAndDisplay.swift:27-35.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.augment(watchIntervals:rrPoints:sleepStartMs:sleepEndMs:recordingStart:)",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.applyOverrides(_:to:)",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.repaint(_:with:)",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.augmentationResult(intervals:augmentations:epochs:)",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.applyAugmentationDecisions(windows:watchStages:scores:)",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.decideAugmentedStage(watch:score:)",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.augmentedFromCore(watch:score:)",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.dominantStage(in:watchIntervals:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.applyAugmentationDecisions(windows:watchStages:scores:)": "45d9f53143a57ecf",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.applyOverrides(_:to:)": "fe7221112260bf0c",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.augment(watchIntervals:rrPoints:sleepStartMs:sleepEndMs:recordingStart:)": "af1b9795453e0ab3",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.augmentationResult(intervals:augmentations:epochs:)": "59bbc6775a66d956",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.augmentedFromCore(watch:score:)": "7ef70bd5b844cacb",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.decideAugmentedStage(watch:score:)": "4a02331fc5d9c8ed",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.dominantStage(in:watchIntervals:)": "7ef3e67455e0e356",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.repaint(_:with:)": "80cf54e2d51227a7"
+   }
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 3. Methods > 3.10 Vitals sub-score",
+   "hash": "cedcd2c8e0be4b69",
+   "does": "Specifies the vitals sub-score as the mean of available sub-scores: sleep HR max(0,100-10*max(0,(HR-hrMean)/hrSD)) with a baseline; respiratory rate with baseline max(0,100-15*max(0,dev-1)), without baseline 100 in 12-18, 100-15(rate-18) above, 90 below; wrist temperature deviation <=0.3 ->100, <=0.5 ->75, <=1.0 ->50, else 25, cooler ->100; SpO2 not a factor. Code: calculateVitalsScore/restingHRSubScore/respiratorySubScore/respiratoryPopulationScore/temperatureSubScore (VitalsScoring.swift:48-92,232-245,315-325).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.calculateVitalsScore(vitals:baselineStats:)",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.restingHRSubScore(vitals:baselineStats:)",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.respiratorySubScore(vitals:)",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.respiratoryPopulationScore(rate:)",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.temperatureSubScore(_:)",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.respiratoryDeviation"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.calculateVitalsScore(vitals:baselineStats:)": "0d8a08e676f447a9",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.respiratoryPopulationScore(rate:)": "72d59b14216da995",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.respiratorySubScore(vitals:)": "0e425dbe61b57cb0",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.restingHRSubScore(vitals:baselineStats:)": "826de92048a8ff8a",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.temperatureSubScore(_:)": "be3ab47118c6c3a7",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.respiratoryDeviation": "a41bd06056c51819"
+   }
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 4. Comparison with Existing Approaches",
+   "hash": "a25a09560909d816",
+   "does": "no behavioural claim: Table 4.1 comparing published approaches with Emuqu; the Emuqu row restates methods verified in Section 3 records.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 5. What Is New",
+   "hash": "271ca329b41c2b77",
+   "does": "no behavioural claim: novelty statements N1-N14 restating Section 3 methods with commit-dated provenance; the restated method parameters match the code verified in the Section 3 records; commit hashes and dates in other repositories are not checkable from this checkout.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 6. Verification",
+   "hash": "3dd85d24e407c67e",
+   "does": "Claims every build compares RMSSD/SDNN/pNN50 on 6,000 intervals from 20 nsr2db records against a reference implementation; the Python port matched all 114 ported cases from eight suites but is partial (128 test functions at e028039, 14 not ported incl. live-DFA window-fill gating, arrival-clock dropout break, 8 sleep-stage percentile and 3 HRV-reference tests; some cases are comment-quoted values), so those behaviours are not confirmed; reports MIT-BIH artifact results, and lists science-register labels for v3.1.oct2026 (Table 6.1).",
+   "entry": null,
+   "calls": [
+    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.testMeanRRAndSDNNMatchTheReferenceOnEveryRecord()",
+    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.testUnfilteredRMSSDMatchesTheReferenceOnEveryRecord()",
+    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.testPNN50MatchesTheReferenceWhereNoBeatIsFiltered()",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeTimeDomain(_:flags:windowStart:windowEnd:)",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)",
+    "Tools/validation/validate_artifacts.py::def main",
+    "Tools/validation/make_results.py::def main",
+    "Tools/validation/fetch_physionet.py::def main",
+    "Makefile::target science-register",
+    "Tools/validation/test_ports.py::def case.deco.run",
+    "Tools/validation/port_time_domain.py::def compute_time_domain",
+    "Tools/validation/port_dfa.py::def compute",
+    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa",
+    "Tools/validation/port_artifact_detection.py::def detect_artifacts",
+    ".github/workflows/ci.yml::step tests/Run tests with coverage"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "The paper says the time-domain arithmetic is checked against the 20 nsr2db records 'on every build'. That check is a unit test (HRVReferenceValidationTests), and the unit suite runs only in ci.yml, which is workflow_dispatch/workflow_call only with default scope 'gates' (no tests); the push-triggered gates.yml runs no xcodebuild test. The check runs on manual 'unit'/'full' CI runs, TestFlight releases and local make ci, not on every build.",
+     "evidence": [
+      "docs/whitepapers/01-overnight-recovery-measurement.md:633",
+      ".github/workflows/ci.yml:3",
+      ".github/workflows/ci.yml:39",
+      ".github/workflows/gates.yml:26",
+      "EmuquTests/HRVReferenceValidationTests.swift"
+     ],
+     "found": "second read"
+    },
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Paper says RMSSD, SDNN and pNN50 are compared on 6,000 intervals from 20 nsr2db records. pNN50 is only compared on records where the ectopic filter removes no beat (testPNN50MatchesTheReferenceWhereNoBeatIsFiltered; 16 of 20 in the port run), and the RMSSD comparison is of the unfiltered value; the pipeline RMSSD is only checked to be <= unfiltered.",
+     "evidence": [
+      "docs/whitepapers/01-overnight-recovery-measurement.md:633",
+      "EmuquTests/HRVReferenceValidationTests.swift:165",
+      "EmuquTests/HRVReferenceValidationTests.swift:148",
+      "Tools/validation/test_ports_output.txt"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    ".github/workflows/ci.yml::step tests/Run tests with coverage": "7b5b9eee68d4d299",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)": "7033ee2115866c44",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeTimeDomain(_:flags:windowStart:windowEnd:)": "085797ccd4889c54",
+    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.testMeanRRAndSDNNMatchTheReferenceOnEveryRecord()": "d3768a925919f396",
+    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.testPNN50MatchesTheReferenceWhereNoBeatIsFiltered()": "b1598298efc3bacf",
+    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.testUnfilteredRMSSDMatchesTheReferenceOnEveryRecord()": "242a9f14830dbc54",
+    "Makefile::target science-register": "7d38d351a8e872c3",
+    "Tools/validation/fetch_physionet.py::def main": "abb23336efab6f67",
+    "Tools/validation/make_results.py::def main": "908dfd1cde2ba05c",
+    "Tools/validation/port_artifact_detection.py::def detect_artifacts": "ca1c3bc11407ae35",
+    "Tools/validation/port_dfa.py::def compute": "7de4083f302fad86",
+    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa": "af9d285354a874c1",
+    "Tools/validation/port_time_domain.py::def compute_time_domain": "6df2bb04536d9ad5",
+    "Tools/validation/test_ports.py::def case.deco.run": "76cc61a5964ea8dc",
+    "Tools/validation/validate_artifacts.py::def main": "1732b11ba39e8615"
+   }
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 7. Design Tradeoffs",
+   "hash": "c49f8074f79c6506",
+   "does": "no behavioural claim: design tradeoffs (prose restating behaviours documented and checked in Section 3).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 8. Provenance and Dates",
+   "hash": "3606157dc522b31d",
+   "does": "no behavioural claim: provenance section heading pointing to Paper 5 (docs/whitepapers/05-blind-audit-convergence-method.md exists).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 8. Provenance and Dates > 8.1 Project origin",
+   "hash": "9ad013c2dd0f900e",
+   "does": "no behavioural claim: project origin history.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 8. Provenance and Dates > 8.2 Repository lineage",
+   "hash": "d3bf4ea756db0c7d",
+   "does": "no behavioural claim: repository lineage table and scoring-version history (v2.may2026 -> v3.oct2026 -> v3.1.oct2026).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 8. Provenance and Dates > 8.3 Dated records outside git",
+   "hash": "a732cd7d10f7289a",
+   "does": "no behavioural claim: dated records outside git (conversations, documents, messages).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 8. Provenance and Dates > 8.4 Public disclosures",
+   "hash": "a5cc21ac047baf0a",
+   "does": "no behavioural claim: public disclosure dates and what the 2026-05-19 article disclosed.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 8. Provenance and Dates > 8.5 Authorship",
+   "hash": "7aca84625578b7c5",
+   "does": "no behavioural claim: authorship statement.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 8. Provenance and Dates > 8.6 Document history",
+   "hash": "ecc5a0c1f4f3cd22",
+   "does": "no behavioural claim: document version history.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > References",
+   "hash": "c43614adb58bdbd6",
+   "does": "no behavioural claim: bibliography.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > Appendix A: Parameters",
+   "hash": "cb79f4dd049738bc",
+   "does": "Parameter table (Appendix A) restating every constant of Section 3: source selection 120/5%/2000 ms/50 ms, onset detector, classifier, window geometry, caps, organized test, baseline storage/statistics/replacement fractions, z bands, Tier-1 adjustments, tier weights, penalties, freeze timeout and refresh thresholds, staging and augmentation thresholds, vitals bands. All values match the code constants listed in the FILE record.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.computeAdaptiveWindowSize(beatsAvailable:compact:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.widenedLnSD(_:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.zToRecoveryScore(_:parameters:)",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.sleepRefreshVerdict(session:fresh:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.widenedLnSD(_:)": "824c387a5657df7c",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.zToRecoveryScore(_:parameters:)": "2f5772bdaa1b8b54",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.computeAdaptiveWindowSize(beatsAvailable:compact:)": "fd73f7db1a3e1449",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)": "aa75532f95478352",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.sleepRefreshVerdict(session:fresh:)": "69aa588ccadc5b5e"
+   }
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > Appendix B: Pseudocode",
+   "hash": "e56584b228d37c83",
+   "does": "Pseudocode (Appendix B) for selectSource, mergeDedup, detectOnset, dateUndated, mapWallToBeat, isBreak, maskedRMSSD, selectWindow, evalWindow, organized, admit, baselineStats, freeze, autoSleepRefresh, stageNight. Each matches the implementing Swift. The selectWindow pseudocode returns none for |P| < 120 while production callers require 400 beats (see the 3.4.3 record).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.mergePoints(internal:streaming:)",
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.detectSleepOnset(in:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.tMsOffset(forWallElapsed:in:)",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.isRecordingBreak(between:and:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.maskedRMSSD(_:kept:breaks:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.evaluateWindow(series:flags:startIdx:endIdx:sessionStartMs:sessionEndMs:artifactRateLimit:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.admitsToBaseline(_:result:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.stats(from:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.freezeScore(on:result:inputs:)",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.performAutoRefreshTodaysSleepIfImproved()",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.classify(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.admitsToBaseline(_:result:)": "836597a99ab2f10d",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.stats(from:)": "36042c28cf8528af",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.classify(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)": "da561724b018c059",
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.detectSleepOnset(in:)": "d0309f14481839ab",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.isRecordingBreak(between:and:)": "1b25dbe12de7ff83",
+    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.evaluateWindow(series:flags:startIdx:endIdx:sessionStartMs:sessionEndMs:artifactRateLimit:)": "8b634b5d27eacefa",
+    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.maskedRMSSD(_:kept:breaks:)": "c75873750803141f",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "80f3df9ec13766e3",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.tMsOffset(forWallElapsed:in:)": "3d767d1c59c92ffc",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.mergePoints(internal:streaming:)": "08bc9799bbccea43",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.performAutoRefreshTodaysSleepIfImproved()": "116be4de76274bbe",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.freezeScore(on:result:inputs:)": "938f1bd588f7d0a0"
+   }
+  },
+  {
+   "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > Appendix C: Source Map",
+   "hash": "d9bc63884090944c",
+   "does": "Source map (Appendix C) assigning each method to repository files; all 40 listed paths exist at main.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectWithInternalAvailable(internalData:streamingPoints:hasValidStreaming:sessionId:sessionStart:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)",
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.assembleFinalSession(analyzingSession:placement:series:outcome:)",
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.startSession(sessionType:)",
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.resolve(sessionStart:recordingEnd:rrPoints:useHREstimation:)",
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.resolveFromHREstimation(rrPoints:sessionStart:)",
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.hrEstimatedSleepData(rrPoints:recordingStart:sleepOnsetMs:wakeMs:stageResult:)",
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.detectSleepBoundariesFromHR(_:)",
+    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.pollForSleepData(series:effectiveStartDate:totalBeats:isBackgroundRefinement:sleepSchedule:prefetchedSleepData:statusCallback:)",
+    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.pollHealthKitSleep(series:effectiveStartDate:recordingEnd:totalBeats:isBackgroundRefinement:statusCallback:)",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.backup(points:sessionId:deviceId:captureDate:)",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.reconcileBeatCount(sessionId:to:claimed:)",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.writeAppendData(_:to:sessionId:count:)",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.updateAppendIndex(sessionId:existingEntry:beatCount:)",
+    "Emuqu/Sources/Collection/StrapStartSequence.swift::func StrapStartSequence.rescuesBeforeClearing(_:)",
+    "Emuqu/Sources/Collection/StrapStartSequence.swift::func StrapStartSequence.steps(for:)",
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.pauseOvernightStreaming()",
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.pauseWithFullAnalysis(data:)",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.analyzeAndFinalizeOvernight(finalPoints:baseSession:streamingBeats:deviceBeats:dataSource:reconnectCount:prefetchedSleepData:)",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func selectBestDataSource(streamingPoints:devicePoints:baseSession:)",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.classify(rrMs:median:)",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.computeRollingMedian(_:windowSize:)",
+    "Emuqu/Sources/Utilities/Constants.swift::func AppConfig.sharedContainerURL()",
+    "Emuqu/Sources/Utilities/Constants.swift::func HRVConstants.RRInterval.isValid(_:)",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeTimeDomain(_:flags:windowStart:windowEnd:)",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.tenSecondWindowHR(series:flags:from:to:)",
+    "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.evaluateWindow(series:flags:startIdx:endIdx:sessionStartMs:sessionEndMs:artifactRateLimit:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.scoredBlock(slice:rrValues:artifactRate:clean:sessionStartMs:sessionEndMs:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.ectopicKeepMask(_:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.medianExcluding(_:value:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.searchBand(points:sleepStartMs:wakeTimeMs:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanBandWithArtifactFallback(series:flags:band:boundaries:)",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.fullSeriesResult(series:flags:start:end:reportedWindow:ansConfig:daytimeRestingHR:)",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeWithAutoWindow(session:sleepStartMs:wakeTimeMs:trainingContext:ansConfig:baselineStats:)",
+    "Emuqu/Sources/Services/MorningProcessingService+Analysis.swift::func MorningProcessingService.pollResult(fromFetched:effectiveStartDate:)",
+    "Emuqu/Sources/Services/MorningProcessingService+Analysis.swift::func MorningProcessingService.selectWindow(in:flags:sleepResult:baselineStats:)",
+    "Emuqu/Sources/Collection/RRCollector+Analysis.swift::func MorningSessionPipeline.computeRecoveryScore(for:from:)",
+    "Emuqu/Sources/Collection/RRCollector+Analysis.swift::func MorningSessionPipeline.recoverySnapshots(for:result:sessionEnd:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.rebuildFromSessions(_:sleepSchedule:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.deviation(for:)",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.daytimeNapWindow(relativeTo:)",
+    "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift::func FeatureFlags.value(for:)",
+    "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift::func FeatureFlags.snapshot()",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingContext:config:useBaselineHRV:perceivedReadiness:ansBalance:referenceDate:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.tierInputs(_:vitalsScore:config:ansBalance:referenceDate:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.basicSleepScore(_:typicalSleepHours:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateTier1(rmssd:meanHR:dfaAlpha1:baselineStats:readiness:ansBalance:referenceDate:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.calculate(_:trainingMetrics:config:ansBalance:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.calculate(_:trainingContext:config:ansBalance:)",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.describeHRV(rmssd:baselineStats:meanHR:dfaAlpha1:hrvReadiness:ansBalance:referenceDate:)",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.buildTier3(_:sleep:vitalsScore:)",
+    "Emuqu/Sources/Analysis/HRVThresholds.swift::func AgeAdjustedHRV.interpretAbsolute(rmssd:)",
+    "Emuqu/Sources/Analysis/HRVThresholds.swift::func AgeAdjustedHRV.rmssdThresholds(forAge:sex:)",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.breakdownRefreshingVitalsFactor(_:freshVitals:baselineStats:)",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.vitalsFacts(vitals:baselineStats:score:)",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::func RecoveryVitals.withStrapNocturnalRHR(_:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.updateCompositeRecoveryScore(for:scoringConfig:trainingContext:baselineStats:typicalSleepHours:sleepSchedule:exportMetrics:enableHealthKitExport:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.classifyHRVQuality(result:sleepData:baselineStats:recordingStart:recordingEnd:)",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.sleepRefreshVerdict(session:fresh:)",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.applyFreshSleep(_:to:)",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func postSleepRescoreRequest(sessionId:fresh:verdict:)",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.makeReanalysisService(fallbackSettings:)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.performPush()",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.scrubStoredRecord(keepingOutHealthFilledFrom:)",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.overwrite(_:with:restoring:yieldingIn:)",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.replacing(_:with:)",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.compositeChange(imported:existing:importedPoints:existingPoints:)",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.applyComposite(mergedPoints:summary:adoptImportedAnalysis:from:to:)",
+    "Emuqu/Sources/Services/ReanalysisService.swift::init ReanalysisService(archive:healthKit:analysisPipeline:windowSelector:artifactDetector:baselineTracker:settingsProvider:scoringConfigProvider:ansConfigProvider:trainingContextProvider:analyzeWithWindow:analyzeFullSession:onArchiveChanged:onSessionUploaded:)",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.selectWindow(method:series:flags:sleepStartMs:wakeTimeMs:selector:baselineStats:)",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.windowScores(ranks:index:elapsedMs:nightDurationMs:hasFreqDomain:hasDFA:)",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.computeDeepScore(ranks:index:nightFraction:hasFreqDomain:hasDFA:)",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.decideAugmentedStage(watch:score:)",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.augment(watchIntervals:rrPoints:sleepStartMs:sleepEndMs:recordingStart:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.classify(rrMs:median:)": "6c413577ca564e84",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.computeRollingMedian(_:windowSize:)": "deee4ec70514c56e",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.deviation(for:)": "eb395310f3a332ff",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.rebuildFromSessions(_:sleepSchedule:)": "d1901cb2aed50e88",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "93a8b95af9c5a354",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)": "6da94147dc9db2eb",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeWithAutoWindow(session:sleepStartMs:wakeTimeMs:trainingContext:ansConfig:baselineStats:)": "4199736e0169638a",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.fullSeriesResult(series:flags:start:end:reportedWindow:ansConfig:daytimeRestingHR:)": "c3843d2d5896b458",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.augment(watchIntervals:rrPoints:sleepStartMs:sleepEndMs:recordingStart:)": "af1b9795453e0ab3",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.decideAugmentedStage(watch:score:)": "4a02331fc5d9c8ed",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.computeDeepScore(ranks:index:nightFraction:hasFreqDomain:hasDFA:)": "f2b54b36047619fb",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.windowScores(ranks:index:elapsedMs:nightDurationMs:hasFreqDomain:hasDFA:)": "e9758e0244a6c472",
+    "Emuqu/Sources/Analysis/HRVThresholds.swift::func AgeAdjustedHRV.interpretAbsolute(rmssd:)": "aa935e64ca2f612e",
+    "Emuqu/Sources/Analysis/HRVThresholds.swift::func AgeAdjustedHRV.rmssdThresholds(forAge:sex:)": "3df80fffefa3fee2",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.calculate(_:trainingContext:config:ansBalance:)": "fc05f16d5d71d6fe",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.calculate(_:trainingMetrics:config:ansBalance:)": "590efb2c7a569284",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.basicSleepScore(_:typicalSleepHours:)": "624d97ea54017aa4",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateTier1(rmssd:meanHR:dfaAlpha1:baselineStats:readiness:ansBalance:referenceDate:)": "89cf0881d7057b9f",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingContext:config:useBaselineHRV:perceivedReadiness:ansBalance:referenceDate:)": "ca2be1737136e0d8",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.tierInputs(_:vitalsScore:config:ansBalance:referenceDate:)": "3a49d7e1e08f9271",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.buildTier3(_:sleep:vitalsScore:)": "c56b06672fd5d0dd",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.describeHRV(rmssd:baselineStats:meanHR:dfaAlpha1:hrvReadiness:ansBalance:referenceDate:)": "72e31dd9d03ba37e",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.resolve(sessionStart:recordingEnd:rrPoints:useHREstimation:)": "472051ae5134cf89",
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.resolveFromHREstimation(rrPoints:sessionStart:)": "7cb366e4742cfde1",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeTimeDomain(_:flags:windowStart:windowEnd:)": "b45f65e53d1a0cab",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.tenSecondWindowHR(series:flags:from:to:)": "af276904011c2b24",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.breakdownRefreshingVitalsFactor(_:freshVitals:baselineStats:)": "06335fbd097cdaa4",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.vitalsFacts(vitals:baselineStats:score:)": "18f952f8b5a34d75",
+    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.evaluateWindow(series:flags:startIdx:endIdx:sessionStartMs:sessionEndMs:artifactRateLimit:)": "8b634b5d27eacefa",
+    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.scoredBlock(slice:rrValues:artifactRate:clean:sessionStartMs:sessionEndMs:)": "8cf76a8202fa1eb6",
+    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.ectopicKeepMask(_:)": "5b16b69db6427d70",
+    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.medianExcluding(_:value:)": "b20d57857f179916",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanBandWithArtifactFallback(series:flags:band:boundaries:)": "59be8afe85fb26dc",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.searchBand(points:sleepStartMs:wakeTimeMs:)": "a97220d0ad2b4a93",
+    "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)": "c6fe89367e88ef08",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)": "aa75532f95478352",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectWithInternalAvailable(internalData:streamingPoints:hasValidStreaming:sessionId:sessionStart:)": "f489012f0455925e",
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.detectSleepBoundariesFromHR(_:)": "383647fc72c68104",
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.hrEstimatedSleepData(rrPoints:recordingStart:sleepOnsetMs:wakeMs:stageResult:)": "c27a639e20ecde54",
+    "Emuqu/Sources/Collection/RRCollector+Analysis.swift::func MorningSessionPipeline.computeRecoveryScore(for:from:)": "0e6851d7bed686b8",
+    "Emuqu/Sources/Collection/RRCollector+Analysis.swift::func MorningSessionPipeline.recoverySnapshots(for:result:sessionEnd:)": "760d72df5aebb010",
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.assembleFinalSession(analyzingSession:placement:series:outcome:)": "af343620c375dc62",
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.startSession(sessionType:)": "6f02e775e89ff1fe",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.analyzeAndFinalizeOvernight(finalPoints:baseSession:streamingBeats:deviceBeats:dataSource:reconnectCount:prefetchedSleepData:)": "aebf9d317aa3d37b",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func selectBestDataSource(streamingPoints:devicePoints:baseSession:)": "0228f2926f2fdfae",
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.pauseOvernightStreaming()": "04f5a4e44402eaba",
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.pauseWithFullAnalysis(data:)": "271ae4b815102f92",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.makeReanalysisService(fallbackSettings:)": "eb5ba8d42a8d6ac9",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func postSleepRescoreRequest(sessionId:fresh:verdict:)": "0e5a458cef49d0e4",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.applyFreshSleep(_:to:)": "def68e40a940835b",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.sleepRefreshVerdict(session:fresh:)": "69aa588ccadc5b5e",
+    "Emuqu/Sources/Collection/StrapStartSequence.swift::func StrapStartSequence.rescuesBeforeClearing(_:)": "e26b0e40644a1de5",
+    "Emuqu/Sources/Collection/StrapStartSequence.swift::func StrapStartSequence.steps(for:)": "9b9d45939c985f0e",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::func RecoveryVitals.withStrapNocturnalRHR(_:)": "689968153e58848a",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.daytimeNapWindow(relativeTo:)": "5afd5330581bf7e0",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "248d2d6037a937bb",
+    "Emuqu/Sources/Services/MorningProcessingService+Analysis.swift::func MorningProcessingService.pollResult(fromFetched:effectiveStartDate:)": "f428b9606923ede3",
+    "Emuqu/Sources/Services/MorningProcessingService+Analysis.swift::func MorningProcessingService.selectWindow(in:flags:sleepResult:baselineStats:)": "afb8f0ad8b1bcf5c",
+    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.pollForSleepData(series:effectiveStartDate:totalBeats:isBackgroundRefinement:sleepSchedule:prefetchedSleepData:statusCallback:)": "eccc4573a72bc99f",
+    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.pollHealthKitSleep(series:effectiveStartDate:recordingEnd:totalBeats:isBackgroundRefinement:statusCallback:)": "01f01a5535f4967d",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.selectWindow(method:series:flags:sleepStartMs:wakeTimeMs:selector:baselineStats:)": "316767efb57898a7",
+    "Emuqu/Sources/Services/ReanalysisService.swift::init ReanalysisService(archive:healthKit:analysisPipeline:windowSelector:artifactDetector:baselineTracker:settingsProvider:scoringConfigProvider:ansConfigProvider:trainingContextProvider:analyzeWithWindow:analyzeFullSession:onArchiveChanged:onSessionUploaded:)": "4ba829a0f1d38fd3",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.classifyHRVQuality(result:sleepData:baselineStats:recordingStart:recordingEnd:)": "a16adf8d0bc63625",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.updateCompositeRecoveryScore(for:scoringConfig:trainingContext:baselineStats:typicalSleepHours:sleepSchedule:exportMetrics:enableHealthKitExport:)": "43855bbf0dd30ec4",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.overwrite(_:with:restoring:yieldingIn:)": "b6249d4493a56c98",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.replacing(_:with:)": "a8d2d7c07f638ee5",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.performPush()": "a45e84aba261bfd4",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.scrubStoredRecord(keepingOutHealthFilledFrom:)": "cab4af77d3f9b59f",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.updateAppendIndex(sessionId:existingEntry:beatCount:)": "b70e54d39d282e0a",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.writeAppendData(_:to:sessionId:count:)": "94f4374cf14013de",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.backup(points:sessionId:deviceId:captureDate:)": "e15f84c94869d1a4",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.reconcileBeatCount(sessionId:to:claimed:)": "49a9e06024f6ae43",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.applyComposite(mergedPoints:summary:adoptImportedAnalysis:from:to:)": "34cdf9f3ac2a2831",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.compositeChange(imported:existing:importedPoints:existingPoints:)": "1e9537472a683e90",
+    "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift::func FeatureFlags.snapshot()": "b6dc386dea69f291",
+    "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift::func FeatureFlags.value(for:)": "a2781a86fccf2cac",
+    "Emuqu/Sources/Utilities/Constants.swift::func AppConfig.sharedContainerURL()": "324ee77df2888a13",
+    "Emuqu/Sources/Utilities/Constants.swift::func HRVConstants.RRInterval.isValid(_:)": "330523605d6eeba2"
+   }
+  }
+ ],
+ "deps": {}
+}

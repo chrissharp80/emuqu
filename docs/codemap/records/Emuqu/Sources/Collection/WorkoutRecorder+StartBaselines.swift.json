@@ -1,0 +1,222 @@
+{
+ "file": "Emuqu/Sources/Collection/WorkoutRecorder+StartBaselines.swift",
+ "hash": "87745e1ae6aaf008",
+ "role": "WorkoutRecorder extension: start-path background baseline precompute — history baselines, race predictions, today's readiness and training projection — computed off-main and committed on the main actor, plus Watch strap-fallback state reset.",
+ "types": [
+  "WorkoutRecorder: extension — start baselines"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func WorkoutRecorder.resetCachedBaselinesAndLaunchBaselineTask(sport:)",
+   "hash": "3cc9c2dbb98fd01a",
+   "does": "Resets the four cached baseline values to empty, resets Watch strap-fallback state, then launches a detached utility task computing start baselines for the sport against core.archive, tagged with the current session's id.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder+StartBaselines.swift::func WorkoutRecorder.resetWatchStrapFallbackState()",
+    "Emuqu/Sources/Collection/WorkoutRecorder+StartBaselines.swift::func WorkoutRecorder.computeAndCacheStartBaselines(sportForBaselines:sessionId:archive:)"
+   ],
+   "reads": [
+    "mem:WorkoutLifecycle.currentSession"
+   ],
+   "writes": [
+    "mem:WorkoutRecorder.cachedHistoricalBaselines",
+    "mem:WorkoutRecorder.cachedTodayReadiness",
+    "mem:WorkoutRecorder.cachedTrainingProjection",
+    "mem:WorkoutRecorder.cachedRacePredictionsByDistance"
+   ],
+   "branches": [
+    {
+     "at": "+11",
+     "cond": "self (recorder) still alive in detached task",
+     "effect": "false: return; true: compute"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+StartBaselines.swift::func WorkoutRecorder.computeAndCacheStartBaselines(sportForBaselines:sessionId:archive:)": "37156bcf6e8be6ca",
+    "Emuqu/Sources/Collection/WorkoutRecorder+StartBaselines.swift::func WorkoutRecorder.resetWatchStrapFallbackState()": "5bb497ddff90c8b3",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.archive(session:)": "48c03f4e5ca60f97",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.currentSession": "5f7f872e0580112c"
+   }
+  },
+  {
+   "key": "func WorkoutRecorder.resetWatchStrapFallbackState()",
+   "hash": "05ea1897bace4cda",
+   "does": "Clears latest Watch HR, the routed-HR time, routed cumulative ms and RR buffer, and drains (discards) RR the Watch queued while idle.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.drainPendingWatchStrapRR()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:WatchConnectivityBridge.latestWatchHR",
+    "mem:WatchConnectivityBridge.pendingWatchStrapRR",
+    "mem:WorkoutRecorder.lastWatchRoutedHRAt",
+    "mem:WorkoutRecorder.watchRoutedCumulativeMs",
+    "mem:WorkoutRecorder.watchRoutedRRBuffer"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.drainPendingWatchStrapRR()": "3a46bb0c70b499cb",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::var WatchConnectivityBridge.latestWatchHR": "31bb4052344f7ae3"
+   }
+  },
+  {
+   "key": "func WorkoutRecorder.computeAndCacheStartBaselines(sportForBaselines:sessionId:archive:)",
+   "hash": "aa563665fffe843b",
+   "does": "Off-main: decodes the 60 newest workouts plus today's overnight/quick readings lightweight, computes sport history baselines (limit 30), Riegel race predictions, today's morning session, readiness and the ATL-based projection, then commits on the main actor for the session it was launched for.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder+StartBaselines.swift::func WorkoutRecorder.recentLightweightSessions(archive:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutHistoryBaselines.compute(from:sport:limit:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.predict(from:sport:now:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+StartBaselines.swift::func WorkoutRecorder.todaysMorningSession(in:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+StartBaselines.swift::func WorkoutRecorder.readinessSnapshot(morning:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+StartBaselines.swift::func WorkoutRecorder.trainingProjection(readiness:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+StartBaselines.swift::func WorkoutRecorder.commitStartBaselines(sessionId:baselines:readiness:projection:racePredictions:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.retrieveLightweight"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.predict(from:sport:now:)": "d09a73999868288c",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutHistoryBaselines.compute(from:sport:limit:)": "c2456ff3a7af308f",
+    "Emuqu/Sources/Collection/WorkoutRecorder+StartBaselines.swift::func WorkoutRecorder.commitStartBaselines(sessionId:baselines:readiness:projection:racePredictions:)": "76b896529a714429",
+    "Emuqu/Sources/Collection/WorkoutRecorder+StartBaselines.swift::func WorkoutRecorder.readinessSnapshot(morning:)": "d8bac5f807570ff8",
+    "Emuqu/Sources/Collection/WorkoutRecorder+StartBaselines.swift::func WorkoutRecorder.recentLightweightSessions(archive:)": "125769237d2be006",
+    "Emuqu/Sources/Collection/WorkoutRecorder+StartBaselines.swift::func WorkoutRecorder.todaysMorningSession(in:)": "3aafda64d13b87ff",
+    "Emuqu/Sources/Collection/WorkoutRecorder+StartBaselines.swift::func WorkoutRecorder.trainingProjection(readiness:)": "f348cda37b4e3cec",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.archive(session:)": "48c03f4e5ca60f97"
+   }
+  },
+  {
+   "key": "func WorkoutRecorder.commitStartBaselines(sessionId:baselines:readiness:projection:racePredictions:)",
+   "hash": "924d9ccdb015e776",
+   "does": "Main actor: commits the computed baselines only if the current session is the one they were computed for (session id), so a slow task from an earlier workout — of any sport — never overwrites the next one's caches.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:WorkoutLifecycle.currentSession"
+   ],
+   "writes": [
+    "mem:WorkoutRecorder.cachedHistoricalBaselines",
+    "mem:WorkoutRecorder.cachedTodayReadiness",
+    "mem:WorkoutRecorder.cachedTrainingProjection",
+    "mem:WorkoutRecorder.cachedRacePredictionsByDistance"
+   ],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "sessionId non-nil and currentSession?.id == sessionId",
+     "effect": "false: discards (stale task / no session); true: writes caches"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.currentSession": "5f7f872e0580112c"
+   }
+  },
+  {
+   "key": "func WorkoutRecorder.recentLightweightSessions(archive:)",
+   "hash": "74132ff1407bbe44",
+   "does": "Lightweight-decodes, from the newest-first index, the 60 newest workout entries plus the overnight/quick entries that ended today (for the readiness snapshot); decode errors dropped via try?.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweight(_:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries",
+    "archive:SessionArchive.retrieveLightweight"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "entry endDate nil (??)",
+     "effect": "its start date is used"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.archive(session:)": "48c03f4e5ca60f97",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweight(_:)": "63fb382811fb095f"
+   }
+  },
+  {
+   "key": "func WorkoutRecorder.todaysMorningSession(in:)",
+   "hash": "dc6d034a88311484",
+   "does": "Returns the newest complete/paused overnight or quick session whose endDate is today.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "endDate nil (filter)",
+     "effect": "?? .distantPast: excluded"
+    },
+    {
+     "at": "+6",
+     "cond": "endDate nil (sort)",
+     "effect": "?? .distantPast for ordering"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
+   }
+  },
+  {
+   "key": "func WorkoutRecorder.readinessSnapshot(morning:)",
+   "hash": "a6986f131281cfa0",
+   "does": "Builds ReadinessSnapshot: recovery score and HRV readiness rescaled ×10 (0-10 → 0-100), and ATL/CTL/TSB from the morning session's trainingSnapshot; all nil without a morning session.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+   }
+  },
+  {
+   "key": "func WorkoutRecorder.trainingProjection(readiness:)",
+   "hash": "35de9e3ed59d8e8e",
+   "does": "With ATL and CTL available, projects TSB one day ahead using ATL itself as the daily load (stay-the-course), and days until fresh; else .empty.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.project(startingATL:startingCTL:dailyTrimp:horizonDays:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.daysUntilFresh(currentATL:currentCTL:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "readiness.atl and readiness.ctl non-nil",
+     "effect": "false: .empty projection"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.daysUntilFresh(currentATL:currentCTL:)": "4ee276687dff6f4b",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.project(startingATL:startingCTL:dailyTrimp:horizonDays:)": "d4fe1750bac7aed4",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+   }
+  }
+ ],
+ "deps": {}
+}

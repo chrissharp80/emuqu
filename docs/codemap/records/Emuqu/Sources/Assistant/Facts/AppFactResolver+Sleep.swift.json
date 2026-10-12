@@ -1,0 +1,1440 @@
+{
+ "file": "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift",
+ "hash": "bd24da13e5a49d49",
+ "role": "Shared overnight-archive lookup helpers (availability, latest, byDate, inPeriod with the midpoint-in-day rule), the yyyy-MM-dd FactLocalDay formatter, a CMAltimeter availability helper, and the sleep.*, hrv.*, vitals.* and recovery.* assistant fact namespaces built from archived HRV sessions, with live HealthKit fallback for sleep.latest / vitals.latest / vitals.hr_now.",
+ "types": [
+  "FactLocalDay: enum — yyyy-MM-dd formatter factory",
+  "OvernightArchive: enum — shared overnight/nap/quick index lookups",
+  "SleepNamespace: struct — sleep.* facts",
+  "HRVNamespace: struct — hrv.* facts",
+  "VitalsNamespace: struct — vitals.* facts",
+  "RecoveryNamespace: struct — recovery.* facts"
+ ],
+ "state": [
+  "mem:OvernightArchive.hrvBearingTypes = [.overnight, .nap, .quick] (static let)",
+  "mem:SleepNamespace/HRVNamespace/VitalsNamespace/RecoveryNamespace.namespace + archive (+settings closure for SleepNamespace)"
+ ],
+ "toplevel": "Global func CMAltimeterIsAvailable (CoreMotion is imported unconditionally). Namespace structs store `namespace` string constants and the injected SessionArchive (SleepNamespace also the settings closure).",
+ "flags": [],
+ "units": [
+  {
+   "key": "func CMAltimeterIsAvailable()",
+   "hash": "f634ebc1c722d0cf",
+   "does": "Returns CMAltimeter.isRelativeAltitudeAvailable() for the app.capabilities altimeter fact.",
+   "entry": null,
+   "calls": [
+    "ext:CMAltimeter.isRelativeAltitudeAvailable"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FactLocalDay.formatter()",
+   "hash": "ea4c7d8951e69e58",
+   "does": "Creates a new DateFormatter for yyyy-MM-dd pinned to en_US_POSIX, Gregorian calendar, device time zone (allocated on every call).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func OvernightArchive.availability(_:)",
+   "hash": "3bf53bed88b3f7c5",
+   "does": "Availability for sleep/hrv/vitals/recovery (and some workout-detail facts): earliest...latest start date of overnight/nap/quick index entries, or .unavailable.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries"
+   ],
+   "reads": [
+    "mem:SessionArchive.index (archive.entries)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "no HRV-bearing entries",
+     "effect": "returns .unavailable so those namespaces vanish; else range availability"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.latest(_:scoredOnly:)": "5a0d3f18c2b1cb69",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e"
+   }
+  },
+  {
+   "key": "func OvernightArchive.latest(_:scoredOnly:)",
+   "hash": "d6cff0215e5eb7dc",
+   "does": "Picks the headline reading: among reliable HRV-bearing entries (optionally only scored ones), the newest midpoint local day, then the longest overnight on that day (else longest nap/quick), loaded lightweight from disk.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.reliableEntries(_:scoredOnly:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.midpoint(of:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.representative(of:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)"
+   ],
+   "reads": [
+    "mem:SessionArchive.index (archive.entries)",
+    "file:archive session JSON (lightweight decode)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "no candidate entries",
+     "effect": "returns nil; else picks the representative of the latest day"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.midpoint(of:)": "15c4dbc588713802",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.reliableEntries(_:scoredOnly:)": "73fccbd1965596ef",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.representative(of:)": "93865774eed98381",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "8dd50c9f204fb5d6",
+    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
+   }
+  },
+  {
+   "key": "func OvernightArchive.byDate(_:archive:scoredOnly:)",
+   "hash": "0541e36eb32684c6",
+   "does": "Looks up the representative reliable HRV-bearing session whose midpoint falls on the given yyyy-MM-dd local day.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func FactLocalDay.formatter()",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.reliableEntries(_:scoredOnly:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.midpoint(of:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.representative(of:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)"
+   ],
+   "reads": [
+    "mem:SessionArchive.index (archive.entries)",
+    "file:archive session JSON (lightweight decode)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "date string fails to parse",
+     "effect": "returns nil, which every caller reports as notRecorded 'no overnight session matched' instead of invalidParameter"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func FactLocalDay.formatter()": "458f43b535dfaa23",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.midpoint(of:)": "15c4dbc588713802",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.reliableEntries(_:scoredOnly:)": "73fccbd1965596ef",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.representative(of:)": "93865774eed98381",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "8dd50c9f204fb5d6"
+   }
+  },
+  {
+   "key": "func OvernightArchive.inPeriod(_:archive:types:)",
+   "hash": "aa9aad49051198ff",
+   "does": "Returns reliable HRV-bearing sessions (restricted to `types` when given) whose midpoint is in the period, newest first, each loaded lightweight from disk.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func PeriodParser.interval(for:now:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.reliableEntries(_:scoredOnly:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func DateInterval.containsBeforeEnd(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.midpoint(of:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)"
+   ],
+   "reads": [
+    "mem:SessionArchive.index (archive.entries)",
+    "file:archive session JSON (lightweight decode per session in period)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "period does not parse",
+     "effect": "returns [] — every caller first rejects such a period with PeriodParser.invalidPeriod"
+    },
+    {
+     "at": "+2",
+     "cond": "types is nil (?? fallback)",
+     "effect": "uses hrvBearingTypes (overnight, nap, quick)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.midpoint(of:)": "15c4dbc588713802",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.reliableEntries(_:scoredOnly:)": "73fccbd1965596ef",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func DateInterval.containsBeforeEnd(_:)": "1945fdef858257a3",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func PeriodParser.interval(for:now:)": "e66f9b4913f074f8",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "8dd50c9f204fb5d6"
+   }
+  },
+  {
+   "key": "func OvernightArchive.labeled(_:_:)",
+   "hash": "9d5a7d08fc58480b",
+   "does": "Adds session_type to a .record value; non-record values pass through.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "value is not a .record",
+     "effect": "returns it unchanged; else adds session_type and returns the record"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef"
+   }
+  },
+  {
+   "key": "func OvernightArchive.reliableEntries(_:scoredOnly:)",
+   "hash": "c63d9b32e79fbfa5",
+   "does": "Filters index entries to HRV-bearing types that are reliable for aggregates and, when scoredOnly, have a recovery score.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.isReliableForHRVAggregates"
+   ],
+   "reads": [
+    "mem:SessionArchive.index (archive.entries)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.isReliableForHRVAggregates": "7af30eca3eb87384"
+   }
+  },
+  {
+   "key": "func OvernightArchive.representative(of:)",
+   "hash": "549044495dfe9734",
+   "does": "Chooses the longest overnight among the entries, or the longest of all entries when there is no overnight.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.duration(of:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "no overnight in the entries",
+     "effect": "pool = all entries (naps/quick); else overnights only"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.duration(of:)": "af8cc4d54bcfa7b0"
+   }
+  },
+  {
+   "key": "func OvernightArchive.duration(of:)",
+   "hash": "386339ab8247b04e",
+   "does": "Entry duration = (endDate ?? date) − date, clamped at 0.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "endDate is nil (?? fallback)",
+     "effect": "uses start date, giving duration 0 for an open/legacy entry"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func OvernightArchive.midpoint(of:)",
+   "hash": "da0f2965dd535121",
+   "does": "Entry midpoint = start + duration/2.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.duration(of:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.duration(of:)": "af8cc4d54bcfa7b0"
+   }
+  },
+  {
+   "key": "func SleepNamespace.sleepRecordFromData(_:date:userAge:typicalSleepHours:live:)",
+   "hash": "5540e6b84cc39c99",
+   "does": "Builds the sleep record from SleepData: date, total/in-bed/awake minutes, optional efficiency/deep/rem/latency, merged sleep-science fields, and data_source=live_healthkit_pending_acceptance when live.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepData.measuredSleepEfficiency",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func SleepNamespace.sleepScienceFields(_:userAge:typicalSleepHours:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "measured sleep efficiency exists",
+     "effect": "adds efficiency_percent; else omitted (wake not measured)"
+    },
+    {
+     "at": "+8",
+     "cond": "deepSleepMinutes present",
+     "effect": "adds deep_minutes; else omitted"
+    },
+    {
+     "at": "+9",
+     "cond": "remSleepMinutes present",
+     "effect": "adds rem_minutes; else omitted"
+    },
+    {
+     "at": "+10",
+     "cond": "sleepLatencyMinutes present",
+     "effect": "adds latency_minutes; else omitted"
+    },
+    {
+     "at": "+14",
+     "cond": "live is true",
+     "effect": "adds data_source live marker; else none"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "5814b8c071cb8591",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepData.measuredSleepEfficiency": "ec0ed6304aee409d",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func SleepNamespace.sleepScienceFields(_:userAge:typicalSleepHours:)": "5b0cc2114df8c6c3",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.sleepLatencyMinutes": "e79c0c2375a5ee79"
+   }
+  },
+  {
+   "key": "func SleepNamespace.sleepScienceFields(_:userAge:typicalSleepHours:)",
+   "hash": "e347c37e2803bcbd",
+   "does": "Runs SleepScienceAnalyzer on the night and returns fragmentation, awakenings, cycles, architecture score, front/back-loading, enhanced score, and age-norm range flags when a birthday is set.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.analyze(sleepData:userAge:typicalSleepHours:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "analyzer returns nil (no night sleep minutes)",
+     "effect": "returns [:]; else the field table"
+    },
+    {
+     "at": "+17",
+     "cond": "ageNorms present (user age known)",
+     "effect": "adds deep/rem_in_expected_range; else omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.analyze(sleepData:userAge:typicalSleepHours:)": "caebdd2209a1efbc"
+   }
+  },
+  {
+   "key": "func SleepNamespace.sleepRecord(for:userAge:typicalSleepHours:)",
+   "hash": "a0bc88fe517366df",
+   "does": "Sync sleep record from the session's frozen sleepSnapshot, labelled with session_type.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func SleepNamespace.sleepRecordFromData(_:date:userAge:typicalSleepHours:live:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.labeled(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "session is nil",
+     "effect": "returns missing(notRecorded, 'no overnight session matched')"
+    },
+    {
+     "at": "+2",
+     "cond": "session has no sleepSnapshot",
+     "effect": "returns missing(notRecorded, 'session has no sleep snapshot') — no live fallback on this path (by_date, recent, session.* nested)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.labeled(_:_:)": "9324288c4bacf32d",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func SleepNamespace.sleepRecordFromData(_:date:userAge:typicalSleepHours:live:)": "51f9bb619e941474"
+   }
+  },
+  {
+   "key": "func SleepNamespace.sleepRecordAsync(for:userAge:typicalSleepHours:)",
+   "hash": "a1f70adcf2607ed8",
+   "does": "Snapshot-first sleep record; when the snapshot is nil, fetches the night live from HealthKit with a 5 s timeout and labels it.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func SleepNamespace.sleepRecord(for:userAge:typicalSleepHours:)",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolveTimeout.withTimeout(seconds:_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func SleepNamespace.liveSleepRecord(for:userAge:typicalSleepHours:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.labeled(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "session is nil",
+     "effect": "returns missing(notRecorded)"
+    },
+    {
+     "at": "+2",
+     "cond": "sleepSnapshot exists",
+     "effect": "returns the sync snapshot record"
+    },
+    {
+     "at": "+8",
+     "cond": "live read returned nil (timeout, query error, or no sleep) — ?? fallback",
+     "effect": "returns missing(notRecorded, 'no sleep snapshot and HealthKit returned no sleep for that window'); else labelled live record"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.labeled(_:_:)": "9324288c4bacf32d",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func SleepNamespace.liveSleepRecord(for:userAge:typicalSleepHours:)": "1bbb7ccfab807ffd",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func SleepNamespace.sleepRecord(for:userAge:typicalSleepHours:)": "e380d713447cce54",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolveTimeout.withTimeout(seconds:_:)": "ee8ecd721e21103a"
+   }
+  },
+  {
+   "key": "func SleepNamespace.liveSleepRecord(for:userAge:typicalSleepHours:)",
+   "hash": "980d3f1aa6035404",
+   "does": "Fetches SleepData from HealthKit for session start..end (end defaults to now) and builds a live-marked record; nil on error or zero night sleep.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func SleepNamespace.sleepRecordFromData(_:date:userAge:typicalSleepHours:live:)",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes"
+   ],
+   "reads": [
+    "hk:HKCategoryTypeIdentifier.sleepAnalysis"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "session.endDate is nil (?? Date())",
+     "effect": "uses now as recording end"
+    },
+    {
+     "at": "+5",
+     "cond": "nightSleepMinutes == 0",
+     "effect": "returns nil; else live record"
+    },
+    {
+     "at": "+7",
+     "cond": "HealthKit query throws (catch)",
+     "effect": "error swallowed, returns nil → caller reports notRecorded"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func SleepNamespace.sleepRecordFromData(_:date:userAge:typicalSleepHours:live:)": "51f9bb619e941474",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:)": "247d0472c54f578e",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "3b77b2139e8273b8",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+   }
+  },
+  {
+   "key": "var SleepNamespace.entries",
+   "hash": "0eaacd1487d033a2",
+   "does": "Lists sleep.latest, sleep.by_date, sleep.recent.",
+   "entry": "FactNamespaceResolver witness read by FactResolverRegistry.",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::var SleepNamespace.sleepLatestEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::var SleepNamespace.sleepByDateDateEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::var SleepNamespace.sleepRecentPeriodEntry"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::var SleepNamespace.sleepByDateDateEntry": "8073f0fed619b44f",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::var SleepNamespace.sleepLatestEntry": "0a02fe3ea1d2c84f",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::var SleepNamespace.sleepRecentPeriodEntry": "5d4400e0f0e1c871"
+   }
+  },
+  {
+   "key": "var SleepNamespace.sleepByDateDateEntry",
+   "hash": "98364a49ea0d2d79",
+   "does": "Declares sleep.by_date($date): snapshot sleep record of OvernightArchive.byDate using the user's age and typical sleep hours.",
+   "entry": "Invoked by FactResolverRegistry when the assistant's tool-use loop (or CompactToolRouter) resolves this fact key; availability closure is evaluated during tool-schema build.",
+   "calls": [
+    "ext:FactEntry.parameterized enum case",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.availability(_:)",
+    "closure:settings — @Sendable () -> UserSettings injected by AppFactResolverFactory.build",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func SleepNamespace.sleepRecord(for:userAge:typicalSleepHours:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.byDate(_:archive:scoredOnly:)"
+   ],
+   "reads": [
+    "mem:SessionArchive.index (archive.entries)",
+    "mem:UserSettings.age",
+    "mem:UserSettings.typicalSleepHours"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.availability(_:)": "2a208168a4e76609",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.byDate(_:archive:scoredOnly:)": "d3c1656b280938a8",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func SleepNamespace.sleepRecord(for:userAge:typicalSleepHours:)": "e380d713447cce54"
+   }
+  },
+  {
+   "key": "var SleepNamespace.sleepRecentPeriodEntry",
+   "hash": "3b3e1113e8f17c52",
+   "does": "Declares sleep.recent($period): list of snapshot sleep records for overnights and naps in the period; invalidParameter for an unknown period.",
+   "entry": "Invoked by FactResolverRegistry when the assistant's tool-use loop (or CompactToolRouter) resolves this fact key; availability closure is evaluated during tool-schema build.",
+   "calls": [
+    "ext:FactEntry.parameterized enum case",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.availability(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func PeriodParser.invalidPeriod(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.inPeriod(_:archive:types:)",
+    "closure:settings — @Sendable () -> UserSettings injected by AppFactResolverFactory.build",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func SleepNamespace.sleepRecord(for:userAge:typicalSleepHours:)"
+   ],
+   "reads": [
+    "mem:SessionArchive.index (archive.entries)",
+    "mem:UserSettings.age",
+    "mem:UserSettings.typicalSleepHours"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "period does not parse",
+     "effect": "returns PeriodParser.invalidPeriod's missing(invalidParameter)"
+    },
+    {
+     "at": "+9",
+     "cond": "no sessions in period",
+     "effect": "returns missing(notRecorded, 'no overnight sessions in period'); else list (items without a snapshot are per-item missing)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.availability(_:)": "2a208168a4e76609",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.inPeriod(_:archive:types:)": "8a4b634c1acfff47",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func SleepNamespace.sleepRecord(for:userAge:typicalSleepHours:)": "e380d713447cce54",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func PeriodParser.invalidPeriod(_:)": "f4b410a26974574d"
+   }
+  },
+  {
+   "key": "var SleepNamespace.sleepLatestEntry",
+   "hash": "fe04167ce63eae3c",
+   "does": "Declares fixed awaitable fact sleep.latest: sleepRecordAsync(OvernightArchive.latest) — snapshot first, live HealthKit fallback.",
+   "entry": "Invoked by FactResolverRegistry when the assistant's tool-use loop (or CompactToolRouter) resolves this fact key; availability closure is evaluated during tool-schema build.",
+   "calls": [
+    "ext:FactEntry.fixed enum case (body: .awaitable)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.availability(_:)",
+    "closure:settings — @Sendable () -> UserSettings injected by AppFactResolverFactory.build",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func SleepNamespace.sleepRecordAsync(for:userAge:typicalSleepHours:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.latest(_:scoredOnly:)"
+   ],
+   "reads": [
+    "mem:SessionArchive.index (archive.entries)",
+    "mem:UserSettings.age",
+    "mem:UserSettings.typicalSleepHours",
+    "hk:sleepAnalysis (fallback)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.availability(_:)": "2a208168a4e76609",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.latest(_:scoredOnly:)": "5a0d3f18c2b1cb69",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func SleepNamespace.sleepRecordAsync(for:userAge:typicalSleepHours:)": "611312921f81aec3"
+   }
+  },
+  {
+   "key": "func HRVNamespace.hrvRecord(for:archive:)",
+   "hash": "e7e70d31e885428f",
+   "does": "Builds the HRV record for a session: time-domain, nonlinear, frequency and ANS fields plus overnight_nadir_at_iso (only when nadirWallClock can place it, which needs the RR series — loaded through `archive` for single-night callers; list callers pass nil), labelled with session_type.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func HRVNamespace.timeDomainFields(session:analysis:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func HRVNamespace.nonlinearFields(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func HRVNamespace.frequencyFields(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func HRVNamespace.ansFields(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func HRVNamespace.nadirWallClock(session:analysis:archive:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.labeled(_:_:)"
+   ],
+   "reads": [
+    "file:archive session JSON (full decode with RR series, via nadirWallClock, when archive is passed)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "session is nil",
+     "effect": "returns missing(notRecorded, 'no overnight session matched')"
+    },
+    {
+     "at": "+4",
+     "cond": "analysisResult is nil",
+     "effect": "returns missing(notYetComputed, 'session has no analysis result yet')"
+    },
+    {
+     "at": "+11",
+     "cond": "nadirWallClock returns a time (RR series available)",
+     "effect": "adds overnight_nadir_at_iso; else omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func HRVNamespace.ansFields(_:)": "60fb4dbe4eda80e7",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func HRVNamespace.frequencyFields(_:)": "24687540c5bf7d94",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func HRVNamespace.nadirWallClock(session:analysis:archive:)": "a24b76c6230e4c7b",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func HRVNamespace.nonlinearFields(_:)": "03d4d61073ade608",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func HRVNamespace.timeDomainFields(session:analysis:)": "ac48282fb14dc693",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.labeled(_:_:)": "9324288c4bacf32d"
+   }
+  },
+  {
+   "key": "func HRVNamespace.optionalDoubles(_:)",
+   "hash": "cf07d95f712a5ba2",
+   "does": "Turns (key, Double?) pairs into a dictionary containing only the non-nil values as .double.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each pair",
+     "effect": "assigning nil removes/omits the key; non-nil stores .double"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HRVNamespace.timeDomainFields(session:analysis:)",
+   "hash": "a469b3aab542baf6",
+   "does": "Time-domain fields: date, rmssd, sdnn, pnn50, sdsd, sd_hr, window mean/min/max HR, artifact_percent.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.artifactPercentage(_:start:end:)": "1e5446d785cdc9fc"
+   }
+  },
+  {
+   "key": "func HRVNamespace.nonlinearFields(_:)",
+   "hash": "91e0426c216d6e99",
+   "does": "Nonlinear fields: sd1, sd2, ratio, plus optional triangular index, DFA α1/α2/R², entropies and whole-night nadir/min/max/mean HR.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func HRVNamespace.optionalDoubles(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func HRVNamespace.optionalDoubles(_:)": "f5254e0669bc58c3"
+   }
+  },
+  {
+   "key": "func HRVNamespace.nadirWallClock(session:analysis:archive:)",
+   "hash": "d817e1863814889c",
+   "does": "Wall-clock time of the overnight HR nadir: RRSeries.wallClockTime(forTMs:) on the session's RR series, or on the series of a full retrieve from `archive` (the lightweight decode skips it). Nil when the analysis has no nadir offset or no series is available, instead of a startDate + cumulative-RR time that drifts by every strap gap.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)",
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.wallClockTime(forTMs:)"
+   ],
+   "reads": [
+    "file:archive session JSON (full decode with RR series) when rrSeries is nil and archive is passed"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no overnightNadirTimeMs, or no RR series on the session and none from archive (nil archive or failed retrieve)",
+     "effect": "returns nil (key omitted)"
+    },
+    {
+     "at": "+2",
+     "cond": "session.rrSeries nil (?? fallback)",
+     "effect": "loads the full session from archive for its series"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.wallClockTime(forTMs:)": "8f9579b405dd05f1",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)": "f0a309cc2b24de13"
+   }
+  },
+  {
+   "key": "func HRVNamespace.frequencyFields(_:)",
+   "hash": "3f585972c39e5dfd",
+   "does": "Frequency-domain fields lf/hf/total power plus optional lf_hf_ratio and vlf; empty when no frequency domain.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func HRVNamespace.optionalDoubles(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "frequencyDomain is nil",
+     "effect": "returns [:]; else field table"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func HRVNamespace.optionalDoubles(_:)": "f5254e0669bc58c3"
+   }
+  },
+  {
+   "key": "func HRVNamespace.ansFields(_:)",
+   "hash": "2a475895bd038021",
+   "does": "ANS fields (stress, readiness, PNS/SNS, respiration, nocturnal dip, daytime resting HR, nocturnal median HR), only non-nil ones; empty when no ansMetrics.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func HRVNamespace.optionalDoubles(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "ansMetrics is nil",
+     "effect": "returns [:]; else optional field table"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.nocturnalHRDip(daytimeHR:nocturnalMedian:)": "1d53ef19678db16e",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.nocturnalMedianHR(from:)": "77131ad0c4ed2e97",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func HRVNamespace.optionalDoubles(_:)": "f5254e0669bc58c3",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb"
+   }
+  },
+  {
+   "key": "var HRVNamespace.entries",
+   "hash": "75e5dae0622f047b",
+   "does": "Lists hrv.latest, hrv.by_date, hrv.recent.",
+   "entry": "FactNamespaceResolver witness read by FactResolverRegistry.",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::var HRVNamespace.hrvLatestEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::var HRVNamespace.hrvByDateDateEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::var HRVNamespace.hrvRecentPeriodEntry"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::var HRVNamespace.hrvByDateDateEntry": "b773a2bcca1944ec",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::var HRVNamespace.hrvLatestEntry": "417496cf56e0e85c",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::var HRVNamespace.hrvRecentPeriodEntry": "973a5e37681fc71e"
+   }
+  },
+  {
+   "key": "var HRVNamespace.hrvByDateDateEntry",
+   "hash": "58cc14998bc807d8",
+   "does": "Declares hrv.by_date($date): hrvRecord of OvernightArchive.byDate, passing the archive so the nadir time is placed from the RR series.",
+   "entry": "Invoked by FactResolverRegistry when the assistant's tool-use loop (or CompactToolRouter) resolves this fact key; availability closure is evaluated during tool-schema build.",
+   "calls": [
+    "ext:FactEntry.parameterized enum case",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.availability(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func HRVNamespace.hrvRecord(for:archive:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.byDate(_:archive:scoredOnly:)"
+   ],
+   "reads": [
+    "mem:SessionArchive.index (archive.entries)",
+    "file:archive session JSON (full decode for the nadir time)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func HRVNamespace.hrvRecord(for:archive:)": "588527c718c69ff5",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.availability(_:)": "2a208168a4e76609",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.byDate(_:archive:scoredOnly:)": "d3c1656b280938a8"
+   }
+  },
+  {
+   "key": "var HRVNamespace.hrvRecentPeriodEntry",
+   "hash": "7ece98c2bc2cc8b3",
+   "does": "Declares hrv.recent($period): list of HRV records (without overnight_nadir_at_iso) for reliable overnight/nap/quick sessions in the period; invalidParameter for an unknown period.",
+   "entry": "Invoked by FactResolverRegistry when the assistant's tool-use loop (or CompactToolRouter) resolves this fact key; availability closure is evaluated during tool-schema build.",
+   "calls": [
+    "ext:FactEntry.parameterized enum case",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.availability(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func PeriodParser.invalidPeriod(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.inPeriod(_:archive:types:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func HRVNamespace.hrvRecord(for:archive:)"
+   ],
+   "reads": [
+    "mem:SessionArchive.index (archive.entries)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "period does not parse",
+     "effect": "returns PeriodParser.invalidPeriod's missing(invalidParameter)"
+    },
+    {
+     "at": "+9",
+     "cond": "no sessions in period",
+     "effect": "returns missing(notRecorded, 'no overnight sessions in period'); else list"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func HRVNamespace.hrvRecord(for:archive:)": "588527c718c69ff5",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.availability(_:)": "2a208168a4e76609",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.inPeriod(_:archive:types:)": "8a4b634c1acfff47",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func PeriodParser.invalidPeriod(_:)": "f4b410a26974574d"
+   }
+  },
+  {
+   "key": "var HRVNamespace.hrvLatestEntry",
+   "hash": "de04a5320076c2b6",
+   "does": "Declares hrv.latest: hrvRecord of OvernightArchive.latest, passing the archive so the nadir time is placed from the RR series.",
+   "entry": "Invoked by FactResolverRegistry when the assistant's tool-use loop (or CompactToolRouter) resolves this fact key; availability closure is evaluated during tool-schema build.",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:availability:resolve:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.availability(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func HRVNamespace.hrvRecord(for:archive:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.latest(_:scoredOnly:)"
+   ],
+   "reads": [
+    "mem:SessionArchive.index (archive.entries)",
+    "file:archive session JSON (full decode for the nadir time)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func HRVNamespace.hrvRecord(for:archive:)": "588527c718c69ff5",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.availability(_:)": "2a208168a4e76609",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.latest(_:scoredOnly:)": "5a0d3f18c2b1cb69",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:availability:resolve:)": "2ede3d3bbb6ddc46"
+   }
+  },
+  {
+   "key": "func VitalsNamespace.vitalsRecordFromData(_:date:live:)",
+   "hash": "3ef7a874013ec2ab",
+   "does": "Builds the vitals record: date, optional respiratory rate/baseline/deviation, SpO2 and min, wrist temperature deviation, resting HR, status string, and live data_source marker.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "respiratoryRate present",
+     "effect": "adds respiratory_rate_bpm; else omitted"
+    },
+    {
+     "at": "+3",
+     "cond": "respiratoryRateBaseline present",
+     "effect": "adds baseline; else omitted"
+    },
+    {
+     "at": "+4",
+     "cond": "respiratoryDeviation present",
+     "effect": "adds deviation; else omitted"
+    },
+    {
+     "at": "+5",
+     "cond": "oxygenSaturation present",
+     "effect": "adds SpO2; else omitted"
+    },
+    {
+     "at": "+6",
+     "cond": "oxygenSaturationMin present",
+     "effect": "adds SpO2 min; else omitted"
+    },
+    {
+     "at": "+9",
+     "cond": "wristTemperatureDeviation present",
+     "effect": "adds wrist_temperature_deviation_c; else omitted"
+    },
+    {
+     "at": "+10",
+     "cond": "restingHeartRate present",
+     "effect": "adds resting_heart_rate_bpm; else omitted"
+    },
+    {
+     "at": "+13",
+     "cond": "status .normal",
+     "effect": "status 'normal'"
+    },
+    {
+     "at": "+14",
+     "cond": "status .elevated",
+     "effect": "status 'elevated'"
+    },
+    {
+     "at": "+15",
+     "cond": "status .warning",
+     "effect": "status 'warning'"
+    },
+    {
+     "at": "+18",
+     "cond": "live is true",
+     "effect": "adds data_source live marker"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.respiratoryDeviation": "a41bd06056c51819"
+   }
+  },
+  {
+   "key": "func VitalsNamespace.vitalsRecord(for:)",
+   "hash": "305c6bec6c3e9061",
+   "does": "Sync vitals record from the session's vitalsSnapshot, labelled.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.isEmpty",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func VitalsNamespace.vitalsRecordFromData(_:date:live:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.labeled(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "session is nil",
+     "effect": "returns missing(notRecorded)"
+    },
+    {
+     "at": "+2",
+     "cond": "vitalsSnapshot nil or empty",
+     "effect": "returns missing(notRecorded, 'session has no vitals recorded'); else record"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "25ff7cdb40a8ca69",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.labeled(_:_:)": "9324288c4bacf32d",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func VitalsNamespace.vitalsRecordFromData(_:date:live:)": "7b2ec089df03c2b8",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.isEmpty": "b04c6e75ce5a48c2"
+   }
+  },
+  {
+   "key": "func VitalsNamespace.vitalsRecordAsync(for:)",
+   "hash": "adc37bff284a2545",
+   "does": "Snapshot-first vitals record; when snapshot is nil/empty, fetches recovery vitals live from HealthKit relative to the session end (5 s timeout) and labels them.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.isEmpty",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func VitalsNamespace.vitalsRecord(for:)",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolveTimeout.withTimeout(seconds:_:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Collection/HealthKitManager+VitalsForwarding.swift::func HealthKitManager.fetchRecoveryVitals(relativeTo:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func VitalsNamespace.vitalsRecordFromData(_:date:live:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.labeled(_:_:)"
+   ],
+   "reads": [
+    "hk:respiratoryRate/oxygenSaturation/appleSleepingWristTemperature/restingHeartRate (via fetchRecoveryVitals)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "session is nil",
+     "effect": "returns missing(notRecorded)"
+    },
+    {
+     "at": "+2",
+     "cond": "non-empty vitalsSnapshot",
+     "effect": "returns sync snapshot record"
+    },
+    {
+     "at": "+5",
+     "cond": "endDate nil (?? startDate)",
+     "effect": "reference date = session start"
+    },
+    {
+     "at": "+8",
+     "cond": "fetched vitals empty",
+     "effect": "closure returns nil; else live record"
+    },
+    {
+     "at": "+10",
+     "cond": "live is nil (timeout or empty) — ?? fallback",
+     "effect": "returns missing(notRecorded, 'no vitals snapshot and HealthKit returned no vitals for that window')"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "25ff7cdb40a8ca69",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.labeled(_:_:)": "9324288c4bacf32d",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func VitalsNamespace.vitalsRecord(for:)": "1bdabea4c3a24ba2",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func VitalsNamespace.vitalsRecordFromData(_:date:live:)": "7b2ec089df03c2b8",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolveTimeout.withTimeout(seconds:_:)": "ee8ecd721e21103a",
+    "Emuqu/Sources/Collection/HealthKitManager+VitalsForwarding.swift::func HealthKitManager.fetchRecoveryVitals(relativeTo:)": "075679cbd0c44195",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.isEmpty": "b04c6e75ce5a48c2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "3b77b2139e8273b8",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+   }
+  },
+  {
+   "key": "var VitalsNamespace.entries",
+   "hash": "0bb2a139d65d4602",
+   "does": "Lists vitals.latest, vitals.by_date, vitals.hr_now.",
+   "entry": "FactNamespaceResolver witness read by FactResolverRegistry.",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::var VitalsNamespace.vitalsLatestEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::var VitalsNamespace.vitalsByDateDateEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::var VitalsNamespace.vitalsHrNowEntry"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::var VitalsNamespace.vitalsByDateDateEntry": "2c53aa89bcd600b0",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::var VitalsNamespace.vitalsHrNowEntry": "ac7c69d252d85c3e",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::var VitalsNamespace.vitalsLatestEntry": "88e3bd8c434876f0"
+   }
+  },
+  {
+   "key": "var VitalsNamespace.vitalsByDateDateEntry",
+   "hash": "064ac890846c4bbe",
+   "does": "Declares vitals.by_date($date): snapshot vitals record of OvernightArchive.byDate (no live fallback).",
+   "entry": "Invoked by FactResolverRegistry when the assistant's tool-use loop (or CompactToolRouter) resolves this fact key; availability closure is evaluated during tool-schema build.",
+   "calls": [
+    "ext:FactEntry.parameterized enum case",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.availability(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func VitalsNamespace.vitalsRecord(for:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.byDate(_:archive:scoredOnly:)"
+   ],
+   "reads": [
+    "mem:SessionArchive.index (archive.entries)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.availability(_:)": "2a208168a4e76609",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.byDate(_:archive:scoredOnly:)": "d3c1656b280938a8",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func VitalsNamespace.vitalsRecord(for:)": "1bdabea4c3a24ba2"
+   }
+  },
+  {
+   "key": "var VitalsNamespace.vitalsLatestEntry",
+   "hash": "1b6eb78d8bd14d27",
+   "does": "Declares awaitable fixed fact vitals.latest: vitalsRecordAsync(OvernightArchive.latest).",
+   "entry": "Invoked by FactResolverRegistry when the assistant's tool-use loop (or CompactToolRouter) resolves this fact key; availability closure is evaluated during tool-schema build.",
+   "calls": [
+    "ext:FactEntry.fixed enum case (body: .awaitable)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.availability(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func VitalsNamespace.vitalsRecordAsync(for:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.latest(_:scoredOnly:)"
+   ],
+   "reads": [
+    "mem:SessionArchive.index (archive.entries)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.availability(_:)": "2a208168a4e76609",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.latest(_:scoredOnly:)": "5a0d3f18c2b1cb69",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func VitalsNamespace.vitalsRecordAsync(for:)": "9082aef24d664268"
+   }
+  },
+  {
+   "key": "var VitalsNamespace.vitalsHrNowEntry",
+   "hash": "1ca4642696b59c81",
+   "does": "Declares always-available async fact vitals.hr_now: newest HealthKit HR sample from the last 10 minutes with bpm, observed_at, age_seconds, source.",
+   "entry": "Invoked by FactResolverRegistry when the assistant's tool-use loop (or CompactToolRouter) resolves this fact key; availability closure is evaluated during tool-schema build.",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixedAsync(key:description:valueType:resolve:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func VitalsNamespace.latestHeartRateSample()"
+   ],
+   "reads": [
+    "hk:HKQuantityTypeIdentifier.heartRate"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+11",
+     "cond": "no sample (none in 10 min, timeout, or HealthKit error)",
+     "effect": "returns missing(notRecorded, 'no HR sample in the last 10 minutes …'); else record"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func VitalsNamespace.latestHeartRateSample()": "000af5f7138f0029",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixedAsync(key:description:valueType:resolve:)": "7ac0cf1ea91ba5f2"
+   }
+  },
+  {
+   "key": "func VitalsNamespace.latestHeartRateSample()",
+   "hash": "f19c4c650ccadb37",
+   "does": "Runs newestHeartRateInLastTenMinutes under a 5 s FactResolveTimeout.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolveTimeout.withTimeout(seconds:_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func VitalsNamespace.newestHeartRateInLastTenMinutes()"
+   ],
+   "reads": [
+    "hk:heartRate"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func VitalsNamespace.newestHeartRateInLastTenMinutes()": "f96494c082a0bfb6",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolveTimeout.withTimeout(seconds:_:)": "ee8ecd721e21103a"
+   }
+  },
+  {
+   "key": "func VitalsNamespace.newestHeartRateInLastTenMinutes()",
+   "hash": "ebb6e04a0354cbdc",
+   "does": "Fetches detailed HR samples for now−600 s…now from HealthKit and returns the newest (bpm, date, source); nil when none or on error.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.fetchHeartRateSamplesDetailed(from:to:)"
+   ],
+   "reads": [
+    "hk:heartRate"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "no samples",
+     "effect": "returns nil; else newest sample tuple"
+    },
+    {
+     "at": "+7",
+     "cond": "HealthKit fetch throws (catch)",
+     "effect": "error swallowed (no log), returns nil → reported as 'no HR sample' even when HealthKit authorization or the query failed"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.latest(_:scoredOnly:)": "5a0d3f18c2b1cb69",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.fetchHeartRateSamplesDetailed(from:to:)": "c3c09c2b158780ca",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "3b77b2139e8273b8",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+   }
+  },
+  {
+   "key": "func RecoveryNamespace.scoreRecord(for:)",
+   "hash": "98e7fe7652c16cd0",
+   "does": "Builds the recovery record: date, score on 0–100 (stored 0–10 ×10, clamped/rounded), scale, optional training_readiness and data_quality, subjective morning fields, labelled.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func RecoveryNamespace.subjectiveMorningFields(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.labeled(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "session is nil",
+     "effect": "returns missing(notRecorded)"
+    },
+    {
+     "at": "+4",
+     "cond": "recoveryScore is nil",
+     "effect": "returns missing(notYetComputed, 'session has no recovery score yet')"
+    },
+    {
+     "at": "+14",
+     "cond": "frozenReadiness present",
+     "effect": "adds training_readiness; else omitted"
+    },
+    {
+     "at": "+15",
+     "cond": "hrvDataQuality present",
+     "effect": "adds data_quality; else omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)": "4b09e0431d20aa06",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.labeled(_:_:)": "9324288c4bacf32d",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func RecoveryNamespace.subjectiveMorningFields(_:)": "a01bbf79a7d5d4fc"
+   }
+  },
+  {
+   "key": "func RecoveryNamespace.subjectiveMorningFields(_:)",
+   "hash": "418b1c423410a2d6",
+   "does": "Subjective morning fields: morning_feeling, morning_feeling_tags, perceived_readiness, notes — only those present/non-empty.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "morningFeeling present",
+     "effect": "adds morning_feeling"
+    },
+    {
+     "at": "+3",
+     "cond": "tags present and non-empty",
+     "effect": "adds morning_feeling_tags list"
+    },
+    {
+     "at": "+6",
+     "cond": "perceivedReadiness present",
+     "effect": "adds perceived_readiness"
+    },
+    {
+     "at": "+7",
+     "cond": "notes present and non-empty",
+     "effect": "adds notes (free text the user typed)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var RecoveryNamespace.entries",
+   "hash": "5f16034eea0316a3",
+   "does": "Lists recovery.score.latest, score.by_date, score.recent, trend.",
+   "entry": "FactNamespaceResolver witness read by FactResolverRegistry.",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::var RecoveryNamespace.recoveryScoreLatestEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::var RecoveryNamespace.recoveryScoreByDateDateEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::var RecoveryNamespace.recoveryScoreRecentPeriodEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::var RecoveryNamespace.recoveryTrendPeriodEntry"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::var RecoveryNamespace.recoveryScoreByDateDateEntry": "5e37527d8469a45a",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::var RecoveryNamespace.recoveryScoreLatestEntry": "752af57d6368bc7e",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::var RecoveryNamespace.recoveryScoreRecentPeriodEntry": "a94fbde164f1db37",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::var RecoveryNamespace.recoveryTrendPeriodEntry": "9ed2b52715404c33"
+   }
+  },
+  {
+   "key": "var RecoveryNamespace.recoveryScoreByDateDateEntry",
+   "hash": "b8870ebbaa63ed00",
+   "does": "Declares recovery.score.by_date($date): scoreRecord of the scored representative session for that day.",
+   "entry": "Invoked by FactResolverRegistry when the assistant's tool-use loop (or CompactToolRouter) resolves this fact key; availability closure is evaluated during tool-schema build.",
+   "calls": [
+    "ext:FactEntry.parameterized enum case",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.availability(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func RecoveryNamespace.scoreRecord(for:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.byDate(_:archive:scoredOnly:)"
+   ],
+   "reads": [
+    "mem:SessionArchive.index (archive.entries)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.availability(_:)": "2a208168a4e76609",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.byDate(_:archive:scoredOnly:)": "d3c1656b280938a8",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func RecoveryNamespace.scoreRecord(for:)": "e765b5ff7dba3206"
+   }
+  },
+  {
+   "key": "var RecoveryNamespace.recoveryScoreRecentPeriodEntry",
+   "hash": "44f0ba9c871bd58b",
+   "does": "Declares recovery.score.recent($period): score records for reliable HRV-bearing sessions in the period that have a recovery score; invalidParameter for an unknown period.",
+   "entry": "Invoked by FactResolverRegistry when the assistant's tool-use loop (or CompactToolRouter) resolves this fact key; availability closure is evaluated during tool-schema build.",
+   "calls": [
+    "ext:FactEntry.parameterized enum case",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.availability(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func PeriodParser.invalidPeriod(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.inPeriod(_:archive:types:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func RecoveryNamespace.scoreRecord(for:)"
+   ],
+   "reads": [
+    "mem:SessionArchive.index (archive.entries)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "period does not parse",
+     "effect": "returns PeriodParser.invalidPeriod's missing(invalidParameter)"
+    },
+    {
+     "at": "+9",
+     "cond": "no scored sessions in period",
+     "effect": "returns missing(notRecorded, 'no scored overnight sessions in period'); else list"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.availability(_:)": "2a208168a4e76609",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.inPeriod(_:archive:types:)": "8a4b634c1acfff47",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func RecoveryNamespace.scoreRecord(for:)": "e765b5ff7dba3206",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func PeriodParser.invalidPeriod(_:)": "f4b410a26974574d"
+   }
+  },
+  {
+   "key": "var RecoveryNamespace.recoveryTrendPeriodEntry",
+   "hash": "ff14b4848cee4a30",
+   "does": "Declares recovery.trend($period) resolved by resolveRecoveryTrend.",
+   "entry": "Invoked by FactResolverRegistry when the assistant's tool-use loop (or CompactToolRouter) resolves this fact key; availability closure is evaluated during tool-schema build.",
+   "calls": [
+    "ext:FactEntry.parameterized enum case",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.availability(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func RecoveryNamespace.resolveRecoveryTrend(_:archive:)"
+   ],
+   "reads": [
+    "mem:SessionArchive.index (archive.entries)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.availability(_:)": "2a208168a4e76609",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func RecoveryNamespace.resolveRecoveryTrend(_:archive:)": "c2122a0d9934ac00"
+   }
+  },
+  {
+   "key": "func RecoveryNamespace.resolveRecoveryTrend(_:archive:)",
+   "hash": "60c6c9444d334104",
+   "does": "Rejects an unknown period (invalidParameter), windows reliable sessions by period, runs TrendAnalyzer.analyze(period: .all) (which keeps overnight-only reliable sessions with analysis) and returns the trend record.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func PeriodParser.invalidPeriod(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.inPeriod(_:archive:types:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.analyze(sessions:period:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func RecoveryNamespace.trendRecord(from:)"
+   ],
+   "reads": [
+    "mem:SessionArchive.index (archive.entries)",
+    "file:archive session JSON (lightweight decode)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "period does not parse",
+     "effect": "returns PeriodParser.invalidPeriod's missing(invalidParameter)"
+    },
+    {
+     "at": "+8",
+     "cond": "analyzer returns nil (<2 valid overnights)",
+     "effect": "returns missing(notYetComputed, 'need at least 2 overnight readings in this period'); else .record(trendRecord)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.analyze(sessions:period:)": "211a820e07506c98",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.inPeriod(_:archive:types:)": "8a4b634c1acfff47",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func RecoveryNamespace.trendRecord(from:)": "aeba491e824bc5de",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func PeriodParser.invalidPeriod(_:)": "f4b410a26974574d"
+   }
+  },
+  {
+   "key": "func RecoveryNamespace.recentWeekChange(_:)",
+   "hash": "bae79dd2aff6b672",
+   "does": "Recomputes the TrendVerdict on the summary's RMSSD data points (log scale) and returns recentChangePercent, or missing when unavailable.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.evaluate(_:scale:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "verdict has no recentChangePercent",
+     "effect": "returns missing(notYetComputed, 'need at least 4 overnight readings …'); else .double(percent)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.evaluate(_:scale:)": "61c752e205f41dc0"
+   }
+  },
+  {
+   "key": "func RecoveryNamespace.trendRecord(from:)",
+   "hash": "187f2bbfc1070c9e",
+   "does": "Builds the trend record: overall, data_points, RMSSD trend/slope/recent-week change/mean, resting HR trend/slope, optional readiness trend/slope and insights.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func RecoveryNamespace.recentWeekChange(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+11",
+     "cond": "readinessStats present",
+     "effect": "adds readiness_trend and readiness_slope_per_day"
+    },
+    {
+     "at": "+15",
+     "cond": "insights non-empty",
+     "effect": "adds insights list"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func RecoveryNamespace.recentWeekChange(_:)": "85f6ec98b36744be"
+   }
+  },
+  {
+   "key": "var RecoveryNamespace.recoveryScoreLatestEntry",
+   "hash": "8df4a30c9e7a02c1",
+   "does": "Declares recovery.score.latest: scoreRecord of OvernightArchive.latest(scoredOnly: true).",
+   "entry": "Invoked by FactResolverRegistry when the assistant's tool-use loop (or CompactToolRouter) resolves this fact key; availability closure is evaluated during tool-schema build.",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:availability:resolve:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.availability(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func RecoveryNamespace.scoreRecord(for:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.latest(_:scoredOnly:)"
+   ],
+   "reads": [
+    "mem:SessionArchive.index (archive.entries)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.availability(_:)": "2a208168a4e76609",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.latest(_:scoredOnly:)": "5a0d3f18c2b1cb69",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func RecoveryNamespace.scoreRecord(for:)": "e765b5ff7dba3206",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:availability:resolve:)": "2ede3d3bbb6ddc46"
+   }
+  }
+ ],
+ "deps": {}
+}

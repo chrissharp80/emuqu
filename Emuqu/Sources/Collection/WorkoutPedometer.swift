@@ -107,6 +107,10 @@ struct PedometerSample: Sendable {
         rawCadenceStepsPerSecond = cadenceStepsPerSecond
     }
 
+    /// No workout covers more; anything past it is a bad reading (and a value
+    /// near `Int.max` traps the `Int(...)` conversions downstream).
+    static let maximumPlausibleMeters: Double = 1_000_000
+
     /// Distance to publish, or nil to leave the last good value standing.
     ///
     /// CoreMotion values are unvalidated OS input, and the published distance
@@ -117,7 +121,8 @@ struct PedometerSample: Sendable {
     /// rather than clamp: a bad reading means no new distance this tick, not a
     /// fabricated one.
     var publishableDistanceMeters: Double? {
-        guard let meters = rawDistanceMeters, meters.isFinite, meters >= 0 else { return nil }
+        guard let meters = rawDistanceMeters, meters.isFinite, meters >= 0,
+              meters <= Self.maximumPlausibleMeters else { return nil }
         return meters
     }
 

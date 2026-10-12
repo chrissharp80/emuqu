@@ -68,8 +68,14 @@ extension PDFReportGenerator {
         )
     }
 
-    func drawSummaryCard(result: HRVAnalysisResult, ans: ANSMetrics?, compositeScore: Double? = nil, yPosition: CGFloat, in context: UIGraphicsPDFRendererContext, pageRect: CGRect) -> CGFloat {
-        return sections.drawSummaryCard(result: result, ans: ans, compositeScore: compositeScore, yPosition: yPosition, in: context, pageRect: pageRect)
+    func scoreBreakdownHeight(
+        breakdown: RecoveryScoreCalculator.ScoreBreakdown, loadLevel: TrainingAdviceGate.LoadLevel?, contentWidth: CGFloat
+    ) -> CGFloat {
+        sections.scoreBreakdownHeight(breakdown: breakdown, loadLevel: loadLevel, contentWidth: contentWidth)
+    }
+
+    func drawSummaryCard(result: HRVAnalysisResult, ans: ANSMetrics?, compositeScore: Double? = nil, baselineRMSSD: Double?, yPosition: CGFloat, in context: UIGraphicsPDFRendererContext, pageRect: CGRect) -> CGFloat {
+        return sections.drawSummaryCard(result: result, ans: ans, compositeScore: compositeScore, baselineRMSSD: baselineRMSSD, yPosition: yPosition, in: context, pageRect: pageRect)
     }
 
     func drawTachogram(
@@ -88,9 +94,5 @@ extension PDFReportGenerator {
 
     func ensureSpace(needed: CGFloat, y: CGFloat, pageNumber: inout Int, context: UIGraphicsPDFRendererContext, pageRect: CGRect) -> CGFloat {
         return sections.ensureSpace(needed: needed, y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
-    }
-
-    func readinessColor(_ score: Double) -> UIColor {
-        return sections.readinessColor(score)
     }
 }

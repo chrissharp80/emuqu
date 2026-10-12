@@ -1,0 +1,168 @@
+{
+ "file": "Emuqu/Sources/Views/TagsAndNotesCard.swift",
+ "hash": "f03d975c19715e44",
+ "role": "Non-View helper struct that builds the tags chip row and free-text notes field card on the morning results screen; MorningDetailCards.tagsAndNotesSection calls its body directly.",
+ "types": [
+  "TagsAndNotesCard: struct (@MainActor, not a View) — tags + notes card builder"
+ ],
+ "state": [
+  "TagsAndNotesCard.notes: @Binding String (bound to MorningResultsViewModel.notes via $notes in MorningDetailCards, whose notes binding is $vm.notes at MorningResultsView+CardForwarding.swift:35)",
+  "TagsAndNotesCard.selectedTags: let Set<ReadingTag>",
+  "TagsAndNotesCard.onToggleTag: let closure (ReadingTag) -> Void"
+ ],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "var TagsAndNotesCard.body",
+   "hash": "f3287ebe03203ace",
+   "does": "Card: tags row, divider, notes header and a vertical TextField (3-5 lines) bound to notes, wrapped in zenCard. Editing writes through the binding to the parent's notes state.",
+   "entry": "Not a View: called explicitly as TagsAndNotesCard(...).body from MorningDetailCards.tagsAndNotesSection (MorningResultsView+DetailCards.swift:218); TextField edits are user input",
+   "calls": [
+    "Emuqu/Sources/Views/TagsAndNotesCard.swift::var TagsAndNotesCard.tagsRow",
+    "Emuqu/Sources/Views/TagsAndNotesCard.swift::var TagsAndNotesCard.notesHeader",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenCard()"
+   ],
+   "reads": [
+    "mem:LanguageManager.shared.bundle"
+   ],
+   "writes": [
+    "mem:MorningResultsViewModel.notes"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/TagsAndNotesCard.swift::var TagsAndNotesCard.notesHeader": "7a003538df04ed72",
+    "Emuqu/Sources/Views/TagsAndNotesCard.swift::var TagsAndNotesCard.tagsRow": "ded2ceaa7a46b255",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenCard()": "d0ad0fd7fe9ef4fb",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sectionTint": "6c53c4c95f5cb401"
+   }
+  },
+  {
+   "key": "var TagsAndNotesCard.tagsRow",
+   "hash": "3867573f3233a000",
+   "does": "'Tags' section label above a horizontal scroll of tag chips.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/TagsAndNotesCard.swift::func TagsAndNotesCard.sectionLabel(icon:title:)",
+    "Emuqu/Sources/Views/TagsAndNotesCard.swift::var TagsAndNotesCard.chipRow"
+   ],
+   "reads": [
+    "mem:LanguageManager.shared.bundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/TagsAndNotesCard.swift::func TagsAndNotesCard.sectionLabel(icon:title:)": "0035b5429829f7c7",
+    "Emuqu/Sources/Views/TagsAndNotesCard.swift::var TagsAndNotesCard.chipRow": "9956b5a3462d8500"
+   }
+  },
+  {
+   "key": "var TagsAndNotesCard.chipRow",
+   "hash": "59f97a6ec1e0378b",
+   "does": "HStack of one chip per stripTags entry (system tags, the user's custom tags, then any other selected tag).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/TagsAndNotesCard.swift::var TagsAndNotesCard.stripTags",
+    "Emuqu/Sources/Views/TagsAndNotesCard.swift::func TagsAndNotesCard.chip(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Same horizontal ForEach(ReadingTag.systemTags) TagChip row is built separately in ReadingTagSelector.tagChipRow, HistoryView and TagPickerSheet.systemTagsSection.",
+     "evidence": [
+      "Emuqu/Sources/Views/TagsAndNotesCard.swift:48",
+      "Emuqu/Sources/Views/ReadingTagSelector.swift:34",
+      "Emuqu/Sources/Views/HistoryView.swift:617",
+      "Emuqu/Sources/Views/RecordViewHelpers.swift:74"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/TagsAndNotesCard.swift::func TagsAndNotesCard.chip(for:)": "e3128dedd62f0235",
+    "Emuqu/Sources/Views/TagsAndNotesCard.swift::var TagsAndNotesCard.stripTags": "bb1977b34ab594cd"
+   }
+  },
+  {
+   "key": "var TagsAndNotesCard.stripTags",
+   "hash": "c58c7b159871d470",
+   "does": "ReadingTag.systemTags followed by the user's custom tags from settings (AppDependencies.current settingsManager), then any selected tag in neither list (e.g. a since-deleted custom tag) sorted by name, so every tag can be applied and every selection shows and can be removed.",
+   "entry": "Read by chipRow.",
+   "calls": [
+    "Emuqu/Sources/Models/HRVSession.swift::var ReadingTag.systemTags",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/HRVSession.swift::var ReadingTag.systemTags": "825e2f48504e4c5e",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "201177101ead59c4",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+   }
+  },
+  {
+   "key": "func TagsAndNotesCard.chip(for:)",
+   "hash": "27d9bf133cdad014",
+   "does": "TagChip for the tag, selected when in selectedTags; tap calls onToggleTag(tag).",
+   "entry": null,
+   "calls": [
+    "dyn:View.body → Emuqu/Sources/Views/RecordViewHelpers.swift:12",
+    "closure:onToggleTag, set by MorningDetailCards.tagsAndNotesSection (MorningResultsView+DetailCards.swift:222) forwarding to MorningDetailCards.onToggleTag, which MorningResultsView.cards sets to toggleTag (MorningResultsView+CardForwarding.swift:30) → Emuqu/Sources/Views/MorningResultsView+CardForwarding.swift:13"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:MorningResultsViewModel.selectedTags"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var TagsAndNotesCard.notesHeader",
+   "hash": "881ecc33f96056ab",
+   "does": "'Notes' section label with note.text icon.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/TagsAndNotesCard.swift::func TagsAndNotesCard.sectionLabel(icon:title:)"
+   ],
+   "reads": [
+    "mem:LanguageManager.shared.bundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/TagsAndNotesCard.swift::func TagsAndNotesCard.sectionLabel(icon:title:)": "0035b5429829f7c7"
+   }
+  },
+  {
+   "key": "func TagsAndNotesCard.sectionLabel(icon:title:)",
+   "hash": "2df9f770647f36ef",
+   "does": "Sage icon + bold subheadline title row shared by tags and notes headers.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+   }
+  }
+ ],
+ "deps": {}
+}

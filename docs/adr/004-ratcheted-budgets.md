@@ -12,9 +12,16 @@ opposite, and the distinction matters enough to write down.
 
 ## Decision
 
-A ceiling may only move **down**. `scripts/check_budget_monotonicity.sh` fails
-the build on any increase that lacks a `budget-raise-ok:` trailer naming the
-file and the reason.
+A ceiling may only move **down**, and a floor (every `.ci/min_*.txt`, such as
+the coverage minimums) only **up**. `scripts/check_budget_monotonicity.sh`
+compares every numeric `.ci/*.txt` value, whole or decimal, with the baseline
+and fails the build on any loosening (a ceiling raised, a floor lowered, or a
+budget deleted or made non-numeric) that lacks a `budget-raise-ok:` trailer
+naming the file and the reason in some commit of the compared range. The
+baseline is the target branch on a pull request and the tip before the push on
+a push to main, so every commit of a multi-commit push is inside the range.
+Only when that tip is missing from the checkout (a branch-creating or forced
+push) does the gate fall back to the parent commit, and it says so.
 
 There is no per-site escape hatch. There are zero `swiftlint:disable` directives
 in `Emuqu/Sources`, and the refactor-spec gate counts justified exceptions

@@ -1,0 +1,70 @@
+{
+ "file": "scripts/enforce_tech_debt_budgets.sh",
+ "hash": "3cde2c4c272c2311",
+ "role": "CI gate (make debt-budget; ci.yml, gates.yml) counting `.shared` uses, `try?` uses, `try?` on write-shaped lines, Swift files >= 1500 lines, and `ObservableObject` mentions under $1 (default Emuqu), each against a ratchet budget file.",
+ "types": [],
+ "state": [
+  "file:.ci/shared_usage_budget.txt",
+  "file:.ci/try_optional_budget.txt",
+  "file:.ci/large_swift_files_1500_budget.txt",
+  "file:.ci/legacy_observable_object_budget.txt",
+  "file:.ci/try_optional_write_budget.txt",
+  "env:LARGE_FILE_THRESHOLD (1500)",
+  "env:GITHUB_STEP_SUMMARY (append)"
+ ],
+ "toplevel": "set -euo pipefail; no cd. Reads five budgets via read_budget (no integer validation; a non-integer makes the later (( )) arithmetic error under set -e). Write-path count (python): lines not starting with `//` (trailing and block comments still counted) matching `try?` followed on the same line by a call whose name starts write/save/persist/encode/store/setValue/setAttributes/setResourceValue/create/remove/delete/move/copy, or `.archive(`/`.flush(`/`.commit(`, case-insensitive. Main counts (python): block and line comments blanked, then platform singletons (URLSession, UIApplication, MXMetricManager, AVAudioApplication, WidgetCenter, AppTransaction, AVAudioSession, FileManager, NotificationCenter, UNUserNotificationCenter, WCSession, HKHealthStore `.shared`) blanked; counts `\\.shared\\b`, keyword `try?`, `\\bObservableObject\\b`. Large files: wc -l per file via xargs, rows with $2 == 'total' excluded. Builds summary; note_slack adds a FAIL (slack) line and sets failed when a count is below its budget (exact ratchet); each count > budget adds FAIL and sets failed. Prints summary, appends to GITHUB_STEP_SUMMARY, exits 1 if any FAIL.",
+ "flags": [],
+ "units": [
+  {
+   "key": "fn read_budget",
+   "hash": "67b532fe8c3b0fe3",
+   "does": "Reads budget file $1: exit 66 if missing, strips whitespace, exit 65 if empty, echoes value (not validated as an integer).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "file:.ci/*_budget.txt"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "file missing",
+     "effect": "stderr, exit 66 (terminates script via set -e on the $( ) assignment)"
+    },
+    {
+     "at": "+8",
+     "cond": "value empty after whitespace strip",
+     "effect": "stderr, exit 65; otherwise echo the value"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "fn note_slack",
+   "hash": "060ab5ad9d906cb9",
+   "does": "When count < budget, appends a \"FAIL (slack): ... lower <file> to <count>\" line to slack_lines and sets failed=1, so a budget above its measured value fails the gate.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:slack_lines",
+    "mem:failed"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "count < budget",
+     "effect": "append FAIL (slack) line, failed=1"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {
+  "Tools/copy_linter/lint.py::": "23a02988758cfb85",
+  "scripts/enforce_tech_debt_budgets.sh::fn note_slack": "a84feb6c5135d641",
+  "scripts/enforce_tech_debt_budgets.sh::fn read_budget": "8384d98e4d124966"
+ }
+}

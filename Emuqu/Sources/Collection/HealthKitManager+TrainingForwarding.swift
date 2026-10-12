@@ -36,16 +36,6 @@ extension HealthKitManager {
 
     // MARK: - Queries
 
-    func fetchVO2MaxTrend(days: Int = 30) async -> (latest: Double, oldestInWindow: Double, sampleCount: Int)? {
-        await training.fetchVO2MaxTrend(days: days)
-    }
-
-    func fetchRecentWorkouts(
-        days: Int = 7, relativeTo referenceDate: Date = Date()
-    ) async -> [HealthKitManager.WorkoutSummary] {
-        await training.fetchRecentWorkouts(days: days, relativeTo: referenceDate)
-    }
-
     func fetchWorkoutRoute(from start: Date, to end: Date) async -> [CLLocation]? {
         await training.fetchWorkoutRoute(from: start, to: end)
     }
@@ -54,22 +44,10 @@ extension HealthKitManager {
         await training.fetchPassiveDistanceMeters(from: start, to: end)
     }
 
-    func hasWorkoutInRange(from start: Date, to end: Date) async -> Bool {
-        await training.hasWorkoutInRange(from: start, to: end)
-    }
-
     func fetchWorkoutsExtended(
         days: Int = 60, relativeTo referenceDate: Date = Date()
     ) async -> [HealthKitManager.WorkoutSummary] {
         await training.fetchWorkoutsExtended(days: days, relativeTo: referenceDate)
-    }
-
-    func fetchAppleRestingHR() async -> Double? {
-        await training.fetchAppleRestingHR()
-    }
-
-    func fetchVO2Max() async -> Double? {
-        await training.fetchVO2Max()
     }
 
     func trainingHeartRateAnchors() async -> TrainingLoadSeries.HeartRateAnchors {

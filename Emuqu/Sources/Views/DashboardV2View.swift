@@ -19,8 +19,9 @@ struct DashboardV2View: View {
     @Environment(\.dependencies) var dependencies
     let sessions: [HRVSession]
     /// True total of sessions in the archive — `sessions` above is the
-    /// 8-most-recent slice MainTabView passes for the Recent strip, NOT
-    /// the user's full archive size. Without this we'd report "Day 8 of
+    /// 35-most-recent slice MainTabView passes
+    /// (`MainTabView.dashboardSessionLoadLimit`), NOT the user's full
+    /// archive size. Without this we'd report "Day 8 of
     /// 14, Building baseline" even for a user with hundreds of sessions.
     let totalSessionCount: Int
     /// Cold-start seed for the hero score, computed at launch from the
@@ -45,22 +46,22 @@ struct DashboardV2View: View {
     var onReanalyzeSession: ((HRVSession, WindowSelectionMethod) async -> HRVSession?)?
 
     @Environment(RRCollector.self) var collector
+    /// Read by `baselineNights` so the dashboard re-renders when an archive
+    /// write moves the (non-observable) baseline-night count.
+    @Environment(ArchiveSignal.self) private var archiveSignal
     /// The HealthKit manager from the dependency container. It is
     /// `@Observable`, so reading `inferredAuthorizationDenied` in `body`
     /// drives a view update.
     var healthKit: HealthKitManager { dependencies.collection.healthKitManager }
     var settingsManager: SettingsManager { dependencies.app.settingsManager }
-    /// Watched so the Today's Loop narrative card refreshes when readiness
-    /// drifts during the day — a new workout updates ATL/CTL/todayTrimp,
-    /// which changes whether `liveReadiness.loopCardText` has a story to
-    /// tell. The medallion itself is morning-frozen, so
-    /// this observer is purely for the card under it.
-    var trainingMetricsCache: TrainingMetricsCache { dependencies.analysis.trainingMetricsCache }
     @State var toast: ToastPayload?
     @State var navTarget: ChipTarget?
     /// Sleep timeline edit failed to persist; shows the
     /// failure alert instead of silently confirming a lost edit.
     @State private var sleepEditSaveFailed = false
+    /// Set when a chip, the strip or the hero pushes a detail, so the
+    /// dashboard's next appear — the pop back — is not counted as an open.
+    @State private var returningFromDrillIn = false
     /// Score-reveal cascade trigger.
     /// Flipped to true `revealDuration` after the dashboard appears
     /// (600ms default, 400ms for Day-30+ users). The Today's Loop
@@ -84,8 +85,9 @@ struct DashboardV2View: View {
 
     /// Surfaces "your score updated while you were away" — written by the
     /// auto-rescore listener when an HK sleep / training arrival moves the
-    /// score ≥ 3 points. Read on dashboard appear, cleared on tap or
-    /// dismiss so it doesn't reappear next launch.
+    /// score ≥ 3 points. Read on dashboard appear (only while it is recent
+    /// and for the overnight the hero shows), cleared by the banner's dismiss
+    /// button so it doesn't reappear next launch.
     @State var pendingScoreChange: PendingScoreChange.Entry?
 
     /// Solid-colour fallback when the user has Reduce
@@ -123,16 +125,6 @@ struct DashboardV2View: View {
     /// ones. Used for "is there even an entry for today" checks.
     var latest: HRVSession? { sessions.first }
 
-    /// Most recent session that has a usable analysisResult — what the
-    /// chip values render from. The latest session may legitimately be
-    /// nil-data for a moment (a fresh recording before processing
-    /// completes); falling back to the most-recent-with-data avoids
-    /// "—" on a user's dashboard when there's perfectly good data one
-    /// session back.
-    var latestComplete: HRVSession? {
-        sessions.first { $0.analysisResult != nil }
-    }
-
     /// Most recent **overnight** session with an analysis result — what the
     /// HRV chip and hero score render from. The quality-aware selection rule
     /// lives in
@@ -149,12 +141,6 @@ struct DashboardV2View: View {
     /// Most recent session with a vitals snapshot attached.
     var latestWithVitals: HRVSession? {
         DashboardSessionPolicy.latestWithVitals(in: sessions)
-    }
-
-    private var todaysSessions: [HRVSession] {
-        let cal = Calendar.current
-        let today = cal.startOfDay(for: Date())
-        return sessions.filter { cal.startOfDay(for: $0.startDate) == today }
     }
 
     /// What the hero ring shows — the frozen morning Recovery Score. This is
@@ -176,8 +162,11 @@ struct DashboardV2View: View {
         sessions.isEmpty ? dependencies.storage.uiStateCache.dashboard : nil
     }
 
+    /// The hero overnight's frozen score, falling back to `readinessScore`
+    /// for an overnight saved before scores were persisted — the same
+    /// fallback the Recent strip uses for that night.
     var displayedScore: Int? {
-        if let s = latestOvernightComplete, let score = s.recoveryScore {
+        if let s = latestOvernightComplete, let score = s.recoveryScore ?? s.readinessScore {
             return ScoreVerdict.safeDisplayScore(score * 10)  // 0-10 → 0-100, non-finite-safe
         }
         // Cold-start: the full sessions haven't decrypted yet (`sessions`
@@ -187,7 +176,10 @@ struct DashboardV2View: View {
         if sessions.isEmpty {
             return cachedDashboard?.heroScore ?? seedScore
         }
-        return nil
+        // Sessions loaded but no scored overnight among them (35+ newer
+        // workouts / quick readings): the index seed applies the same
+        // selection to the whole archive, so the ring is not left loading.
+        return seedScore
     }
 
     var verdict: ScoreVerdict? {
@@ -217,7 +209,12 @@ struct DashboardV2View: View {
     /// provisional / full gates count these. They counted every archived
     /// session, so workouts, naps and quick readings reached "Day 14" and
     /// "Full algorithm" after five nights.
-    var baselineNights: Int { collector.baselineTracker.daysCollected }
+    var baselineNights: Int {
+        // BaselineTracker is not observable; the archive signal's version
+        // registers a dependency so an accepted night re-renders the gates.
+        _ = archiveSignal.version
+        return collector.baselineTracker.daysCollected
+    }
 
     var body: some View {
         let _ = dependencies.app.keyboardPerfSignpost.event("DashboardV2View.body")
@@ -232,6 +229,9 @@ struct DashboardV2View: View {
         .accessibilityIdentifier("dashboard.root")
         .toastBanner($toast)
         .navigationDestination(item: $navTarget) { destination(for: $0) }
+        .onChange(of: navTarget) { _, target in
+            if target != nil { returningFromDrillIn = true }
+        }
     }
 
     private func dashboardScroll(_ proxy: ScrollViewProxy) -> some View {
@@ -266,13 +266,17 @@ struct DashboardV2View: View {
             }
     }
 
+    /// Popping back from a pushed detail re-fires this; that return is not
+    /// counted as a dashboard open, so the drill-in rate keeps its meaning.
     private func onDashboardAppear() {
-        if isActive {
+        if isActive, !returningFromDrillIn {
             dependencies.services.validationTelemetry.recordDashboardOpen()
         }
-        // Load any pending "score changed while you were
-        // away" notice written by the auto-rescore listener.
-        pendingScoreChange = PendingScoreChange.read()
+        returningFromDrillIn = false
+        // Load any pending "score changed while you were away" notice written
+        // by the auto-rescore listener, if it is recent and for the overnight
+        // the hero shows.
+        pendingScoreChange = PendingScoreChange.read(currentSessionId: latestOvernightComplete?.id)
         scheduleCascadeReveal()
         celebrateDay14IfNeeded()
     }
@@ -293,11 +297,13 @@ struct DashboardV2View: View {
     }
 
     /// Day-14 transition (`ScoreAppearancePolicy.scoreShownNights`).
-    /// Fires once when the baseline just reached that night
-    /// AND the persistent flag hasn't been set yet.
+    /// Fires once, at the first appear with a verdict while the baseline is
+    /// past that night but not yet mature, AND the persistent flag hasn't
+    /// been set yet — so a count that skips from 13 to 15, or a day without
+    /// a verdict, still gets it on a later appear.
     /// Particle bloom plus a one-time toast.
     private func celebrateDay14IfNeeded() {
-        guard baselineNights == ScoreAppearancePolicy.scoreShownNights,
+        guard (ScoreAppearancePolicy.scoreShownNights ..< ScoreAppearancePolicy.fullBaselineNights).contains(baselineNights),
               !UserDefaults.standard.bool(forKey: Self.day14ShownKey),
               let v = verdict else { return }
         UserDefaults.standard.set(true, forKey: Self.day14ShownKey)
@@ -314,9 +320,11 @@ struct DashboardV2View: View {
         }
     }
 
-    /// Gate the banner spring on Reduce Motion.
+    /// Gate the banner spring on Reduce Motion. A notice for a session
+    /// other than the overnight the hero shows is not shown.
     private func applyPendingScoreChange(_ note: Notification) {
         guard let entry = note.object as? PendingScoreChange.Entry else { return }
+        guard latestOvernightComplete.map({ $0.id == entry.sessionId }) ?? true else { return }
         withAnimation(reduceMotion ? nil : .spring(response: 0.4, dampingFraction: 0.8)) {
             pendingScoreChange = entry
         }
@@ -396,7 +404,6 @@ struct DashboardV2View: View {
             .animation(.easeOut(duration: 0.2).delay(0.3), value: cascadeRevealed)
         chipsRow
         recentStripSection
-        fullReportLink
     }
 
     @ViewBuilder
@@ -413,8 +420,8 @@ struct DashboardV2View: View {
 
     /// Single source of truth: the chip displays data from the
     /// morning overnight session (`latestOvernightComplete`), so
-    /// the detail must open the same session. Routing to
-    /// `latestComplete` would push the most-recent capture of
+    /// the detail must open the same session. Routing to the
+    /// newest analysed session would push the most-recent capture of
     /// any type — including a 3 ms mid-workout `.workout`
     /// session — making the chip and the detail tell different
     /// stories about "today's HRV." That violated the rule that the morning
@@ -441,10 +448,11 @@ struct DashboardV2View: View {
 
     /// Same single-source-of-truth rule as .hrv — the chip
     /// shows the morning overnight's sleep snapshot; the detail
-    /// must open that same session.
+    /// must open that same session. With no overnight the chip falls back to
+    /// the newest session with sleep (`latestWithSleep`), and so does this.
     @ViewBuilder
     private var sleepDestination: some View {
-        if let session = latestOvernightComplete {
+        if let session = latestOvernightComplete ?? latestWithSleep {
             sleepDetail(for: session)
                 .alert(sleepEditFailedTitle, isPresented: $sleepEditSaveFailed) {
                     dismissAlertButton
@@ -473,13 +481,15 @@ struct DashboardV2View: View {
     }
 
     /// When this session has no sleep snapshot the view shows the latest
-    /// night that does, so an edit must be saved to that night, not this one.
+    /// night that does, and everything it reads (strap HR, vitals and their
+    /// refresh window, the editor's HealthKit refetch, where an edit is
+    /// saved) comes from that same night.
     private func sleepDetail(for session: HRVSession) -> some View {
         let source = session.sleepSnapshot == nil ? (latestWithSleep ?? session) : session
         return SleepDetailV2View(
-            session: session,
+            session: source,
             sleepData: source.sleepSnapshot,
-            recoveryVitals: session.vitalsSnapshot,
+            recoveryVitals: source.vitalsSnapshot,
             recentSessions: sessions,
             temperatureUnit: settingsManager.settings.temperatureUnit,
             typicalSleepHours: settingsManager.settings.typicalSleepHours,
@@ -542,4 +552,25 @@ struct DashboardV2View: View {
             message: String(localized: "Take your first overnight reading to see today's readiness.", bundle: LanguageManager.appBundle)
         )
     }
+}
+
+// MARK: - File-scope helpers
+
+/// "yesterday", "3 days ago" (or the date, past a week) for a night that
+/// did not end today; nil for this morning's. The hero and the HRV / Sleep
+/// chips show the newest overnight of any age, so an older night carries
+/// its age instead of reading as this morning's.
+func nightAgeLabel(for session: HRVSession?, now: Date = Date()) -> String? {
+    guard let session else { return nil }
+    let calendar = Calendar.current
+    let ended = session.endDate ?? session.startDate
+    let days = calendar.dateComponents([.day], from: calendar.startOfDay(for: ended), to: calendar.startOfDay(for: now)).day ?? 0
+    guard days > 0 else { return nil }
+    guard days < 7 else {
+        return ended.formatted(Date.FormatStyle(date: .abbreviated, time: .omitted).locale(LanguageManager.appLocale))
+    }
+    let formatter = RelativeDateTimeFormatter()
+    formatter.locale = LanguageManager.appLocale
+    formatter.dateTimeStyle = .named
+    return formatter.localizedString(from: DateComponents(day: -days))
 }

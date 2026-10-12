@@ -180,11 +180,14 @@ extension AssistantTurnRouter {
     /// degrades to a hedged answer), but false positives would
     /// needlessly upgrade simple lookups to a paid provider. Action
     /// verbs only; nouns alone aren't enough ("about email defaults"
-    /// is a settings question, not a send-email request).
+    /// is a settings question, not a send-email request — even "what are
+    /// the email defaults for this"). "email" counts as a verb only when an
+    /// object follows it directly ("email this to Sam", "email me the plan").
     static func messageRequiresTools(_ text: String) -> Bool {
         let t = text.lowercased()
         // Compose / send mail
-        if t.contains("email"), ["send", "draft", "compose", " me ", " this", " that", " to "].contains(where: t.contains) { return true }
+        if t.contains("email"), ["send", "draft", "compose", "forward"].contains(where: t.contains) { return true }
+        if emailVerbPhrases.contains(where: t.contains) { return true }
         if ["send to my", "send this to", "send that to"].contains(where: t.contains) { return true }
         // Contacts
         if ["add contact", "save contact", "add to contacts", "remove contact", "delete contact"].contains(where: t.contains) { return true }
@@ -194,6 +197,11 @@ extension AssistantTurnRouter {
         if t.contains("save this route") || t.contains("rename") && t.contains("route") { return true }
         return mentionsWebSearch(t)
     }
+
+    /// "email" used as a verb with its object right after it.
+    private static let emailVerbPhrases = [
+        "email me", "email this", "email that", "email it", "email him", "email her", "email them"
+    ]
 
     /// Broad web-search detection, for bug #10
     /// ("Web search not functioning despite being enabled with
@@ -206,10 +214,13 @@ extension AssistantTurnRouter {
     /// no web tool; without this override the user sees Coach
     /// confidently invent answers (or hedge) for anything
     /// post-training-cutoff.
+    ///
+    /// "look up " counts unless it is about the user's own data ("look up my
+    /// HRV"), which the app's tools answer without a web search.
     private static func mentionsWebSearch(_ t: String) -> Bool {
-        [
-            "search the web", "look up online", "google ",
-            "look up ", "look it up",
+        if t.contains("look up "), !t.contains("look up my ") { return true }
+        return [
+            "search the web", "look up online", "google ", "look it up",
             "what's the latest", "whats the latest", "latest news",
             "current news", "recent news",
             "what is happening", "what's happening",
@@ -267,6 +278,11 @@ extension AssistantTurnRouter {
     /// to the owner.registry once the Apple-routed turn is done. Without
     /// this, `AppDependencies.current.providers.appleToolDispatcher` retains the owner.registry
     /// across cloud-routed owner.turns and defeats `DataPurgeService`.
+    ///
+    /// The generation check and the post-stream effects run BEFORE
+    /// `finishStream`: finishing drains a message queued during the stream,
+    /// and that send's dispatch bumps the generation at once, which would make
+    /// this just-completed turn look stale and skip its effects.
     private func runDispatchedTurn(
         provider: AIProvider,
         model: ModelOption,
@@ -277,7 +293,7 @@ extension AssistantTurnRouter {
         await refreshPreFlightMetrics()
         let assembled = await assembleContextAndTools(provider: provider, model: model)
         let systemPrompt = await composeSystemPromptForTurn(
-            rendered: assembled.rendered, voiceMode: voiceMode, tools: assembled.tools
+            rendered: assembled.rendered, voiceMode: voiceMode, toolMode: !assembled.tools.isEmpty
         )
         await runStreamWithErrorPolicy(StreamAttempt(
             provider: provider, model: model, outbound: assembled.outbound,
@@ -285,8 +301,14 @@ extension AssistantTurnRouter {
             factRegistry: assembled.factRegistry, turnID: turnID, voiceMode: voiceMode
         ))
         dropEmptyAssistantTurn(turnID)
+        if owner.streamGeneration == generation { finishCurrentTurn(provider: provider, turnID: turnID) }
         await owner.tools.finishStream(generation: generation)
-        guard owner.streamGeneration == generation else { return }
+    }
+
+    /// The end of a turn that is still the current generation: release the
+    /// Apple dispatcher's registry after an Apple turn, then the post-stream
+    /// effects.
+    private func finishCurrentTurn(provider: AIProvider, turnID: UUID) {
         if provider.id == .apple { AppDependencies.current.providers.appleToolDispatcher.setRegistry(nil) }
         applyPostStreamEffects(turnID: turnID)
     }
@@ -374,12 +396,17 @@ extension AssistantTurnRouter {
     /// it is the hard guarantee.
     ///
     /// Pops the user turn `send()` appended so the post-consent re-send
-    /// (acknowledgeConsentAndContinue → send) doesn't duplicate it.
+    /// (acknowledgeConsentAndContinue → send) doesn't duplicate it, and saves
+    /// the history so a relaunch before the next save doesn't bring the unsent
+    /// message back. `send()` and `regenerateLast()` check the active
+    /// provider's consent before they reach here, and routing only moves a
+    /// turn to a consented provider, so in practice this never fires.
     func consentGateAllowsDispatch(provider: AIProvider, voiceMode: Bool) -> Bool {
         guard AppDependencies.current.providers.providerConsentTracker.requiresConsent(provider.id) else { return true }
         if let last = owner.turns.last, last.role == .user {
             owner.turns.removeLast()
-            owner.pendingConsentRequest = (provider: provider.id, text: last.text, fromVoice: voiceMode)
+            owner.store.save(owner.turns)
+            owner.pendingConsentRequest = (provider: provider.id, text: last.text, fromVoice: voiceMode, regenerate: false)
         }
         debugLog("[Assistant] dispatch blocked — routed provider \(provider.id.rawValue) has no data-sharing consent; surfacing consent sheet", level: .warning)
         return false
@@ -496,7 +523,8 @@ extension AssistantTurnRouter {
     /// ending with user, so the empty assistant placeholder we reserved is
     /// stripped first, then the oldest owner.turns drop until we're under the
     /// per-provider token budget. Dropped owner.turns get summarized so context
-    /// isn't lost — one extra short call on the active provider, only when
+    /// isn't lost — one extra short call on the provider this turn was routed
+    /// to, only when
     /// turns not yet in the summary have fallen out of the window.
     ///
     /// `owner.factRegistryAndTools()` is synchronous — no `await` (Swift 6 warns "no
@@ -563,7 +591,8 @@ extension AssistantTurnRouter {
         AppDependencies.current.providers.appleToolDispatcher.setRegistry(factRegistry)
     }
 
-    /// Prompt-composition stage of `dispatch()`.
+    /// Prompt-composition stage of `dispatch()`, also used by every fallback
+    /// (`AssistantToolRunner.fallbackSystemPrompt`).
     /// `toolMode` is true for any provider with a non-empty tool catalog,
     /// including Apple.
     ///
@@ -576,7 +605,7 @@ extension AssistantTurnRouter {
     func composeSystemPromptForTurn(
         rendered: String,
         voiceMode: Bool,
-        tools: [ToolSpec]
+        toolMode: Bool
     ) async -> String {
         AssistantSystemPrompt.pendingRecentUserMessages = owner.turns.suffix(6)
             .filter { $0.role == .user && !$0.localOnly }
@@ -587,7 +616,7 @@ extension AssistantTurnRouter {
             contextRendered: rendered,
             compactAppReference: true,
             voiceMode: voiceMode,
-            toolMode: !tools.isEmpty
+            toolMode: toolMode
         )
         AssistantSystemPrompt.pendingRecentUserMessages = []
         return systemPrompt
@@ -686,7 +715,7 @@ extension AssistantTurnRouter {
     ///
     /// Resolves the live turn position by id.
     /// Only ever invoked for the current stream generation (the caller
-    /// in `dispatch()` guards on `owner.streamGeneration == myGeneration`), so
+    /// `runDispatchedTurn` checks the generation before finishing the stream), so
     /// auto-fact-extraction never re-sends content for a cancelled /
     /// superseded turn.
     func applyPostStreamEffects(turnID: UUID) {
@@ -718,6 +747,7 @@ extension AssistantTurnRouter {
         let result = CoachVoiceGuard.scrub(owner.turns[index].text)
         guard result.didIntercept else { return }
         owner.turns[index].text = result.scrubbed
+        owner.store.save(owner.turns)
         for trigger in result.triggers {
             recordCoachVoiceInterception(reason: trigger.reason)
         }

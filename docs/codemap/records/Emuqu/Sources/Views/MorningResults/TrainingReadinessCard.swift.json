@@ -1,0 +1,276 @@
+{
+ "file": "Emuqu/Sources/Views/MorningResults/TrainingReadinessCard.swift",
+ "hash": "f4e0545435f81a5e",
+ "role": "Card showing 0-10 training readiness (frozen at acceptance or computed from the recovery score and training load) with a four-zone bar, a load-gated label and a coaching message.",
+ "types": [
+  "TrainingReadinessCard: struct (View) — constructed only by MorningResultsView+DetailCards.swift (MorningDetailCards.trainingReadinessCard), which passes the advice load the recovery card reads"
+ ],
+ "state": [],
+ "toplevel": "Stored inputs: recoveryScore, trainingContext, adviceLoad (TrainingAdviceGate.Load?, supplied by the caller) and the optional frozenReadiness (nil by default).",
+ "flags": [],
+ "units": [
+  {
+   "key": "func TrainingReadinessCard.label(_:)",
+   "hash": "9f5bd4db7903b02d",
+   "does": "Localized readiness label for the score, held to Moderate by the advice gate when load says ease off.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.displayReadinessLabel(for:load:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.displayReadinessLabel(for:load:)": "543c5625f6bf2adf",
+    "Emuqu/Sources/Views/MorningResults/TrainingReadinessCard.swift::var TrainingReadinessCard.adviceLoad": "5a8be76f4e052e40"
+   }
+  },
+  {
+   "key": "var TrainingReadinessCard.computedReadiness",
+   "hash": "a010e045d7efb34c",
+   "does": "Returns frozenReadiness if set; otherwise the morning readiness: RecoveryScoreCalculator.calculateReadiness from the recovery score with todayTrimp 0, the context's CTL and ATL (ATL also as the morning ATL, so no fatigue-dissipation gain) and its ACR, converted to 0-10.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.toTenScale(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "frozenReadiness present",
+     "effect": "returned directly"
+    },
+    {
+     "at": "+2",
+     "cond": "trainingContext?.ctl ?? 0",
+     "effect": "0 CTL without context"
+    },
+    {
+     "at": "+3",
+     "cond": "trainingContext?.atl ?? 0",
+     "effect": "0 ATL without context"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.toTenScale(_:)": "18aa103b513d602d",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "088bd81c4054cfaa",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+   }
+  },
+  {
+   "key": "var TrainingReadinessCard.body",
+   "hash": "72031de0db556a68",
+   "does": "Card: header, gauge and message coloured by readinessColor; single accessibility element with value and label.",
+   "entry": "SwiftUI View.body evaluation",
+   "calls": [
+    "Emuqu/Sources/Views/MorningResults/TrainingReadinessCard.swift::var TrainingReadinessCard.computedReadiness",
+    "Emuqu/Sources/Views/Theme.swift::func AppTheme.readinessColor(_:)",
+    "Emuqu/Sources/Views/MorningResults/TrainingReadinessCard.swift::func TrainingReadinessCard.readinessHeader(_:_:)",
+    "Emuqu/Sources/Views/MorningResults/TrainingReadinessCard.swift::func TrainingReadinessCard.readinessGauge(_:_:_:)",
+    "Emuqu/Sources/Views/MorningResults/TrainingReadinessCard.swift::func TrainingReadinessCard.readinessMessage(_:)",
+    "Emuqu/Sources/Views/MorningResults/TrainingReadinessCard.swift::func TrainingReadinessCard.label(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/MorningResults/TrainingReadinessCard.swift::func TrainingReadinessCard.label(_:)": "ebb4a2c8d6286861",
+    "Emuqu/Sources/Views/MorningResults/TrainingReadinessCard.swift::func TrainingReadinessCard.readinessGauge(_:_:_:)": "8673a9879e0760c1",
+    "Emuqu/Sources/Views/MorningResults/TrainingReadinessCard.swift::func TrainingReadinessCard.readinessHeader(_:_:)": "a0e8dc1d0af448f3",
+    "Emuqu/Sources/Views/MorningResults/TrainingReadinessCard.swift::func TrainingReadinessCard.readinessMessage(_:)": "8c6cb60ae17d151b",
+    "Emuqu/Sources/Views/MorningResults/TrainingReadinessCard.swift::var TrainingReadinessCard.computedReadiness": "a6f7b5c95cdc918d",
+    "Emuqu/Sources/Views/Theme.swift::func AppTheme.readinessColor(_:)": "b77d259c2b85decf",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e"
+   }
+  },
+  {
+   "key": "func TrainingReadinessCard.readinessHeader(_:_:)",
+   "hash": "56b137636e53ddb9",
+   "does": "Bolt icon, 'TRAINING READINESS' caption and the label in readiness colour.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/MorningResults/TrainingReadinessCard.swift::func TrainingReadinessCard.label(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/MorningResults/TrainingReadinessCard.swift::func TrainingReadinessCard.label(_:)": "ebb4a2c8d6286861",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "func TrainingReadinessCard.readinessGauge(_:_:_:)",
+   "hash": "0ab42b6d31ad8bd5",
+   "does": "Big %.1f readiness number beside the bar column.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)",
+    "Emuqu/Sources/Views/MorningResults/TrainingReadinessCard.swift::func TrainingReadinessCard.readinessBarColumn(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/MorningResults/TrainingReadinessCard.swift::func TrainingReadinessCard.readinessBarColumn(_:)": "7706166cf351a769",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059"
+   }
+  },
+  {
+   "key": "func TrainingReadinessCard.readinessBarColumn(_:)",
+   "hash": "9c3126e31a4542b4",
+   "does": "20pt GeometryReader bar above zone labels.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResults/TrainingReadinessCard.swift::func TrainingReadinessCard.readinessBar(geo:readiness100:)",
+    "Emuqu/Sources/Views/MorningResults/TrainingReadinessCard.swift::var TrainingReadinessCard.zoneLabels"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResults/TrainingReadinessCard.swift::func TrainingReadinessCard.readinessBar(geo:readiness100:)": "0e8a07952ef0ee66",
+    "Emuqu/Sources/Views/MorningResults/TrainingReadinessCard.swift::var TrainingReadinessCard.zoneLabels": "c4cfd335af2b91e4"
+   }
+  },
+  {
+   "key": "func TrainingReadinessCard.readinessBar(geo:readiness100:)",
+   "hash": "7e9c8988cbd075b5",
+   "does": "ZStack of zone background, fill and indicator dot.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResults/TrainingReadinessCard.swift::func TrainingReadinessCard.zoneBackground(geo:)",
+    "Emuqu/Sources/Views/MorningResults/TrainingReadinessCard.swift::func TrainingReadinessCard.zoneFill(geo:readiness100:)",
+    "Emuqu/Sources/Views/MorningResults/TrainingReadinessCard.swift::func TrainingReadinessCard.indicatorDot(geo:readiness100:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResults/TrainingReadinessCard.swift::func TrainingReadinessCard.indicatorDot(geo:readiness100:)": "120e6253b98fb527",
+    "Emuqu/Sources/Views/MorningResults/TrainingReadinessCard.swift::func TrainingReadinessCard.zoneBackground(geo:)": "c8d2ef8f406e8574",
+    "Emuqu/Sources/Views/MorningResults/TrainingReadinessCard.swift::func TrainingReadinessCard.zoneFill(geo:readiness100:)": "e700868f2c7e9ddf"
+   }
+  },
+  {
+   "key": "func TrainingReadinessCard.zoneBackground(geo:)",
+   "hash": "2ca02f3ff5cd99a9",
+   "does": "Four 30%-opacity zone rectangles at 20/25/25/30% widths (Rest/Fatigued/Moderate/Ready).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "func TrainingReadinessCard.zoneFill(geo:readiness100:)",
+   "hash": "a5cf04a77cab2288",
+   "does": "Clamps readiness100 to 0-100 and draws the four coloured fill segments up to that fraction.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResults/TrainingReadinessCard.swift::func TrainingReadinessCard.zoneFillSegment(geo:fill:from:width:color:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResults/TrainingReadinessCard.swift::func TrainingReadinessCard.zoneFillSegment(geo:fill:from:width:color:)": "4e4970e18a26ac14"
+   }
+  },
+  {
+   "key": "func TrainingReadinessCard.zoneFillSegment(geo:fill:from:width:color:)",
+   "hash": "18215a5fee18fd0a",
+   "does": "Draws a segment of width min(fill−from, width) when fill passes the segment start.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "fill > from",
+     "effect": "segment drawn; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "func TrainingReadinessCard.indicatorDot(geo:readiness100:)",
+   "hash": "8ad3e0c4badfa902",
+   "does": "White dot offset to the clamped readiness fraction × width − 10.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var TrainingReadinessCard.zoneLabels",
+   "hash": "e532763868bc6cb2",
+   "does": "Rest / Fatigued / Moderate / Ready labels.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.dustyRoseText": "42a7b75ca4dc32cd",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sageText": "7646093d377bac7c",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.softGoldText": "12fb8e2fb33c18ef",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.terracottaText": "6a18b5025ee3e850"
+   }
+  },
+  {
+   "key": "func TrainingReadinessCard.readinessMessage(_:)",
+   "hash": "9b13d7075b2bd6b0",
+   "does": "Coaching message from ReadinessScoring.readinessMessage with the advice-gate load.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessMessage(for:load:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessMessage(for:load:)": "11a51846fa10aee7",
+    "Emuqu/Sources/Views/MorningResults/TrainingReadinessCard.swift::var TrainingReadinessCard.adviceLoad": "5a8be76f4e052e40",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -1,0 +1,1658 @@
+{
+ "file": "Emuqu/Sources/Views/SettingsSubviews.swift",
+ "hash": "2215610363a6f7dd",
+ "role": "Settings sub-screens: DebugLogView (in-memory debug log list, clear, export), CrashLogView (previous crash report show/share/delete), ErrorCatalogView (warning/error catalogue with clear and text export), AddTagSheet (new custom tag name+colour form) and MetricExplanationsView/MetricExplanationRow (age-personalised HRV metric glossary).",
+ "types": [
+  "DebugLogView: struct (View) — lists DebugLogger.entries newest first; Clear + Export Diagnostic Log toolbar",
+  "CrashLogView: struct (View) — shows CrashLogManager.previousCrashLog, ShareLink share, delete",
+  "ErrorCatalogView: struct (View, @MainActor) — DebugLogger.errorCatalog list, clear, ShareLink export",
+  "AddTagSheet: struct (View) — name field, 12-colour picker, preview, Save/Cancel; Save refused for blank or existing names",
+  "MetricExplanationsView: struct (View) — metric glossary with age-band RMSSD copy",
+  "MetricExplanationsView.RMSSDAgeContext: struct — range/median/brief/athleteNote strings",
+  "MetricExplanationRow: private struct (View) — expandable metric row",
+  "CrashReportExport: struct (Transferable) — crash report written on demand for ShareLink",
+  "ErrorCatalogExport: struct (Transferable) — error catalog written on demand for ShareLink"
+ ],
+ "state": [
+  "mem:DebugLogView.showingClearConfirm (@State)",
+  "mem:CrashLogView.crashLog/showingShareSheet/exportURL/showingClearConfirm (@State)",
+  "mem:ErrorCatalogView.showingExport/exportURL/showingClearConfirm/errorCount/isExporting (@State)",
+  "mem:AddTagSheet.presetColors (12 Colors), static presetColorNames",
+  "mem:MetricExplanationRow.isExpanded (@State)",
+  "file:tmp/hrv_error_catalog_<epoch>.txt (written by ErrorCatalogView export)"
+ ],
+ "toplevel": "AddTagSheet.presetColors is a stored let of 12 SwiftUI colours (red..brown) parallel to presetColorNames. MetricExplanationRow.action defaults to nil. Comment at line 88 points to ShareSheet in Views/Utilities/ShareSheet.swift.",
+ "flags": [
+  {
+   "kind": "duplicate",
+   "sev": "low",
+   "text": "MetricExplanationsView.ageBand/athleteNote hard-code the same seven RMSSD age bands (ranges, medians, athlete ranges) that HelpScienceCatalog.rmssdAgeBands holds as a table; an edit to one copy leaves the Metric Guide and the Help article disagreeing.",
+   "evidence": [
+    "Emuqu/Sources/Views/SettingsSubviews.swift:760",
+    "Emuqu/Sources/Views/SettingsSubviews.swift:785",
+    "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift:502"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "var DebugLogView.logger",
+   "hash": "8d064f77ddab37ed",
+   "does": "Returns dependencies.app.debugLogger (the DebugLogger from the environment's AppDependencies).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.app.debugLogger"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be"
+   }
+  },
+  {
+   "key": "var DebugLogView.body",
+   "hash": "d4d7a5431d24c7ae",
+   "does": "Renders logList with the Clear/Export toolbar and a 'Clear Debug Logs?' alert whose destructive Clear button calls debugLogger.clear(); the message quotes logger.entries.count.",
+   "entry": "SwiftUI body (pushed from Troubleshooting › Debug Logs, SettingsPages+DiagnosticActions.swift:255; snapshot test ScreenSnapshotTests.swift:66)",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var DebugLogView.logList",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var DebugLogView.debugLogToolbar",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var DebugLogView.logger",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.clear()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:DebugLogger.entries"
+   ],
+   "writes": [
+    "mem:DebugLogger.entries",
+    "mem:DebugLogger.errorCatalog",
+    "file:DebugLogger log file (removed)"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "The confirmation says it will delete the N debug log entries, but DebugLogger.clear() also empties errorCatalog and deletes the on-disk log file, so clearing here silently wipes the Error Catalog screen too.",
+     "evidence": [
+      "Emuqu/Sources/Views/SettingsSubviews.swift:20",
+      "Emuqu/Sources/Utilities/DebugLog.swift:506",
+      "Emuqu/Sources/Utilities/DebugLog.swift:508",
+      "Emuqu/Sources/Utilities/DebugLog.swift:511"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.clear()": "88092cd51ced3d06",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var DebugLogView.debugLogToolbar": "86e716c557343d56",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var DebugLogView.logList": "f38f5b83532a8dc1",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var DebugLogView.logger": "e692751b4233a330"
+   }
+  },
+  {
+   "key": "var DebugLogView.logList",
+   "hash": "6758eea78b36ce55",
+   "does": "List of logger.entries reversed (newest first), one logRow each, with zen form background and 'Debug Logs' title.",
+   "entry": "SwiftUI view-builder evaluation of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsSubviews.swift::func DebugLogView.logRow(_:)",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var DebugLogView.logger",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenFormBackground()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:DebugLogger.entries"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::func DebugLogView.logRow(_:)": "2ce3097409f3c263",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var DebugLogView.logger": "e692751b4233a330",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenFormBackground()": "fde01388fd5e4e8c"
+   }
+  },
+  {
+   "key": "func DebugLogView.logRow(_:)",
+   "hash": "a4b62e0c777f2f88",
+   "does": "VStack of the row header and the entry message in monospaced caption.",
+   "entry": "SwiftUI view-builder evaluation of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsSubviews.swift::func DebugLogView.logRowHeader(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SettingsSubviews.swift::func DebugLogView.logRowHeader(_:)": "f13ea5a21db627e9"
+   }
+  },
+  {
+   "key": "func DebugLogView.logRowHeader(_:)",
+   "hash": "723b75c450822f29",
+   "does": "HStack of entry.category (accent, semibold) and the entry timestamp as time.",
+   "entry": "SwiftUI view-builder evaluation of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.category(_:caller:file:line:)": "315f6413360002af",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var DebugLogView.debugLogToolbar",
+   "hash": "885dff2ab256af13",
+   "does": "Toolbar content builder combining the Clear and Export toolbar items.",
+   "entry": "SwiftUI .toolbar evaluation",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var DebugLogView.clearLogsToolbarItem",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var DebugLogView.exportLogsToolbarItem"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var DebugLogView.clearLogsToolbarItem": "6ffa0e2f59d5e35b",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var DebugLogView.exportLogsToolbarItem": "5cc61be74890ccb5"
+   }
+  },
+  {
+   "key": "var DebugLogView.clearLogsToolbarItem",
+   "hash": "ca14e5144fd8551b",
+   "does": "Leading toolbar destructive 'Clear' button that sets showingClearConfirm = true (opens the alert).",
+   "entry": "SwiftUI toolbar; button tap",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var DebugLogView.exportLogsToolbarItem",
+   "hash": "dc70b4195807b562",
+   "does": "Primary-action toolbar item hosting exportLogsButton.",
+   "entry": "SwiftUI toolbar",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var DebugLogView.exportLogsButton"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var DebugLogView.exportLogsButton": "604aa63fc7ccb3d4"
+   }
+  },
+  {
+   "key": "var DebugLogView.exportLogsButton",
+   "hash": "1f4963972ab74f85",
+   "does": "ShareLink for DiagnosticLogExport: the system share sheet opens immediately and the log file is written (DebugLogger.exportToFileAsync) only when a destination asks for it.",
+   "entry": "SwiftUI ShareLink tap",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var DiagnosticLogExport.preview",
+    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var DiagnosticLogExport.transferRepresentation",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "file:DebugLogger log file"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Same ShareLink(DiagnosticLogExport) export button as Settings › Diagnostics (two copies there); the comment acknowledges it is the same export.",
+     "evidence": [
+      "Emuqu/Sources/Views/SettingsSubviews.swift:82",
+      "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift:51",
+      "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift:280"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var DiagnosticLogExport.preview": "6ea2bf030b94a4fa",
+    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var DiagnosticLogExport.transferRepresentation": "2140446cd4be028c"
+   }
+  },
+  {
+   "key": "var CrashLogView.body",
+   "hash": "ec8adfbe14af2aba",
+   "does": "List of crash details and actions; .task loads the previous crash log off-main; a 'Delete Crash Report?' alert hosts deleteCrashAlertActions.",
+   "entry": "SwiftUI body (pushed from SettingsPages+Diagnostics.swift:442; snapshot test ScreenSnapshotTests.swift:73); .task on appear",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var CrashLogView.crashDetailsSection",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var CrashLogView.crashActionsSection",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::func CrashLogView.loadCrashLog()",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var CrashLogView.deleteCrashAlertActions",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenFormBackground()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::func CrashLogView.loadCrashLog()": "20cc8e87d3e1b99a",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var CrashLogView.crashActionsSection": "e481cfa1b2f9d02d",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var CrashLogView.crashDetailsSection": "cee83ff70419fdc1",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var CrashLogView.deleteCrashAlertActions": "5f26923b9e0ba319",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenFormBackground()": "fde01388fd5e4e8c"
+   }
+  },
+  {
+   "key": "var CrashLogView.deleteCrashAlertActions",
+   "hash": "be3436d50da3e821",
+   "does": "Alert actions: Cancel (no-op) and destructive Delete, which calls crashLogManager.clearPreviousCrash() (removes previous_crash.txt) and dismisses the view.",
+   "entry": "SwiftUI alert button tap",
+   "calls": [
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.clearPreviousCrash()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [
+    "file:previous_crash.txt (App Group container, deleted)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.clearPreviousCrash()": "d8f35d243e2ab256"
+   }
+  },
+  {
+   "key": "var CrashLogView.crashDetailsSection",
+   "hash": "e456f1043a4996c5",
+   "does": "Section showing the crash text (monospaced, selectable) or 'No crash log available'; footer hint shown only when there is text.",
+   "entry": "SwiftUI view-builder evaluation of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "crashLog is empty",
+     "effect": "true: shows 'No crash log available' (also shown when the file was unreadable, since load maps nil to \"\"); false: shows the crash text"
+    },
+    {
+     "at": "+13",
+     "cond": "crashLog is not empty",
+     "effect": "true: footer 'Share this with the developer…'; false: no footer text"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var CrashLogView.crashActionsSection",
+   "hash": "9ed4055ce5084c4a",
+   "does": "Section with Share and Delete buttons, shown only when a crash log is loaded.",
+   "entry": "SwiftUI view-builder evaluation of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var CrashLogView.shareCrashButton",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var CrashLogView.deleteCrashButton"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "crashLog is not empty",
+     "effect": "true: renders the Share and Delete section; false: renders nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var CrashLogView.deleteCrashButton": "96256c107cadeaf7",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var CrashLogView.shareCrashButton": "9eb44059c4c202df"
+   }
+  },
+  {
+   "key": "var CrashLogView.shareCrashButton",
+   "hash": "de3a920a5fa96c25",
+   "does": "ShareLink of CrashReportExport: the system share sheet opens at once and the PHI-scrubbed copy is written off the main thread only when a destination asks for it.",
+   "entry": "SwiftUI button tap",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var CrashReportExport.preview",
+    "ext:SwiftUI.ShareLink",
+    "dyn:Transferable.transferRepresentation → Emuqu/Sources/Views/SettingsSubviews.swift::var CrashReportExport.transferRepresentation",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "low",
+     "text": "The PHI-scrubbed Emuqu_Crash_<timestamp>.txt that exportCrashLog() writes to the temporary directory is never deleted after sharing; copies stay until iOS purges tmp. (A missing report or failed write now fails the transfer instead of doing nothing.)",
+     "evidence": [
+      "Emuqu/Sources/Views/SettingsSubviews.swift:162",
+      "Emuqu/Sources/Utilities/CrashLogManager.swift:250"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var CrashReportExport.preview": "13a82799cc14f01d"
+   }
+  },
+  {
+   "key": "var CrashLogView.deleteCrashButton",
+   "hash": "a667739543004709",
+   "does": "Destructive 'Delete Crash Report' button that sets showingClearConfirm = true.",
+   "entry": "SwiftUI button tap",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func CrashLogView.loadCrashLog()",
+   "hash": "ad0b52079d095784",
+   "does": "Reads crashLogManager.previousCrashLog in a detached userInitiated task (nil → \"\") and assigns crashLog on the main actor.",
+   "entry": "SwiftUI .task on CrashLogView appear",
+   "calls": [
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.previousCrashLog"
+   ],
+   "reads": [
+    "file:previous_crash.txt"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "previousCrashLog is nil (file missing or unreadable — try? swallows the error)",
+     "effect": "nil: uses \"\" so the view shows 'No crash log available'; non-nil: the file text"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "low",
+     "text": "previousCrashLog uses try?, so an existing but unreadable crash file (e.g. protection/encoding failure) is shown as 'No crash log available' with no indication a report exists.",
+     "evidence": [
+      "Emuqu/Sources/Views/SettingsSubviews.swift:186",
+      "Emuqu/Sources/Utilities/CrashLogManager.swift:40"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.previousCrashLog": "43c2b5700d16c347"
+   }
+  },
+  {
+   "key": "var CrashReportExport.preview",
+   "hash": "e86ee009f761bcaf",
+   "does": "Share preview titled \"Share Crash Report\".",
+   "entry": "Read by ShareLink",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var CrashReportExport.transferRepresentation",
+   "hash": "78d4e144119a5953",
+   "does": "FileRepresentation (.plainText) that, when a share destination asks, calls CrashLogManager.exportCrashLog() off the main thread and returns the file; throws CocoaError(.fileWriteUnknown) when there is no report or the write failed.",
+   "entry": "Transferable protocol witness; invoked by the system share sheet when a ShareLink destination requests the file",
+   "calls": [
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.exportCrashLog()",
+    "ext:FileRepresentation",
+    "ext:SentTransferredFile"
+   ],
+   "reads": [
+    "file:previous_crash.txt"
+   ],
+   "writes": [
+    "file:tmp/Emuqu_Crash_<timestamp>.txt"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "exportCrashLog returned nil",
+     "effect": "throws; else SentTransferredFile(url)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.exportCrashLog()": "7794db7c2aa2d80e"
+   }
+  },
+  {
+   "key": "var ErrorCatalogView.logger",
+   "hash": "8d064f77ddab37ed",
+   "does": "Returns dependencies.app.debugLogger.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.app.debugLogger"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be"
+   }
+  },
+  {
+   "key": "var ErrorCatalogView.body",
+   "hash": "f7097cc3a51924d0",
+   "does": "List of summary and error-list sections with an export toolbar item and a 'Clear All Errors?' alert (message quotes errorCatalog.count).",
+   "entry": "SwiftUI body (pushed from SettingsPages+DiagnosticActions.swift:256; snapshot test ScreenSnapshotTests.swift:59)",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var ErrorCatalogView.errorSummarySection",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var ErrorCatalogView.errorListSection",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var ErrorCatalogView.exportErrorsToolbarItem",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var ErrorCatalogView.clearErrorsAlertActions",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var ErrorCatalogView.logger",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenFormBackground()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:DebugLogger.errorCatalog"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var ErrorCatalogView.clearErrorsAlertActions": "f746ec775588ed7e",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var ErrorCatalogView.errorListSection": "92728f48ca4e24f7",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var ErrorCatalogView.errorSummarySection": "63873701791e4112",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var ErrorCatalogView.exportErrorsToolbarItem": "8d29a9ac77de4f09",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var ErrorCatalogView.logger": "6a883fb81a53b82e",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenFormBackground()": "fde01388fd5e4e8c"
+   }
+  },
+  {
+   "key": "var ErrorCatalogView.clearErrorsAlertActions",
+   "hash": "9768512acb471f4c",
+   "does": "Alert actions: Cancel and destructive 'Clear N Errors', which notes the count, calls debugLogger.clearErrorCatalog() and logs the cleared count.",
+   "entry": "SwiftUI alert button tap",
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.clearErrorCatalog()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var ErrorCatalogView.logger",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:DebugLogger.errorCatalog"
+   ],
+   "writes": [
+    "mem:DebugLogger.errorCatalog"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.clearErrorCatalog()": "c8757069acb9d305",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var ErrorCatalogView.logger": "6a883fb81a53b82e"
+   }
+  },
+  {
+   "key": "var ErrorCatalogView.errorSummarySection",
+   "hash": "2a8bf71e1605cb47",
+   "does": "Section with a 'Total Errors' count row (red) and the inline Clear All Errors button.",
+   "entry": "SwiftUI view-builder evaluation of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var ErrorCatalogView.clearErrorsButton",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var ErrorCatalogView.logger",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:DebugLogger.errorCatalog"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var ErrorCatalogView.clearErrorsButton": "a1c568e27bf2118f",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var ErrorCatalogView.logger": "6a883fb81a53b82e"
+   }
+  },
+  {
+   "key": "var ErrorCatalogView.clearErrorsButton",
+   "hash": "e985a57e3b7d71fb",
+   "does": "Destructive inline button that sets showingClearConfirm = true; disabled when the catalog is empty.",
+   "entry": "SwiftUI button tap",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var ErrorCatalogView.logger",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:DebugLogger.errorCatalog"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var ErrorCatalogView.logger": "6a883fb81a53b82e"
+   }
+  },
+  {
+   "key": "var ErrorCatalogView.errorListSection",
+   "hash": "1e38cb145679e679",
+   "does": "Shows the 'No Errors Recorded' placeholder when the catalog is empty, else the recent-errors section.",
+   "entry": "SwiftUI view-builder evaluation of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var ErrorCatalogView.noErrorsPlaceholder",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var ErrorCatalogView.recentErrorsSection",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var ErrorCatalogView.logger"
+   ],
+   "reads": [
+    "mem:DebugLogger.errorCatalog"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "logger.errorCatalog is empty",
+     "effect": "true: noErrorsPlaceholder; false: recentErrorsSection"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var ErrorCatalogView.logger": "6a883fb81a53b82e",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var ErrorCatalogView.noErrorsPlaceholder": "41b277f4609f5c6d",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var ErrorCatalogView.recentErrorsSection": "59ce919ed3b7248f"
+   }
+  },
+  {
+   "key": "var ErrorCatalogView.noErrorsPlaceholder",
+   "hash": "02ebb147ab580725",
+   "does": "Green checkmark placeholder with 'No Errors Recorded' / 'All systems running smoothly'.",
+   "entry": "SwiftUI view-builder evaluation of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var ErrorCatalogView.recentErrorsSection",
+   "hash": "01b6e185ce265b45",
+   "does": "Section listing the last 100 errorCatalog entries newest first via errorRow.",
+   "entry": "SwiftUI view-builder evaluation of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsSubviews.swift::func ErrorCatalogView.errorRow(_:)",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var ErrorCatalogView.logger",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:DebugLogger.errorCatalog"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::func ErrorCatalogView.errorRow(_:)": "cb7991083de224d2",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var ErrorCatalogView.logger": "6a883fb81a53b82e"
+   }
+  },
+  {
+   "key": "func ErrorCatalogView.errorRow(_:)",
+   "hash": "270ffe84d37ba7dd",
+   "does": "Row with category (red), date and time, and message limited to 3 lines.",
+   "entry": "SwiftUI view-builder evaluation of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.category(_:caller:file:line:)": "315f6413360002af",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var ErrorCatalogView.exportErrorsToolbarItem",
+   "hash": "113e3b9609380f1e",
+   "does": "Primary-action toolbar item hosting exportErrorsButton.",
+   "entry": "SwiftUI toolbar",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var ErrorCatalogView.exportErrorsButton"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var ErrorCatalogView.exportErrorsButton": "8e239020a62fec79"
+   }
+  },
+  {
+   "key": "var ErrorCatalogView.exportErrorsButton",
+   "hash": "0cf7fd037a281cfe",
+   "does": "ShareLink of ErrorCatalogExport (share icon), hidden when the catalog is empty; the scrubbed catalog is built and written only when a destination asks.",
+   "entry": "SwiftUI toolbar; button tap",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var ErrorCatalogView.logger",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var ErrorCatalogExport.preview",
+    "ext:SwiftUI.ShareLink",
+    "dyn:Transferable.transferRepresentation → Emuqu/Sources/Views/SettingsSubviews.swift::var ErrorCatalogExport.transferRepresentation"
+   ],
+   "reads": [
+    "mem:DebugLogger.errorCatalog"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "catalog non-empty",
+     "effect": "ShareLink shown; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var ErrorCatalogExport.preview": "2d1f68270d680750",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var ErrorCatalogView.logger": "6a883fb81a53b82e"
+   }
+  },
+  {
+   "key": "var ErrorCatalogExport.preview",
+   "hash": "e37c1b9abb337035",
+   "does": "Share preview titled \"Error Catalog\".",
+   "entry": "Read by ShareLink",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var ErrorCatalogExport.transferRepresentation",
+   "hash": "1b20decb9c9e77a4",
+   "does": "FileRepresentation (.plainText) that, when a share destination asks, awaits DebugLogger.exportErrorCatalog() (PHI-scrubbed, on the main actor) and writes it with writeExport.",
+   "entry": "Transferable protocol witness; invoked by the system share sheet when a ShareLink destination requests the file",
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.exportErrorCatalog()",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::func ErrorCatalogExport.writeExport(_:)",
+    "ext:FileRepresentation",
+    "ext:SentTransferredFile"
+   ],
+   "reads": [
+    "mem:DebugLogger.errorCatalog"
+   ],
+   "writes": [
+    "file:tmp/Emuqu_Error_Catalog.txt"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.exportErrorCatalog()": "45a0273f16a6c198",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::func ErrorCatalogExport.writeExport(_:)": "d2eb66b329cb9a41"
+   }
+  },
+  {
+   "key": "func ErrorCatalogExport.writeExport(_:)",
+   "hash": "dd73a81aed82e67d",
+   "does": "Writes the text as UTF-8 over tmp/Emuqu_Error_Catalog.txt (one fixed file, replaced on every export so copies do not pile up) and returns its URL; throws when encoding or the write fails.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "file:tmp/Emuqu_Error_Catalog.txt"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "UTF-8 encoding failed",
+     "effect": "throws"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4"
+   }
+  },
+  {
+   "key": "var AddTagSheet.body",
+   "hash": "521b0caf7bbbdc8c",
+   "does": "NavigationStack/Form with name, colour and preview sections, inline 'New Tag' title and Cancel/Save toolbar.",
+   "entry": "SwiftUI body (sheet presented by CustomTagsPage, SettingsPages+Data.swift:60; snapshot tests ScreenSnapshotTests.swift:119,131)",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var AddTagSheet.tagNameSection",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var AddTagSheet.tagColorSection",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var AddTagSheet.tagPreviewSection",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var AddTagSheet.addTagToolbar",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenFormBackground()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var AddTagSheet.addTagToolbar": "ce636a01cef41a5f",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var AddTagSheet.tagColorSection": "a93237913960baa8",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var AddTagSheet.tagNameSection": "7450b2f7a46bbbb0",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var AddTagSheet.tagPreviewSection": "e0f9e25163ed98e8",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenFormBackground()": "fde01388fd5e4e8c"
+   }
+  },
+  {
+   "key": "var AddTagSheet.tagNameSection",
+   "hash": "519419f75f7ebea1",
+   "does": "Section with a TextField bound to tagName.",
+   "entry": "SwiftUI view-builder evaluation of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var AddTagSheet.tagColorSection",
+   "hash": "03403d1c469f1ab1",
+   "does": "Section 'Color' hosting the colour grid.",
+   "entry": "SwiftUI view-builder evaluation of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var AddTagSheet.tagColorGrid",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var AddTagSheet.tagColorGrid": "4037c03e874718a3"
+   }
+  },
+  {
+   "key": "var AddTagSheet.tagColorGrid",
+   "hash": "24135ff5bdaeea1b",
+   "does": "6-column LazyVGrid hosting the swatches.",
+   "entry": "SwiftUI view-builder evaluation of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var AddTagSheet.tagColorSwatches"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var AddTagSheet.tagColorSwatches": "77eb441da17c2652"
+   }
+  },
+  {
+   "key": "var AddTagSheet.tagColorSwatches",
+   "hash": "2ffabb2594fa2600",
+   "does": "ForEach over presetColors with index, building a swatch named by presetColorNames[index].",
+   "entry": "SwiftUI view-builder evaluation of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsSubviews.swift::func AddTagSheet.tagColorSwatch(_:name:)",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var AddTagSheet.presetColorNames"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SettingsSubviews.swift::func AddTagSheet.tagColorSwatch(_:name:)": "e7004ab7a3262a23",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var AddTagSheet.presetColorNames": "6b5d932454bcf505"
+   }
+  },
+  {
+   "key": "var AddTagSheet.presetColorNames",
+   "hash": "8e296f66f6b50981",
+   "does": "Returns the 12 localized colour names in the same order as presetColors (VoiceOver labels).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func AddTagSheet.tagColorSwatch(_:name:)",
+   "hash": "6b27843ac0488120",
+   "does": "40pt colour circle in a 44pt tap target; tap sets tagColor = color; stroke and accessibility selected trait reflect equality with tagColor.",
+   "entry": "SwiftUI; .onTapGesture",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "tagColor == color",
+     "effect": "true: 3pt primary stroke ring; false: 0 width (no ring)"
+    },
+    {
+     "at": "+16",
+     "cond": "tagColor == color",
+     "effect": "true: traits [.isButton, .isSelected]; false: .isButton"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var AddTagSheet.tagPreviewSection",
+   "hash": "92dffac3bda5a35f",
+   "does": "Preview section drawing the tag name (or placeholder 'Tag Name') as a capsule tinted with tagColor at 35% opacity and primary text.",
+   "entry": "SwiftUI view-builder evaluation of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "tagName is empty",
+     "effect": "true: shows localized placeholder 'Tag Name'; false: shows tagName"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var AddTagSheet.addTagToolbar",
+   "hash": "767cebc65045996e",
+   "does": "Toolbar: Cancel dismisses; Save calls onSave() then dismisses, disabled unless canSave.",
+   "entry": "SwiftUI toolbar; button taps",
+   "calls": [
+    "closure:onSave set by CustomTagsPage.addTagSheet → saveNewTag (SettingsPages+Data.swift:66), appends a ReadingTag to settings.customTags",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var AddTagSheet.canSave"
+   ],
+   "reads": [],
+   "writes": [
+    "file:user_settings.json (customTags, via onSave → SettingsManager.addCustomTag)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var AddTagSheet.canSave": "ddacdf7da700f3fe"
+   }
+  },
+  {
+   "key": "var AddTagSheet.canSave",
+   "hash": "e5cc032cd2cd1ce8",
+   "does": "True when the trimmed name is non-empty and no existingTagNames entry matches it trimmed and case-insensitively.",
+   "entry": "SwiftUI evaluates it as part of the parent view's body",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "blank name",
+     "effect": "false"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var MetricExplanationsView.age",
+   "hash": "d11a32129e78e417",
+   "does": "Returns settingsManager.settings.age (nil when no birthday).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.age"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.age": "ca00f16b8dca855b"
+   }
+  },
+  {
+   "key": "var MetricExplanationsView.body",
+   "hash": "d404cbb3b2b5e580",
+   "does": "List of the age banner and the time-domain, frequency-domain, nonlinear and composite metric sections, titled 'Metric Guide'.",
+   "entry": "SwiftUI body (pushed from SettingsView.swift:428 and the Settings search entry)",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationsView.ageBanner",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationsView.timeDomainMetrics",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationsView.timeDomainMetricsMore",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationsView.frequencyDomainMetrics",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationsView.frequencyDomainMetricsMore",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationsView.nonlinearMetrics",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationsView.derivedMetrics",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenFormBackground()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationsView.ageBanner": "c8dffe185ad03b39",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationsView.derivedMetrics": "735d9de7c125f0af",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationsView.frequencyDomainMetrics": "29d844eeb90aa332",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationsView.frequencyDomainMetricsMore": "91227979b69eac9f",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationsView.nonlinearMetrics": "cfb5b26488cc93e1",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationsView.timeDomainMetrics": "aaa01d79984a6fd2",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationsView.timeDomainMetricsMore": "d651caefbced7ecf",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenFormBackground()": "fde01388fd5e4e8c"
+   }
+  },
+  {
+   "key": "var MetricExplanationsView.ageBanner",
+   "hash": "e9d2cf0d34a68b86",
+   "does": "Section with the age banner row only when age is known.",
+   "entry": "SwiftUI view-builder evaluation of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationsView.age",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::func MetricExplanationsView.ageBannerRow(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "age is non-nil",
+     "effect": "true: shows 'Ranges shown for age N'; false: no banner"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SettingsSubviews.swift::func MetricExplanationsView.ageBannerRow(_:)": "237cca345520b087",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationsView.age": "1e0610cd8494744c"
+   }
+  },
+  {
+   "key": "func MetricExplanationsView.ageBannerRow(_:)",
+   "hash": "a4f5721ec6e82e4a",
+   "does": "HStack of a person icon and 'Ranges shown for age N'.",
+   "entry": "SwiftUI view-builder evaluation of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryGradient"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationsView.age": "1e0610cd8494744c",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryGradient": "2d47496eb2a59932",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var MetricExplanationsView.timeDomainMetrics",
+   "hash": "274b22844d5c6611",
+   "does": "Section with RMSSD (age-personalised description/interpretation) and SDNN rows.",
+   "entry": "SwiftUI view-builder evaluation of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationsView.rmssdDescription",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationsView.rmssdInterpretation",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationsView.rmssdDescription": "e071e9e87962009c",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationsView.rmssdInterpretation": "3ab0748503f932cc"
+   }
+  },
+  {
+   "key": "var MetricExplanationsView.timeDomainMetricsMore",
+   "hash": "aad3854d83d37773",
+   "does": "'Time Domain' section with the pNN50 row (age-dependent interpretation).",
+   "entry": "SwiftUI view-builder evaluation of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationsView.pnn50Interpretation",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationsView.pnn50Interpretation": "2a336a4d664549b6"
+   }
+  },
+  {
+   "key": "var MetricExplanationsView.frequencyDomainMetrics",
+   "hash": "e5bf7c670c94aa5c",
+   "does": "Section with the LF Power row and the HF Power row.",
+   "entry": "SwiftUI view-builder evaluation of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationsView.hfPowerRow",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationsView.hfPowerRow": "e3b717565ddd417c"
+   }
+  },
+  {
+   "key": "var MetricExplanationsView.hfPowerRow",
+   "hash": "7830905871a1a9f0",
+   "does": "HF Power metric row (vagal, 0.15-0.4 Hz; slow breathing shifts power to LF).",
+   "entry": "SwiftUI view-builder evaluation of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var MetricExplanationsView.frequencyDomainMetricsMore",
+   "hash": "096e54814e054d08",
+   "does": "'Frequency Domain' section with the LF/HF ratio row (stated as used only to pick the analysis window).",
+   "entry": "SwiftUI view-builder evaluation of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var MetricExplanationsView.nonlinearMetrics",
+   "hash": "244ad51ee9d3c0bf",
+   "does": "'Nonlinear Analysis' section with the SD1 & SD2 row and the DFA α1 row.",
+   "entry": "SwiftUI view-builder evaluation of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationsView.dfaAlpha1Row",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationsView.dfaAlpha1Row": "af73524e88d8f4ee"
+   }
+  },
+  {
+   "key": "var MetricExplanationsView.dfaAlpha1Row",
+   "hash": "f82778e5e21f628f",
+   "does": "DFA α1 row: 0.75-1.0 resting reference range copy with a caveat that it is a convention.",
+   "entry": "SwiftUI view-builder evaluation of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var MetricExplanationsView.derivedMetrics",
+   "hash": "f69e672a28b4f50c",
+   "does": "'Composite Metrics' section with the Stress Index and Readiness rows.",
+   "entry": "SwiftUI view-builder evaluation of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationsView.stressIndexRow",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationsView.readinessRow",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationsView.readinessRow": "0bb34438c3b97192",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationsView.stressIndexRow": "ce44da1398b5307d"
+   }
+  },
+  {
+   "key": "var MetricExplanationsView.stressIndexRow",
+   "hash": "0b6de918aecb7ba5",
+   "does": "Stress Index (Baevsky) row whose interpretation comes from stressIndexInterpretation.",
+   "entry": "SwiftUI view-builder evaluation of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationsView.stressIndexInterpretation",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationsView.stressIndexInterpretation": "fe1eb6db3a23857c"
+   }
+  },
+  {
+   "key": "var MetricExplanationsView.readinessRow",
+   "hash": "af01daca25a480b7",
+   "does": "Readiness row describing the 1-10 daily quick check (RMSSD vs baseline, DFA α1, ANS balance, training adjustment) and how it differs from Recovery Score.",
+   "entry": "SwiftUI view-builder evaluation of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var MetricExplanationsView.rmssdDescription",
+   "hash": "d73a7f3a1428f71a",
+   "does": "RMSSD description: generic text when age is unknown, else text quoting the age band range and median plus the age brief.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SettingsSubviews.swift::func MetricExplanationsView.rmssdContextForExplanations(age:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "age is nil",
+     "effect": "true: returns the generic description; false: returns the age-personalised description"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func RRWindowSweep.range(start:end:)": "1f1571698d506b97",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::func MetricExplanationsView.rmssdContextForExplanations(age:)": "191675427ee4069e",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationsView.age": "1e0610cd8494744c"
+   }
+  },
+  {
+   "key": "var MetricExplanationsView.rmssdInterpretation",
+   "hash": "a2f074a1f27f7caa",
+   "does": "RMSSD interpretation: generic 10-120+ ms text when age unknown, else the band median plus athlete note.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SettingsSubviews.swift::func MetricExplanationsView.rmssdContextForExplanations(age:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "age is nil",
+     "effect": "true: generic text telling the user to set a birthday; false: age-band text"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::func MetricExplanationsView.athleteNote(_:)": "19f6976c91bfe2ba",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::func MetricExplanationsView.rmssdContextForExplanations(age:)": "191675427ee4069e",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationsView.age": "1e0610cd8494744c"
+   }
+  },
+  {
+   "key": "var MetricExplanationsView.pnn50Interpretation",
+   "hash": "c7c15eb5443ae74b",
+   "does": "pNN50 interpretation: an age-50+ variant (5% / 10% thresholds) or the general 0-5/5-15/15-25% bands.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "age is known and >= 50",
+     "effect": "true: returns the 50+ variant quoting the age; false (nil or < 50): general bands"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationsView.age": "1e0610cd8494744c"
+   }
+  },
+  {
+   "key": "var MetricExplanationsView.stressIndexInterpretation",
+   "hash": "4fc51324d33a8914",
+   "does": "Stress Index bands text (50/100/150/200/300, matching HRVThresholds), plus an age-50+ note when applicable.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "age is nil or < 50",
+     "effect": "true: returns the bands only; false: appends the age-specific note"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "coupling",
+     "sev": "low",
+     "text": "The band numbers are hard-coded in a localized string rather than built from HRVThresholds.stressIndex* constants, so changing the thresholds leaves this glossary stale again (the comment records it already drifted once).",
+     "evidence": [
+      "Emuqu/Sources/Views/SettingsSubviews.swift:742",
+      "Emuqu/Sources/Analysis/HRVThresholds.swift:75"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationsView.age": "1e0610cd8494744c"
+   }
+  },
+  {
+   "key": "func MetricExplanationsView.rmssdContextForExplanations(age:)",
+   "hash": "b838ecd6212ea168",
+   "does": "Builds RMSSDAgeContext from ageBand range/median, ageBrief and athleteNote for the given age.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SettingsSubviews.swift::func MetricExplanationsView.ageBand(_:)",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::func MetricExplanationsView.ageBrief(_:)",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::func MetricExplanationsView.athleteNote(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func RRWindowSweep.range(start:end:)": "1f1571698d506b97",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::func MetricExplanationsView.ageBand(_:)": "885c10ae68ecbe49",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::func MetricExplanationsView.ageBrief(_:)": "36012f22e09e4588",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::func MetricExplanationsView.athleteNote(_:)": "19f6976c91bfe2ba",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationsView.age": "1e0610cd8494744c"
+   }
+  },
+  {
+   "key": "func MetricExplanationsView.ageBand(_:)",
+   "hash": "8e9efab7137dfc53",
+   "does": "Maps age to a hard-coded (RMSSD range, median) string pair per decade.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "age < 20",
+     "effect": "returns ('30-120 ms','~55 ms')"
+    },
+    {
+     "at": "+3",
+     "cond": "20 ≤ age < 30",
+     "effect": "('25-105 ms','~42 ms')"
+    },
+    {
+     "at": "+4",
+     "cond": "30 ≤ age < 40",
+     "effect": "('20-80 ms','~35 ms')"
+    },
+    {
+     "at": "+5",
+     "cond": "40 ≤ age < 50",
+     "effect": "('15-60 ms','~25 ms')"
+    },
+    {
+     "at": "+6",
+     "cond": "50 ≤ age < 60",
+     "effect": "('10-50 ms','~22 ms')"
+    },
+    {
+     "at": "+7",
+     "cond": "60 ≤ age < 70",
+     "effect": "('8-40 ms','~18 ms')"
+    },
+    {
+     "at": "+8",
+     "cond": "default: age ≥ 70",
+     "effect": "('6-35 ms','~15 ms')"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationsView.age": "1e0610cd8494744c"
+   }
+  },
+  {
+   "key": "func MetricExplanationsView.ageBrief(_:)",
+   "hash": "70da3e9192a566e0",
+   "does": "Returns a localized one-sentence age-band brief.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "age < 20",
+     "effect": "returns the 'peak dynamism' sentence"
+    },
+    {
+     "at": "+4",
+     "cond": "20-29",
+     "effect": "returns the 'near peak capacity' sentence"
+    },
+    {
+     "at": "+5",
+     "cond": "30-39",
+     "effect": "returns the 'increasingly important levers' sentence"
+    },
+    {
+     "at": "+6",
+     "cond": "40-49",
+     "effect": "returns the 'RMSSD of 25ms at N reflects … 42ms at 25' sentence"
+    },
+    {
+     "at": "+7",
+     "cond": "50-59",
+     "effect": "returns the 'Lower absolute numbers are expected' sentence"
+    },
+    {
+     "at": "+8",
+     "cond": "60-69",
+     "effect": "returns the 'YOUR baseline and trend' sentence"
+    },
+    {
+     "at": "+9",
+     "cond": "default ≥ 70",
+     "effect": "returns the 'Relative patterns still carry the same meaning' sentence"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationsView.age": "1e0610cd8494744c"
+   }
+  },
+  {
+   "key": "func MetricExplanationsView.athleteNote(_:)",
+   "hash": "d74d10abe9551704",
+   "does": "Returns a localized athlete RMSSD range note for the age band.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "age < 20",
+     "effect": "returns the athlete note quoting 70-130+ ms"
+    },
+    {
+     "at": "+4",
+     "cond": "20-29",
+     "effect": "returns the athlete note quoting 60-120+ ms"
+    },
+    {
+     "at": "+5",
+     "cond": "30-39",
+     "effect": "returns the athlete note quoting 45-90+ ms"
+    },
+    {
+     "at": "+6",
+     "cond": "40-49",
+     "effect": "returns the athlete note quoting 30-75+ ms"
+    },
+    {
+     "at": "+7",
+     "cond": "50-59",
+     "effect": "returns the athlete note quoting 25-55+ ms"
+    },
+    {
+     "at": "+8",
+     "cond": "60-69",
+     "effect": "returns the athlete note quoting 20-45+ ms"
+    },
+    {
+     "at": "+9",
+     "cond": "default ≥ 70",
+     "effect": "returns the athlete note quoting 15-35+ ms"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationsView.age": "1e0610cd8494744c"
+   }
+  },
+  {
+   "key": "var MetricExplanationRow.body",
+   "hash": "8257ad7494ac3f02",
+   "does": "VStack of the header button and the expandable detail.",
+   "entry": "SwiftUI body",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationRow.metricHeaderButton",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationRow.metricDetail"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationRow.metricDetail": "5bd72ebe4cf07e22",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationRow.metricHeaderButton": "5ed159e8eb072fd9"
+   }
+  },
+  {
+   "key": "var MetricExplanationRow.metricDetail",
+   "hash": "a6a648b53a3121f5",
+   "does": "When expanded, shows the description, interpretation note and optional action note.",
+   "entry": "SwiftUI view-builder evaluation of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationRow.interpretationNote",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationRow.actionNote"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "isExpanded",
+     "effect": "true: renders the detail block; false: renders nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationRow.actionNote": "c17e7b9a4ac4161c",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationRow.interpretationNote": "bdca8d6e5ec21114"
+   }
+  },
+  {
+   "key": "var MetricExplanationRow.actionNote",
+   "hash": "93968eca3d280a62",
+   "does": "Action callout (arrow icon on a tinted background) when an action string is present.",
+   "entry": "SwiftUI view-builder evaluation of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryGradient"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "action is non-nil",
+     "effect": "true: renders the callout; false: nothing (LF Power, LF/HF, SD1&SD2 rows have no action)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryGradient": "2d47496eb2a59932",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var MetricExplanationRow.interpretationNote",
+   "hash": "e6ba661cbb10791e",
+   "does": "Yellow lightbulb interpretation callout.",
+   "entry": "SwiftUI view-builder evaluation of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var MetricExplanationRow.metricHeaderButton",
+   "hash": "224d0b0beee353d1",
+   "does": "Button that toggles isExpanded with animation, labelled by metricHeaderLabel.",
+   "entry": "SwiftUI button tap",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationRow.metricHeaderLabel"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationRow.metricHeaderLabel": "a134873830ca0a53"
+   }
+  },
+  {
+   "key": "var MetricExplanationRow.metricHeaderLabel",
+   "hash": "e78cdd150d16b539",
+   "does": "Metric name and full name with a chevron reflecting expansion.",
+   "entry": "SwiftUI view-builder evaluation of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+11",
+     "cond": "isExpanded",
+     "effect": "true: chevron.up; false: chevron.down"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -1,0 +1,138 @@
+{
+ "file": "EmuquTests/RecoveryScoreDisplayTests.swift",
+ "hash": "9b136ca4462f7d84",
+ "role": "XCTest suite pinning RecoveryScoreCalculator.displayScore (round half away from zero, clamp 0...100, non-finite → 0) and its parity with ScoreVerdict.safeDisplayScore across raw and 0–10-scaled scores.",
+ "types": [
+  "RecoveryScoreDisplayTests: class — XCTestCase for the raw→display score conversion"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func RecoveryScoreDisplayTests.testRoundsRatherThanTruncates()",
+   "hash": "ec2b8ccde46e7622",
+   "does": "Asserts displayScore rounds 84.6→85, 84.4→84, 84.5→85.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)": "df038a321f56f948"
+   }
+  },
+  {
+   "key": "func RecoveryScoreDisplayTests.testAllSurfacesAgreeForTheSameScore()",
+   "hash": "584e3bb8217b7eb4",
+   "does": "Asserts displayScore equals ScoreVerdict.safeDisplayScore for every raw value from -5 to 105 in 0.1 steps plus ±inf/NaN/edge values, and for every 0–10 score ×10 in 0.01 steps.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.clampedDisplayScore(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for raw in stride(-5...105, 0.1) + edges",
+     "effect": "asserts the two conversions agree for each raw value"
+    },
+    {
+     "at": "+8",
+     "cond": "for score10 in stride(0...10, 0.01)",
+     "effect": "asserts agreement for each 0–10 stored score scaled by 10"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "displayScore and ScoreVerdict.safeDisplayScore are two implementations of the same clamp-and-round, each documented as 'the ONE place the raw→display clamp lives'; the test pins their parity instead of the code having one function.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift:59",
+      "Emuqu/Sources/Models/ScoreVerdict.swift:178",
+      "Emuqu/Sources/Models/ScoreVerdict.swift:169"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)": "df038a321f56f948",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.clampedDisplayScore(_:)": "0e3e974933bc5204",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)": "503106affd4064c8"
+   }
+  },
+  {
+   "key": "func RecoveryScoreDisplayTests.testSurvivesNonFiniteInput()",
+   "hash": "e40c8e9283aa866a",
+   "does": "Asserts displayScore returns 0 for NaN, signalling NaN, +inf and -inf.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Pins +infinity → 0, while ScoreVerdict's comment says an over-range score reads 'Excellent'; a +inf score therefore shows 0 with whatever verdict clampedDisplayScore gives (also 0 → veryLow), and the test locks that in without stating the choice.",
+     "evidence": [
+      "EmuquTests/RecoveryScoreDisplayTests.swift:55",
+      "Emuqu/Sources/Models/ScoreVerdict.swift:28"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)": "df038a321f56f948"
+   }
+  },
+  {
+   "key": "func RecoveryScoreDisplayTests.testClampsToZeroThroughOneHundred()",
+   "hash": "edde3ce8d71d84c6",
+   "does": "Asserts clamping: -12→0, 140→100, 99.7→100, 0→0, 100→100.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)": "df038a321f56f948"
+   }
+  },
+  {
+   "key": "func RecoveryScoreDisplayTests.testResultIsAlwaysALegalPercentage()",
+   "hash": "2f425dcb4ef80cd5",
+   "does": "Asserts displayScore stays within 0...100 for ten extreme and ordinary inputs.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for raw in [...]",
+     "effect": "asserts 0 <= value <= 100 for each input"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)": "df038a321f56f948"
+   }
+  }
+ ],
+ "deps": {}
+}

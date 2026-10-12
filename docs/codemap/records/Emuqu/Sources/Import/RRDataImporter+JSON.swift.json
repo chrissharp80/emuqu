@@ -1,0 +1,194 @@
+{
+ "file": "Emuqu/Sources/Import/RRDataImporter+JSON.swift",
+ "hash": "a03468fc3b208b8d",
+ "role": "JSON RR parsing for RRDataImporter: a bare number array, a structured object with an RR array under common keys plus device/notes/date, or an array of per-beat objects.",
+ "types": [
+  "RRDataImporter: extension — JSON parsing"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func RRDataImporter.parseJSON(_:)",
+   "hash": "51a729da094aa8eb",
+   "does": "Decodes JSON: [Double] -> storable ms values; else top-level object -> parseStructuredJSON; else array of objects -> per-item RR; else throws invalidFormat.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.convertToMilliseconds(_:)",
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.storableRR(_:)",
+    "Emuqu/Sources/Import/RRDataImporter+JSON.swift::func RRDataImporter.parseStructuredJSON(_:)",
+    "Emuqu/Sources/Import/RRDataImporter+JSON.swift::func RRDataImporter.rrMilliseconds(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "content encodes as UTF-8 data",
+     "effect": "continue; otherwise throw unreadableFile"
+    },
+    {
+     "at": "+5",
+     "cond": "decodes as [Double]",
+     "effect": "return converted values (outside 1-30000 dropped), no metadata/date"
+    },
+    {
+     "at": "+9",
+     "cond": "top-level JSON object",
+     "effect": "parseStructuredJSON (may throw noRRData)"
+    },
+    {
+     "at": "+13",
+     "cond": "array of objects",
+     "effect": "extract per-item RR"
+    },
+    {
+     "at": "+15",
+     "cond": "any RR values found",
+     "effect": "return them; otherwise fall through to throw invalidFormat('Unable to parse JSON as RR data')"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.convertToMilliseconds(_:)": "77db942b7880f4ff",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrValues(from:separator:rrColumn:)": "3c594bf03d246328",
+    "Emuqu/Sources/Import/RRDataImporter+JSON.swift::func RRDataImporter.parseStructuredJSON(_:)": "cddf771210d536dd",
+    "Emuqu/Sources/Import/RRDataImporter+JSON.swift::func RRDataImporter.rrMilliseconds(in:)": "02f03c75378f2ad9",
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.storableRR(_:)": "e0c94e632ecbf772",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func RRDataImporter.rrMilliseconds(in:)",
+   "hash": "65fffe89d6691c3a",
+   "does": "Extracts one beat's RR from keys rr / RR / rr_ms / rrInterval (rr_ms read as Int without seconds conversion), filtered to 1-30000 ms.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.convertToMilliseconds(_:)",
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.storableRR(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "item['rr'] is a number",
+     "effect": "convert + storable"
+    },
+    {
+     "at": "+2",
+     "cond": "item['RR'] is a number",
+     "effect": "convert + storable"
+    },
+    {
+     "at": "+3",
+     "cond": "item['rr_ms'] is an Int",
+     "effect": "storable (a non-integral rr_ms fails the Int cast and the item is dropped)"
+    },
+    {
+     "at": "+4",
+     "cond": "item['rrInterval'] is a number",
+     "effect": "convert + storable; otherwise nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.convertToMilliseconds(_:)": "77db942b7880f4ff",
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.storableRR(_:)": "e0c94e632ecbf772"
+   }
+  },
+  {
+   "key": "func RRDataImporter.parseStructuredJSON(_:)",
+   "hash": "dd7d34087fb7a13d",
+   "does": "Reads RR values from a structured object (throws noRRData if none), plus device and notes strings as metadata and a recording date from date/timestamp/recordingDate via parseDate.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+JSON.swift::func RRDataImporter.structuredRRValues(_:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.parseDate(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "RR values non-empty",
+     "effect": "continue; otherwise throw noRRData"
+    },
+    {
+     "at": "+6",
+     "cond": "device is a String",
+     "effect": "metadata['device']"
+    },
+    {
+     "at": "+9",
+     "cond": "notes is a String",
+     "effect": "metadata['notes']"
+    },
+    {
+     "at": "+13",
+     "cond": "date ?? timestamp ?? recordingDate string present",
+     "effect": "parseDate it (nil if unparseable, which later dates the session now); otherwise recordingDate nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.parseDate(_:)": "2d46efaec872b9a8",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrValues(from:separator:rrColumn:)": "3c594bf03d246328",
+    "Emuqu/Sources/Import/RRDataImporter+JSON.swift::func RRDataImporter.structuredRRValues(_:)": "0712aeea12ef8f8d"
+   }
+  },
+  {
+   "key": "func RRDataImporter.structuredRRValues(_:)",
+   "hash": "a135a8cad77071bd",
+   "does": "Returns the first numeric array found under rr, RR, rr_intervals, rrIntervals, RRIntervals, ibi, IBI, nn, NN; [] if none.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+JSON.swift::func RRDataImporter.numericArray(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each key in order",
+     "effect": "try it"
+    },
+    {
+     "at": "+3",
+     "cond": "value is a numeric array",
+     "effect": "return converted values (even if all filtered out); otherwise next key"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+JSON.swift::func RRDataImporter.numericArray(_:)": "89c6ab2873a71c3d"
+   }
+  },
+  {
+   "key": "func RRDataImporter.numericArray(_:)",
+   "hash": "66f653bcf0846abb",
+   "does": "Reads the value as [Double] (JSONSerialization NSNumbers bridge to Double for integers and fractions alike), converts each by magnitude (seconds if <10, rounded ms) and keeps 1-30000 ms; nil when it is not a numeric array.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.convertToMilliseconds(_:)",
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.storableRR(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "value casts to [Double]",
+     "effect": "convert + filter; otherwise nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.convertToMilliseconds(_:)": "77db942b7880f4ff",
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.storableRR(_:)": "e0c94e632ecbf772"
+   }
+  }
+ ],
+ "deps": {}
+}

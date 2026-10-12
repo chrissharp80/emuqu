@@ -32,7 +32,8 @@ struct FitnessPostSummaryView: View {
     }
     let onDone: () -> Void
     /// Optional delete hook — wired by parents that can perform the deletion
-    /// (Fitness tab, History). When nil the delete option is hidden.
+    /// (the Fitness tab; History opens the sheet without one). When nil the
+    /// delete option is hidden.
     var onDelete: (() -> Void)?
 
     @Environment(SettingsManager.self) var settingsManager
@@ -43,18 +44,19 @@ struct FitnessPostSummaryView: View {
     @Environment(ArchiveSignal.self) var archiveSignal
     @State var showDeleteConfirm = false
 
-    // Export URLs are pre-generated in `.task` on first appear. Two reasons:
+    // Export URLs are pre-generated once the archived copy of the session
+    // has loaded on first appear (`reloadFromArchive`). Two reasons:
     //
     //   1. Decoding the GPS polyline is non-trivial for long tracks. The
     //      previous computed-property version re-decoded on EVERY SwiftUI
     //      body pass (the `if !track.isEmpty` check alone triggered it in
     //      mapCard, elevationCard, and all three export handlers), so a
     //      500-point track got decoded 5–10× per render.
-    //   2. iOS's share-sheet path through UIViewControllerRepresentable +
-    //      .sheet(item:) has a notorious 1–2 minute cold-start stall while
-    //      iOS enumerates every share extension installed on the device.
-    //      SwiftUI's native `ShareLink` bypasses this — the share sheet
-    //      comes up instantly when the URL is ready ahead of time.
+    //   2. The GPX / CSV / TCX rows use SwiftUI's native `ShareLink` with the
+    //      URL ready ahead of time, so their share sheet comes up instantly.
+    //      The PDF report and the recap card are rendered on an explicit tap
+    //      and then present `ShareSheet` (UIActivityViewController) in a
+    //      `.sheet`; the render is the wait the user sees there.
     //
     // Track is cached too. Generated once off the main thread.
     @State var cachedTrack: [CLLocation] = []
@@ -66,6 +68,18 @@ struct FitnessPostSummaryView: View {
     /// newer one started is dropped, so stale files never overwrite fresh ones.
     @State var exportGeneration = 0
     @State var exportError: String?
+    /// True once a track decode has landed, so an empty decode shows no map
+    /// instead of a "Loading route…" placeholder forever.
+    @State var trackDecoded = false
+    /// Bumped by every archive reload; a reload that lands after a newer one
+    /// started is dropped, so an older read never overwrites a newer one.
+    @State var reloadGeneration = 0
+    /// The archive index's file hash of the copy last applied, so a reload of
+    /// an unchanged file does not rebuild every export.
+    @State var loadedFileHash: String?
+    /// True once the first reload has built the exports (from the archived
+    /// copy, or from `initialSession` when the archive read failed).
+    @State var summaryPrepared = false
     @State var pdfURL: URL?
     @State var pdfGenerating = false
     /// Recap Card image, generated lazily on
@@ -99,19 +113,23 @@ struct FitnessPostSummaryView: View {
     /// Set to a non-nil error string when generating-for-mail fails so
     /// the same alert path used for share errors can surface it.
     @State var pdfMailError: String?
+    /// The PDF/recap share state the cards keep beyond the cached PDF.
+    @State var reportShare = FitnessSummaryCards.ReportShareState()
     @State var reanalyzing = false
     @State var reanalyzeError: String?
     @State var elevResmoothing = false
     @State var elevResmoothPreview: (gain: Double, loss: Double)?
     @State var elevResmoothError: String?
     /// Route-history baseline summary, loaded async by
-    /// `loadRouteHistorySummary()` (FitnessPostSummaryView+Cards.swift).
+    /// `loadRouteHistorySummary()` (FitnessPostSummaryView+SummaryForwarding.swift).
     /// The summary walk does synchronous archive disk reads
     /// (`retrieveLightweight` per prior workout entry), so it must not run
     /// inside `routeHistoryBaselineCard`'s body path on every SwiftUI
     /// render. nil while loading — which renders exactly what a nil
     /// summary always rendered (no card), so there's no new UI state.
     @State var routeHistory: FitnessSummaryCards.RouteHistorySummary?
+    /// Bumped by every route-history load; only the newest load's result lands.
+    @State var routeHistoryGeneration = 0
 
     var track: [CLLocation] { cachedTrack }
     /// The splits card's rows and unit, resolved with the track.
@@ -127,7 +145,6 @@ struct FitnessPostSummaryView: View {
                 isPresented: $showDeleteConfirm,
                 titleVisibility: .visible
             ) { deleteWorkoutActions } message: { deleteWorkoutMessage }
-            .task(id: session.id) { await prepareSummary() }
             // Pull the latest version of this session from the archive every
             // time the archive-change signal fires. This is what lets
             // Re-analyze α1 / Look up real elevation take effect *immediately*
@@ -151,6 +168,9 @@ struct FitnessPostSummaryView: View {
                 summaryFooter
             }
             .padding()
+        }
+        .alert(String(localized: "Couldn't save how you felt. Try again.", bundle: LanguageManager.appBundle), isPresented: $feelingSaveFailed) {
+            Button(String(localized: "OK", bundle: LanguageManager.appBundle), role: .cancel) {}
         }
     }
 
@@ -208,7 +228,11 @@ struct FitnessPostSummaryView: View {
     @ViewBuilder
     private var summaryMapCard: some View {
         if session.workoutMetadata?.gpsPolyline != nil {
-            if !track.isEmpty { mapCard } else { mapPlaceholder }
+            if !track.isEmpty {
+                mapCard
+            } else if !trackDecoded {
+                mapPlaceholder
+            }
         }
 
     }
@@ -366,18 +390,11 @@ struct FitnessPostSummaryView: View {
         Text(String(localized: "This removes the session from history and iCloud.", bundle: LanguageManager.appBundle))
     }
 
-    /// Pre-decode the track + write all three export files off the main
-    /// thread, then walk the route-history baseline (also off-main — it used
-    /// to run synchronously in the card’s body path). Running during `.task`
-    /// keeps the UI responsive and gives ShareLink a pre-generated URL.
-    private func prepareSummary() async {
-        await generateExportsInBackground()
-        await loadRouteHistorySummary()
-    }
-
     /// Prime the refresh so any saved-while-open changes from a previous open
-    /// of this session take effect immediately, and kick the one-shot legacy
-    /// snapshot backfill (a no-op once the session has a snapshot).
+    /// of this session take effect immediately — its first landing also
+    /// builds the exports and route-history baseline, once — and kick the
+    /// one-shot legacy snapshot backfill (a no-op once the session has a
+    /// snapshot).
     private func primeSummary() {
         reloadFromArchive()
         Task { await backfillAnalysisSnapshotIfNeeded() }
@@ -388,25 +405,46 @@ struct FitnessPostSummaryView: View {
     /// cascade-coalescing that's once per logical
     /// morning event, but each `retrieve(...)` still SHA256s the whole file and
     /// decodes rrSeries. Detached so it runs off the main
-    /// thread; `refreshedSession` lands on the next render.
+    /// thread; `refreshedSession` lands on the next render. Only the newest
+    /// reload is applied (`reloadGeneration`).
     func reloadFromArchive() {
         let archive = collector.archive
         let id = initialSession.id
+        reloadGeneration += 1
+        let generation = reloadGeneration
+        let fileHash = archive.entries.first { $0.sessionId == id }?.fileHash
         Task { @MainActor in
             let latest = await Task.detached(priority: .userInitiated) {
                 archive.retrieveOrLog(id, caller: "FitnessPostSummary.reload")
             }.value
-            guard let latest else { return }
-            refreshedSession = latest
-            invalidateCachedExports()
+            guard generation == reloadGeneration else { return }
+            applyReload(latest, fileHash: fileHash)
         }
+    }
+
+    /// Applies a landed reload. An unchanged file (same index hash) after the
+    /// first build changes nothing; a failed read keeps what is shown, except
+    /// on the first reload, where the exports are built from `initialSession`.
+    @MainActor
+    private func applyReload(_ latest: HRVSession?, fileHash: String?) {
+        if let latest {
+            guard !summaryPrepared || fileHash != loadedFileHash else { return }
+            refreshedSession = latest
+            loadedFileHash = fileHash
+        } else if summaryPrepared {
+            return
+        }
+        summaryPrepared = true
+        invalidateCachedExports()
     }
 
     /// Critical: invalidate every cached export URL. Without this, tapping
     /// "PDF Report" after Re-smooth Elevation / Re-analyze α1 reshares the OLD
     /// PDF because `pdfURL` still points to the pre-update file. The same
     /// problem applies to GPX / CSV / TCX, which were written before the
-    /// archive rewrite. Clearing forces a regenerate on the next tap.
+    /// archive rewrite. Clearing forces a regenerate on the next tap; the
+    /// PDF cache generation is bumped so a PDF still rendering from the old
+    /// copy is not cached when it lands.
     ///
     /// The route-history baseline is refreshed here too: the card loads
     /// async rather than recomputing on the body eval this archive refresh
@@ -414,6 +452,7 @@ struct FitnessPostSummaryView: View {
     @MainActor
     private func invalidateCachedExports() {
         pdfURL = nil
+        reportShare.cacheGeneration += 1
         gpxURL = nil
         csvURL = nil
         tcxURL = nil
@@ -436,6 +475,7 @@ struct FitnessPostSummaryView: View {
         guard generation == exportGeneration else { return }
         await MainActor.run {
             self.cachedTrack = result.track
+            self.trackDecoded = true
             self.cachedSplits = result.splits
             self.gpxURL = result.gpx
             self.csvURL = result.csv
@@ -488,4 +528,9 @@ struct FitnessPostSummaryView: View {
     }
 
     @State var feelingEditing = false
+    /// Skip was tapped on an unrated workout: both feeling prompts hide for
+    /// this visit (`feelingSection`).
+    @State var feelingSkipped = false
+    /// A feeling rating couldn't be stored; drives the save-failure alert.
+    @State var feelingSaveFailed = false
 }

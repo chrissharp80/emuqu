@@ -126,7 +126,9 @@ final class BaselineTracker: @unchecked Sendable {
 
     // MARK: - Configuration
 
-    /// Rolling window for baseline calculation (days)
+    /// Rolling window of the display baseline and the 7-day CV: the 7 most
+    /// recent stored nights (a count of nights, not a date window, so a gap
+    /// in recording does not empty it).
     /// 7-day rolling ln(RMSSD) baseline; collapsing CV = non-functional
     /// overreaching — Plews, Laursen, Buchheit et al., Sports Med 2013;43:773-781;
     /// Eur J Appl Physiol 2012;112:3729.
@@ -137,16 +139,28 @@ final class BaselineTracker: @unchecked Sendable {
 
     // MARK: - Initialization
 
+    /// The app's tracker, on `HRVBaseline.json` in the App Group container
+    /// (Documents when the group is unavailable).
     /// - Parameter onBaselineUpdated: Callback invoked with (rmssd, hr) whenever the
     ///   baseline changes. The caller wires this to SettingsManager or any display layer.
     ///   Passing nil disables sync (useful in tests).
-    init(onBaselineUpdated: BaselineUpdater? = nil) {
-        self.onBaselineUpdated = onBaselineUpdated
-        // Try App Group container first, fall back to Documents
+    convenience init(onBaselineUpdated: BaselineUpdater? = nil) {
         let container = AppConfig.sharedContainerURL()
-        baselineFile = container.appendingPathComponent("HRVBaseline.json")
         debugLog("[Baseline] Using container: \(container.path)")
+        self.init(baselineFile: container.appendingPathComponent("HRVBaseline.json"), onBaselineUpdated: onBaselineUpdated)
+    }
+
+    /// A tracker persisted at `baselineFile`. Tests pass a temporary file so
+    /// they never read or overwrite the app's own baseline.
+    ///
+    /// The stored display baseline is recomputed from the stored nights on
+    /// load rather than trusted as saved, so it always follows the current
+    /// window rule before it is pushed to the callback.
+    init(baselineFile: URL, onBaselineUpdated: BaselineUpdater? = nil) {
+        self.onBaselineUpdated = onBaselineUpdated
+        self.baselineFile = baselineFile
         load()
+        recalculateBaseline()
         // Sync loaded baseline on startup
         notifyBaselineChanged()
         debugLog("[Baseline] Loaded \(historicalData.count) data points, baseline: \(currentBaseline != nil ? "available" : "not yet established")")
@@ -275,7 +289,9 @@ final class BaselineTracker: @unchecked Sendable {
         return lnValues.sampleSD * widening
     }
 
-    /// 7-day CV of ln(RMSSD) — Plews: reduced CV signals overreaching.
+    /// 7-day CV of ln(RMSSD) — Plews: reduced CV signals overreaching. The
+    /// window is the 7 most recent stored nights, as for the display
+    /// baseline (`baselineWindowDays`).
     private func sevenDayCV(_ points: [BaselineDataPoint]) -> Double? {
         guard points.count >= 7 else { return nil }
         let ln7 = lnRmssdValues(Array(points.suffix(7)))
@@ -289,24 +305,24 @@ final class BaselineTracker: @unchecked Sendable {
     /// - Parameters:
     ///   - sessions: Completed sessions with analysis results, sorted oldest-first
     ///   - sleepSchedule: User's sleep schedule for morning reading detection
+    ///
+    /// Every session is merged under one hold of the lock, then the baseline
+    /// is recalculated, published and written once, not once per session.
     func rebuildFromSessions(_ sessions: [HRVSession], sleepSchedule: SleepSchedule) {
         // Mirror the reliability gate enforced in `update(with:)` so the logged
         // rebuild count reflects what actually contributes, and restored
         // archives (post-CloudKit reinstall) don't silently re-admit the same
         // bad partials the live path rejects.
         let validSessions = sessions.filter(Self.isRebuildCandidate).sorted { $0.startDate < $1.startDate }
-
         guard !validSessions.isEmpty else {
             debugLog("[Baseline] Rebuild: No valid sessions to rebuild from")
             return
         }
-
         debugLog("[Baseline] Rebuilding from \(validSessions.count) archived sessions")
-
-        for session in validSessions {
-            update(with: session, sleepSchedule: sleepSchedule)
-        }
-
+        lock.lock()
+        defer { lock.unlock() }
+        let admitted = validSessions.map { merge($0, sleepSchedule: sleepSchedule) }
+        if admitted.contains(true) { commitChanges() }
         debugLog("[Baseline] Rebuild complete: \(historicalData.count) data points, baseline: \(currentBaseline != nil ? "available" : "not yet established")")
     }
 
@@ -346,17 +362,23 @@ final class BaselineTracker: @unchecked Sendable {
         session: HRVSession,
         result: HRVAnalysisResult
     ) -> Bool {
-        if let wsMs = result.windowStartMs, let weMs = result.windowEndMs,
-           (weMs - wsMs) < HRVConstants.MinimumDuration.forReliableWindowMs {
-            return false
-        }
         let sessionEnd = session.endDate ?? session.startDate
-        let sessionDuration = sessionEnd.timeIntervalSince(session.startDate)
-        if result.isOrganizedRecovery != true,
-           sessionDuration < HRVConstants.MinimumDuration.forOvernightSessionSeconds {
-            return false
+        return isStructurallySound(result: result, sessionDuration: sessionEnd.timeIntervalSince(session.startDate))
+    }
+
+    /// The two structural tests of the insufficient-data rule
+    /// (`SessionAcceptanceService.isInsufficientData`), read the same way: the
+    /// analysed span — the window, or the whole session when the analysis
+    /// had none — must reach `forReliableWindowMs`, and a session without
+    /// organized recovery must reach overnight length.
+    static func isStructurallySound(result: HRVAnalysisResult, sessionDuration: TimeInterval) -> Bool {
+        let windowSeconds = result.windowStartMs.flatMap { start in
+            result.windowEndMs.map { Double($0 - start) / 1000 }
         }
-        return true
+        let minimumSpanSeconds = Double(HRVConstants.MinimumDuration.forReliableWindowMs) / 1000
+        guard (windowSeconds ?? sessionDuration) >= minimumSpanSeconds else { return false }
+        return result.isOrganizedRecovery == true
+            || sessionDuration >= HRVConstants.MinimumDuration.forOvernightSessionSeconds
     }
 
     /// - Parameters:
@@ -366,8 +388,21 @@ final class BaselineTracker: @unchecked Sendable {
     func update(with session: HRVSession, sleepSchedule: SleepSchedule) {
         lock.lock()
         defer { lock.unlock() }
-        guard let result = session.analysisResult, admitsToBaseline(session, result: result) else { return }
+        guard merge(session, sleepSchedule: sleepSchedule) else { return }
+        commitChanges()
+    }
+
+    /// Admits `session` into its night's slot when it passes the gates.
+    /// False when it was turned away. Caller holds `lock`.
+    private func merge(_ session: HRVSession, sleepSchedule: SleepSchedule) -> Bool {
+        guard let result = session.analysisResult, admitsToBaseline(session, result: result) else { return false }
         mergeIntoNight(dataPoint(session: session, result: result), sleepSchedule: sleepSchedule)
+        return true
+    }
+
+    /// Sorts and trims the stored nights, then recalculates, publishes and
+    /// writes the baseline. Caller holds `lock`.
+    private func commitChanges() {
         historicalData.sort { $0.date < $1.date }
         if historicalData.count > Self.maxHistoricalPoints {
             historicalData = Array(historicalData.suffix(Self.maxHistoricalPoints))
@@ -478,13 +513,28 @@ final class BaselineTracker: @unchecked Sendable {
     func deviation(for session: HRVSession) -> BaselineDeviation? {
         lock.lock()
         defer { lock.unlock() }
-        guard let baseline = currentBaseline,
-              baseline.sampleCount >= Baseline.minimumSamples,
-              let result = session.analysisResult
-        else {
-            return nil
-        }
+        guard let baseline = currentBaseline, let result = session.analysisResult else { return nil }
+        return deviation(of: result, against: baseline)
+    }
 
+    /// Deviation of `session` from the display baseline of the nights BEFORE
+    /// its own (the 7 most recent of them), for a night already admitted:
+    /// `deviation(for:)` reads the current baseline, which then contains the
+    /// night itself and pulls every deviation toward zero.
+    func deviation(for session: HRVSession, sleepSchedule: SleepSchedule) -> BaselineDeviation? {
+        lock.lock()
+        defer { lock.unlock() }
+        let night = sleepSchedule.nightKey(for: session.startDate)
+        let earlier = historicalData.filter { sleepSchedule.nightKey(for: $0.date) < night }
+        guard let baseline = Self.makeBaseline(from: Array(earlier.suffix(Self.baselineWindowDays))),
+              let result = session.analysisResult else { return nil }
+        return deviation(of: result, against: baseline)
+    }
+
+    /// Percent deviations of `result` from `baseline`; nil when the baseline
+    /// has fewer than `Baseline.minimumSamples` nights.
+    private func deviation(of result: HRVAnalysisResult, against baseline: Baseline) -> BaselineDeviation? {
+        guard baseline.sampleCount >= Baseline.minimumSamples else { return nil }
         return BaselineDeviation(
             rmssdDeviation: percentDeviation(current: result.timeDomain.rmssd, baseline: baseline.rmssd),
             sdnnDeviation: percentDeviation(current: result.timeDomain.sdnn, baseline: baseline.sdnn),
@@ -508,7 +558,7 @@ final class BaselineTracker: @unchecked Sendable {
     // MARK: - Private Methods
 
     /// Compute the mean of values, returning nil if the array is empty.
-    private func optionalMean(_ values: [Double]) -> Double? {
+    private static func optionalMean(_ values: [Double]) -> Double? {
         values.isEmpty ? nil : values.mean
     }
 
@@ -612,14 +662,18 @@ final class BaselineTracker: @unchecked Sendable {
         }
     }
 
+    /// The display baseline over the 7 most recent stored nights. The score
+    /// reads a longer window (`stats(from:)`, up to 60 nights), so the two
+    /// share the ln(RMSSD) scale (see `geometricMeanRMSSD`) but not their
+    /// nights.
     private func recalculateBaseline() {
-        guard let cutoffDate = Calendar.current.date(byAdding: .day, value: -Self.baselineWindowDays, to: Date()) else {
-            currentBaseline = nil
-            return
-        }
-        let recentData = historicalData.filter { $0.date >= cutoffDate }
-        guard !recentData.isEmpty else { return currentBaseline = nil }
-        currentBaseline = Baseline(
+        currentBaseline = Self.makeBaseline(from: Array(historicalData.suffix(Self.baselineWindowDays)))
+    }
+
+    /// A baseline over `recentData`; nil when it is empty.
+    private static func makeBaseline(from recentData: [BaselineDataPoint]) -> Baseline? {
+        guard !recentData.isEmpty else { return nil }
+        return Baseline(
             date: Date(),
             rmssd: Self.geometricMeanRMSSD(of: recentData),
             sdnn: recentData.map(\.sdnn).mean, meanHR: recentData.map(\.meanHR).mean,
@@ -641,8 +695,10 @@ final class BaselineTracker: @unchecked Sendable {
     /// systematically higher than the baseline the score is actually
     /// computed against (Jensen's inequality: arithmetic ≥ geometric for
     /// positive values), so a reading could read "below your baseline" on the
-    /// card yet score as at/above baseline. Computing both from ln(RMSSD) makes
-    /// the displayed number and the scored number agree.
+    /// card yet score as at/above baseline. Computing both from ln(RMSSD) puts
+    /// the displayed number and the scored number on the same scale; they still
+    /// differ by window (the display's 7 most recent nights, the score's up to
+    /// 60).
     private static func geometricMeanRMSSD(of recentData: [BaselineDataPoint]) -> Double {
         let lnRmssd = recentData.map(\.rmssd).filter { $0 > 0 }.map { log($0) }
         return lnRmssd.isEmpty ? recentData.map(\.rmssd).mean : exp(lnRmssd.mean)

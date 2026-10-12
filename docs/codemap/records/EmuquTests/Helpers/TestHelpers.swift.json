@@ -1,0 +1,112 @@
+{
+ "file": "EmuquTests/Helpers/TestHelpers.swift",
+ "hash": "48d6bb33700c685c",
+ "role": "Shared test fixtures: deterministic RR point generators (sine-varying and uniform), clean artifact flags, and XCTestCase.pinEnglishLanguage which forces the app language to English for one test and restores it in teardown.",
+ "types": [
+  "XCTestCase: extension — adds pinEnglishLanguage()"
+ ],
+ "state": [],
+ "toplevel": "Three free functions and one XCTestCase extension; no stored state.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func createRealisticPoints(count:meanRR:startMs:)",
+   "hash": "c0f86945fbc1c7e0",
+   "does": "Builds count RRPoints with rr = max(300, meanRR + Int(sin(i/50)*40)) and cumulative t_ms from startMs.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for i in 0..<count",
+     "effect": "appends one point per index; count 0 returns []"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a"
+   }
+  },
+  {
+   "key": "func createUniformPoints(count:rrMs:)",
+   "hash": "7938c6ebfebba7b7",
+   "does": "Builds count RRPoints with a fixed rr and t_ms = i*rr.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a"
+   }
+  },
+  {
+   "key": "func cleanFlags(count:)",
+   "hash": "e6ae0f6c0cb70043",
+   "does": "Returns count copies of ArtifactFlags.clean.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func XCTestCase.pinEnglishLanguage()",
+   "hash": "a7a605d5e27d8ee4",
+   "does": "If the app locale is not already English, saves AppLanguage.current, calls LanguageManager.shared.setLanguage(.en) and registers a teardown block restoring the saved language.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppLanguage.current",
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.setLanguage(_:)",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func AppLanguage.apply()",
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.resolve(_:)"
+   ],
+   "reads": [
+    "mem:LanguageManager.shared.locale",
+    "ud:AppleLanguages (app persistent domain)"
+   ],
+   "writes": [
+    "ud:AppleLanguages",
+    "mem:LanguageManager.shared.locale/bundle",
+    "notif:LanguageManager.languageDidChangeNotification"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "appLocale languageCode is already English",
+     "effect": "returns without changing anything; otherwise switches to English and schedules restore"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Changes the app host's persisted AppleLanguages UserDefaults key via AppLanguage.apply (SettingsView+Appearance.swift:298-303); if the test process is killed before teardown, the host app stays pinned to English on next launch.",
+     "evidence": [
+      "EmuquTests/Helpers/TestHelpers.swift:56",
+      "Emuqu/Sources/Views/SettingsView+Appearance.swift:302"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.resolve(_:)": "6e121b7af0e2a0fb",
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.setLanguage(_:)": "632a885ec90f6c05",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func AppLanguage.apply()": "70c2d81e1884a014",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppLanguage.current": "219e669a24b19238"
+   }
+  }
+ ],
+ "deps": {}
+}

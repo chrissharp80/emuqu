@@ -40,7 +40,9 @@
 #     stays out. Assistant/ is excluded as a directory because it is genuinely mixed
 #     — WorkoutAIContext and AIProvider+SystemPrompt build LLM prompts, where
 #     unambiguous POSIX numbers are what we want the model to see — so only the
-#     view file in it is guarded.
+#     files in it whose output a person reads or hears are guarded: the view
+#     file, and `WorkoutTriggerEngine`, whose coaching messages are shown and
+#     spoken during a workout.
 #
 #   * Logging calls are skipped wherever they appear. A log line is machine
 #     output that happens to live in a UI file.
@@ -58,6 +60,7 @@ SCAN_GLOBS=(
     "Emuqu/Sources/Analysis/CoachReportGenerator"*.swift
     "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift"
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift"
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine"*.swift
 )
 # `SessionStorageDiagnostic` builds its strings in Storage/ but they are
 # rendered by `SettingsDiagnosticsViews`. A gate that scans where a string is
@@ -89,10 +92,35 @@ VIOLATIONS="$(
     python3 - "${SCAN_DIRS[@]}" "${SCAN_FILES[@]}" <<'PY'
 import re, sys, pathlib
 
-FMT   = re.compile(r'String\(format:\s*"((?:[^"\\]|\\.)*)"\s*,')
+# The call may be split across lines, so the whole file is searched, and the
+# locale is looked for inside THIS call's parentheses, not anywhere on the line.
+FMT   = re.compile(r'String\(\s*format:\s*"((?:[^"\\\n]|\\.)*)"\s*,')
 FLOAT = re.compile(r"%[-+ #0-9.']*[efgEFG]")
 INT   = re.compile(r"%[-+ #0-9.']*(?:l{0,2}[diu])")
 LOG   = re.compile(r'\b(debugLog|NSLog|os_log)\s*\(')
+
+
+def call_text(text, start):
+    """From `String(` at `start` to its closing parenthesis."""
+    depth, i, in_string = 0, start, False
+    while i < len(text):
+        c = text[i]
+        if in_string:
+            if c == "\\":
+                i += 1
+            elif c == '"':
+                in_string = False
+        elif c == '"':
+            in_string = True
+        elif c == "(":
+            depth += 1
+        elif c == ")":
+            depth -= 1
+            if depth == 0:
+                return text[start:i + 1]
+        i += 1
+    return text[start:]
+
 
 paths = []
 for arg in sys.argv[1:]:
@@ -100,15 +128,26 @@ for arg in sys.argv[1:]:
     paths.extend(sorted(p.rglob('*.swift')) if p.is_dir() else [p])
 
 for f in paths:
-    for n, line in enumerate(f.read_text(encoding='utf-8', errors='ignore').splitlines(), 1):
-        if LOG.search(line) or 'locale:' in line:
+    text = f.read_text(encoding='utf-8', errors='ignore')
+    lines = text.split('\n')
+    for m in FMT.finditer(text):
+        n = text.count('\n', 0, m.start()) + 1
+        line = lines[n - 1]
+        if line.lstrip().startswith('//') or LOG.search(line):
             continue
-        for m in FMT.finditer(line):
-            fmt = m.group(1)
-            if FLOAT.search(fmt) and not INT.search(fmt):
-                print(f"{f}:{n}: String(format: \"{fmt}\", …) has no locale")
+        if re.search(r'\blocale:', call_text(text, m.start())):
+            continue
+        fmt = m.group(1)
+        if FLOAT.search(fmt) and not INT.search(fmt):
+            print(f"{f}:{n}: String(format: \"{fmt}\", …) has no locale")
 PY
 )"
+# Without this, a crash in the measurement prints nothing and reads as clean.
+measure_status=$?
+if (( measure_status != 0 )); then
+    echo "check_locale_formatting: the scan itself failed (exit ${measure_status}); nothing was measured." >&2
+    exit 2
+fi
 
 if [[ -n "$VIOLATIONS" ]]; then
     COUNT="$(printf '%s\n' "$VIOLATIONS" | grep -c .)"

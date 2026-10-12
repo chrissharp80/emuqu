@@ -19,6 +19,25 @@ enum SleepScienceAnalyzer {
         let architecture: SleepArchitecture // Deep/REM distribution analysis
         let ageNorms: AgeAdjustedNorms? // Age-specific stage targets (nil if no birthday)
         let enhancedScore: Double // 0-100 enhanced sleep score incorporating all metrics
+        /// The sections `enhancedScore` is built from, for a breakdown of it.
+        let sections: EnhancedScoreSections
+    }
+
+    /// The enhanced score's six sections, in points, each out of its
+    /// `EnhancedScoreWeights` maximum (duration and efficiency can reach
+    /// `ratioCap` times theirs). `enhancedScore` is their sum, capped for
+    /// duration debt and clamped to 0–100. Exposed so a breakdown of the score
+    /// reads the numbers the score was built from instead of re-deriving them.
+    struct EnhancedScoreSections {
+        let duration: Double
+        let efficiency: Double
+        /// The deep half plus the REM half.
+        let stages: Double
+        let continuity: Double
+        let cycles: Double
+        let architecture: Double
+
+        var total: Double { duration + efficiency + stages + continuity + cycles + architecture }
     }
 
     /// A single detected NREM→REM sleep cycle
@@ -67,6 +86,13 @@ enum SleepScienceAnalyzer {
     // MARK: - Main Analysis
 
     /// Run full sleep science analysis on sleep data.
+    ///
+    /// Every night with sleep minutes is scored here, staged or not. What a
+    /// night did not measure scores neutral half credit rather than zero or
+    /// full marks: architecture (`SleepArchitecture.unknown`), stages and
+    /// cycles when it carries no stage data; efficiency and continuity when its
+    /// wake was not measured (`measuredSleepEfficiency` nil). The reported
+    /// `fragmentationIndex` and `cycleCount` are still what the data shows.
     /// - Parameters:
     ///   - sleepData: HealthKit sleep data (can be adjusted)
     ///   - userAge: User's age in years (nil if birthday not set)
@@ -85,21 +111,24 @@ enum SleepScienceAnalyzer {
         let architecture: SleepArchitecture = hasStages ? analyzeArchitecture(intervals: intervals, sleepData: sleepData) : .unknown
         let ageNorms = hasStages ? ageNorms(userAge: userAge, sleepData: sleepData) : nil
         let completeCycles = cycles.filter(\.isComplete).count
+        let sections = enhancedScoreSections(
+            sleepData: sleepData, typicalSleepHours: typicalSleepHours,
+            fragmentationIndex: sleepData.measuredSleepEfficiency == nil ? nil : fragmentationIndex,
+            cycleCount: hasStages ? completeCycles : nil, architecture: architecture, ageNorms: ageNorms
+        )
         return SleepAnalysis(
             fragmentationIndex: fragmentationIndex, awakeningCount: awakeningCount,
-            sleepCycles: cycles, cycleCount: completeCycles,
-            architecture: architecture, ageNorms: ageNorms,
-            enhancedScore: computeEnhancedScore(
-                sleepData: sleepData, typicalSleepHours: typicalSleepHours,
-                fragmentationIndex: fragmentationIndex, cycleCount: completeCycles,
-                architecture: architecture, ageNorms: ageNorms
-            )
+            sleepCycles: cycles, cycleCount: completeCycles, architecture: architecture, ageNorms: ageNorms,
+            enhancedScore: enhancedScore(of: sections, sleepData: sleepData, typicalSleepHours: typicalSleepHours),
+            sections: sections
         )
     }
 
     /// Age norms need both an age and a stage breakdown to compare against.
+    /// The only caller has already returned for a night with no sleep
+    /// minutes, so the division below is safe.
     private static func ageNorms(userAge: Int?, sleepData: SleepData) -> AgeAdjustedNorms? {
-        guard let age = userAge, sleepData.nightSleepMinutes > 0 else { return nil }
+        guard let age = userAge else { return nil }
         let night = Double(sleepData.nightSleepMinutes)
         return computeAgeNorms(
             age: age,
@@ -410,10 +439,15 @@ enum SleepScienceAnalyzer {
         /// Efficiency ratio for a night whose wake was not measured: half
         /// credit, as for an unrecorded stage.
         static let unmeasuredEfficiencyRatio = 0.5
+        /// Share of its points a section the night did not measure gets:
+        /// continuity when wake was not measured, cycles when there is no
+        /// stage data. Half credit, as for unmeasured efficiency.
+        static let unmeasuredSectionRatio = 0.5
         /// Population deep/REM percentage targets (no age norms available).
         static let populationDeepTargetPct = 20.0
         static let populationREMTargetPct = 25.0
-        /// Points lost per percentage-point of below-range stage deviation.
+        /// Points lost per percentage point a stage share falls below the
+        /// bottom of its age-expected range.
         static let deviationPenaltySlope = 0.5
         /// Nominal sleep-cycle length (hours) for the expected-cycle count.
         static let cycleLengthHours = 1.5
@@ -428,34 +462,65 @@ enum SleepScienceAnalyzer {
         static let durationDebtCeilingFloor = 60.0
     }
 
+    /// The enhanced score from its inputs, in one call: the sections, then
+    /// `enhancedScore(of:)`. A nil `fragmentationIndex` (wake not measured) or
+    /// `cycleCount` (no stage data) scores that section at
+    /// `unmeasuredSectionRatio`.
     static func computeEnhancedScore(
         sleepData: SleepData,
         typicalSleepHours: Double,
-        fragmentationIndex: Double,
-        cycleCount: Int,
+        fragmentationIndex: Double?,
+        cycleCount: Int?,
         architecture: SleepArchitecture,
         ageNorms: AgeAdjustedNorms?
     ) -> Double {
+        let sections = enhancedScoreSections(
+            sleepData: sleepData, typicalSleepHours: typicalSleepHours, fragmentationIndex: fragmentationIndex,
+            cycleCount: cycleCount, architecture: architecture, ageNorms: ageNorms
+        )
+        return enhancedScore(of: sections, sleepData: sleepData, typicalSleepHours: typicalSleepHours)
+    }
+
+    /// The sections' sum, capped for duration debt (night plus qualifying nap
+    /// against the target) and clamped to 0–100.
+    private static func enhancedScore(of sections: EnhancedScoreSections, sleepData: SleepData, typicalSleepHours: Double) -> Double {
+        let durationRatio = Double(sleepData.totalSleepIncludingNapMinutes) / 60.0 / max(typicalSleepHours, 1.0)
+        return min(100, max(0, durationDebtCapped(sections.total, ratio: durationRatio)))
+    }
+
+    /// The six sections of the enhanced score, in points.
+    ///
+    /// Duration counts 24-hour sleep: the consolidated night plus any
+    /// qualifying daytime nap. A nap discharges homeostatic sleep pressure, so
+    /// a night that was "front-loaded" by a nap and came out short is not sleep
+    /// debt (Nature Sci Reports s41598-021-84625-8). Nap time feeds the duration
+    /// section and the duration-debt ceiling ONLY; efficiency, stages,
+    /// fragmentation, and cycles stay computed on the night alone.
+    static func enhancedScoreSections(
+        sleepData: SleepData,
+        typicalSleepHours: Double,
+        fragmentationIndex: Double?,
+        cycleCount: Int?,
+        architecture: SleepArchitecture,
+        ageNorms: AgeAdjustedNorms?
+    ) -> EnhancedScoreSections {
         typealias Wts = EnhancedScoreWeights
         let targetHours = max(typicalSleepHours, 1.0)
         let sleepHours = Double(sleepData.nightSleepMinutes) / 60.0
-        // 24-hour sleep for the DURATION component: the consolidated night plus
-        // any qualifying daytime nap. A nap discharges homeostatic sleep pressure,
-        // so a night that was "front-loaded" by a nap and came out short is not
-        // sleep debt (Nature Sci Reports s41598-021-84625-8). Nap time feeds the
-        // duration score and the duration-debt ceiling ONLY; efficiency, stages,
-        // fragmentation, and cycles stay computed on the night alone.
         let durationHours = Double(sleepData.totalSleepIncludingNapMinutes) / 60.0
-        // Fragmentation is inverted: index 0 -> full points, 50 -> half, 100 -> 0.
         // 4-5 complete cycles is ideal for 7-8h sleep.
         let expectedCycles = max(Wts.minimumExpectedCycles, Int(sleepHours / Wts.cycleLengthHours))
-        let total = min(durationHours / targetHours, Wts.ratioCap) * Wts.durationPoints
-            + efficiencyRatio(sleepData: sleepData, ageNorms: ageNorms) * Wts.efficiencyPoints
-            + stagesScore(sleepData: sleepData, ageNorms: ageNorms)
-            + max(0, Wts.fragmentationPoints * (1.0 - fragmentationIndex / 100.0))
-            + min(Double(cycleCount) / Double(expectedCycles), 1.0) * Wts.cyclePoints
-            + architecture.architectureScore / 100.0 * Wts.architecturePoints
-        return min(100, max(0, durationDebtCapped(total, ratio: durationHours / targetHours)))
+        return EnhancedScoreSections(
+            duration: min(durationHours / targetHours, Wts.ratioCap) * Wts.durationPoints,
+            efficiency: efficiencyRatio(sleepData: sleepData, ageNorms: ageNorms) * Wts.efficiencyPoints,
+            stages: stagesScore(sleepData: sleepData, ageNorms: ageNorms),
+            // Fragmentation is inverted: index 0 -> full points, 50 -> half, 100 -> 0.
+            continuity: fragmentationIndex.map { max(0, Wts.fragmentationPoints * (1.0 - $0 / 100.0)) }
+                ?? Wts.fragmentationPoints * Wts.unmeasuredSectionRatio,
+            cycles: cycleCount.map { min(Double($0) / Double(expectedCycles), 1.0) * Wts.cyclePoints }
+                ?? Wts.cyclePoints * Wts.unmeasuredSectionRatio,
+            architecture: architecture.architectureScore / 100.0 * Wts.architecturePoints
+        )
     }
 
     /// Efficiency against the age-expected (else population "good") value.
@@ -485,11 +550,11 @@ enum SleepScienceAnalyzer {
         guard night > 0 else { return Wts.stageHalfPoints }
         let deep = sleepData.deepSleepMinutes.map { minutes in
             stageHalf(minutes: minutes, night: night, populationTargetPct: Wts.populationDeepTargetPct,
-                      norm: ageNorms.map { norms in (inRange: norms.isDeepInRange, deviation: norms.deepDeviation) })
+                      expectedRange: ageNorms?.expectedDeepPercent)
         }
         let rem = sleepData.remSleepMinutes.map { minutes in
             stageHalf(minutes: minutes, night: night, populationTargetPct: Wts.populationREMTargetPct,
-                      norm: ageNorms.map { norms in (inRange: norms.isREMInRange, deviation: norms.remDeviation) })
+                      expectedRange: ageNorms?.expectedREMPercent)
         }
         return (deep ?? Wts.stageHalfPoints / 2) + (rem ?? Wts.stageHalfPoints / 2)
     }
@@ -497,18 +562,22 @@ enum SleepScienceAnalyzer {
     /// One recorded stage's half of the stage points. Against age norms,
     /// above-range deep/REM is not penalized — more SWS is universally
     /// beneficial (Dijk 2010, Tasali 2008), and REM above range is not a
-    /// recovery concern. Only below-range values reduce the score. Without
-    /// norms, the share of the night is scored against the population target.
+    /// recovery concern. Only a below-range share reduces the score, by its
+    /// distance below the bottom of the range, so the score falls smoothly
+    /// from full marks at the lower bound. Without norms, the share of the
+    /// night is scored against the population target.
     private static func stageHalf(
         minutes: Int, night: Double, populationTargetPct: Double,
-        norm: (inRange: Bool, deviation: Double)?
+        expectedRange: ClosedRange<Double>?
     ) -> Double {
         typealias Wts = EnhancedScoreWeights
-        guard let norm else {
-            return min(Wts.stageHalfPoints, (Double(minutes) / night * 100 / populationTargetPct) * Wts.stageHalfPoints)
+        let sharePct = Double(minutes) / night * 100
+        guard let expectedRange else {
+            return min(Wts.stageHalfPoints, (sharePct / populationTargetPct) * Wts.stageHalfPoints)
         }
-        guard !norm.inRange, norm.deviation <= 0 else { return Wts.stageHalfPoints }
-        return max(0, Wts.stageHalfPoints - abs(norm.deviation) * Wts.deviationPenaltySlope)
+        let belowRange = expectedRange.lowerBound - sharePct
+        guard belowRange > 0 else { return Wts.stageHalfPoints }
+        return max(0, Wts.stageHalfPoints - belowRange * Wts.deviationPenaltySlope)
     }
 
     /// #15 — duration-debt ceiling. Duration is only 25% of the score, so a
@@ -573,6 +642,7 @@ enum SleepScienceAnalyzer {
             totalSleepMinutes: totalSleepMinutes, inBedMinutes: inBedMinutes,
             deepSleepMinutes: original.deepSleepMinutes != nil ? total.deep : nil,
             remSleepMinutes: original.remSleepMinutes != nil ? total.rem : nil,
+            napSleepMinutes: original.napSleepMinutes,
             awakeMinutes: total.awake,
             sleepEfficiency: inBedMinutes > 0
                 ? SleepData.efficiencyPercent(sleep: totalSleepMinutes, inBed: inBedMinutes) : original.sleepEfficiency,

@@ -26,11 +26,6 @@ final class RRModelsTests: XCTestCase {
         XCTAssertEqual(point.endMs, 1800)
     }
 
-    func testRRPointMidpointMs() {
-        let point = RRPoint(t_ms: 1000, rr_ms: 800)
-        XCTAssertEqual(point.midpointMs, 1400.0)
-    }
-
     func testRRPointClockDrift() {
         let point = RRPoint(t_ms: 1000, rr_ms: 800, wallClockMs: 1100)
         XCTAssertEqual(point.clockDriftMs, 100)

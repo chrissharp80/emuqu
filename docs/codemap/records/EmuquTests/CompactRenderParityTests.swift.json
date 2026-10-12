@@ -1,0 +1,513 @@
+{
+ "file": "EmuquTests/CompactRenderParityTests.swift",
+ "hash": "a9aa3c7c1555489d",
+ "role": "Golden-master harness for AssistantContext.compactRender (the LLM prompt context dump): exact recorded output for a minimal context and for a populated one (ambient location, baselines, 7-day trend, narrative), determinism, header line, no blank runs/trailing spaces, the ambient-location privacy gate with and without a location, the default flag value, and a 6,000-character size ceiling. Today/yesterday, earlier-session, recent-workout and live sections are not recorded.",
+ "types": [
+  "CompactRenderParityTests: class — XCTestCase over AssistantContext.compactRender"
+ ],
+ "state": [
+  "generatedAt: fixed Date 1_700_000_000",
+  "headerLine, profileLine, algorithmLine, locationLine: static expected render lines"
+ ],
+ "toplevel": "Static expected lines for the golden masters: the context header, the fixture's profile line, the algorithm line with the current ScoringWeights, and the fixture's 📍 LOCATION line.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func CompactRenderParityTests.profile()",
+   "hash": "5452a5a02e9aa57c",
+   "does": "Builds a fixed UserProfileSnapshot (age 44, male, intermediate, VO2max 48.5, imperial units, user max HR 178, integrations on).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func CompactRenderParityTests.minimalContext()",
+   "hash": "92c6f67cfa7e0ab8",
+   "does": "Builds an AssistantContext with the fixed timestamp and profile and every optional section nil or empty.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/CompactRenderParityTests.swift::func CompactRenderParityTests.profile()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/CompactRenderParityTests.swift::func CompactRenderParityTests.profile()": "6e951b288a4b40a8"
+   }
+  },
+  {
+   "key": "func CompactRenderParityTests.populatedContext()",
+   "hash": "65d46df87b22fc26",
+   "does": "Builds the minimal context's fixed timestamp and profile plus baselines(), trends() as the 7-day trend and summary() as the analysis summary, then sets an ambient location (Main St near 2nd Ave, Springfield, IL, United States; heading N 12.7°, 1.5 m/s, 180.4 m, ±5.9 m, 30 s old).",
+   "entry": "Called by testLocationFlagDropsARealLocationLine and testPopulatedContextRenderIsUnchanged",
+   "calls": [
+    "EmuquTests/CompactRenderParityTests.swift::func CompactRenderParityTests.profile()",
+    "EmuquTests/CompactRenderParityTests.swift::func CompactRenderParityTests.baselines()",
+    "EmuquTests/CompactRenderParityTests.swift::func CompactRenderParityTests.trends()",
+    "EmuquTests/CompactRenderParityTests.swift::func CompactRenderParityTests.summary()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/CompactRenderParityTests.swift::func CompactRenderParityTests.baselines()": "71db5fc5640aae47",
+    "EmuquTests/CompactRenderParityTests.swift::func CompactRenderParityTests.profile()": "6e951b288a4b40a8",
+    "EmuquTests/CompactRenderParityTests.swift::func CompactRenderParityTests.summary()": "ae49cd454f07e9ba",
+    "EmuquTests/CompactRenderParityTests.swift::func CompactRenderParityTests.trends()": "82aebdbfa272c18d"
+   }
+  },
+  {
+   "key": "func CompactRenderParityTests.baselines()",
+   "hash": "912091c79c872e8f",
+   "does": "Builds a 7-day BaselineSnapshot with RMSSD 61.3, SDNN 70.0, mean HR 52.4 and stress index 95.6 baselines and every other field nil.",
+   "entry": "Called by populatedContext()",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func CompactRenderParityTests.trends()",
+   "hash": "bd90f97baadffc1f",
+   "does": "Builds a 7-day TrendSnapshot of 6 sessions, overall 'Improving', with an rmssd metric (mean 58.2, Improving, +5.8% vs baseline) and a meanHR metric (mean 53.1, Stable, no baseline deviation).",
+   "entry": "Called by populatedContext()",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func CompactRenderParityTests.summary()",
+   "hash": "a67736591af91bb7",
+   "does": "Builds an AnalysisSummarySnapshot titled 'Well recovered' with one High-confidence probable cause, one key finding and no actionable steps.",
+   "entry": "Called by populatedContext()",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func CompactRenderParityTests.assertLines(_:_:file:line:)",
+   "hash": "1527c14770e73780",
+   "does": "Splits the render on newlines (keeping empty lines) and compares it with the expected lines pairwise, failing on the first line that differs with both texts; then asserts the line counts match, printing the whole render on a mismatch. Failures are attributed to the caller's file and line.",
+   "entry": "Called by the golden-master tests",
+   "calls": [
+    "ext:XCTFail",
+    "ext:XCTAssertEqual"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "a line differs from the expected line at the same index",
+     "effect": "XCTFail naming the index and both lines, and return"
+    },
+    {
+     "at": "+8",
+     "cond": "no paired line differs",
+     "effect": "asserts the render has exactly as many lines as expected"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func CompactRenderParityTests.testCompactRenderIsDeterministic()",
+   "hash": "3690ef6b07dcb5a7",
+   "does": "Asserts two compactRender(includeAmbientLocation: true) calls on the same minimal context are equal.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CompactRenderParityTests.swift::func CompactRenderParityTests.minimalContext()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.compactRender(includeAmbientLocation:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveWorkoutLines(formatter:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveHRVLines()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.ambientLocationLines(includeAmbientLocation:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.profileLines()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.algorithmLine()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayLines(formatter:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.yesterdayLines(formatter:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.baselineLines()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.weeklySummaryLines()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.narrativeLines()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.recentWorkoutLines()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "The determinism check renders only the minimal fixture, in which every section that reads the wall clock is empty: recentWorkoutLines filters by Date().timeIntervalSince (not generatedAt) and the live-state line prints snapshot_age_sec from Date(); the test therefore cannot detect the time-dependence it says it guards against.",
+     "evidence": [
+      "EmuquTests/CompactRenderParityTests.swift:73",
+      "EmuquTests/CompactRenderParityTests.swift:66",
+      "Emuqu/Sources/Assistant/Context/AssistantContext.swift:743",
+      "Emuqu/Sources/Assistant/Context/AssistantContext.swift:765",
+      "Emuqu/Sources/Assistant/Context/AssistantContext.swift:327"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.algorithmLine()": "1ce40998a5773602",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.ambientLocationLines(includeAmbientLocation:)": "c4901a737684b905",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.baselineLines()": "7865441ac1633820",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.compactRender(includeAmbientLocation:)": "5a0445d7104b7218",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveHRVLines()": "a41da4693c70f466",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveWorkoutLines(formatter:)": "c35a869f96449f9f",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.narrativeLines()": "0e3ec60f7313405b",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.profileLines()": "56a6e2abe9a978be",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.recentWorkoutLines()": "ccca2ee16b593c43",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayLines(formatter:)": "41c8ea28048ad0d7",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.weeklySummaryLines()": "6997944c835bc710",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.yesterdayLines(formatter:)": "86b07484200de716",
+    "EmuquTests/CompactRenderParityTests.swift::func CompactRenderParityTests.minimalContext()": "0f64baee1d619f3c"
+   }
+  },
+  {
+   "key": "func CompactRenderParityTests.testCompactRenderStartsWithTheContextHeader()",
+   "hash": "44c86255d71506d8",
+   "does": "Asserts the minimal render starts with '=== Emuqu — User Context (compact) ==='.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CompactRenderParityTests.swift::func CompactRenderParityTests.minimalContext()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.compactRender(includeAmbientLocation:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveWorkoutLines(formatter:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveHRVLines()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.ambientLocationLines(includeAmbientLocation:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.profileLines()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.algorithmLine()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayLines(formatter:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.yesterdayLines(formatter:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.baselineLines()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.weeklySummaryLines()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.narrativeLines()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.recentWorkoutLines()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.algorithmLine()": "1ce40998a5773602",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.ambientLocationLines(includeAmbientLocation:)": "c4901a737684b905",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.baselineLines()": "7865441ac1633820",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.compactRender(includeAmbientLocation:)": "5a0445d7104b7218",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveHRVLines()": "a41da4693c70f466",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveWorkoutLines(formatter:)": "c35a869f96449f9f",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.narrativeLines()": "0e3ec60f7313405b",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.profileLines()": "56a6e2abe9a978be",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.recentWorkoutLines()": "ccca2ee16b593c43",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayLines(formatter:)": "41c8ea28048ad0d7",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.weeklySummaryLines()": "6997944c835bc710",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.yesterdayLines(formatter:)": "86b07484200de716",
+    "EmuquTests/CompactRenderParityTests.swift::func CompactRenderParityTests.minimalContext()": "0f64baee1d619f3c"
+   }
+  },
+  {
+   "key": "func CompactRenderParityTests.testCompactRenderProducesNoBlankRunsOrTrailingSpace()",
+   "hash": "37ba3cb196d29998",
+   "does": "Asserts the minimal render has no triple newline and no line with trailing spaces.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CompactRenderParityTests.swift::func CompactRenderParityTests.minimalContext()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.compactRender(includeAmbientLocation:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveWorkoutLines(formatter:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveHRVLines()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.ambientLocationLines(includeAmbientLocation:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.profileLines()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.algorithmLine()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayLines(formatter:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.yesterdayLines(formatter:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.baselineLines()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.weeklySummaryLines()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.narrativeLines()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.recentWorkoutLines()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "for each line (including empty ones)",
+     "effect": "asserts the line equals itself with trailing spaces stripped"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.algorithmLine()": "1ce40998a5773602",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.ambientLocationLines(includeAmbientLocation:)": "c4901a737684b905",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.baselineLines()": "7865441ac1633820",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.compactRender(includeAmbientLocation:)": "5a0445d7104b7218",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveHRVLines()": "a41da4693c70f466",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveWorkoutLines(formatter:)": "c35a869f96449f9f",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.narrativeLines()": "0e3ec60f7313405b",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.profileLines()": "56a6e2abe9a978be",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.recentWorkoutLines()": "ccca2ee16b593c43",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayLines(formatter:)": "41c8ea28048ad0d7",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.weeklySummaryLines()": "6997944c835bc710",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.yesterdayLines(formatter:)": "86b07484200de716",
+    "EmuquTests/CompactRenderParityTests.swift::func CompactRenderParityTests.minimalContext()": "0f64baee1d619f3c"
+   }
+  },
+  {
+   "key": "func CompactRenderParityTests.testLocationFlagNeverAddsLocationWhenThereIsNone()",
+   "hash": "c774092b72728668",
+   "does": "Asserts compactRender with includeAmbientLocation true and false are equal for a context with no ambient location.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CompactRenderParityTests.swift::func CompactRenderParityTests.minimalContext()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.compactRender(includeAmbientLocation:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveWorkoutLines(formatter:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveHRVLines()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.ambientLocationLines(includeAmbientLocation:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.profileLines()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.algorithmLine()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayLines(formatter:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.yesterdayLines(formatter:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.baselineLines()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.weeklySummaryLines()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.narrativeLines()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.recentWorkoutLines()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.algorithmLine()": "1ce40998a5773602",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.ambientLocationLines(includeAmbientLocation:)": "c4901a737684b905",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.baselineLines()": "7865441ac1633820",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.compactRender(includeAmbientLocation:)": "5a0445d7104b7218",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveHRVLines()": "a41da4693c70f466",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveWorkoutLines(formatter:)": "c35a869f96449f9f",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.narrativeLines()": "0e3ec60f7313405b",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.profileLines()": "56a6e2abe9a978be",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.recentWorkoutLines()": "ccca2ee16b593c43",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayLines(formatter:)": "41c8ea28048ad0d7",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.weeklySummaryLines()": "6997944c835bc710",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.yesterdayLines(formatter:)": "86b07484200de716",
+    "EmuquTests/CompactRenderParityTests.swift::func CompactRenderParityTests.minimalContext()": "0f64baee1d619f3c"
+   }
+  },
+  {
+   "key": "func CompactRenderParityTests.testLocationFlagDropsARealLocationLine()",
+   "hash": "47214eb58988702c",
+   "does": "Renders the populated context with includeAmbientLocation true and false; asserts the on-device render contains the exact 📍 LOCATION line, the cloud-bound render contains no '📍', road name or locality, and the cloud-bound render equals the on-device render with only that line removed.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CompactRenderParityTests.swift::func CompactRenderParityTests.populatedContext()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.compactRender(includeAmbientLocation:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveWorkoutLines(formatter:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveHRVLines()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.ambientLocationLines(includeAmbientLocation:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.profileLines()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.algorithmLine()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayLines(formatter:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.yesterdayLines(formatter:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.baselineLines()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.weeklySummaryLines()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.narrativeLines()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.recentWorkoutLines()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.algorithmLine()": "1c1db25e1d11888c",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.ambientLocationLines(includeAmbientLocation:)": "c4901a737684b905",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.baselineLines()": "7865441ac1633820",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.compactRender(includeAmbientLocation:)": "5a0445d7104b7218",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveHRVLines()": "a41da4693c70f466",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveWorkoutLines(formatter:)": "4d27fa04df47049e",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.narrativeLines()": "0e3ec60f7313405b",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.profileLines()": "56a6e2abe9a978be",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.recentWorkoutLines()": "ccca2ee16b593c43",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayLines(formatter:)": "41c8ea28048ad0d7",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.weeklySummaryLines()": "6997944c835bc710",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.yesterdayLines(formatter:)": "86b07484200de716",
+    "EmuquTests/CompactRenderParityTests.swift::func CompactRenderParityTests.populatedContext()": "04a99bba6176b4cb"
+   }
+  },
+  {
+   "key": "func CompactRenderParityTests.testLocationDefaultsToIncluded()",
+   "hash": "afe49f7baefdd820",
+   "does": "Asserts compactRender() equals compactRender(includeAmbientLocation: true) (default is to include location).",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CompactRenderParityTests.swift::func CompactRenderParityTests.minimalContext()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.compactRender(includeAmbientLocation:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveWorkoutLines(formatter:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveHRVLines()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.ambientLocationLines(includeAmbientLocation:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.profileLines()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.algorithmLine()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayLines(formatter:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.yesterdayLines(formatter:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.baselineLines()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.weeklySummaryLines()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.narrativeLines()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.recentWorkoutLines()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.algorithmLine()": "1ce40998a5773602",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.ambientLocationLines(includeAmbientLocation:)": "c4901a737684b905",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.baselineLines()": "7865441ac1633820",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.compactRender(includeAmbientLocation:)": "5a0445d7104b7218",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveHRVLines()": "a41da4693c70f466",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveWorkoutLines(formatter:)": "c35a869f96449f9f",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.narrativeLines()": "0e3ec60f7313405b",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.profileLines()": "56a6e2abe9a978be",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.recentWorkoutLines()": "ccca2ee16b593c43",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayLines(formatter:)": "41c8ea28048ad0d7",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.weeklySummaryLines()": "6997944c835bc710",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.yesterdayLines(formatter:)": "86b07484200de716",
+    "EmuquTests/CompactRenderParityTests.swift::func CompactRenderParityTests.minimalContext()": "0f64baee1d619f3c"
+   }
+  },
+  {
+   "key": "func CompactRenderParityTests.testMinimalContextRenderIsUnchanged()",
+   "hash": "d97371c0123373e9",
+   "does": "Golden master: asserts the minimal context's compactRender() is exactly three lines — the context header, 'Profile: 44y, Male, intermediate, VO2max 48.5, maxHR 178, imperial' and the algorithm line with the Tier 3/Tier 2/dampened Tier 2/Tier 1 weights — via assertLines.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CompactRenderParityTests.swift::func CompactRenderParityTests.minimalContext()",
+    "EmuquTests/CompactRenderParityTests.swift::func CompactRenderParityTests.assertLines(_:_:file:line:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.compactRender(includeAmbientLocation:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveWorkoutLines(formatter:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveHRVLines()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.ambientLocationLines(includeAmbientLocation:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.profileLines()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.algorithmLine()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayLines(formatter:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.yesterdayLines(formatter:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.baselineLines()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.weeklySummaryLines()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.narrativeLines()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.recentWorkoutLines()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.algorithmLine()": "1c1db25e1d11888c",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.ambientLocationLines(includeAmbientLocation:)": "c4901a737684b905",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.baselineLines()": "7865441ac1633820",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.compactRender(includeAmbientLocation:)": "5a0445d7104b7218",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveHRVLines()": "a41da4693c70f466",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveWorkoutLines(formatter:)": "4d27fa04df47049e",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.narrativeLines()": "0e3ec60f7313405b",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.profileLines()": "56a6e2abe9a978be",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.recentWorkoutLines()": "ccca2ee16b593c43",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayLines(formatter:)": "41c8ea28048ad0d7",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.weeklySummaryLines()": "6997944c835bc710",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.yesterdayLines(formatter:)": "86b07484200de716",
+    "EmuquTests/CompactRenderParityTests.swift::func CompactRenderParityTests.assertLines(_:_:file:line:)": "3279a49f7796812c",
+    "EmuquTests/CompactRenderParityTests.swift::func CompactRenderParityTests.minimalContext()": "0f64baee1d619f3c"
+   }
+  },
+  {
+   "key": "func CompactRenderParityTests.testPopulatedContextRenderIsUnchanged()",
+   "hash": "635b1eec778a73d1",
+   "does": "Golden master: asserts the populated context's compactRender(includeAmbientLocation: true) is exactly the recorded 22 lines — header, 📍 LOCATION, profile, algorithm, then the personal-baseline, 7-day-trend and summary sections with their blank separators — via assertLines.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CompactRenderParityTests.swift::func CompactRenderParityTests.populatedContext()",
+    "EmuquTests/CompactRenderParityTests.swift::func CompactRenderParityTests.assertLines(_:_:file:line:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.compactRender(includeAmbientLocation:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveWorkoutLines(formatter:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveHRVLines()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.ambientLocationLines(includeAmbientLocation:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.profileLines()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.algorithmLine()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayLines(formatter:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.yesterdayLines(formatter:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.baselineLines()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.weeklySummaryLines()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.narrativeLines()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.recentWorkoutLines()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.algorithmLine()": "1c1db25e1d11888c",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.ambientLocationLines(includeAmbientLocation:)": "c4901a737684b905",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.baselineLines()": "7865441ac1633820",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.compactRender(includeAmbientLocation:)": "5a0445d7104b7218",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveHRVLines()": "a41da4693c70f466",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveWorkoutLines(formatter:)": "4d27fa04df47049e",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.narrativeLines()": "0e3ec60f7313405b",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.profileLines()": "56a6e2abe9a978be",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.recentWorkoutLines()": "ccca2ee16b593c43",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayLines(formatter:)": "41c8ea28048ad0d7",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.weeklySummaryLines()": "6997944c835bc710",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.yesterdayLines(formatter:)": "86b07484200de716",
+    "EmuquTests/CompactRenderParityTests.swift::func CompactRenderParityTests.assertLines(_:_:file:line:)": "3279a49f7796812c",
+    "EmuquTests/CompactRenderParityTests.swift::func CompactRenderParityTests.populatedContext()": "04a99bba6176b4cb"
+   }
+  },
+  {
+   "key": "func CompactRenderParityTests.testRenderIsWithinItsTokenBudget()",
+   "hash": "6230e28f67f801d1",
+   "does": "Asserts the minimal render is under 6,000 characters.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CompactRenderParityTests.swift::func CompactRenderParityTests.minimalContext()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.compactRender(includeAmbientLocation:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveWorkoutLines(formatter:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveHRVLines()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.ambientLocationLines(includeAmbientLocation:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.profileLines()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.algorithmLine()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayLines(formatter:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.yesterdayLines(formatter:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.baselineLines()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.weeklySummaryLines()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.narrativeLines()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.recentWorkoutLines()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.algorithmLine()": "1ce40998a5773602",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.ambientLocationLines(includeAmbientLocation:)": "c4901a737684b905",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.baselineLines()": "7865441ac1633820",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.compactRender(includeAmbientLocation:)": "5a0445d7104b7218",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveHRVLines()": "a41da4693c70f466",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveWorkoutLines(formatter:)": "c35a869f96449f9f",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.narrativeLines()": "0e3ec60f7313405b",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.profileLines()": "56a6e2abe9a978be",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.recentWorkoutLines()": "ccca2ee16b593c43",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayLines(formatter:)": "41c8ea28048ad0d7",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.weeklySummaryLines()": "6997944c835bc710",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.yesterdayLines(formatter:)": "86b07484200de716",
+    "EmuquTests/CompactRenderParityTests.swift::func CompactRenderParityTests.minimalContext()": "0f64baee1d619f3c"
+   }
+  }
+ ],
+ "deps": {}
+}

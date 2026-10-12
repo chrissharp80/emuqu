@@ -1,0 +1,268 @@
+{
+ "file": "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift",
+ "hash": "e849b13c91e0e82f",
+ "role": "WorkoutRecoveryService extension that copies user-entered and non-recomputable fields from the archived copy of a workout into a session rebuilt from backups (trim, recover-from-strap, recover-route-from-Watch), so the rebuild does not lose tags/notes/feeling/HRR/weather/power or the Apple Health export stamp.",
+ "types": [
+  "WorkoutRecoveryService: extension — carryForward and its field-group helpers"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func WorkoutRecoveryService.carryForward(from:into:)",
+   "hash": "22ac111d1a415220",
+   "does": "Copies session-level fields, then (if both copies have workout metadata) user fields always, measured and power fields only when the rebuild covers the same start/end (±1 s), samples when the start is unchanged; restores partialDataReason and recoveredAt from the archived copy; writes the merged metadata back to `session`. Called by WorkoutRecoveryService.carryArchived, which then rebuilds the analysis snapshot over the carried samples.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carrySessionFields(from:into:)",
+    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carryUserFields(from:into:)",
+    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.coversSameTime(_:_:)",
+    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carryMeasuredFields(from:into:)",
+    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carryPowerFields(from:into:)",
+    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carrySamples(from:into:metadata:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "archived or rebuilt session has no workoutMetadata",
+     "effect": "returns after copying only session-level fields (tags, notes, export stamp, …)"
+    },
+    {
+     "at": "+4",
+     "cond": "rebuild covers the same time span (coversSameTime)",
+     "effect": "true: carries HRR/markers/laps/strokes and power figures where the rebuild has none; false (trimmed): those are left to whatever the rebuild computed"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carryMeasuredFields(from:into:)": "d9b451086b6d67a4",
+    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carryPowerFields(from:into:)": "16602d0f2c42c44d",
+    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carrySamples(from:into:metadata:)": "3f4e682ecd753ab1",
+    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carrySessionFields(from:into:)": "431c7eb50bddcf4e",
+    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carryUserFields(from:into:)": "48e952379f2f6bd8",
+    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.coversSameTime(_:_:)": "cb06d9a94f589e29"
+   }
+  },
+  {
+   "key": "func WorkoutRecoveryService.carrySessionFields(from:into:)",
+   "hash": "43fbb1d3a30836aa",
+   "does": "Overwrites the rebuilt session's tags, notes, deviceProvenance, linkedSessionIds, aiContext, perceivedReadiness, morningFeeling(+tags), trainingSnapshot, healthKitExportedAt and healthKitExportFailureCount with the archived values (unconditional, not nil-coalesced).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "med",
+     "text": "healthKitExportedAt is copied from the archived copy so the trimmed workout is not exported again, but nothing deletes or updates the workout already in Apple Health (no code clears healthKitExportedAt or deletes the exported HKWorkout), so Apple Health keeps the untrimmed duration/energy/HR after a trim.",
+     "evidence": [
+      "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift:38",
+      "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift:10",
+      "Emuqu/Sources/Collection/HealthKitManager.swift:453"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7",
+    "Emuqu/Sources/Collection/WorkoutRecorder+AIContextForwarding.swift::var WorkoutRecorder.aiContext": "ae7b7e75db3bda85"
+   }
+  },
+  {
+   "key": "func WorkoutRecoveryService.coversSameTime(_:_:)",
+   "hash": "e78803d43c731353",
+   "does": "True when start dates differ by < 1 s and end dates both differ by < 1 s (or are both nil).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "start dates differ by >= 1 s",
+     "effect": "returns false"
+    },
+    {
+     "at": "+2",
+     "cond": "either endDate is nil",
+     "effect": "returns whether both endDates are equal (true only when both nil); otherwise compares ends within 1 s"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutRecoveryService.carryUserFields(from:into:)",
+   "hash": "2b856f1408243de8",
+   "does": "Fills weatherSnapshot, workoutFeeling, workoutFeelingNote, recognizedRouteName and dragFactor from the old metadata only where the rebuild left them nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "new.weatherSnapshot nil",
+     "effect": "uses old value"
+    },
+    {
+     "at": "+2",
+     "cond": "new.workoutFeeling nil",
+     "effect": "uses old value"
+    },
+    {
+     "at": "+3",
+     "cond": "new.workoutFeelingNote nil",
+     "effect": "uses old value"
+    },
+    {
+     "at": "+4",
+     "cond": "new.recognizedRouteName nil",
+     "effect": "uses old value"
+    },
+    {
+     "at": "+5",
+     "cond": "new.dragFactor nil",
+     "effect": "uses old value"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutRecoveryService.carryMeasuredFields(from:into:)",
+   "hash": "3b1ffdc0f93062fa",
+   "does": "Fills hrrSamples, liveMarkers, laps and strokeCount from the old metadata where the rebuild has nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "new.hrrSamples nil",
+     "effect": "old value"
+    },
+    {
+     "at": "+2",
+     "cond": "new.liveMarkers nil",
+     "effect": "old value"
+    },
+    {
+     "at": "+3",
+     "cond": "new.laps nil",
+     "effect": "old value"
+    },
+    {
+     "at": "+4",
+     "cond": "new.strokeCount nil",
+     "effect": "old value"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutRecoveryService.carrySamples(from:into:metadata:)",
+   "hash": "f935b99f088a90af",
+   "does": "When the rebuild has no samples, the archive has non-empty samples and the start is unchanged (±1 s): copies the archived per-second samples cut to offsets <= the rebuild's duration, re-derives healthKitHROffsets restricted to kept rows, and carries averageSplitSecPer500m only if no sample was cut.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.healthKitHROffsets(_:in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "rebuild already has samples, archive has none/empty, or start moved >= 1 s",
+     "effect": "returns without carrying samples"
+    },
+    {
+     "at": "+4",
+     "cond": "session.endDate nil",
+     "effect": "uses archived.endDate; if both nil, end is nil"
+    },
+    {
+     "at": "+5",
+     "cond": "end is nil",
+     "effect": "keeps all old samples uncut"
+    },
+    {
+     "at": "+7",
+     "cond": "archived healthKitHROffsets nil",
+     "effect": "passes [] so the result is nil"
+    },
+    {
+     "at": "+8",
+     "cond": "no sample was cut (kept.count == old.count)",
+     "effect": "true: averageSplitSecPer500m kept (rebuild value, else archived); false: left as rebuilt"
+    },
+    {
+     "at": "+9",
+     "cond": "new.averageSplitSecPer500m nil",
+     "effect": "uses archived value"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.averageSplitSecPer500m(movingSeconds:distanceMeters:)": "d7ecea158843f757",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.healthKitHROffsets(_:in:)": "a76b51d9108acf5f"
+   }
+  },
+  {
+   "key": "func WorkoutRecoveryService.carryPowerFields(from:into:)",
+   "hash": "b8ac312d594fe446",
+   "does": "Fills averagePowerWatts, normalizedPowerWatts, peakPowerWatts, powerTSS, intensityFactor, variabilityIndex and ftpAtTimeOfSession from the old metadata where the rebuild has nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "new.averagePowerWatts nil",
+     "effect": "old value"
+    },
+    {
+     "at": "+2",
+     "cond": "new.normalizedPowerWatts nil",
+     "effect": "old value"
+    },
+    {
+     "at": "+3",
+     "cond": "new.peakPowerWatts nil",
+     "effect": "old value"
+    },
+    {
+     "at": "+4",
+     "cond": "new.powerTSS nil",
+     "effect": "old value"
+    },
+    {
+     "at": "+5",
+     "cond": "new.intensityFactor nil",
+     "effect": "old value"
+    },
+    {
+     "at": "+6",
+     "cond": "new.variabilityIndex nil",
+     "effect": "old value"
+    },
+    {
+     "at": "+7",
+     "cond": "new.ftpAtTimeOfSession nil",
+     "effect": "old value"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

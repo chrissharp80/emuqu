@@ -1,0 +1,774 @@
+{
+ "file": "Emuqu/Sources/Views/ScoreRing.swift",
+ "hash": "d23da39a364bc3de",
+ "role": "Reusable 0-100 score ring view (hero/card/inline sizes) with five display states, reveal/digit-roll/breathing animations and a combined VoiceOver label. Used by Dashboard hero, Recovery score detail, ReadinessExplainView, QuickResultsCard and Appearance settings preview.",
+ "types": [
+  "ScoreRing: struct (View) — the ring component",
+  "ScoreRing.DisplayState: enum — default(score,verdict)/loading/buildingBaseline(day,target)/noData/error(message)",
+  "ScoreRing.Size: enum — hero 210pt / card 90pt / inline 44pt geometry"
+ ],
+ "state": [
+  "mem:ScoreRing.revealedFraction (@State, view-local)",
+  "mem:ScoreRing.displayedScore (@State, view-local)",
+  "mem:ScoreRing.breathingScale (@State, view-local)",
+  "env:accessibilityReduceMotion read"
+ ],
+ "toplevel": "Stored props state/size/snappy (default false). Header doc lines 3-23 describe states, 600ms easeOutQuart reveal, 200ms digit roll, breathing at score>67 disabled under Reduce Motion, 400ms snappy reveal.",
+ "flags": [
+  {
+   "kind": "dead",
+   "sev": "low",
+   "text": "DisplayState.error and Size.inline are constructed only by snapshot tests (StateSnapshotTests); no production caller passes them, so errorView and every .inline arm run only under test.",
+   "evidence": [
+    "Emuqu/Sources/Views/ScoreRing.swift:30",
+    "Emuqu/Sources/Views/ScoreRing.swift:36",
+    "EmuquTests/StateSnapshotTests.swift:50",
+    "EmuquTests/StateSnapshotTests.swift:110",
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift:302",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift:287"
+   ],
+   "found": "second read"
+  }
+ ],
+ "units": [
+  {
+   "key": "var ScoreRing.Size.diameter",
+   "hash": "6d8a7d97b2c58448",
+   "does": "Returns ring diameter in points for the size: hero 210, card 90, inline 44.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .hero",
+     "effect": "210"
+    },
+    {
+     "at": "+3",
+     "cond": "case .card",
+     "effect": "90"
+    },
+    {
+     "at": "+4",
+     "cond": "case .inline",
+     "effect": "44 (never used by callers)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "The .inline arm is reached only from the snapshot test; no production ScoreRing caller passes .inline.",
+     "evidence": [
+      "Emuqu/Sources/Views/ScoreRing.swift:42",
+      "EmuquTests/StateSnapshotTests.swift:110"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "var ScoreRing.Size.lineWidth",
+   "hash": "ac26a29cddefa5a3",
+   "does": "Returns ring stroke width: hero 12, card 8, inline 4.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .hero",
+     "effect": "12"
+    },
+    {
+     "at": "+3",
+     "cond": "case .card",
+     "effect": "8"
+    },
+    {
+     "at": "+4",
+     "cond": "case .inline",
+     "effect": "4 (unreachable in practice)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var ScoreRing.Size.scoreFontSize",
+   "hash": "5f103c0d087d7cab",
+   "does": "Returns score digit font size: hero 84, card 34, inline 16.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .hero",
+     "effect": "84"
+    },
+    {
+     "at": "+3",
+     "cond": "case .card",
+     "effect": "34"
+    },
+    {
+     "at": "+4",
+     "cond": "case .inline",
+     "effect": "16 (unreachable in practice)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var ScoreRing.Size.verdictFontSize",
+   "hash": "23ea8812ef53c65c",
+   "does": "Returns verdict-word font size: hero 17, card 13, inline 0 (verdict hidden).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .hero",
+     "effect": "17"
+    },
+    {
+     "at": "+3",
+     "cond": "case .card",
+     "effect": "13"
+    },
+    {
+     "at": "+4",
+     "cond": "case .inline",
+     "effect": "0; inline callers hide the word anyway"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var ScoreRing.revealDuration",
+   "hash": "3d0d80c2d5b6b62a",
+   "does": "Reveal animation duration: 0.4s when snappy, else 0.6s.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+0",
+     "cond": "snappy is true",
+     "effect": "0.4 s; false → 0.6 s"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var ScoreRing.scoreFromState",
+   "hash": "5519ce2a1a95c586",
+   "does": "Projects the state's score: the Int score for .default, nil for every other state; used as the onChange key.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "state is .default(score,_)",
+     "effect": "returns score; otherwise falls through to return nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var ScoreRing.body",
+   "hash": "769abbf6f1ac0ca4",
+   "does": "SwiftUI body: ZStack of stateView framed to size.diameter, scaled by breathingScale, combined accessibility element with accessibilityLabel; onAppear runs animateOnAppear; onChange(scoreFromState) runs animateScoreChange.",
+   "entry": "SwiftUI body evaluation; .onAppear and .onChange(of: scoreFromState) callbacks",
+   "calls": [
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.stateView",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.Size.diameter",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.accessibilityLabel",
+    "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.animateOnAppear()",
+    "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.animateScoreChange(to:)",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.scoreFromState"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "body pins the ring to size.diameter (90pt for .card), so callers that wrap a .card ring in a 140pt or 120pt frame only get padding around a 90pt ring; the outer frame never sizes the ring.",
+     "evidence": [
+      "Emuqu/Sources/Views/ScoreRing.swift:95",
+      "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift:22",
+      "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift:342",
+      "Emuqu/Sources/Views/Record/QuickResultsCard.swift:26"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.animateOnAppear()": "e07d2b0c19ad1d02",
+    "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.animateScoreChange(to:)": "ba9e2e19a0ab5fcc",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.Size.diameter": "daebab3f90b5c02c",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.accessibilityLabel": "d271759f6eb17cda",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.scoreFromState": "be26c42c50b4c77a",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.stateView": "b59e6ebfd246144f"
+   }
+  },
+  {
+   "key": "var ScoreRing.stateView",
+   "hash": "9156caa8dfb3ebda",
+   "does": "Switches on state and builds the matching view: ring + center label for .default (ring colour = verdict.color, fill = score/100), loading ring, baseline dots/caption, no-data glyph, or error glyph+message.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.ringView(value:color:)",
+    "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.centerLabel(score:verdict:)",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.color",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.loadingRing",
+    "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.buildingBaselineView(day:target:)",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.noDataView",
+    "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.errorView(message:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "state .default(score,verdict)",
+     "effect": "ringView(value score/100, colour verdict.color) + centerLabel"
+    },
+    {
+     "at": "+6",
+     "cond": "state .loading",
+     "effect": "loadingRing"
+    },
+    {
+     "at": "+8",
+     "cond": "state .buildingBaseline(day,target)",
+     "effect": "buildingBaselineView"
+    },
+    {
+     "at": "+10",
+     "cond": "state .noData",
+     "effect": "noDataView"
+    },
+    {
+     "at": "+12",
+     "cond": "state .error(message)",
+     "effect": "errorView(message); never constructed by callers"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "The .error arm runs only in StateSnapshotTests; no production caller constructs DisplayState.error.",
+     "evidence": [
+      "Emuqu/Sources/Views/ScoreRing.swift:131",
+      "EmuquTests/StateSnapshotTests.swift:50"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.color": "dc2f3b06b79e333d",
+    "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.buildingBaselineView(day:target:)": "2e8d1fa4c890a618",
+    "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.centerLabel(score:verdict:)": "0248e4bf25b07e3b",
+    "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.errorView(message:)": "064eef5519b9b60e",
+    "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.ringView(value:color:)": "1c4c1f14c726b0f3",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.loadingRing": "86f1823af02aa065",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.noDataView": "e2b1aceb270c0aa9"
+   }
+  },
+  {
+   "key": "var ScoreRing.loadingRing",
+   "hash": "3b344ecab335f0dd",
+   "does": "Loading skeleton: ring at 18% fill in textTertiary @40% opacity (dimmed to 0.6) with an em-dash in place of the score.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.ringView(value:color:)",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.Size.scoreFontSize"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.ringView(value:color:)": "1c4c1f14c726b0f3",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.Size.scoreFontSize": "de08f382ca0e5379",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "func ScoreRing.ringView(value:color:)",
+   "hash": "176d03eda1c517c4",
+   "does": "Draws a background track circle (textTertiary 18%) and a foreground arc trimmed to value*revealedFraction, round-capped, rotated to start at 12 o'clock.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.Size.lineWidth"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.Size.lineWidth": "2d14bae4bbb8fc1d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "func ScoreRing.centerLabel(score:verdict:)",
+   "hash": "0aa28d5381d1c425",
+   "does": "Center label: displayedScore (the @State, not the passed score) in a fixed-size rounded bold font with numericText content transition, plus the localized verdict word in verdict.textColor (scaled font) unless inline.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.Size.scoreFontSize",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.Size.verdictFontSize",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.localizedWord",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.textColor",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "size == .hero",
+     "effect": "VStack spacing 4; else 2"
+    },
+    {
+     "at": "+6",
+     "cond": "size != .inline",
+     "effect": "show verdict word; inline hides it (never reached)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.localizedWord": "36e143abcc4cadb1",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.textColor": "d1b20461dd94a948",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.Size.scoreFontSize": "de08f382ca0e5379",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.Size.verdictFontSize": "54f75c18d1beca32",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+   }
+  },
+  {
+   "key": "func ScoreRing.buildingBaselineView(day:target:)",
+   "hash": "87a6b673fcd797f1",
+   "does": "Baseline-building view: dot row plus caption stacked.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.baselineDots(day:target:)",
+    "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.baselineCaption(day:target:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.baselineCaption(day:target:)": "6824bb5bc0af0ee3",
+    "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.baselineDots(day:target:)": "fdb3d363ea211e9e"
+   }
+  },
+  {
+   "key": "func ScoreRing.baselineDots(day:target:)",
+   "hash": "dfa45f8b213bd0d5",
+   "does": "Draws min(target,14) dots; dots with index < day are wongGood, rest textTertiary 25%; dot size 8 for hero else 4.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "idx < day",
+     "effect": "filled wongGood; else faint tertiary"
+    },
+    {
+     "at": "+5",
+     "cond": "size == .hero",
+     "effect": "8pt dots; else 4pt"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "func ScoreRing.baselineCaption(day:target:)",
+   "hash": "df7b7f58c9c50653",
+   "does": "Unless inline, shows localized 'Day X of N' (verdict font) and 'Building your baseline' (max(11, verdict-4) pt).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.Size.verdictFontSize",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "size != .inline",
+     "effect": "render both captions; inline renders nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.Size.verdictFontSize": "54f75c18d1beca32",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var ScoreRing.noDataView",
+   "hash": "cfe57ad5b105feaa",
+   "does": "No-data view: dashed circle glyph (half score font) plus 'No reading yet' text unless inline.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.Size.scoreFontSize",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.Size.verdictFontSize",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "size != .inline",
+     "effect": "show caption; inline glyph only"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.Size.scoreFontSize": "de08f382ca0e5379",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.Size.verdictFontSize": "54f75c18d1beca32",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "func ScoreRing.errorView(message:)",
+   "hash": "2b3f851cb234a9cc",
+   "does": "Error view: exclamation glyph in wongAttention and the message text (verdict font -2) unless inline. Reached only by the snapshot test (StateSnapshotTests.swift:50); no production caller constructs .error.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.Size.scoreFontSize",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.Size.verdictFontSize",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "size != .inline",
+     "effect": "show message; inline glyph only"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "Only reached from the .error arm, which only StateSnapshotTests constructs; dead in production.",
+     "evidence": [
+      "Emuqu/Sources/Views/ScoreRing.swift:225",
+      "EmuquTests/StateSnapshotTests.swift:50"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.Size.scoreFontSize": "de08f382ca0e5379",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.Size.verdictFontSize": "54f75c18d1beca32",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func ScoreRing.animateOnAppear()",
+   "hash": "12ade54d9d800ade",
+   "does": "On appear: under Reduce Motion, sets revealedFraction=1 and displayedScore=score immediately (no breathing). Otherwise animates revealedFraction to 1 with an easeOutQuart-approx timing curve (0.25,1,0.5,1) over revealDuration and, for .default, calls revealScore.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.revealDuration",
+    "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.revealScore(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "!reduceMotion",
+     "effect": "continue to animated path; when Reduce Motion is on, jump to final values and return"
+    },
+    {
+     "at": "+3",
+     "cond": "(reduce-motion path) state is .default",
+     "effect": "displayedScore = score; other states leave 0"
+    },
+    {
+     "at": "+15",
+     "cond": "state is .default",
+     "effect": "revealScore(score); non-default states only reveal the ring fraction"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.revealScore(_:)": "59a994dbc71b74e8",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.revealDuration": "90f967d17797e457"
+   }
+  },
+  {
+   "key": "var ScoreRing.digitRoll",
+   "hash": "88eae341b3101aee",
+   "does": "The digit-roll animation: 0.2 s on the easeOutQuart-approx curve (0.25,1,0.5,1), delayed by revealDuration - 0.2, so it fills the last 200 ms of the ring reveal.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.revealDuration"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.revealDuration": "90f967d17797e457"
+   }
+  },
+  {
+   "key": "var ScoreRing.breathing",
+   "hash": "5786a5bb13179554",
+   "does": "The breathing animation: easeInOut 2 s, repeating with autoreverse — a 4-second cycle.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ScoreRing.revealScore(_:)",
+   "hash": "14d71e95b6560285",
+   "does": "Rolls displayedScore to the score with digitRoll; for score > 67 starts the breathing loop (breathingScale 1.005) after revealDuration.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.digitRoll",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.breathing",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.revealDuration"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "score <= 67",
+     "effect": "no breathing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.breathing": "33e47bac2a823b01",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.digitRoll": "a90eaf578557f4c8",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.revealDuration": "90f967d17797e457"
+   }
+  },
+  {
+   "key": "func ScoreRing.animateScoreChange(to:)",
+   "hash": "381a147d1a2ab3ca",
+   "does": "onChange handler for scoreFromState: nil → resetForNonDefaultState; Reduce Motion → set displayedScore and revealedFraction=1 instantly; else rollScore then updateBreathing.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.resetForNonDefaultState()",
+    "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.rollScore(to:)",
+    "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.updateBreathing(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "newScore is non-nil",
+     "effect": "continue; nil (left .default) → reset and return"
+    },
+    {
+     "at": "+5",
+     "cond": "!reduceMotion",
+     "effect": "animate; Reduce Motion → snap values and return (breathingScale untouched)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.resetForNonDefaultState()": "2ee8bcf3f088a271",
+    "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.rollScore(to:)": "afca40b29df66185",
+    "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.updateBreathing(for:)": "1c9890d80127a3d0"
+   }
+  },
+  {
+   "key": "func ScoreRing.resetForNonDefaultState()",
+   "hash": "50bf34830f8f9705",
+   "does": "Resets displayedScore to 0, revealedFraction to 0 and breathingScale to 1.0 (no animation).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ScoreRing.rollScore(to:)",
+   "hash": "570e06c52d6f846e",
+   "does": "If the ring is already revealed (revealedFraction >= 0.99) animates only displayedScore over 0.25 s easeInOut; otherwise replays the ring reveal over revealDuration and rolls the digits with digitRoll (last 200 ms).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.revealDuration",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.digitRoll"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "revealedFraction < 0.99",
+     "effect": "full reveal + delayed roll; else 0.25 s digit roll only and return"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.digitRoll": "a90eaf578557f4c8",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.revealDuration": "90f967d17797e457"
+   }
+  },
+  {
+   "key": "func ScoreRing.updateBreathing(for:)",
+   "hash": "7343adf63fd99226",
+   "does": "Starts the 4 s breathing cycle (breathing) when newScore > 67 and not already breathing; stops it (0.4 s back to 1.0) when newScore <= 67 and currently breathing.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.breathing"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "newScore > 67",
+     "effect": "go to breathing check; else check whether to stop"
+    },
+    {
+     "at": "+2",
+     "cond": "breathingScale == 1.0",
+     "effect": "start repeatForever breathing; already breathing → return"
+    },
+    {
+     "at": "+6",
+     "cond": "(score <= 67) breathingScale != 1.0",
+     "effect": "animate back to 1.0; already 1.0 → nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.breathing": "33e47bac2a823b01"
+   }
+  },
+  {
+   "key": "var ScoreRing.accessibilityLabel",
+   "hash": "5f79679f93c981c5",
+   "does": "Builds the localized VoiceOver label per state: 'Recovery score N, <verdict>, ring filled N percent.', 'Recovery score loading.', 'Building baseline. Day X of N.', 'No reading yet.', or 'Error: <msg>'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.localizedWord"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "state .default",
+     "effect": "recovery-score sentence with score/verdict"
+    },
+    {
+     "at": "+5",
+     "cond": "state .loading",
+     "effect": "'Recovery score loading.'"
+    },
+    {
+     "at": "+7",
+     "cond": "state .buildingBaseline",
+     "effect": "'Building baseline. Day X of N.'"
+    },
+    {
+     "at": "+9",
+     "cond": "state .noData",
+     "effect": "'No reading yet.'"
+    },
+    {
+     "at": "+11",
+     "cond": "state .error",
+     "effect": "'Error: message' (never constructed)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "The .default label always says 'Recovery score', but QuickResultsCard feeds the ring session.recoveryScore ?? ANS readinessScore, so when only ANS readiness exists VoiceOver announces it as a recovery score.",
+     "evidence": [
+      "Emuqu/Sources/Views/ScoreRing.swift:354",
+      "Emuqu/Sources/Views/Record/QuickResultsCard.swift:41",
+      "Emuqu/Sources/Views/Record/QuickResultsCard.swift:50"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "broken",
+     "sev": "med",
+     "text": "The .default label always says \"Recovery score\", but SleepDetailV2View feeds the ring the sleep score and ReadinessExplainView the readiness, so VoiceOver announces a sleep score as a recovery score.",
+     "evidence": [
+      "Emuqu/Sources/Views/ScoreRing.swift:354",
+      "Emuqu/Sources/Views/SleepDetailV2View.swift:287",
+      "Emuqu/Sources/Views/SleepDetailV2View.swift:288",
+      "Emuqu/Sources/Views/ReadinessExplainView.swift:52"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.localizedWord": "36e143abcc4cadb1",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  }
+ ],
+ "deps": {}
+}

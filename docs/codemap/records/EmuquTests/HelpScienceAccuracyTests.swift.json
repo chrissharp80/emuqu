@@ -1,0 +1,429 @@
+{
+ "file": "EmuquTests/HelpScienceAccuracyTests.swift",
+ "hash": "2fb27fdbca8a359c",
+ "role": "XCTest suite holding English science Help articles to scoring constants: no illness lead-time claim (Guideline 1.4.1), SpO2 penalty copy says 24-hour average, ACWR damper numbers, short-night sleep cap, sleep-stage targets, Comeback tier-3 weights, breathing-rate population band, no version history, data-quality row labels.",
+ "types": [
+  "HelpScienceAccuracyTests: class — @MainActor XCTestCase over HelpContent.englishCategories and scoring constants"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "duplicate",
+   "sev": "low",
+   "text": "The fixtures articles/article/strings/everyEnglishString are copied verbatim from HelpContentAccuracyTests (HelpContentAccuracyTests.swift:11-37).",
+   "evidence": [
+    "EmuquTests/HelpScienceAccuracyTests.swift:13",
+    "EmuquTests/HelpScienceAccuracyTests.swift:21",
+    "EmuquTests/HelpScienceAccuracyTests.swift:34",
+    "EmuquTests/HelpContentAccuracyTests.swift:11",
+    "EmuquTests/HelpContentAccuracyTests.swift:26"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "var HelpScienceAccuracyTests.articles",
+   "hash": "ad82058745092316",
+   "does": "Computed fixture: every English Help article.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HelpContent+Science.swift::func HelpContent.englishCategories(forAge:)",
+    "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::func HelpScienceCatalog.hrvScience(forAge:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HelpContent+Science.swift::func HelpContent.englishCategories(forAge:)": "fa6d8626eb19f40e",
+    "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::func HelpScienceCatalog.hrvScience(forAge:)": "fa9b822c2a1d3fe8"
+   }
+  },
+  {
+   "key": "func HelpScienceAccuracyTests.article(_:)",
+   "hash": "f4e828848fcc6115",
+   "does": "Fixture: article by id or XCTUnwrap failure.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/HelpScienceAccuracyTests.swift::var HelpScienceAccuracyTests.articles",
+    "Emuqu/Sources/Views/HelpContent+Science.swift::func HelpContent.englishCategories(forAge:)",
+    "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::func HelpScienceCatalog.hrvScience(forAge:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HelpContent+Science.swift::func HelpContent.englishCategories(forAge:)": "fa6d8626eb19f40e",
+    "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::func HelpScienceCatalog.hrvScience(forAge:)": "fa9b822c2a1d3fe8",
+    "EmuquTests/HelpScienceAccuracyTests.swift::var HelpScienceAccuracyTests.articles": "b1227f7e45fc9b3a"
+   }
+  },
+  {
+   "key": "func HelpScienceAccuracyTests.strings(in:)",
+   "hash": "550b8d73ab0e381a",
+   "does": "Fixture: flattens an ArticleSection to strings.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "text/heading/tip/warning/note",
+     "effect": "[t]"
+    },
+    {
+     "at": "+3",
+     "cond": "bullets/steps",
+     "effect": "items"
+    },
+    {
+     "at": "+4",
+     "cond": "keyValue",
+     "effect": "labels and values"
+    },
+    {
+     "at": "+5",
+     "cond": "divider",
+     "effect": "[]"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HelpScienceAccuracyTests.text(of:)",
+   "hash": "a25db51d3d6b4295",
+   "does": "Fixture: an article's section strings joined with spaces.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/HelpScienceAccuracyTests.swift::var HelpScienceAccuracyTests.articles",
+    "EmuquTests/HelpScienceAccuracyTests.swift::func HelpScienceAccuracyTests.article(_:)",
+    "EmuquTests/HelpScienceAccuracyTests.swift::func HelpScienceAccuracyTests.strings(in:)",
+    "Emuqu/Sources/Views/HelpContent+Science.swift::func HelpContent.englishCategories(forAge:)",
+    "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::func HelpScienceCatalog.hrvScience(forAge:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HelpContent+Science.swift::func HelpContent.englishCategories(forAge:)": "fa6d8626eb19f40e",
+    "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::func HelpScienceCatalog.hrvScience(forAge:)": "fa9b822c2a1d3fe8",
+    "EmuquTests/HelpScienceAccuracyTests.swift::func HelpScienceAccuracyTests.article(_:)": "a459dc24ddd38fc1",
+    "EmuquTests/HelpScienceAccuracyTests.swift::func HelpScienceAccuracyTests.strings(in:)": "33aa07232c7f4194",
+    "EmuquTests/HelpScienceAccuracyTests.swift::var HelpScienceAccuracyTests.articles": "b1227f7e45fc9b3a"
+   }
+  },
+  {
+   "key": "var HelpScienceAccuracyTests.everyEnglishString",
+   "hash": "3ab5433ee4ce2eea",
+   "does": "Computed fixture: every English Help title, summary and section string.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/HelpScienceAccuracyTests.swift::var HelpScienceAccuracyTests.articles",
+    "EmuquTests/HelpScienceAccuracyTests.swift::func HelpScienceAccuracyTests.strings(in:)",
+    "Emuqu/Sources/Views/HelpContent+Science.swift::func HelpContent.englishCategories(forAge:)",
+    "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::func HelpScienceCatalog.hrvScience(forAge:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HelpContent+Science.swift::func HelpContent.englishCategories(forAge:)": "fa6d8626eb19f40e",
+    "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::func HelpScienceCatalog.hrvScience(forAge:)": "fa9b822c2a1d3fe8",
+    "EmuquTests/HelpScienceAccuracyTests.swift::func HelpScienceAccuracyTests.strings(in:)": "33aa07232c7f4194",
+    "EmuquTests/HelpScienceAccuracyTests.swift::var HelpScienceAccuracyTests.articles": "b1227f7e45fc9b3a"
+   }
+  },
+  {
+   "key": "func HelpScienceAccuracyTests.percent(_:)",
+   "hash": "9ed9d8232af335c2",
+   "does": "Fixture: formats a fraction as a rounded whole percent string ('25%').",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HelpScienceAccuracyTests.testHelpStatesNoIllnessLeadTime()",
+   "hash": "f8d0c80c176c73b0",
+   "does": "Asserts no English Help string matches the illness lead-time regex ('before you feel unwell', 'before cold/flu', 'before they get sick', …).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HelpScienceAccuracyTests.swift::var HelpScienceAccuracyTests.everyEnglishString",
+    "EmuquTests/HelpScienceAccuracyTests.swift::var HelpScienceAccuracyTests.articles",
+    "EmuquTests/HelpScienceAccuracyTests.swift::func HelpScienceAccuracyTests.strings(in:)",
+    "Emuqu/Sources/Views/HelpContent+Science.swift::func HelpContent.englishCategories(forAge:)",
+    "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::func HelpScienceCatalog.hrvScience(forAge:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "for each English Help string",
+     "effect": "asserts no lead-time match"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HelpContent+Science.swift::func HelpContent.englishCategories(forAge:)": "fa6d8626eb19f40e",
+    "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::func HelpScienceCatalog.hrvScience(forAge:)": "fa9b822c2a1d3fe8",
+    "EmuquTests/HelpScienceAccuracyTests.swift::func HelpScienceAccuracyTests.strings(in:)": "33aa07232c7f4194",
+    "EmuquTests/HelpScienceAccuracyTests.swift::var HelpScienceAccuracyTests.articles": "b1227f7e45fc9b3a",
+    "EmuquTests/HelpScienceAccuracyTests.swift::var HelpScienceAccuracyTests.everyEnglishString": "7ee0b3ea7c176951"
+   }
+  },
+  {
+   "key": "func HelpScienceAccuracyTests.testEverySpO2PenaltySentenceDescribesTheTwentyFourHourAverage()",
+   "hash": "28f3ef433e4461cf",
+   "does": "Finds Help strings containing 'below 95%' and a standalone RecoveryScoreConstants.Vitals.spo2Penalty number; asserts there is at least one and each says '24 hours' and not 'any reading'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HelpScienceAccuracyTests.swift::var HelpScienceAccuracyTests.everyEnglishString",
+    "EmuquTests/HelpScienceAccuracyTests.swift::var HelpScienceAccuracyTests.articles",
+    "EmuquTests/HelpScienceAccuracyTests.swift::func HelpScienceAccuracyTests.strings(in:)",
+    "Emuqu/Sources/Views/HelpContent+Science.swift::func HelpContent.englishCategories(forAge:)",
+    "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::func HelpScienceCatalog.hrvScience(forAge:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "for each SpO2 penalty sentence",
+     "effect": "asserts it mentions 24 hours and not 'any reading'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HelpContent+Science.swift::func HelpContent.englishCategories(forAge:)": "fa6d8626eb19f40e",
+    "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::func HelpScienceCatalog.hrvScience(forAge:)": "fa9b822c2a1d3fe8",
+    "EmuquTests/HelpScienceAccuracyTests.swift::func HelpScienceAccuracyTests.strings(in:)": "33aa07232c7f4194",
+    "EmuquTests/HelpScienceAccuracyTests.swift::var HelpScienceAccuracyTests.articles": "b1227f7e45fc9b3a",
+    "EmuquTests/HelpScienceAccuracyTests.swift::var HelpScienceAccuracyTests.everyEnglishString": "7ee0b3ea7c176951"
+   }
+  },
+  {
+   "key": "func HelpScienceAccuracyTests.testTheACWRDamperCopyMatchesReadinessScoring()",
+   "hash": "4d28e74b38ffd66e",
+   "does": "Asserts acwr-zones text quotes RecoveryScoreConstants.Readiness ACWR rescue cap %, rescue recovery threshold, overreaching cap % and base %, and not 'near zero'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HelpScienceAccuracyTests.swift::func HelpScienceAccuracyTests.text(of:)",
+    "EmuquTests/HelpScienceAccuracyTests.swift::func HelpScienceAccuracyTests.percent(_:)",
+    "EmuquTests/HelpScienceAccuracyTests.swift::var HelpScienceAccuracyTests.articles",
+    "EmuquTests/HelpScienceAccuracyTests.swift::func HelpScienceAccuracyTests.article(_:)",
+    "EmuquTests/HelpScienceAccuracyTests.swift::func HelpScienceAccuracyTests.strings(in:)",
+    "Emuqu/Sources/Views/HelpContent+Science.swift::func HelpContent.englishCategories(forAge:)",
+    "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::func HelpScienceCatalog.hrvScience(forAge:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HelpContent+Science.swift::func HelpContent.englishCategories(forAge:)": "fa6d8626eb19f40e",
+    "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::func HelpScienceCatalog.hrvScience(forAge:)": "fa9b822c2a1d3fe8",
+    "EmuquTests/HelpScienceAccuracyTests.swift::func HelpScienceAccuracyTests.article(_:)": "a459dc24ddd38fc1",
+    "EmuquTests/HelpScienceAccuracyTests.swift::func HelpScienceAccuracyTests.percent(_:)": "a35c54db5f55c76c",
+    "EmuquTests/HelpScienceAccuracyTests.swift::func HelpScienceAccuracyTests.strings(in:)": "33aa07232c7f4194",
+    "EmuquTests/HelpScienceAccuracyTests.swift::func HelpScienceAccuracyTests.text(of:)": "1f56a028c2f56a29",
+    "EmuquTests/HelpScienceAccuracyTests.swift::var HelpScienceAccuracyTests.articles": "b1227f7e45fc9b3a"
+   }
+  },
+  {
+   "key": "func HelpScienceAccuracyTests.testTheSleepScoreArticleDescribesTheShortNightCap()",
+   "hash": "e651643eb39e9486",
+   "does": "Asserts sleep-score text quotes SleepScienceAnalyzer.EnhancedScoreWeights durationDebtRatioThreshold %, durationDebtCeilingAtThreshold and durationDebtCeilingFloor.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HelpScienceAccuracyTests.swift::func HelpScienceAccuracyTests.text(of:)",
+    "EmuquTests/HelpScienceAccuracyTests.swift::func HelpScienceAccuracyTests.percent(_:)",
+    "EmuquTests/HelpScienceAccuracyTests.swift::var HelpScienceAccuracyTests.articles",
+    "EmuquTests/HelpScienceAccuracyTests.swift::func HelpScienceAccuracyTests.article(_:)",
+    "EmuquTests/HelpScienceAccuracyTests.swift::func HelpScienceAccuracyTests.strings(in:)",
+    "Emuqu/Sources/Views/HelpContent+Science.swift::func HelpContent.englishCategories(forAge:)",
+    "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::func HelpScienceCatalog.hrvScience(forAge:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HelpContent+Science.swift::func HelpContent.englishCategories(forAge:)": "fa6d8626eb19f40e",
+    "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::func HelpScienceCatalog.hrvScience(forAge:)": "fa9b822c2a1d3fe8",
+    "EmuquTests/HelpScienceAccuracyTests.swift::func HelpScienceAccuracyTests.article(_:)": "a459dc24ddd38fc1",
+    "EmuquTests/HelpScienceAccuracyTests.swift::func HelpScienceAccuracyTests.percent(_:)": "a35c54db5f55c76c",
+    "EmuquTests/HelpScienceAccuracyTests.swift::func HelpScienceAccuracyTests.strings(in:)": "33aa07232c7f4194",
+    "EmuquTests/HelpScienceAccuracyTests.swift::func HelpScienceAccuracyTests.text(of:)": "1f56a028c2f56a29",
+    "EmuquTests/HelpScienceAccuracyTests.swift::var HelpScienceAccuracyTests.articles": "b1227f7e45fc9b3a"
+   }
+  },
+  {
+   "key": "func HelpScienceAccuracyTests.testSleepStageTargetsMatchTheSleepScore()",
+   "hash": "088b0536bb3d3d6d",
+   "does": "Asserts sleep-stages text quotes populationDeepTargetPct and populationREMTargetPct as '% of total sleep' and not '10-20 times'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HelpScienceAccuracyTests.swift::func HelpScienceAccuracyTests.text(of:)",
+    "EmuquTests/HelpScienceAccuracyTests.swift::var HelpScienceAccuracyTests.articles",
+    "EmuquTests/HelpScienceAccuracyTests.swift::func HelpScienceAccuracyTests.article(_:)",
+    "EmuquTests/HelpScienceAccuracyTests.swift::func HelpScienceAccuracyTests.strings(in:)",
+    "Emuqu/Sources/Views/HelpContent+Science.swift::func HelpContent.englishCategories(forAge:)",
+    "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::func HelpScienceCatalog.hrvScience(forAge:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HelpContent+Science.swift::func HelpContent.englishCategories(forAge:)": "fa6d8626eb19f40e",
+    "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::func HelpScienceCatalog.hrvScience(forAge:)": "fa9b822c2a1d3fe8",
+    "EmuquTests/HelpScienceAccuracyTests.swift::func HelpScienceAccuracyTests.article(_:)": "a459dc24ddd38fc1",
+    "EmuquTests/HelpScienceAccuracyTests.swift::func HelpScienceAccuracyTests.strings(in:)": "33aa07232c7f4194",
+    "EmuquTests/HelpScienceAccuracyTests.swift::func HelpScienceAccuracyTests.text(of:)": "1f56a028c2f56a29",
+    "EmuquTests/HelpScienceAccuracyTests.swift::var HelpScienceAccuracyTests.articles": "b1227f7e45fc9b3a"
+   }
+  },
+  {
+   "key": "func HelpScienceAccuracyTests.testTheComebackArticleMatchesTheComebackWeights()",
+   "hash": "3f27682fb825f3c7",
+   "does": "Asserts comeback-mode text quotes ScoreDetailBuilder.tier3Weights(comebackModeActive: true) HRV/Sleep/Vitals percentages, says they 'apply when your score includes vitals', and not 'small indicator'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HelpScienceAccuracyTests.swift::func HelpScienceAccuracyTests.text(of:)",
+    "EmuquTests/HelpScienceAccuracyTests.swift::func HelpScienceAccuracyTests.percent(_:)",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.tier3Weights(comebackModeActive:)",
+    "EmuquTests/HelpScienceAccuracyTests.swift::var HelpScienceAccuracyTests.articles",
+    "EmuquTests/HelpScienceAccuracyTests.swift::func HelpScienceAccuracyTests.article(_:)",
+    "EmuquTests/HelpScienceAccuracyTests.swift::func HelpScienceAccuracyTests.strings(in:)",
+    "Emuqu/Sources/Views/HelpContent+Science.swift::func HelpContent.englishCategories(forAge:)",
+    "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::func HelpScienceCatalog.hrvScience(forAge:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.tier3Weights(comebackModeActive:)": "bd6aa4da9d441b8c",
+    "Emuqu/Sources/Views/HelpContent+Science.swift::func HelpContent.englishCategories(forAge:)": "fa6d8626eb19f40e",
+    "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::func HelpScienceCatalog.hrvScience(forAge:)": "fa9b822c2a1d3fe8",
+    "EmuquTests/HelpScienceAccuracyTests.swift::func HelpScienceAccuracyTests.article(_:)": "a459dc24ddd38fc1",
+    "EmuquTests/HelpScienceAccuracyTests.swift::func HelpScienceAccuracyTests.percent(_:)": "a35c54db5f55c76c",
+    "EmuquTests/HelpScienceAccuracyTests.swift::func HelpScienceAccuracyTests.strings(in:)": "33aa07232c7f4194",
+    "EmuquTests/HelpScienceAccuracyTests.swift::func HelpScienceAccuracyTests.text(of:)": "1f56a028c2f56a29",
+    "EmuquTests/HelpScienceAccuracyTests.swift::var HelpScienceAccuracyTests.articles": "b1227f7e45fc9b3a"
+   }
+  },
+  {
+   "key": "func HelpScienceAccuracyTests.testTheBreathingRateRangeMatchesThePopulationBand()",
+   "hash": "211f8c452db5994e",
+   "does": "Asserts vitals-overview text contains 'min-max' from ScoringWeights.Vitals respiratoryRatePopulationMin/MaxBPM.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HelpScienceAccuracyTests.swift::func HelpScienceAccuracyTests.text(of:)",
+    "EmuquTests/HelpScienceAccuracyTests.swift::var HelpScienceAccuracyTests.articles",
+    "EmuquTests/HelpScienceAccuracyTests.swift::func HelpScienceAccuracyTests.article(_:)",
+    "EmuquTests/HelpScienceAccuracyTests.swift::func HelpScienceAccuracyTests.strings(in:)",
+    "Emuqu/Sources/Views/HelpContent+Science.swift::func HelpContent.englishCategories(forAge:)",
+    "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::func HelpScienceCatalog.hrvScience(forAge:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HelpContent+Science.swift::func HelpContent.englishCategories(forAge:)": "fa6d8626eb19f40e",
+    "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::func HelpScienceCatalog.hrvScience(forAge:)": "fa9b822c2a1d3fe8",
+    "EmuquTests/HelpScienceAccuracyTests.swift::func HelpScienceAccuracyTests.article(_:)": "a459dc24ddd38fc1",
+    "EmuquTests/HelpScienceAccuracyTests.swift::func HelpScienceAccuracyTests.strings(in:)": "33aa07232c7f4194",
+    "EmuquTests/HelpScienceAccuracyTests.swift::func HelpScienceAccuracyTests.text(of:)": "1f56a028c2f56a29",
+    "EmuquTests/HelpScienceAccuracyTests.swift::var HelpScienceAccuracyTests.articles": "b1227f7e45fc9b3a"
+   }
+  },
+  {
+   "key": "func HelpScienceAccuracyTests.testScienceHelpCarriesNoVersionHistory()",
+   "hash": "a9b22bf290dabc0f",
+   "does": "Asserts no English Help string contains 'May 2026', 'Earlier versions', 'before this fix', 'v2 architecture' or 'Quality Score'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HelpScienceAccuracyTests.swift::var HelpScienceAccuracyTests.everyEnglishString",
+    "EmuquTests/HelpScienceAccuracyTests.swift::var HelpScienceAccuracyTests.articles",
+    "EmuquTests/HelpScienceAccuracyTests.swift::func HelpScienceAccuracyTests.strings(in:)",
+    "Emuqu/Sources/Views/HelpContent+Science.swift::func HelpContent.englishCategories(forAge:)",
+    "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::func HelpScienceCatalog.hrvScience(forAge:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each English Help string",
+     "effect": "checks every banned phrase"
+    },
+    {
+     "at": "+3",
+     "cond": "for each banned phrase",
+     "effect": "asserts absent"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HelpContent+Science.swift::func HelpContent.englishCategories(forAge:)": "fa6d8626eb19f40e",
+    "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::func HelpScienceCatalog.hrvScience(forAge:)": "fa9b822c2a1d3fe8",
+    "EmuquTests/HelpScienceAccuracyTests.swift::func HelpScienceAccuracyTests.strings(in:)": "33aa07232c7f4194",
+    "EmuquTests/HelpScienceAccuracyTests.swift::var HelpScienceAccuracyTests.articles": "b1227f7e45fc9b3a",
+    "EmuquTests/HelpScienceAccuracyTests.swift::var HelpScienceAccuracyTests.everyEnglishString": "7ee0b3ea7c176951"
+   }
+  },
+  {
+   "key": "func HelpScienceAccuracyTests.testTheDataQualityRowsUseTheRecordScreensLabels()",
+   "hash": "ddfcd9b3862f3a8b",
+   "does": "Asserts the data-quality article's keyValue labels are exactly ['Artifact %', 'Clean Beats', 'Quality'].",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HelpScienceAccuracyTests.swift::var HelpScienceAccuracyTests.articles",
+    "EmuquTests/HelpScienceAccuracyTests.swift::func HelpScienceAccuracyTests.article(_:)",
+    "Emuqu/Sources/Views/HelpContent+Science.swift::func HelpContent.englishCategories(forAge:)",
+    "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::func HelpScienceCatalog.hrvScience(forAge:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "section is .keyValue",
+     "effect": "contributes its labels; other sections contribute []"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Hard-codes the expected labels instead of reading them from RecordVerificationSection (RecordVerificationSection.swift:52,57), so a rename on the record screen does not fail this test as its doc comment claims.",
+     "evidence": [
+      "EmuquTests/HelpScienceAccuracyTests.swift:139",
+      "Emuqu/Sources/Views/RecordVerificationSection.swift:52"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/HelpContent+Science.swift::func HelpContent.englishCategories(forAge:)": "fa6d8626eb19f40e",
+    "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::func HelpScienceCatalog.hrvScience(forAge:)": "fa9b822c2a1d3fe8",
+    "EmuquTests/HelpScienceAccuracyTests.swift::func HelpScienceAccuracyTests.article(_:)": "a459dc24ddd38fc1",
+    "EmuquTests/HelpScienceAccuracyTests.swift::var HelpScienceAccuracyTests.articles": "b1227f7e45fc9b3a"
+   }
+  }
+ ],
+ "deps": {}
+}

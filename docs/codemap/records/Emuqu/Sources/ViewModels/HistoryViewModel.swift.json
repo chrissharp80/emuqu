@@ -1,0 +1,712 @@
+{
+ "file": "Emuqu/Sources/ViewModels/HistoryViewModel.swift",
+ "hash": "9c2167d68ebde692",
+ "role": "@Observable @MainActor view model for HistoryView: debounced filter observation, archive-version-driven recompute of deduplicated (split-night chains and same-night overnight duplicates), filtered, date-sorted archive entries off-main, plus pagination and split-night segment counts.",
+ "types": [
+  "HistoryViewModel: class — History tab state and off-main filter/dedup compute"
+ ],
+ "state": [
+  "var searchText/selectedSessionType/selectedTags/displayLimit (observable UI state, :11-14)",
+  "private(set) var filteredEntries, linkedSegmentCounts (mem:HistoryViewModel.filteredEntries read by HistoryView)",
+  "filterObservation, filterDebounce, recomputeTask, lastArchiveVersion (private)",
+  "let pageSize = 10"
+ ],
+ "toplevel": "Uses HistoryConstants (Constants+SleepAndDisplay.swift:291-307): debounce 150 ms, close-window 90 min, overlap 0.85, tiny artifact ≤45 min, near-end 30 min, start tol 5 min, end tol 30 min.",
+ "flags": [],
+ "units": [
+  {
+   "key": "init HistoryViewModel(archive:settingsProvider:)",
+   "hash": "49beb43d9ed112c2",
+   "does": "Stores the archive and settings provider (defaults: AppDependencies sessionArchive and SettingsManager.settingsSnapshot) and starts an ObservationLoop on (searchText, selectedSessionType, selectedTags) with initial delivery, calling scheduleFilterRecompute on each change.",
+   "entry": "@State in HistoryView (HistoryView.swift:15); HistoryViewModelTests",
+   "calls": [
+    "Emuqu/Sources/Utilities/ObservationLoop.swift::func ObservationLoop.observe(_:initial:read:onChange:)",
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.scheduleFilterRecompute()",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settingsSnapshot"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settingsSnapshot": "599269848673b93a",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
+    "Emuqu/Sources/Utilities/ObservationLoop.swift::func ObservationLoop.observe(_:initial:read:onChange:)": "5ef79ca8e7bb0dc5",
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.scheduleFilterRecompute()": "a601b3f195b50243"
+   }
+  },
+  {
+   "key": "func HistoryViewModel.scheduleFilterRecompute()",
+   "hash": "b566d7287ad221b0",
+   "does": "Cancels the pending debounce and starts a Task that sleeps 150 ms, then (if not cancelled and self alive) resets displayLimit to pageSize and recomputes.",
+   "entry": "ObservationLoop onChange for filter properties (init)",
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)",
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.recomputeFilteredEntries()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "task cancelled or self released",
+     "effect": "return without recompute; else reset paging and recompute"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "c0fa5e77e7dfe851",
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.recomputeFilteredEntries()": "4709c5b029b6ba41"
+   }
+  },
+  {
+   "key": "func HistoryViewModel.refreshIfNeeded(archiveVersion:)",
+   "hash": "6a7ca9f6c124c251",
+   "does": "Recomputes filtered entries when the archive version differs from the last seen one.",
+   "entry": "HistoryView .onAppear / .onChange(of: archiveSignal.version) (HistoryView.swift:301-302)",
+   "calls": [
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.recomputeFilteredEntries()"
+   ],
+   "reads": [
+    "mem:ArchiveSignal.version"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "archiveVersion == lastArchiveVersion",
+     "effect": "return; else record and recompute (displayLimit not reset)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.recomputeFilteredEntries()": "4709c5b029b6ba41"
+   }
+  },
+  {
+   "key": "func HistoryViewModel.loadMore()",
+   "hash": "de6d7d4fa8f4fa33",
+   "does": "Increases displayLimit by pageSize (10).",
+   "entry": "HistoryView load-more row .onAppear (HistoryView.swift:283-285)",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HistoryViewModel.recomputeFilteredEntries()",
+   "hash": "6e7d54fd51885ffb",
+   "does": "Cancels any in-flight recompute, snapshots archive entries, filters and the sleep schedule on main, then computes on a detached task and applies the result on main unless cancelled.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.computeFiltered(entries:typeFilter:tagFilter:searchText:schedule:)",
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.apply(_:)",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settingsSnapshot"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries",
+    "mem:UserSettings.sleepSchedule"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+15",
+     "cond": "task cancelled after compute",
+     "effect": "return without applying; else await apply"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settingsSnapshot": "599269848673b93a",
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.apply(_:)": "3e6ca79d97a12e36",
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.computeFiltered(entries:typeFilter:tagFilter:searchText:schedule:)": "1bd857a7f6a189cb"
+   }
+  },
+  {
+   "key": "func HistoryViewModel.apply(_:)",
+   "hash": "72738cf005aa01ed",
+   "does": "Assigns filteredEntries and linkedSegmentCounts on the main actor.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:HistoryViewModel.filteredEntries",
+    "mem:HistoryViewModel.linkedSegmentCounts"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HistoryViewModel.computeFiltered(entries:typeFilter:tagFilter:searchText:schedule:)",
+   "hash": "6fed16296fa31bfe",
+   "does": "Pure pipeline: builds id map; maps every non-winning split-night chain member to its chain winner, then every scoreless same-night overnight duplicate (among what remains) to its cluster winner; runs the type/tag/search filters over ALL entries and keeps a shown row (a winner or an entry folded into nothing) when it or any entry folded into it matches; sorts by displayDate descending and computes segment counts. A night whose hidden segment matches a filter is therefore still listed, under its winner's row.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.chainHiddenToWinner(entries:entryById:)",
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.sameNightHiddenToWinner(_:entryById:schedule:)",
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.applyFilters(_:typeFilter:tagFilter:searchText:)",
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.shownRow(for:hiddenToWinner:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.displayDate",
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.computeLinkedSegmentCountsStatic(for:entryById:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+15",
+     "cond": "entry not folded into a same-night winner and it (or something folded into it) matched the filters",
+     "effect": "kept as a row; otherwise dropped"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.displayDate": "b7a08a3bb6301f41",
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.applyFilters(_:typeFilter:tagFilter:searchText:)": "af6e860e51e5eb82",
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.chainHiddenToWinner(entries:entryById:)": "6864db09bf672182",
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.computeLinkedSegmentCountsStatic(for:entryById:)": "f116311590f5f5e3",
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.sameNightHiddenToWinner(_:entryById:schedule:)": "2ceb65cd69afd8ba",
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.shownRow(for:hiddenToWinner:)": "0af90e360f33e74a"
+   }
+  },
+  {
+   "key": "func HistoryViewModel.shownRow(for:hiddenToWinner:)",
+   "hash": "34e1d685bef625a0",
+   "does": "Follows the hidden→winner map from an id to the row it is shown under (an entry folded into a chain winner that is itself folded into a same-night winner resolves to the latter); stops after as many steps as the map has entries.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "id is a hidden entry and the step bound is not reached",
+     "effect": "moves to its winner; otherwise returns the current id"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HistoryViewModel.chainHiddenToWinner(entries:entryById:)",
+   "hash": "dc79b683f300836f",
+   "does": "Walks each linked chain once and maps every member's id except the chain winner (highest score; any real score beats none) to the winner's id.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.chainFrom(_:entryById:visited:)",
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.chainWinner(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "for each entry",
+     "effect": "iterates archive order"
+    },
+    {
+     "at": "+6",
+     "cond": "entry has non-empty linkedSessionIds and not visited",
+     "effect": "false: skip"
+    },
+    {
+     "at": "+9",
+     "cond": "chain has >1 member and a winner",
+     "effect": "false: nothing hidden"
+    },
+    {
+     "at": "+10",
+     "cond": "member is not the winner",
+     "effect": "true: maps it to the winner"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.chainFrom(_:entryById:visited:)": "f68fdcc593da6b4e",
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.chainWinner(_:)": "1982bdd7fcbeefbc"
+   }
+  },
+  {
+   "key": "func HistoryViewModel.chainFrom(_:entryById:visited:)",
+   "hash": "4e81377817c67dc1",
+   "does": "BFS over linkedSessionIds from an entry, marking visited and collecting members present in the archive.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "queue non-empty",
+     "effect": "loop"
+    },
+    {
+     "at": "+9",
+     "cond": "id already visited",
+     "effect": "skip"
+    },
+    {
+     "at": "+11",
+     "cond": "id not in archive",
+     "effect": "skip (missing link)"
+    },
+    {
+     "at": "+13",
+     "cond": "linked id not visited",
+     "effect": "enqueue"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HistoryViewModel.chainWinner(_:)",
+   "hash": "cd61a00b86b9fb47",
+   "does": "Max by recoveryScore (nil = -infinity, so any real score, 0 included, beats a missing one), then later endDate (nil = distantPast), then later date.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "a.recoveryScore nil",
+     "effect": "-infinity"
+    },
+    {
+     "at": "+3",
+     "cond": "b.recoveryScore nil",
+     "effect": "-infinity"
+    },
+    {
+     "at": "+4",
+     "cond": "scores differ",
+     "effect": "order by score"
+    },
+    {
+     "at": "+5",
+     "cond": "a.endDate nil",
+     "effect": "distantPast"
+    },
+    {
+     "at": "+6",
+     "cond": "b.endDate nil",
+     "effect": "distantPast"
+    },
+    {
+     "at": "+7",
+     "cond": "end dates differ",
+     "effect": "order by end; else by start date"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c"
+   }
+  },
+  {
+   "key": "func HistoryViewModel.applyFilters(_:typeFilter:tagFilter:searchText:)",
+   "hash": "250117ea87d37aba",
+   "does": "Applies session-type, tag (any-overlap) and case-insensitive search over the app-locale medium date string, tag names and notes.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.displayDate"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "typeFilter set",
+     "effect": "keep matching sessionType"
+    },
+    {
+     "at": "+10",
+     "cond": "tagFilter non-empty (HistoryView's tag filter bar sets selectedTags)",
+     "effect": "keep entries sharing any tag"
+    },
+    {
+     "at": "+13",
+     "cond": "searchText empty",
+     "effect": "return without search; else match date/tags/notes"
+    },
+    {
+     "at": "+21",
+     "cond": "notes nil",
+     "effect": "?? false: no match on notes"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.displayDate": "b7a08a3bb6301f41",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "func HistoryViewModel.computeLinkedSegmentCountsStatic(for:entryById:)",
+   "hash": "a567c10882a5c66e",
+   "does": "Maps each entry with normalized segment count > 1 to that count.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.normalizedSegmentCountStatic(for:entryById:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "for each entry",
+     "effect": "compute"
+    },
+    {
+     "at": "+7",
+     "cond": "count > 1",
+     "effect": "store; else omitted (view shows 0)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.normalizedSegmentCountStatic(for:entryById:)": "20dea9dcd714398a"
+   }
+  },
+  {
+   "key": "func HistoryViewModel.normalizedSegmentCountStatic(for:entryById:)",
+   "hash": "6d98f67a5e6bfeea",
+   "does": "Returns the normalized split-night segment count for an entry (1 when unlinked, ≤1 sleep segment, zero-length, or no valid linked ranges).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.linkedSegmentInfos(_:entryById:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.normalizedSplitNightSegments(currentSessionId:currentStartDate:currentEndDate:linkedSegments:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "linkedSessionIds empty/nil",
+     "effect": "1"
+    },
+    {
+     "at": "+5",
+     "cond": "sleepSegmentCount known and ≤1",
+     "effect": "1"
+    },
+    {
+     "at": "+6",
+     "cond": "endDate nil",
+     "effect": "currentEnd = date"
+    },
+    {
+     "at": "+7",
+     "cond": "currentEnd > date",
+     "effect": "false: 1"
+    },
+    {
+     "at": "+9",
+     "cond": "no valid linked ranges",
+     "effect": "1; else max(1, normalized count)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.sleepSegmentCount(of:)": "0fbe1a7727a1a59b",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.normalizedSplitNightSegments(currentSessionId:currentStartDate:currentEndDate:linkedSegments:)": "3b3f57d2c5dc60b3",
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.linkedSegmentInfos(_:entryById:)": "f297bc59181bffbb"
+   }
+  },
+  {
+   "key": "func HistoryViewModel.linkedSegmentInfos(_:entryById:)",
+   "hash": "7618fa04a01a12a4",
+   "does": "Converts linked ids into LinkedSegmentInfo for entries present with a positive span.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "linked id in archive",
+     "effect": "false: drop"
+    },
+    {
+     "at": "+5",
+     "cond": "endDate nil",
+     "effect": "linkedEnd = date"
+    },
+    {
+     "at": "+6",
+     "cond": "linkedEnd > date",
+     "effect": "false: drop"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HistoryViewModel.sameNightHiddenToWinner(_:entryById:schedule:)",
+   "hash": "53486fb8655e2379",
+   "does": "Groups overnight entries by overnightWindowStart(endDate ?? date) and maps the scoreless losers of duplicate clusters within each night group to their cluster winner.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)",
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.sameNightHiddenIds(group:entryById:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "fewer than 2 overnight entries",
+     "effect": "returns an empty map"
+    },
+    {
+     "at": "+8",
+     "cond": "endDate nil",
+     "effect": "group by date"
+    },
+    {
+     "at": "+11",
+     "cond": "group has >1 entry",
+     "effect": "merges that group's hidden→winner map"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.merge(_:sleepSchedule:)": "301cdd78533bd624",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "248d2d6037a937bb",
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.sameNightHiddenIds(group:entryById:)": "3067f1394086889f"
+   }
+  },
+  {
+   "key": "func HistoryViewModel.sameNightHiddenIds(group:entryById:)",
+   "hash": "eed32972e47e8b8b",
+   "does": "For each duplicate component in a night group, maps members that are not the winner and have no recovery score to the winner's id.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.duplicateComponent(seed:group:byId:visited:)",
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.overnightWinner(_:entryById:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "seed not yet visited",
+     "effect": "walk component"
+    },
+    {
+     "at": "+8",
+     "cond": "component >1 and winner exists",
+     "effect": "false: continue"
+    },
+    {
+     "at": "+10",
+     "cond": "member not winner and recoveryScore nil",
+     "effect": "maps it to the winner; scored sessions always shown"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.duplicateComponent(seed:group:byId:visited:)": "b8c128bc54a8ff78",
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.overnightWinner(_:entryById:)": "d995f8298aa82e30"
+   }
+  },
+  {
+   "key": "func HistoryViewModel.duplicateComponent(seed:group:byId:visited:)",
+   "hash": "13f36574d0018107",
+   "does": "BFS over 'likely duplicate' edges within the group starting at seed.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.areLikelyDuplicateOvernightEntriesStatic(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "queue non-empty",
+     "effect": "loop"
+    },
+    {
+     "at": "+10",
+     "cond": "visited or missing",
+     "effect": "skip"
+    },
+    {
+     "at": "+14",
+     "cond": "candidate unvisited and likely duplicate",
+     "effect": "enqueue"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.areLikelyDuplicateOvernightEntriesStatic(_:_:)": "f750a779639ed030"
+   }
+  },
+  {
+   "key": "func HistoryViewModel.overnightWinner(_:entryById:)",
+   "hash": "290995bde800024d",
+   "does": "Max by normalized segment count, then score (nil=0), linked count, end, start.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.normalizedSegmentCountStatic(for:entryById:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "segment counts differ",
+     "effect": "decide"
+    },
+    {
+     "at": "+7",
+     "cond": "lhs score nil",
+     "effect": "0"
+    },
+    {
+     "at": "+8",
+     "cond": "rhs score nil",
+     "effect": "0"
+    },
+    {
+     "at": "+9",
+     "cond": "scores differ",
+     "effect": "decide"
+    },
+    {
+     "at": "+10",
+     "cond": "lhs links nil",
+     "effect": "0"
+    },
+    {
+     "at": "+11",
+     "cond": "rhs links nil",
+     "effect": "0"
+    },
+    {
+     "at": "+12",
+     "cond": "link counts differ",
+     "effect": "decide"
+    },
+    {
+     "at": "+13",
+     "cond": "lhs endDate nil",
+     "effect": "date"
+    },
+    {
+     "at": "+14",
+     "cond": "rhs endDate nil",
+     "effect": "date"
+    },
+    {
+     "at": "+15",
+     "cond": "ends differ",
+     "effect": "decide; else by start date"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.normalizedSegmentCountStatic(for:entryById:)": "20dea9dcd714398a"
+   }
+  },
+  {
+   "key": "func HistoryViewModel.areLikelyDuplicateOvernightEntriesStatic(_:_:)",
+   "hash": "305c121c4d56f072",
+   "does": "True when two entries' windows overlap enough or one is a tiny tail artifact of the other.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.overnightWindowStatic(for:)",
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.windowsOverlapEnough(_:_:)",
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.isTinyArtifactOf(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.isTinyArtifactOf(_:_:)": "cd3a656b98a9599c",
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.overnightWindowStatic(for:)": "63dbb7832506105b",
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.windowsOverlapEnough(_:_:)": "741db6dc9d59a9aa"
+   }
+  },
+  {
+   "key": "func HistoryViewModel.windowsOverlapEnough(_:_:)",
+   "hash": "c8f655ee7cd881cc",
+   "does": "True when starts and ends are within 90 min, or they overlap and either edge is within 90 min, or the overlap covers ≥85% of the shorter window.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "(startsClose && endsClose) || (overlaps && (startsClose || endsClose))",
+     "effect": "true: duplicate"
+    },
+    {
+     "at": "+14",
+     "cond": "shorter duration > 0",
+     "effect": "false: not duplicate; true: ratio test"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HistoryViewModel.isTinyArtifactOf(_:_:)",
+   "hash": "7105bd4feb82a32d",
+   "does": "True when the shorter window is ≤45 min, starts or ends within 30 min of the long window's end, and lies within the long window (−5 min / +30 min).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "lhs shorter-or-equal",
+     "effect": "picks short"
+    },
+    {
+     "at": "+5",
+     "cond": "lhs shorter-or-equal",
+     "effect": "picks long"
+    },
+    {
+     "at": "+6",
+     "cond": "short duration in (0, 45 min]",
+     "effect": "false: return false"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HistoryViewModel.overnightWindowStatic(for:)",
+   "hash": "28898363290b353e",
+   "does": "Returns (start=date, end=max(date, endDate ?? date), duration).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "endDate nil",
+     "effect": "end = start (zero duration)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

@@ -1,0 +1,160 @@
+{
+ "file": "Emuqu/Sources/Views/Onboarding/OnboardingBackupPage.swift",
+ "hash": "b3e191b44f32722c",
+ "role": "Sixth onboarding page: optional iCloud Sync toggle (default off) with explanation; Next advances keeping the choice, Skip forces sync off and advances.",
+ "types": [
+  "OnboardingBackupPage: struct (View)"
+ ],
+ "state": [],
+ "toplevel": "Constructed at OnboardingView.swift:62. #Preview with shared SettingsManager.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var OnboardingBackupPage.settingsBinding",
+   "hash": "c89d93d6bf40f369",
+   "does": "Get/set Binding over settingsManager.settings.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [
+    "mem:SettingsManager.settings",
+    "file:user_settings.json (App Group container, via SettingsManager.settings didSet save)",
+    "notif:flowRecoverySettingsChanged"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var OnboardingBackupPage.body",
+   "hash": "e815a3614c3b39d7",
+   "does": "OnboardingFillingScroll VStack of headline, toggle and navigation buttons.",
+   "entry": "SwiftUI body.",
+   "calls": [
+    "Emuqu/Sources/Views/Onboarding/OnboardingBackupPage.swift::var OnboardingBackupPage.backupHeadline",
+    "Emuqu/Sources/Views/Onboarding/OnboardingBackupPage.swift::var OnboardingBackupPage.iCloudSyncToggle",
+    "Emuqu/Sources/Views/Onboarding/OnboardingBackupPage.swift::var OnboardingBackupPage.backupNavigationButtons"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Onboarding/OnboardingBackupPage.swift::var OnboardingBackupPage.backupHeadline": "262c6b61b7def136",
+    "Emuqu/Sources/Views/Onboarding/OnboardingBackupPage.swift::var OnboardingBackupPage.backupNavigationButtons": "230eb16a5360a368",
+    "Emuqu/Sources/Views/Onboarding/OnboardingBackupPage.swift::var OnboardingBackupPage.iCloudSyncToggle": "bcdb7c694eaa5a81"
+   }
+  },
+  {
+   "key": "var OnboardingBackupPage.backupHeadline",
+   "hash": "d943b4d84c954126",
+   "does": "iCloud icon, 'iCloud Sync' header and description.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Onboarding/OnboardingBackupPage.swift::var OnboardingBackupPage.backupPageHeader",
+    "Emuqu/Sources/Views/Onboarding/OnboardingBackupPage.swift::var OnboardingBackupPage.backupDescription",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Onboarding/OnboardingBackupPage.swift::var OnboardingBackupPage.backupDescription": "5e0b0a3c7699d824",
+    "Emuqu/Sources/Views/Onboarding/OnboardingBackupPage.swift::var OnboardingBackupPage.backupPageHeader": "5129881c891c28dc",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+   }
+  },
+  {
+   "key": "var OnboardingBackupPage.backupDescription",
+   "hash": "c12e07f28c4ebce7",
+   "does": "Localized explanation: optional, encrypted on device, Apple Health readings never uploaded but scores computed from them are.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var OnboardingBackupPage.iCloudSyncToggle",
+   "hash": "60da7d75b010f327",
+   "does": "Toggle bound to settings.iCloudSyncEnabled plus 'You can change this anytime' caption.",
+   "entry": "Toggle change by user.",
+   "calls": [
+    "Emuqu/Sources/Views/Onboarding/OnboardingBackupPage.swift::var OnboardingBackupPage.settingsBinding",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [
+    "mem:SettingsManager.settings.iCloudSyncEnabled",
+    "file:user_settings.json (App Group container, via SettingsManager.settings didSet save)",
+    "notif:flowRecoverySettingsChanged"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "380cb385515abafc",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Onboarding/OnboardingBackupPage.swift::var OnboardingBackupPage.settingsBinding": "2d96b54ca486b7c9",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var OnboardingBackupPage.backupPageHeader",
+   "hash": "8da2440d92652ae4",
+   "does": "icloud.fill image.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var OnboardingBackupPage.backupNavigationButtons",
+   "hash": "3937abfda16b0f90",
+   "does": "Next button (advance) with a hint reflecting the toggle, and Skip button that sets iCloudSyncEnabled = false then advances.",
+   "entry": "Button actions (user tap); closure:advance from OnboardingView.",
+   "calls": [
+    "closure:advance — OnboardingView page advance",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/Theme.swift::func ButtonStyle.zen(_:)"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [
+    "mem:SettingsManager.settings.iCloudSyncEnabled",
+    "file:user_settings.json (App Group container, via SettingsManager.settings didSet save)",
+    "notif:flowRecoverySettingsChanged"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "settings.iCloudSyncEnabled (hint ternary)",
+     "effect": "'Continue with iCloud sync enabled' vs 'Continue with iCloud sync off'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::func ButtonStyle.zen(_:)": "be0e101d5d8a0f4b",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  }
+ ],
+ "deps": {}
+}

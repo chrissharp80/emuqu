@@ -4,19 +4,19 @@ import os
 
 /// RR interval collector - orchestrates Polar device recording and analysis.
 ///
-/// Responsibilities are split across extension files by concern:
-///   +Bindings         – PolarManager state forwarding
-///   +Lifecycle        – Persisted recording state, data rescue, emergency backup
-///   +DeviceRecording  – H10/Verity Sense internal recording start/stop
-///   +Streaming        – Quick streaming mode (3-5 min)
-///   +OvernightStreaming – Background overnight streaming with hybrid data
-///   +PauseResume      – Pause, resume, finalize overnight recording
-///   +MorningProcessing – Thin wrapper delegating to MorningProcessingService
-///   +Acceptance       – Accept/reject session, HealthKit export
-///   +Analysis         – HRV analysis helpers, recovery score computation
-///   +Recovery         – Device recovery, backup recovery, corrupted sessions
-///   +Reanalysis       – Re-analyze sessions, manual window selection
-///   +Import           – Save imported sessions
+/// The collector holds the dependencies and the shared state; most of the
+/// behaviour lives on coordinators it builds on demand and reaches through
+/// forwarders (`+…Forwarding`, and the forwarders below):
+///   control (CollectorSessionControl) – +Bindings, +Streaming, +PauseResume
+///   overnightStreaming (OvernightStreamingCoordinator) – +OvernightStreaming,
+///     +OvernightArming, +OvernightGather
+///   deviceRecording (DeviceRecordingSession) – +DeviceRecording
+///   morning (MorningSessionPipeline) – +MorningProcessing
+///   recovery (SessionRecoveryCoordinator) – +Recovery, +BackupRecovery
+///   reanalysis (SessionReanalysisCoordinator) – +Reanalysis
+///   import (SessionImport) – +Import
+/// Extensions on the collector itself: +Lifecycle (persisted recording
+/// state, data rescue, emergency backup), +Acceptance, +Analysis.
 @Observable
 @MainActor
 final class RRCollector {
@@ -125,11 +125,22 @@ final class RRCollector {
     /// block observers do not — they must be removed explicitly.
     @ObservationIgnored let notificationObservers = NotificationTokens()
     var lastSeenReconnectCount: Int = 0
-    /// The current (as-of-today) training load. Never holds a past day's.
-    var cachedTrainingLoad: HealthKitManager.TrainingLoad?
+    /// The current (as-of-today) training load. Never holds a past day's:
+    /// it is stamped with the day it was cached, and reads as nil once that
+    /// day is over (an overnight recording outlives midnight).
+    var cachedTrainingLoad: HealthKitManager.TrainingLoad? {
+        get {
+            guard let cached = cachedTrainingLoadOfDay, Calendar.current.isDateInToday(cached.day) else { return nil }
+            return cached.load
+        }
+        set { cachedTrainingLoadOfDay = newValue.map { (day: Date(), load: $0) } }
+    }
+    private var cachedTrainingLoadOfDay: (day: Date, load: HealthKitManager.TrainingLoad)?
     /// Loads fetched as of a past day, keyed by that day's start, for the
     /// duration of a reanalysis of a session from that day.
     var pastDayTrainingLoads: [Date: HealthKitManager.TrainingLoad] = [:]
+    /// How many running reanalyses hold each past day's load.
+    var pastDayTrainingLoadHolders: [Date: Int] = [:]
     var lastEmergencyFlush: Date?
 
     /// Backing storage for the lazy `recoveryService` computed property in +Recovery.
@@ -219,9 +230,11 @@ final class RRCollector {
     /// re-runs in the log and the 8-second pull-to-refresh timer
     /// often loses its race because reanalysis #1 finishes but #2
     /// starts and competes. Sessions in this set are currently being
-    /// reanalyzed; subsequent calls for the same id no-op until the
-    /// in-flight one finishes.
+    /// reanalyzed; subsequent calls for the same id get the archived copy
+    /// and queue one trailing pass (`pendingReanalyses`).
     var inFlightReanalyses: Set<UUID> = []
+    /// Sessions asked for again while in flight: each gets one trailing pass.
+    var pendingReanalyses: Set<UUID> = []
 
     /// Reentrancy guard for `autoRefreshTodaysSleepIfImproved`. Apple writes
     /// sleep in STAGES (each bumps `sleepDataVersion`), so without this the
@@ -237,7 +250,7 @@ final class RRCollector {
 
     /// Data quality verification (streaming - relaxed for short readings)
     let streamingVerification = Verification(config: Verification.Config(
-        minPoints: 120,
+        minPoints: CollectorSessionControl.minimumQuickReadingBeats,
         minDurationHours: 0.025,
         maxArtifactPercent: 20.0,
         warnArtifactPercent: 10.0
@@ -245,38 +258,36 @@ final class RRCollector {
 
     // MARK: - Computed Properties
 
-    /// All archived sessions for trend analysis.
-    /// WARNING: Loads every session from disk. Prefer `recentSessions(limit:)` for UI paths.
-    var archivedSessions: [HRVSession] {
-        recentSessions(limit: nil)
+    /// Every archived session, full (beats included), newest first, decoded
+    /// off the main actor: a full-archive decrypt and decode on it held the
+    /// screen. For the bulk reanalysis paths; UI code uses
+    /// `recentSessionsAsync(limit:)`, which skips the beats.
+    func archivedSessionsOffMain() async -> [HRVSession] {
+        let archive = self.archive
+        return await Task.detached(priority: .userInitiated) {
+            Self.loadAllSessions(from: archive)
+        }.value
     }
 
-    /// Load the most recent `limit` sessions from the archive (sorted newest-first).
-    /// Uses the lightweight in-memory index to pick entries, then only deserializes
-    /// the selected subset from disk. Pass `nil` for no limit (loads all).
-    ///
-    /// **Prefer `recentSessionsAsync(limit:)` from UI code** — it moves the disk
-    /// I/O off the main thread.
-    func recentSessions(limit: Int?) -> [HRVSession] {
-        let allEntries = archive.entries  // already sorted newest-first
-        let entries = limit.map { Array(allEntries.prefix($0)) } ?? allEntries
-        debugLog("[RRCollector] recentSessions(limit: \(limit.map(String.init) ?? "all")): Loading \(entries.count) of \(allEntries.count) entries from archive")
+    nonisolated private static func loadAllSessions(from archive: SessionArchive) -> [HRVSession] {
+        let entries = archive.entries  // already sorted newest-first
+        debugLog("[RRCollector] archivedSessions: Loading \(entries.count) entries from archive")
         var sessions: [HRVSession] = []
         var errorCount = 0
         for entry in entries {
-            if let session = retrieveLoggingFailure(entry.sessionId) {
+            if let session = retrieveLoggingFailure(entry.sessionId, from: archive) {
                 sessions.append(session)
             } else {
                 errorCount += 1
             }
         }
-        debugLog("[RRCollector] recentSessions: Loaded \(sessions.count) sessions (\(errorCount) errors)")
+        debugLog("[RRCollector] archivedSessions: Loaded \(sessions.count) sessions (\(errorCount) errors)")
         return sessions
     }
 
     /// Nil covers both "not in the archive" and "failed to decode"; both are
     /// logged and counted as errors by the caller.
-    private func retrieveLoggingFailure(_ sessionId: UUID) -> HRVSession? {
+    nonisolated private static func retrieveLoggingFailure(_ sessionId: UUID, from archive: SessionArchive) -> HRVSession? {
         do {
             guard let session = try archive.retrieve(sessionId) else {
                 debugLog("[RRCollector] WARNING: Session \(sessionId) not found in archive (nil)")
@@ -306,15 +317,16 @@ final class RRCollector {
     /// `archiveLock` only for the index lookup, not across the file
     /// read+decrypt, so a TaskGroup fans the ~35-session decode across cores
     /// instead of a one-at-a-time loop that leaves the dashboard lingering on
-    /// empty placeholders. Order is preserved by index.
-    private static func decodeInParallel(_ entries: [SessionArchiveEntry], archive: SessionArchive) async -> [HRVSession] {
+    /// empty placeholders. Order is preserved by index. Also the decode of
+    /// `recentSessionsAsync(limit:before:type:)`.
+    nonisolated static func decodeInParallel(_ entries: [SessionArchiveEntry], archive: SessionArchive) async -> [HRVSession] {
         await withTaskGroup(of: (Int, HRVSession?).self) { group in
             addDecodeTasks(&group, entries: entries, archive: archive)
             return await collectIndexed(group, capacity: entries.count)
         }
     }
 
-    private static func addDecodeTasks(
+    nonisolated private static func addDecodeTasks(
         _ group: inout TaskGroup<(Int, HRVSession?)>,
         entries: [SessionArchiveEntry],
         archive: SessionArchive
@@ -326,7 +338,7 @@ final class RRCollector {
 
     /// Drain the group, dropping the sessions that failed to decode and
     /// restoring the caller's original ordering.
-    private static func collectIndexed(
+    nonisolated private static func collectIndexed(
         _ group: TaskGroup<(Int, HRVSession?)>,
         capacity: Int
     ) async -> [HRVSession] {
@@ -393,14 +405,9 @@ final class RRCollector {
 
     private func trainingContext(from load: HealthKitManager.TrainingLoad, relativeTo referenceDate: Date) -> TrainingContext? {
         guard var context = TrainingContext(from: load, relativeTo: referenceDate) else { return nil }
-        // Apply user VO2max override — TrainingContext.init copies the HealthKit
-        // value from TrainingLoad, but the user's manual entry takes priority.
-        let settings = settingsManager.settings
-        if let override = settings.vo2MaxOverride {
-            context.vo2Max = override
-        } else if !settings.useHealthKitVO2Max {
-            context.vo2Max = nil
-        }
+        // TrainingContext.init copies the HealthKit value; the user's override
+        // and opt-in decide, exactly as for the ANS configuration.
+        context.vo2Max = configuredVO2Max(load)
         return context
     }
 
@@ -420,11 +427,11 @@ final class RRCollector {
     ///   • If integration is disabled → return nil (Tier 2 scoring is
     ///     intentional in that mode).
     func createTrainingContextEnsuringFresh(relativeTo referenceDate: Date = Date()) async -> TrainingContext? {
-        if let context = createTrainingContext(relativeTo: referenceDate) {
-            return context
-        }
         guard settingsManager.settings.enableTrainingLoadIntegration else {
             return nil
+        }
+        if let context = createTrainingContext(relativeTo: referenceDate) {
+            return context
         }
         debugLog("[RRCollector] createTrainingContext returned nil with training-load integration ON — fetching live HealthKit training load to ensure Tier 3 freeze (relativeTo \(referenceDate))", level: .info)
         let load = await healthKit.calculateTrainingLoad(relativeTo: referenceDate)
@@ -578,15 +585,20 @@ final class RRCollector {
     /// note on `boot()`), so deferring it a few frames off-main is
     /// correctness-neutral. Decrypt on a utility task, then hop back to mutate
     /// the MainActor-isolated `baselineTracker`.
+    /// Also the rebuild after a CloudKit pull into an empty baseline
+    /// (`CollectorSessionControl.bindCloudSyncBaseline`).
     @MainActor
-    private func rebuildBaselineOffMain(replacing: Bool = false) {
+    func rebuildBaselineOffMain(replacing: Bool = false) {
         let archive = self.archive
         let entries = archive.entries
         Task.detached(priority: .utility) {
             let sessions = entries.compactMap {
                 archive.retrieveLightweightOrLog($0.sessionId, caller: "baselineRebuild")
             }
-            await MainActor.run { [weak self] in self?.commitRebuiltBaseline(sessions, replacing: replacing) }
+            let decodedIds = entries.map(\.sessionId)
+            await MainActor.run { [weak self] in
+                self?.commitRebuiltBaseline(sessions, decodedIds: decodedIds, replacing: replacing)
+            }
         }
     }
 
@@ -597,12 +609,15 @@ final class RRCollector {
         rebuildBaselineOffMain(replacing: true)
     }
 
-    /// A replacing rebuild starts from an empty tracker. A boot rebuild
-    /// re-checks instead: if a live session landed while we were decrypting,
-    /// it already seeded the tracker, so the rebuild must not clobber it.
+    /// A replacing rebuild starts from an empty tracker; one whose archive
+    /// changed while it decoded starts over instead, so a night archived in
+    /// the meantime is not wiped from the baseline. A boot rebuild re-checks:
+    /// if a live session landed while we were decrypting, it already seeded
+    /// the tracker, so the rebuild must not clobber it.
     @MainActor
-    private func commitRebuiltBaseline(_ sessions: [HRVSession], replacing: Bool) {
+    private func commitRebuiltBaseline(_ sessions: [HRVSession], decodedIds: [UUID], replacing: Bool) {
         if replacing {
+            guard archive.entries.map(\.sessionId) == decodedIds else { return rebuildBaselineOffMain(replacing: true) }
             baselineTracker.reset()
         } else if baselineTracker.daysCollected > 0 {
             return
@@ -667,7 +682,10 @@ final class RRCollector {
     // every stored property is initialized, so the body cannot be split even
     // mechanically. Post-assignment wiring already lives in
     // `wireCollaborators()`.
-    /// Create an RRCollector with injected dependencies (for testing).
+    /// Create an RRCollector with injected dependencies (for testing). Any
+    /// left out resolve to the app's own: the settings, CloudKit sync and
+    /// background-audio managers are the shared instances, so a test that
+    /// must not touch them injects its own.
     init(
         polarManager: PolarManager,
         healthKit: HealthKitManager,
@@ -818,9 +836,11 @@ final class RRCollector {
     }
 
     /// Write the snapshot mirror so the off-main provider
-    /// closure can read it without crossing actors. Called from a
-    /// MainActor Combine sink on every sessionState mutation. Cheap:
-    /// pure value reads + one lock-protected pointer write.
+    /// closure can read it without crossing actors. Called from
+    /// `CollectorSessionControl.onSessionStateChanged`, which the
+    /// self-re-arming observation of `sessionState` schedules on the main
+    /// actor after every mutation. Cheap: pure value reads + one
+    /// lock-protected pointer write.
     @MainActor
     func refreshLiveHRVSnapshotMirror() {
         let phase = sessionState.recordingPhase
@@ -850,8 +870,15 @@ final class RRCollector {
     // timer and observers (and the `self` they captured). Combine
     // subscriptions in `cancellables` clean themselves up on dealloc; the
     // timer and block observers must be released by hand.
+    // A timer is invalidated on the thread whose run loop it was scheduled
+    // on (the main one); deinit can run elsewhere, so it hops there.
     deinit {
-        streamingTimerBox.withLockUnchecked { $0?.invalidate() }
+        let timerBox = streamingTimerBox
+        if Thread.isMainThread {
+            timerBox.withLockUnchecked { $0?.invalidate() }
+        } else {
+            DispatchQueue.main.async { timerBox.withLockUnchecked { $0?.invalidate() } }
+        }
         notificationObservers.removeAll()
     }
 }

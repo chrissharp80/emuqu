@@ -1,0 +1,272 @@
+{
+ "file": "EmuquTests/RemainingScreenSnapshotTests.swift",
+ "hash": "c72ffaacda6a4254",
+ "role": "Pixel-snapshot tests for remaining large screens (main tab shell, history, biometrics/wearables settings, coach home, discover trails, session HRV detail, sleep timeline editor) against gzipped references in EmuquTests/__Snapshots__.",
+ "types": [
+  "RemainingScreenSnapshotTests: class (@MainActor) — XCTestCase rendering screens via assertSnapshot"
+ ],
+ "state": [],
+ "toplevel": "All 8 referenced .raw references exist in EmuquTests/__Snapshots__.",
+ "flags": [
+  {
+   "kind": "test-defect",
+   "sev": "low",
+   "text": "hosted() injects production singletons (SettingsManager.shared, StoreKitManager.shared, LanguageManager.shared, CloudKitSyncManager.shared, VoiceConversationController.shared) and RRCollector(), whose convenience init wires AppDependencies.current's real session archive, HealthKitManager and a new PolarManager; rendered output therefore shares state with the app host process rather than a fixture.",
+   "evidence": [
+    "EmuquTests/RemainingScreenSnapshotTests.swift:14",
+    "EmuquTests/RemainingScreenSnapshotTests.swift:19",
+    "Emuqu/Sources/Collection/RRCollector.swift:628",
+    "Emuqu/Sources/Collection/RRCollector.swift:644"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func RemainingScreenSnapshotTests.hosted(_:)",
+   "hash": "09745e31aaa7ecd6",
+   "does": "Wraps a view in a NavigationStack and injects RRCollector(), the shared SettingsManager/StoreKitManager/LanguageManager/CloudKitSyncManager/VoiceConversationController and fresh ArchiveSignal, MorningCoordination, DeviceStatus, StreamingLifecycle, SessionState into the environment.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()",
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::init ArchiveSignal(center:)"
+   ],
+   "reads": [
+    "mem:SettingsManager.shared",
+    "mem:StoreKitManager.shared",
+    "mem:LanguageManager.shared",
+    "mem:CloudKitSyncManager.shared",
+    "mem:VoiceConversationController.shared"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::init ArchiveSignal(center:)": "649db20a5b80e648",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()": "cee8619a3d38e814",
+    "EmuquTests/BigScreenSnapshotTests.swift::func BigScreenSnapshotTests.environment(_:)": "fe0869f551e25b93"
+   }
+  },
+  {
+   "key": "var RemainingScreenSnapshotTests.sessions",
+   "hash": "5cc058bc19c057ac",
+   "does": "Computed property: 8 overnight fixture sessions with dayOffset 0...-7.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.overnightSession(dayOffset:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.overnightSession(dayOffset:)": "3dba07231f9145b1"
+   }
+  },
+  {
+   "key": "func RemainingScreenSnapshotTests.testMainTabShellRenders()",
+   "hash": "988c10143a5aef9e",
+   "does": "Snapshots MainTabView in the hosted environment as 'shell-main-tab'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RemainingScreenSnapshotTests.swift::func RemainingScreenSnapshotTests.hosted(_:)",
+    "Emuqu/Sources/Views/MainTabView.swift::init MainTabView(initialSessionCount:initialSeedScore:initialSeedSummary:requestedTab:)",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.body",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/<name>.raw"
+   ],
+   "writes": [
+    "file:EmuquTests/__Snapshots__/<name>.raw (written when SNAPSHOT_RECORD=1 or missing)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MainTabView.swift::init MainTabView(initialSessionCount:initialSeedScore:initialSeedSummary:requestedTab:)": "b2c8e356a16948e7",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.body": "c55697362bff6d95",
+    "EmuquTests/RemainingScreenSnapshotTests.swift::func RemainingScreenSnapshotTests.hosted(_:)": "e13c944ff232d978",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  },
+  {
+   "key": "func RemainingScreenSnapshotTests.testHistoryRenders()",
+   "hash": "73238a993154f5f7",
+   "does": "Snapshots HistoryView (no-op delete/tag callbacks, no reanalyze) as 'screen-history'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RemainingScreenSnapshotTests.swift::func RemainingScreenSnapshotTests.hosted(_:)",
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.body",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/<name>.raw"
+   ],
+   "writes": [
+    "file:EmuquTests/__Snapshots__/<name>.raw (written when SNAPSHOT_RECORD=1 or missing)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.body": "e46cd1410404416c",
+    "EmuquTests/RemainingScreenSnapshotTests.swift::func RemainingScreenSnapshotTests.hosted(_:)": "e13c944ff232d978",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  },
+  {
+   "key": "func RemainingScreenSnapshotTests.testBiometricsSettingsRenders()",
+   "hash": "5fe9fdde2bb30ed0",
+   "does": "Snapshots BiometricsSettingsPage as 'screen-biometrics-settings'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RemainingScreenSnapshotTests.swift::func RemainingScreenSnapshotTests.hosted(_:)",
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::var BiometricsSettingsPage.body",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/<name>.raw"
+   ],
+   "writes": [
+    "file:EmuquTests/__Snapshots__/<name>.raw (written when SNAPSHOT_RECORD=1 or missing)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::var BiometricsSettingsPage.body": "b78ca5c83c82ee18",
+    "EmuquTests/RemainingScreenSnapshotTests.swift::func RemainingScreenSnapshotTests.hosted(_:)": "e13c944ff232d978",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  },
+  {
+   "key": "func RemainingScreenSnapshotTests.testWearablesSettingsRenders()",
+   "hash": "89360e3cabcc7635",
+   "does": "Snapshots WearablesSettingsPage as 'screen-wearables-settings'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RemainingScreenSnapshotTests.swift::func RemainingScreenSnapshotTests.hosted(_:)",
+    "Emuqu/Sources/Views/WearablesSettingsPage.swift::var WearablesSettingsPage.body",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/<name>.raw"
+   ],
+   "writes": [
+    "file:EmuquTests/__Snapshots__/<name>.raw (written when SNAPSHOT_RECORD=1 or missing)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/WearablesSettingsPage.swift::var WearablesSettingsPage.body": "fd0db6b248b9c0d5",
+    "EmuquTests/RemainingScreenSnapshotTests.swift::func RemainingScreenSnapshotTests.hosted(_:)": "e13c944ff232d978",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  },
+  {
+   "key": "func RemainingScreenSnapshotTests.testCoachHomeRenders()",
+   "hash": "e128917f90e17d37",
+   "does": "Snapshots CoachHomeV2View as 'screen-coach-home'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RemainingScreenSnapshotTests.swift::func RemainingScreenSnapshotTests.hosted(_:)",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachHomeV2View.body",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/<name>.raw"
+   ],
+   "writes": [
+    "file:EmuquTests/__Snapshots__/<name>.raw (written when SNAPSHOT_RECORD=1 or missing)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachHomeV2View.body": "36c2de2a5aa72f2c",
+    "EmuquTests/RemainingScreenSnapshotTests.swift::func RemainingScreenSnapshotTests.hosted(_:)": "e13c944ff232d978",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  },
+  {
+   "key": "func RemainingScreenSnapshotTests.testDiscoverTrailsRenders()",
+   "hash": "1d135bffb8b408df",
+   "does": "Snapshots DiscoverTrailsView as 'screen-discover-trails'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RemainingScreenSnapshotTests.swift::func RemainingScreenSnapshotTests.hosted(_:)",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.body",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/<name>.raw"
+   ],
+   "writes": [
+    "file:EmuquTests/__Snapshots__/<name>.raw (written when SNAPSHOT_RECORD=1 or missing)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.body": "8add271da25f437e",
+    "EmuquTests/RemainingScreenSnapshotTests.swift::func RemainingScreenSnapshotTests.hosted(_:)": "e13c944ff232d978",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  },
+  {
+   "key": "func RemainingScreenSnapshotTests.testSessionHRVDetailRenders()",
+   "hash": "d2bd7c7f093bbcde",
+   "does": "Snapshots SessionHRVDetailView with the fixture overnight session, analysis result and 8 recent sessions as 'screen-session-hrv-detail'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RemainingScreenSnapshotTests.swift::func RemainingScreenSnapshotTests.hosted(_:)",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.overnightSession(dayOffset:)",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.analysisResult()",
+    "EmuquTests/RemainingScreenSnapshotTests.swift::var RemainingScreenSnapshotTests.sessions",
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.body",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/<name>.raw"
+   ],
+   "writes": [
+    "file:EmuquTests/__Snapshots__/<name>.raw (written when SNAPSHOT_RECORD=1 or missing)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.body": "e122afd92fdae844",
+    "EmuquTests/RemainingScreenSnapshotTests.swift::func RemainingScreenSnapshotTests.hosted(_:)": "e13c944ff232d978",
+    "EmuquTests/RemainingScreenSnapshotTests.swift::var RemainingScreenSnapshotTests.sessions": "50f73571814f0c8c",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.analysisResult()": "c6360e6fb9ef3864",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.overnightSession(dayOffset:)": "3dba07231f9145b1",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  },
+  {
+   "key": "func RemainingScreenSnapshotTests.testSleepTimelineEditorRenders()",
+   "hash": "a883d3ef7230b41e",
+   "does": "Snapshots SleepTimelineEditorView with fixture SleepData as 'screen-sleep-timeline-editor'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RemainingScreenSnapshotTests.swift::func RemainingScreenSnapshotTests.hosted(_:)",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.sleepData()",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView.swift::init SleepTimelineEditorView(sleepData:onSave:onRefreshFromHealthKit:onRefreshAccepted:)",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView.swift::var SleepTimelineEditorView.body",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/<name>.raw"
+   ],
+   "writes": [
+    "file:EmuquTests/__Snapshots__/<name>.raw (written when SNAPSHOT_RECORD=1 or missing)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView.swift::init SleepTimelineEditorView(sleepData:onSave:onRefreshFromHealthKit:onRefreshAccepted:)": "db0defaca7037a9b",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView.swift::var SleepTimelineEditorView.body": "9a46dba71f553c72",
+    "EmuquTests/RemainingScreenSnapshotTests.swift::func RemainingScreenSnapshotTests.hosted(_:)": "e13c944ff232d978",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.sleepData()": "f3d2e3e8542e2fab",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  }
+ ],
+ "deps": {}
+}

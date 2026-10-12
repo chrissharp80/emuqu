@@ -11,14 +11,15 @@ import SwiftUI
 ///   2. Hero — RMSSD value, verdict pill, one-sentence interpretation
 ///   3. Min/Avg/Max/SDNN strip (4-up)
 ///   4. Autonomic Capacity card — peak RMSSD/SDNN/window HR
-///   5. Trend Analysis — rows of today vs the 30-day overnight average
+///   5. Trend Analysis — RMSSD vs the recovery baseline the hero uses, the
+///      other rows vs the 30-day average of reliable overnight readings
 ///   6. HRV waveform chart (RR intervals)
 ///   7. Poincaré plot
 ///   8. EngineRoomDisclosure with five tabbed metric grids
 ///
 /// Edge cases:
-///   - Reading too short for Frequency Domain (< 256 beats) → the tab stays
-///     enabled and explains why it is empty
+///   - Reading too short for Frequency Domain (under ~60 clean beats) → the
+///     tab stays enabled and explains why it is empty
 ///   - High artifact rate (> 10%) → caution banner
 struct HRVDetailV2View: View {
     @Environment(\.dependencies) var dependencies
@@ -76,17 +77,15 @@ struct HRVDetailV2View: View {
     /// The waveform chart's sampled beats, built once per series load.
     @State var rrPlotPoints: [RRPlotPoint] = []
 
-    /// Async-loaded Beat Consistency baseline. The
-    /// dashboard pushes lightweight sessions (rrSeries == nil) into
-    /// `recentSessions`, so the calibration math has no nights to feed
-    /// the baseline and the counter is stuck at 0 / 14 forever. A
-    /// synchronous `archive.retrieve` inside a computed property runs 28
-    /// full session decodes on the main thread on every body recompute and
-    /// freezes the screen, so the baseline is loaded ONCE, off the main
-    /// thread, in `.task` (alongside the rrSeries load), and stashed in
-    /// @State. The body just reads from the array.
-    @State private var priorBaselineFeatures: [BeatConsistency.Features] = []
+    /// The Beat Consistency priors are loaded ONCE, off the main thread, in
+    /// `.task` (after the rrSeries load) and scored into
+    /// `beatConsistencyComputed`; this flag says that load has finished.
     @State var baselineLoadCompleted: Bool = false
+
+    /// The 30-day reliable-overnight averages the trend rows compare
+    /// against, loaded from the whole archive index in `.task`. Nil while
+    /// loading.
+    @State var trendAverages: TrendAverages?
 
     /// The scored Beat Consistency result, computed once
     /// per session-view-open in the `.task(id: session.id)` block (right
@@ -265,11 +264,15 @@ struct HRVDetailV2View: View {
     private func loadDetail() async {
         rrLoadCompleted = false
         baselineLoadCompleted = false
-        priorBaselineFeatures = []
         beatConsistencyComputed = nil
+        fullRRSeries = nil
+        rrPlotPoints = []
+        trendAverages = nil
         await loadRRSeries()
         // Honor cancellation — if the user backed out, don't spend seconds
         // walking 17 priors for a dead view.
+        if Task.isCancelled { return }
+        await loadTrendAverages()
         if Task.isCancelled { return }
         await loadBeatConsistencyBaseline()
     }
@@ -297,9 +300,14 @@ struct HRVDetailV2View: View {
     ///
     /// Trade-off: total latency goes back to sum (rrSeries + priors) instead of
     /// max. A few hundred ms slower in the best case, but it actually FINISHES.
+    ///
+    /// A load superseded by a newer session (`.task(id:)` cancels it) writes
+    /// nothing, so a late read of the previous night never lands under the
+    /// new night's header.
     private func loadRRSeries() async {
-        if let full = await collector.retrieveFullSessionAsync(session.id),
-           let series = full.rrSeries, !series.points.isEmpty {
+        let full = await collector.retrieveFullSessionAsync(session.id)
+        guard !Task.isCancelled else { return }
+        if let series = full?.rrSeries, !series.points.isEmpty {
             fullRRSeries = series
         }
         rrPlotPoints = Self.sampledRRPoints(effectiveRRSeries)
@@ -324,7 +332,6 @@ struct HRVDetailV2View: View {
         cache.startWarm(priorIds, archive: archive)
         let resolved = await waitForPriors(priorIds, cache: cache)
         guard !Task.isCancelled else { return }
-        priorBaselineFeatures = resolved
         beatConsistencyComputed = await scoreNight(priors: resolved)
         baselineLoadCompleted = true
     }
@@ -604,7 +611,7 @@ struct HRVDetailV2View: View {
         trendRow(
             metric: String(localized: "Mean HR", bundle: LanguageManager.appBundle),
             today: result.timeDomain.meanHR,
-            avg: trendAverage(for: \.timeDomain.meanHR),
+            avg: trendAverages?.meanHR,
             unit: String(localized: "bpm", bundle: LanguageManager.appBundle),
             higherIsBetter: false
         )
@@ -615,14 +622,15 @@ struct HRVDetailV2View: View {
         trendRow(
             metric: "RMSSD",
             today: result.timeDomain.rmssd,
-            avg: trendAverage(for: \.timeDomain.rmssd),
+            avg: rmssdComparison.avg,
             unit: String(localized: "ms", bundle: LanguageManager.appBundle),
-            higherIsBetter: true
+            higherIsBetter: true,
+            againstBaseline: rmssdComparison.againstBaseline
         )
         trendRow(
             metric: "SDNN",
             today: result.timeDomain.sdnn,
-            avg: trendAverage(for: \.timeDomain.sdnn),
+            avg: trendAverages?.sdnn,
             unit: String(localized: "ms", bundle: LanguageManager.appBundle),
             higherIsBetter: true
         )
@@ -634,102 +642,113 @@ struct HRVDetailV2View: View {
             trendRow(
                 metric: String(localized: "Stress index", bundle: LanguageManager.appBundle),
                 today: stress,
-                avg: trendAverageOptional(for: \.ansMetrics?.stressIndex),
+                avg: trendAverages?.stress,
                 unit: "",
                 higherIsBetter: false
             )
         }
     }
 
-    /// Trend average is the mean of the last 30 days of overnight readings,
-    /// which the row labels "vs 30-day avg". A 7-day
-    /// window produces
-    /// psychologically unstable percentages when the denominator is
-    /// small — e.g. RMSSD +167% read as "you're peaking massively"
-    /// when it actually meant "your 7-day average is unusually low
-    /// and today is normal-ish." Reserving 7-day comparisons for the
-    /// trajectory surface where week-over-week change is the point.
-    private func trendAverage(for keyPath: KeyPath<HRVAnalysisResult, Double>) -> Double? {
-        let cutoff = Calendar.current.date(byAdding: .day, value: -30, to: Date()) ?? Date()
-        let values = recentSessions.compactMap { s -> Double? in
-            // MUST filter to overnight sessions. `recentSessions`
-            // is mixed-type (overnight + workout + quick), and averaging in
-            // workouts/daytime readings wrecks the "vs 30-day avg" deltas:
-            // workouts crush RMSSD and spike HR/stress, so an overnight night
-            // reads as "+86% RMSSD / −42% HR / −95% stress" against a polluted
-            // average. The hero card uses only overnight
-            // (latestOvernightComplete); these trend rows must match.
-            guard s.sessionType == .overnight,
-                  s.id != session.id,
-                  s.startDate >= cutoff,
-                  let r = s.analysisResult else { return nil }
-            return r[keyPath: keyPath]
-        }
-        guard !values.isEmpty else { return nil }
-        return values.reduce(0, +) / Double(values.count)
+    /// Today's RMSSD against the recovery baseline the hero subtitle uses
+    /// (the tracker's geometric mean, exp(lnRmssdMean)), so the screen gives
+    /// one "vs your usual" figure for RMSSD; the 30-day overnight average
+    /// only when there is no baseline yet.
+    private var rmssdComparison: (avg: Double?, againstBaseline: Bool) {
+        if let mean = baselineStats?.lnRmssdMean, mean > 0 { return (exp(mean), true) }
+        return (trendAverages?.rmssd, false)
     }
 
-    private func trendAverageOptional(for keyPath: KeyPath<HRVAnalysisResult, Double?>) -> Double? {
+    /// Loads the 30-day averages off the main actor. A load superseded by a
+    /// newer session writes nothing.
+    private func loadTrendAverages() async {
+        let archive = collector.archive
+        let id = session.id
         let cutoff = Calendar.current.date(byAdding: .day, value: -30, to: Date()) ?? Date()
-        let values = recentSessions.compactMap { s -> Double? in
-            // MUST filter to overnight sessions. `recentSessions`
-            // is mixed-type (overnight + workout + quick), and averaging in
-            // workouts/daytime readings wrecks the "vs 30-day avg" deltas:
-            // workouts crush RMSSD and spike HR/stress, so an overnight night
-            // reads as "+86% RMSSD / −42% HR / −95% stress" against a polluted
-            // average. The hero card uses only overnight
-            // (latestOvernightComplete); these trend rows must match.
-            guard s.sessionType == .overnight,
-                  s.id != session.id,
-                  s.startDate >= cutoff,
-                  let r = s.analysisResult else { return nil }
-            return r[keyPath: keyPath]
-        }
-        guard !values.isEmpty else { return nil }
-        return values.reduce(0, +) / Double(values.count)
+        let averages = await Task.detached(priority: .userInitiated) {
+            Self.averagesForTrend(archive: archive, excluding: id, since: cutoff)
+        }.value
+        guard !Task.isCancelled else { return }
+        trendAverages = averages
     }
 
-    private func trendRow(metric: String, today: Double, avg: Double?, unit: String, higherIsBetter: Bool) -> some View {
+    /// Means over the last 30 days of RELIABLE OVERNIGHT readings in the whole
+    /// archive index, this session excluded — not the dashboard's mixed
+    /// 35-recent slice, which for a user with workouts or quick readings
+    /// covers far fewer nights (the same truncation the Beat Consistency
+    /// priors avoid). Workouts and daytime readings would wreck the deltas
+    /// (they crush RMSSD and spike HR/stress), and high-artifact nights are
+    /// left out as the Compare-to-history sheet leaves them out. RMSSD, HR
+    /// and stress come from the index entry; SDNN needs a lightweight read.
+    nonisolated static func averagesForTrend(archive: SessionArchive, excluding id: UUID, since cutoff: Date) -> TrendAverages {
+        let nights = archive.entries.filter {
+            $0.sessionType == .overnight && $0.isReliableForHRVAggregates && $0.sessionId != id && $0.date >= cutoff
+        }
+        let sdnns = nights.compactMap {
+            archive.retrieveLightweightOrLog($0.sessionId, caller: "HRVDetail.trend")?.analysisResult?.timeDomain.sdnn
+        }
+        return TrendAverages(
+            rmssd: trendMean(nights.compactMap(\.meanRMSSD)),
+            sdnn: trendMean(sdnns),
+            meanHR: trendMean(nights.compactMap(\.meanHR)),
+            stress: trendMean(nights.compactMap(\.stressIndex))
+        )
+    }
+
+    /// The trend rows' 30-day averages; nil where no night carried the metric.
+    struct TrendAverages: Sendable {
+        let rmssd: Double?
+        let sdnn: Double?
+        let meanHR: Double?
+        let stress: Double?
+    }
+
+    private func trendRow(
+        metric: String, today: Double, avg: Double?, unit: String, higherIsBetter: Bool, againstBaseline: Bool = false
+    ) -> some View {
         HStack {
             Text(verbatim: metric)
                 .font(.system(size: dt14, weight: .medium))
                 .foregroundStyle(AppTheme.textPrimary)
             Spacer()
-            trendRowValues(today: today, avg: avg, unit: unit, higherIsBetter: higherIsBetter)
+            trendRowValues(today: today, avg: avg, unit: unit, higherIsBetter: higherIsBetter, againstBaseline: againstBaseline)
         }
         .padding(12)
         .background(RoundedRectangle(cornerRadius: 12).fill(AppTheme.cardBackground))
     }
 
     @ViewBuilder
-    private func trendRowValues(today: Double, avg: Double?, unit: String, higherIsBetter: Bool) -> some View {
+    private func trendRowValues(today: Double, avg: Double?, unit: String, higherIsBetter: Bool, againstBaseline: Bool) -> some View {
         VStack(alignment: .trailing, spacing: 2) {
             Text(verbatim: "\(formatValue(today)) \(unit)")
                 .font(.system(size: dt14, weight: .semibold).monospacedDigit())
                 .foregroundStyle(AppTheme.textPrimary)
             if let avg {
-                trendDeltaText(today: today, avg: avg, higherIsBetter: higherIsBetter)
+                trendDeltaText(today: today, avg: avg, higherIsBetter: higherIsBetter, againstBaseline: againstBaseline)
             }
         }
     }
 
-    /// Render the "+12% vs 30-day avg" delta line. Pulled out of the
-    /// `trendRow` ViewBuilder so the if/else colour decision can use
-    /// regular Swift control flow without tripping the result builder
+    /// Render the "+12% vs 30-day avg" (or "vs baseline") delta line. Pulled
+    /// out of the `trendRow` ViewBuilder so the if/else colour decision can
+    /// use regular Swift control flow without tripping the result builder
     /// (assignments evaluate to `()` which doesn't conform to `View`).
-    private func trendDeltaText(today: Double, avg: Double, higherIsBetter: Bool) -> some View {
-        let delta = today - avg
-        let pct = avg > 0 ? (delta / avg) * 100 : 0
+    private func trendDeltaText(today: Double, avg: Double, higherIsBetter: Bool, againstBaseline: Bool) -> some View {
+        let pct = avg > 0 ? ((today - avg) / avg) * 100 : 0
         let directionUp = pct >= 0
         let color: Color
         if abs(pct) < 5 {
             color = AppTheme.textTertiary
-        } else if (directionUp && higherIsBetter) || (!directionUp && !higherIsBetter) {
+        } else if directionUp == higherIsBetter {
             color = AppTheme.wongOptimal
         } else {
             color = AppTheme.wongCaution
         }
-        return Text(String(localized: "\(directionUp ? "+" : "")\(Int(pct.rounded()))% vs 30-day avg", bundle: LanguageManager.appBundle))
+        let sign = directionUp ? "+" : ""
+        let percent = Int(pct.rounded())
+        let label = againstBaseline
+            ? String(localized: "\(sign)\(percent)% vs baseline", bundle: LanguageManager.appBundle)
+            : String(localized: "\(sign)\(percent)% vs 30-day avg", bundle: LanguageManager.appBundle)
+        return Text(label)
             .font(.system(size: dt11))
             .foregroundStyle(color)
     }
@@ -737,4 +756,9 @@ struct HRVDetailV2View: View {
     private func formatValue(_ v: Double) -> String {
         v < 10 ? String(format: "%.1f", locale: LanguageManager.appLocale, v) : String(Int(v.rounded()))
     }
+}
+
+/// Arithmetic mean, nil for no values.
+private func trendMean(_ values: [Double]) -> Double? {
+    values.isEmpty ? nil : values.reduce(0, +) / Double(values.count)
 }

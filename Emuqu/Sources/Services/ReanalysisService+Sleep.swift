@@ -16,12 +16,11 @@ extension ReanalysisService {
         progress: @escaping (Int, Int) -> Void = { _, _ in }
     ) async -> Int {
         let filtered = Self.sessionsInRange(sessions, from: nil, to: nil).filter { $0.sessionType == .overnight }
-        let settings = settingsProvider()
         var successCount = 0
 
         for (index, session) in filtered.enumerated() {
             if Task.isCancelled { break }
-            if await retroApply(to: session, settings: settings) { successCount += 1 }
+            if await retroApply(to: session) { successCount += 1 }
             progress(index + 1, filtered.count)
         }
 
@@ -33,17 +32,13 @@ extension ReanalysisService {
     /// Re-run the sleep pipeline for one session and persist the result.
     /// Returns whether the session was actually rewritten.
     ///
-    /// Split by the four things it does:
-    /// fetch, decide, re-score, persist.
-    private func retroApply(to session: HRVSession, settings: UserSettings) async -> Bool {
+    /// Split by the things it does: fetch, decide, then apply, re-score and
+    /// persist on the archived copy.
+    private func retroApply(to session: HRVSession) async -> Bool {
         let sessionEnd = session.endDate ?? session.startDate.addingTimeInterval(Self.assumedSessionLength)
         guard let newSleep = await fetchSleep(for: session, sessionEnd: sessionEnd) else { return false }
         guard Self.shouldRetroApply(to: session, newSleep: newSleep, sessionEnd: sessionEnd) else { return false }
-
-        var updated = session
-        Self.applySleepBoundaries(newSleep, to: &updated, sessionStart: session.startDate)
-        rescore(&updated, newSleep: newSleep, sessionEnd: sessionEnd, settings: settings)
-        return persist(updated, originalID: session.id)
+        return persistRetroApply(newSleep, sessionId: session.id, sessionEnd: sessionEnd)
     }
 
     /// A session with no end date is treated as a twelve-hour window — long
@@ -51,15 +46,19 @@ extension ReanalysisService {
     private static let assumedSessionLength: TimeInterval = 12 * 60 * 60
 
     /// Re-run the full sleep pipeline with current settings. The augmentation
-    /// flag is read inside. Nil on a fetch failure, which is logged and skipped
+    /// flag is read inside. The day-before's qualifying nap is credited
+    /// toward 24 h sleep, as every morning-path fetch does, so a retro-apply
+    /// does not drop it. Nil on a fetch failure, which is logged and skipped
     /// rather than aborting the whole sweep.
     private func fetchSleep(for session: HRVSession, sessionEnd: Date) async -> SleepData? {
         do {
-            return try await healthKit.fetchSleepData(
+            let fetchedSleep = try await healthKit.fetchSleepData(
                 for: session.startDate,
                 recordingEnd: sessionEnd,
                 rrPoints: session.rrSeries?.points
             )
+            let napMinutes = await healthKit.fetchDaytimeNapMinutes(nightAnchoredAt: session.startDate)
+            return napMinutes > 0 ? fetchedSleep.withNapSleepMinutes(napMinutes) : fetchedSleep
         } catch {
             debugLog("[ReanalysisService] Sleep retro-apply: fetch failed for \(session.id.uuidString.prefix(8)): \(error)")
             return nil
@@ -91,8 +90,8 @@ extension ReanalysisService {
     ) {
         updated.sleepSnapshot = newSleep
         let clamped = SleepBoundaryResolver.clamp(
-            sleepStartMs: newSleep.sleepStart.map { Int64($0.timeIntervalSince(sessionStart) * 1000) },
-            sleepEndMs: newSleep.sleepEnd.map { Int64($0.timeIntervalSince(sessionStart) * 1000) },
+            sleepStartMs: newSleep.sleepStart.flatMap { MillisecondOffset.between($0, and: sessionStart) },
+            sleepEndMs: newSleep.sleepEnd.flatMap { MillisecondOffset.between($0, and: sessionStart) },
             recordingDurationMs: recordingDurationMs(of: updated)
         )
         if let start = clamped.sleepStartMs { updated.sleepStartMs = start }
@@ -137,78 +136,43 @@ extension ReanalysisService {
         return last.endMs
     }
 
-    /// Recompute the frozen recovery score against the updated sleep.
-    private func rescore(
-        _ updated: inout HRVSession,
-        newSleep: SleepData,
-        sessionEnd: Date,
-        settings: UserSettings
-    ) {
-        guard let result = updated.analysisResult else { return }
-        let trainingContext = updated.trainingSnapshot ?? result.trainingContext ?? trainingContextProvider(sessionEnd)
-        let breakdown = RecoveryScoreCalculator.calculateWithBreakdown(
-            scoreInputs(from: result, session: updated, newSleep: newSleep, settings: settings),
-            trainingContext: trainingContext,
-            config: scoringConfigProvider(),
-            // See deriveUseBaselineHRVOnRescore.
-            useBaselineHRV: !updated.isReliableForHRVAggregates,
-            perceivedReadiness: updated.perceivedReadiness,
-            ansBalance: Self.ansBalance(from: result),
-            referenceDate: sessionEnd
-        )
-        updated.recoveryScore = RecoveryScoreCalculator.toTenScale(breakdown.compositeScore)
-        updated.scoreBreakdown = breakdown
-        updated.frozenReadiness = Self.computeFrozenReadiness(
-            compositeScore: breakdown.compositeScore,
-            trainingContext: trainingContext
-        )
-    }
-
-    /// The physiological readings one re-score works from — the analysis
-    /// result's own metrics, the user's baseline, and the freshly fetched sleep.
-    private func scoreInputs(
-        from result: HRVAnalysisResult,
-        session: HRVSession,
-        newSleep: SleepData,
-        settings: UserSettings
-    ) -> RecoveryScoreCalculator.ScoreInputs {
-        RecoveryScoreCalculator.ScoreInputs(
-            hrvReadiness: result.ansMetrics?.readinessScore,
-            rmssd: result.timeDomain.rmssd,
-            meanHR: result.timeDomain.meanHR,
-            dfaAlpha1: result.nonlinear.dfaAlpha1,
-            baselineStats: scoringBaseline(for: session),
-            sleepData: newSleep,
-            vitals: Self.scoringVitals(of: session, result: result),
-            typicalSleepHours: settings.typicalSleepHours
-        )
-    }
-
-    /// Preserve the acceptance path's ANS-balance term on a sleep-edit re-score.
-    private static func ansBalance(from result: HRVAnalysisResult) -> Double? {
-        guard let pns = result.ansMetrics?.pnsIndex, let sns = result.ansMetrics?.snsIndex else { return nil }
-        return pns - sns
-    }
-
-    /// Persist and sync. Nothing here writes to Apple Health; sleep reaches
-    /// it only through `HealthKitManager.exportSessionMetrics`, when
+    /// Apply the new sleep, re-classify and re-score on the archived copy,
+    /// under the archive lock (`SessionArchive.update`), so an edit made while
+    /// the sleep was being fetched (a rating, tags, a sleep edit) is kept, not
+    /// overwritten with the copy the sweep loaded; the skip rules run again on
+    /// that copy. Then sync. Nothing here writes to Apple Health; sleep
+    /// reaches it only through `HealthKitManager.exportSessionMetrics`, when
     /// `exportSleepData` is on and Emuqu is the night's only sleep source.
-    private func persist(_ updated: HRVSession, originalID: UUID) -> Bool {
+    private func persistRetroApply(_ newSleep: SleepData, sessionId: UUID, sessionEnd: Date) -> Bool {
+        var written: HRVSession?
         do {
-            try archive.archive(updated)
-            Task { self.onSessionUploaded(updated) }
-            return true
+            try archive.update(sessionId, requestingReupload: false) { stored in
+                written = retroApplied(newSleep, to: &stored, sessionEnd: sessionEnd)
+            }
         } catch {
-            debugLog("[ReanalysisService] Sleep retro-apply: save failed for \(originalID.uuidString.prefix(8)): \(error)")
+            debugLog("[ReanalysisService] Sleep retro-apply: save failed for \(sessionId.uuidString.prefix(8)): \(error)")
             return false
         }
+        guard let written else { return false }
+        Task { self.onSessionUploaded(written) }
+        return true
+    }
+
+    /// The skip rules on the archived copy, then the new sleep, the
+    /// re-classification and the re-score. Nil (copy unchanged) when a rule
+    /// now skips the session, e.g. the user adjusted its sleep meanwhile.
+    private func retroApplied(_ newSleep: SleepData, to stored: inout HRVSession, sessionEnd: Date) -> HRVSession? {
+        guard Self.shouldRetroApply(to: stored, newSleep: newSleep, sessionEnd: sessionEnd) else { return nil }
+        Self.applySleepBoundaries(newSleep, to: &stored, sessionStart: stored.startDate)
+        rescoreAfterSleepChange(&stored, sessionEnd: sessionEnd)
+        return stored
     }
 
     // MARK: - Manual Window Reanalysis
 
     /// Reanalyze a session at a specific timestamp (for manual window selection).
     func reanalyzeAtPosition(_ inputSession: HRVSession, targetMs: Int64) async -> HRVAnalysisResult? {
-        let session = hydrated(inputSession)
+        let session = hydrated(latestArchivedCopy(of: inputSession))
         let sessionDate = session.endDate ?? session.startDate
         let trainingContext = session.trainingSnapshot ?? session.analysisResult?.trainingContext ?? trainingContextProvider(sessionDate)
         return await analysisPipeline.reanalyzeAtPosition(
@@ -223,7 +187,7 @@ extension ReanalysisService {
         // Hydrate before any archive write — otherwise a lightweight
         // input session would be re-encoded with `rrSeries: nil`,
         // erasing the raw beats from disk.
-        let session = hydrated(inputSession)
+        let session = hydrated(latestArchivedCopy(of: inputSession))
         var appliedResult = result
         appliedResult.isReanalysis = true
         // Preserve the frozen training context from the original session.
@@ -235,15 +199,29 @@ extension ReanalysisService {
         preserveAutoWindow(of: session, on: &updatedSession)
         updatedSession.analysisResult = appliedResult
         updatedSession.windowUserAdjusted = true
+        reclassifyHRVQuality(of: &updatedSession, result: appliedResult)
         applyDeterministicScore(to: &updatedSession, result: appliedResult, training: frozenTraining)
         return await persistManualAnalysis(updatedSession, originalId: session.id)
+    }
+
+    /// The archived copy of `session` when there is one, so a manual pick
+    /// starts from what the archive holds now (a sleep edit, merge or rescore
+    /// made after the sheet captured its copy), not the sheet's copy. Falls
+    /// back to `session` when it is not archived or the read fails.
+    private func latestArchivedCopy(of session: HRVSession) -> HRVSession {
+        do {
+            return try archive.retrieve(session.id) ?? session
+        } catch {
+            debugLog("[ReanalysisService] Archive read failed for \(session.id.uuidString.prefix(8)); using the given copy: \(error)", level: .warning)
+            return session
+        }
     }
 
     /// Keep frozen snapshots so manual reanalysis remains deterministic and local.
     private func applyDeterministicScore(
         to session: inout HRVSession, result: HRVAnalysisResult, training: TrainingContext?
     ) {
-        guard let scored = deterministicRecoveryScore(for: session, result: result) else { return }
+        let scored = deterministicRecoveryScore(for: session, result: result)
         session.recoveryScore = scored.score
         session.scoreBreakdown = scored.breakdown
         session.frozenReadiness = Self.computeFrozenReadiness(
@@ -289,12 +267,12 @@ extension ReanalysisService {
             return false
         }
         do {
-            guard var session = try archive.retrieve(sessionId) else {
+            guard let session = try archive.retrieve(sessionId) else {
                 debugLog("[UpdateSleepBounds] Bailed: session \(sessionId.uuidString.prefix(8)) not in archive")
                 return false
             }
             return try applySleepBoundaries(
-                to: &session, sleepData: sleepData, sleepStart: sleepStart,
+                to: session, sleepData: sleepData, sleepStart: sleepStart,
                 sleepEnd: sleepEnd, isUserAdjustment: isUserAdjustment
             )
         } catch {
@@ -303,10 +281,11 @@ extension ReanalysisService {
         }
     }
 
-    /// Compute the new offsets, decide whether they apply, write them, rescore
-    /// and persist. False means the update was rejected by a gate.
+    /// Compute the new offsets clamped to the recording, decide on the
+    /// session as read whether they apply, then write them on the archived
+    /// copy. False means the update was rejected by a gate.
     private func applySleepBoundaries(
-        to session: inout HRVSession,
+        to session: HRVSession,
         sleepData: SleepData,
         sleepStart: Date,
         sleepEnd: Date,
@@ -318,23 +297,35 @@ extension ReanalysisService {
             session: session, sleepStart: sleepStart, sleepEnd: sleepEnd, newStartMs: newStartMs,
             newEndMs: newEndMs, sleepData: sleepData, isUserAdjustment: isUserAdjustment
         )
-        guard isUserAdjustment || shouldApplyAutomaticUpdate(to: session, sleepData: sleepData, newDuration: newEndMs - newStartMs) else {
+        let offsets = Self.clampedOffsets(startMs: newStartMs, endMs: newEndMs, of: session)
+        let newDuration = offsets.endMs - offsets.startMs
+        guard isUserAdjustment || shouldApplyAutomaticUpdate(to: session, sleepData: sleepData, newDuration: newDuration) else {
             return false
         }
-        let oldMinutes = session.sleepSnapshot?.nightSleepMinutes ?? 0
-        applyBoundaries(
-            to: &session, sleepData: sleepData, newStartMs: newStartMs,
-            newEndMs: newEndMs, isUserAdjustment: isUserAdjustment
-        )
-        rescoreAfterSleepChange(&session, sleepData: sleepData)
-        try persistSleepUpdate(session, sleepData: sleepData, oldMinutes: oldMinutes, isUserAdjustment: isUserAdjustment)
+        let updated = try writeSleepUpdate(offsets, sleepData: sleepData, onto: session, isUserAdjustment: isUserAdjustment)
+        reportSleepUpdate(updated, sleepData: sleepData, oldMinutes: session.sleepSnapshot?.nightSleepMinutes ?? 0, isUserAdjustment: isUserAdjustment)
         return true
     }
 
-    private func persistSleepUpdate(
+    /// Write the boundaries, segments and snapshot, re-classify and re-score
+    /// on the archived copy under the archive lock (`SessionArchive.update`),
+    /// so an edit landing since the session was read is kept rather than
+    /// overwritten. Returns the session as written.
+    private func writeSleepUpdate(
+        _ offsets: (startMs: Int64, endMs: Int64), sleepData: SleepData, onto session: HRVSession, isUserAdjustment: Bool
+    ) throws -> HRVSession {
+        var written = session
+        try archive.update(session.id, requestingReupload: isUserAdjustment) { stored in
+            applyBoundaries(to: &stored, sleepData: sleepData, offsets: offsets, isUserAdjustment: isUserAdjustment)
+            rescoreAfterSleepChange(&stored, sessionEnd: stored.endDate ?? stored.startDate)
+            written = stored
+        }
+        return written
+    }
+
+    private func reportSleepUpdate(
         _ session: HRVSession, sleepData: SleepData, oldMinutes: Int, isUserAdjustment: Bool
-    ) throws {
-        try archive.archive(session, skipSameNightMerge: false, requestingReupload: isUserAdjustment)
+    ) {
         debugLog("[ReanalysisService] Updated sleep data for session \(session.id.uuidString.prefix(8)): \(oldMinutes)min → \(sleepData.nightSleepMinutes)min\(isUserAdjustment ? " (user adjustment)" : "")")
         Task { @MainActor in self.onArchiveChanged() }
         let sessionToUpload = session
@@ -386,25 +377,25 @@ extension ReanalysisService {
         return newDuration > storedDuration || sleepData.nightSleepMinutes > snapshotMinutes
     }
 
-    /// Store the boundaries clamped to the strap recording, as the live
-    /// write paths do; an offset the clamp rejects is stored as given.
-    private static func storeClampedOffsets(startMs: Int64, endMs: Int64, on session: inout HRVSession) {
-        let clamped = SleepBoundaryResolver.clamp(
-            sleepStartMs: startMs, sleepEndMs: endMs, recordingDurationMs: recordingDurationMs(of: session)
-        )
-        session.sleepStartMs = clamped.sleepStartMs ?? startMs
-        session.sleepEndMs = clamped.sleepEndMs ?? endMs
+    /// The boundaries clamped to the strap recording, as the live write
+    /// paths clamp them: the bounds `SleepBoundaryResolver.clamp` applies
+    /// (0 ... recording length), for offsets that are always present. The
+    /// "more data" test and the stored offsets both use these, so an end
+    /// past the recording does not count as new data on every refresh.
+    private static func clampedOffsets(startMs: Int64, endMs: Int64, of session: HRVSession) -> (startMs: Int64, endMs: Int64) {
+        let limit = recordingDurationMs(of: session)
+        return (max(0, min(startMs, limit)), max(0, min(endMs, limit)))
     }
 
-    /// Write the new boundaries, segments and frozen snapshot onto the session.
+    /// Write the clamped boundaries, segments and frozen snapshot onto the session.
     private func applyBoundaries(
         to session: inout HRVSession,
         sleepData: SleepData,
-        newStartMs: Int64,
-        newEndMs: Int64,
+        offsets: (startMs: Int64, endMs: Int64),
         isUserAdjustment: Bool
     ) {
-        Self.storeClampedOffsets(startMs: newStartMs, endMs: newEndMs, on: &session)
+        session.sleepStartMs = offsets.startMs
+        session.sleepEndMs = offsets.endMs
         if sleepData.segments.count > 1 {
             let start = session.startDate
             session.sleepSegments = sleepData.segments.map { seg in
@@ -425,55 +416,25 @@ extension ReanalysisService {
         }
     }
 
-    /// Recalculate the recovery score when sleep data changes so the score
-    /// reflects excluded/adjusted segments. The ANS-balance term is preserved
-    /// from the acceptance path so a sleep edit doesn't drift the score for an
-    /// unrelated reason.
-    private static func ansBalance(of result: HRVAnalysisResult) -> Double? {
-        guard let pns = result.ansMetrics?.pnsIndex, let sns = result.ansMetrics?.snsIndex else { return nil }
-        return pns - sns
-    }
-
-    private func rescoreAfterSleepChange(
-        _ session: inout HRVSession, sleepData: SleepData
-    ) {
+    /// Recalculate the recovery score when the session's sleep snapshot
+    /// changed (a sleep edit, an automatic update or a retro-apply), so the
+    /// score reflects excluded/adjusted segments. The session is classified
+    /// again first: whether the recording overlaps sleep is decided from the
+    /// sleep, so an edit can set or clear `.preSleep`. The score is
+    /// `rescoredBreakdown` against the frozen training context, anchored to
+    /// `sessionEnd`.
+    private func rescoreAfterSleepChange(_ session: inout HRVSession, sessionEnd: Date) {
         guard let result = session.analysisResult else { return }
-        let sessionEnd = session.endDate ?? session.startDate
+        reclassifyHRVQuality(of: &session, result: result)
         let trainingContext = session.trainingSnapshot ?? result.trainingContext
             ?? trainingContextProvider(sessionEnd)
-        let breakdown = sleepAdjustedBreakdown(
-            session: session, result: result, sleepData: sleepData,
-            trainingContext: trainingContext, sessionEnd: sessionEnd
+        let breakdown = rescoredBreakdown(
+            of: session, result: result, training: trainingContext, referenceDate: sessionEnd
         )
         session.recoveryScore = RecoveryScoreCalculator.toTenScale(breakdown.compositeScore)
         session.scoreBreakdown = breakdown
         session.frozenReadiness = Self.computeFrozenReadiness(compositeScore: breakdown.compositeScore, trainingContext: trainingContext)
         debugLog("[ReanalysisService] Recalculated recovery score after sleep adjustment: \(String(format: "%.1f", session.recoveryScore ?? 0))")
-    }
-
-    /// The composite recomputed against the edited sleep, everything else frozen.
-    private func sleepAdjustedBreakdown(
-        session: HRVSession,
-        result: HRVAnalysisResult,
-        sleepData: SleepData,
-        trainingContext: TrainingContext?,
-        sessionEnd: Date
-    ) -> RecoveryScoreCalculator.ScoreBreakdown {
-        RecoveryScoreCalculator.calculateWithBreakdown(
-            RecoveryScoreCalculator.ScoreInputs(
-                hrvReadiness: result.ansMetrics?.readinessScore, rmssd: result.timeDomain.rmssd,
-                meanHR: result.timeDomain.meanHR, dfaAlpha1: result.nonlinear.dfaAlpha1,
-                baselineStats: scoringBaseline(for: session), sleepData: sleepData,
-                vitals: Self.scoringVitals(of: session, result: result), typicalSleepHours: settingsProvider().typicalSleepHours
-            ),
-            trainingContext: trainingContext,
-            config: scoringConfigProvider(),
-            // See deriveUseBaselineHRVOnRescore.
-            useBaselineHRV: !session.isReliableForHRVAggregates,
-            perceivedReadiness: session.perceivedReadiness,
-            ansBalance: Self.ansBalance(of: result),
-            referenceDate: sessionEnd
-        )
     }
 
     /// Diagnostic result from training snapshot repair.
@@ -592,47 +553,59 @@ extension ReanalysisService {
 
     private static let sampleLogLimit = 3
 
-    /// Re-read from the archive so a concurrent edit is not clobbered, write
-    /// the fresh context, and recompute frozen readiness against it.
+    /// Write the fresh context and recompute frozen readiness against it on
+    /// the archived copy, under the archive lock (`SessionArchive.update`),
+    /// so a concurrent edit is not clobbered. Throws when the session is no
+    /// longer archived or the write fails.
     private func persistSnapshot(_ freshContext: TrainingContext, onto session: HRVSession) throws {
-        var updated = try archive.retrieve(session.id) ?? session
-        updated.trainingSnapshot = freshContext
-        updated.analysisResult?.trainingContext = freshContext
-        if let breakdown = updated.scoreBreakdown {
-            updated.frozenReadiness = Self.computeFrozenReadiness(
-                compositeScore: breakdown.compositeScore,
-                trainingContext: freshContext
-            )
+        var updated = session
+        try archive.update(session.id, requestingReupload: false) { stored in
+            stored.trainingSnapshot = freshContext
+            stored.analysisResult?.trainingContext = freshContext
+            if let breakdown = stored.scoreBreakdown {
+                stored.frozenReadiness = Self.computeFrozenReadiness(
+                    compositeScore: breakdown.compositeScore, trainingContext: freshContext
+                )
+            }
+            updated = stored
         }
-        try archive.archive(updated)
         let synced = updated
         Task { self.onSessionUploaded(synced) }
     }
 
-    func unlinkSegment(segmentId: UUID, fromSession sessionId: UUID) {
+    /// Unlink a merged segment: strip its beats from the parent's series,
+    /// drop the link, archive, and re-analyse. False (link kept, nothing
+    /// written) when the parent or the link is missing, when the segment
+    /// can't be read so its beats can't be located, or when the write fails.
+    @discardableResult
+    func unlinkSegment(segmentId: UUID, fromSession sessionId: UUID) -> Bool {
         do {
-            guard var session = try archive.retrieve(sessionId) else { return }
-            guard var links = session.linkedSessionIds, links.contains(segmentId) else { return }
-            // Step 1: Remove the link
+            guard var session = try archive.retrieve(sessionId) else { return false }
+            guard var links = session.linkedSessionIds, links.contains(segmentId) else { return false }
+            // Step 1: Strip the unlinked segment's RR data from the merged series.
+            guard stripSegmentPoints(segmentId: segmentId, from: &session) else { return false }
+            // Step 2: Remove the link
             links.removeAll { $0 == segmentId }
             session.linkedSessionIds = links.isEmpty ? nil : links
-            // Step 2: Strip the unlinked segment's RR data from the merged series.
-            stripSegmentPoints(segmentId: segmentId, from: &session)
             try archive.archive(session, skipSameNightMerge: false, requestingReupload: true)
             debugLog("[ReanalysisService] Unlinked segment \(segmentId.uuidString.prefix(8)) from session \(sessionId.uuidString.prefix(8)) — \(links.count) segments remaining")
-            // Step 3: Reanalyze the session with clean data. This recalculates
-            // the HRV analysis, recovery score, and frozen readiness without
-            // the contaminating segment.
+            // Step 3: Reanalyze the session with clean data, without the
+            // contaminating segment.
             reanalyzeAfterUnlink(session)
             let sessionToUpload = session
             Task { self.onSessionUploaded(sessionToUpload) }
+            return true
         } catch {
             debugLog("[ReanalysisService] Failed to unlink segment: \(error)")
+            return false
         }
     }
 
     /// Load the unlinked session to find its time range, then remove the
-    /// points that fall within that range from the parent's series.
+    /// points that fall within that range from the parent's series. False
+    /// only when the unlinked session can't be read: its range is unknown, so
+    /// its beats would stay in the parent's series and score. A parent with
+    /// no beats, or a segment with no span, has nothing to strip (true).
     ///
     /// The strip window is anchored to the SERIES origin, not the session
     /// origin: `series.points[].t_ms` are re-based to `series.startDate`, and
@@ -640,12 +613,15 @@ extension ReanalysisService {
     /// Using `session.startDate` shifted the window and stripped the wrong
     /// beats. Identical for the common non-merged case where the two origins
     /// coincide.
-    private func stripSegmentPoints(segmentId: UUID, from session: inout HRVSession) {
-        guard let unlinked = archive.retrieveOrLog(segmentId),
-              let series = session.rrSeries, !series.points.isEmpty else { return }
+    private func stripSegmentPoints(segmentId: UUID, from session: inout HRVSession) -> Bool {
+        guard let unlinked = archive.retrieveOrLog(segmentId) else {
+            debugLog("[ReanalysisService] Unlink refused: segment \(segmentId.uuidString.prefix(8)) can't be read, so its beats can't be located", level: .error)
+            return false
+        }
+        guard let series = session.rrSeries, !series.points.isEmpty else { return true }
         let segStartMs = MillisecondOffset.between(unlinked.startDate, and: series.startDate, fallback: 0)
         let segDurationMs = Self.segmentDurationMs(of: unlinked)
-        guard segDurationMs > 0 else { return }
+        guard segDurationMs > 0 else { return true }
         let segEndMs = segStartMs + segDurationMs
         let originalCount = series.points.count
         let cleanedPoints = series.points.filter { $0.t_ms < segStartMs || $0.t_ms > segEndMs }
@@ -653,6 +629,7 @@ extension ReanalysisService {
             points: cleanedPoints, sessionId: series.sessionId, startDate: series.startDate
         )
         debugLog("[ReanalysisService] Stripped \(originalCount - cleanedPoints.count) RR points from unlinked segment time range (\(segStartMs)-\(segEndMs) ms)")
+        return true
     }
 
     /// The segment's own span, from its stored duration or, failing that, the

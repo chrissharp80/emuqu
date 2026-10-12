@@ -60,8 +60,9 @@ enum Statistics {
     // MARK: - Relative Dispersion
 
     /// Coefficient of variation (sample SD / mean).
-    /// Returns `nil` when the mean is zero (ratio is undefined).
-    /// Returns `0` when the array contains fewer than two elements.
+    /// Returns `nil` when the mean is zero (ratio is undefined), which
+    /// includes an empty array. A single non-zero value returns `0`, since
+    /// the sample SD of fewer than two elements is `0`.
     static func coefficientOfVariation(_ values: [Double]) -> Double? {
         let mu = mean(values)
         guard mu != 0 else { return nil }
@@ -141,10 +142,5 @@ extension [Double] {
     /// Sample standard deviation (N-1 denominator).
     var sampleSD: Double {
         Statistics.sampleStandardDeviation(self)
-    }
-
-    /// Root mean square of the array's elements.
-    var rms: Double {
-        Statistics.rootMeanSquare(self)
     }
 }

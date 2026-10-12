@@ -15,28 +15,43 @@
 #
 # `Date()` on the left is exempt: "now minus a recent timestamp" is always
 # finite and small, and requiring a helper there would be noise.
+#
+# The receiver may be a closure argument (`$0.timeIntervalSince(x) * 1000` in a
+# `.map`), which is where most of these live, and the expression may be split
+# across lines. Both phone and watch sources are scanned. The script runs from
+# the repository root wherever it is invoked from; scanning a relative
+# `Emuqu/Sources` from elsewhere found nothing and printed "clean".
 set -euo pipefail
+cd "$(dirname "$0")/.."
 
 python3 - <<'PY'
 import pathlib, re, sys
 
 pat = re.compile(
-    r'Int64\(\s*([A-Za-z_][\w.?\[\]$]*)\s*\.timeIntervalSince\(([^()]*)\)\s*\*\s*1_?000'
+    r'Int64\(\s*([A-Za-z_$][\w.?\[\]$]*)\s*\.timeIntervalSince\(([^()]*)\)\s*\*\s*1_?000'
 )
+ROOTS = ['Emuqu/Sources', 'EmuquWatch Watch App']
 problems = []
-for f in sorted(pathlib.Path('Emuqu/Sources').rglob('*.swift')):
+scanned = 0
+for f in sorted(q for root in ROOTS for q in pathlib.Path(root).rglob('*.swift')):
     if f.name == 'MillisecondOffset.swift':
         continue
-    for n, line in enumerate(f.read_text(encoding='utf-8', errors='ignore').split('\n'), 1):
-        code = line.split('//')[0]
-        m = pat.search(code)
-        if not m:
-            continue
+    scanned += 1
+    lines = f.read_text(encoding='utf-8', errors='ignore').split('\n')
+    # Comments blanked line by line, then matched over the whole file so an
+    # expression wrapped across lines is still one match.
+    code = '\n'.join(line.split('//')[0] for line in lines)
+    for m in pat.finditer(code):
         if m.group(1).startswith('Date()'):
             continue
-        if re.search(r'date-ms-ok:', line):
+        n = code.count('\n', 0, m.start()) + 1
+        if 'date-ms-ok:' in lines[n - 1]:
             continue
-        problems.append((f, n, code.strip()))
+        problems.append((f, n, ' '.join(m.group(0).split())))
+
+if scanned == 0:
+    print("check_date_ms_conversion: no Swift sources found; refusing to report clean.")
+    sys.exit(2)
 
 if problems:
     print(f"check_date_ms_conversion: {len(problems)} raw date-to-millisecond conversion(s).\n")

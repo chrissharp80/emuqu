@@ -1,0 +1,249 @@
+{
+ "file": "Emuqu/Sources/Utilities/GlobalKeyboardDismissal.swift",
+ "hash": "46256f9194ac438d",
+ "role": "Installs a window-level tap recognizer that resigns first responder on taps outside text fields/controls — on the key window at install and on every window that later becomes key — prewarms the keyboard daemon after launch, and provides UIApplication.activeKeyWindow.",
+ "types": [
+  "GlobalKeyboardDismissal: class (@MainActor, NSObject, UIGestureRecognizerDelegate) — global tap-to-dismiss",
+  "UIApplication: extension — activeKeyWindow"
+ ],
+ "state": [
+  "mem:GlobalKeyboardDismissal.shared",
+  "installed flag",
+  "prewarmWindowRetries = 20 (static)",
+  "notif:UIWindow.didBecomeKeyNotification (observed after install)"
+ ],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func GlobalKeyboardDismissal.install()",
+   "hash": "7ebbc4c3eba34faf",
+   "does": "Once per launch: attaches the tap recognizer to the active key window and starts observing UIWindow.didBecomeKeyNotification so any window that becomes key later (a new scene's window) gets one too; retries every 250 ms until a window exists.",
+   "entry": "EmuquApp.installGlobalKeyboardDismissal Task, 600 ms after launch (EmuquApp.swift)",
+   "calls": [
+    "Emuqu/Sources/Utilities/GlobalKeyboardDismissal.swift::var UIApplication.activeKeyWindow",
+    "Emuqu/Sources/Utilities/GlobalKeyboardDismissal.swift::func GlobalKeyboardDismissal.attach(to:)",
+    "ext:NotificationCenter.addObserver",
+    "ext:DispatchQueue.main.asyncAfter",
+    "ext:NSLog"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:GlobalKeyboardDismissal.installed"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "already installed",
+     "effect": "returns"
+    },
+    {
+     "at": "+2",
+     "cond": "no active key window",
+     "effect": "re-schedules install in 250 ms (unbounded retries) and returns"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/EmuquApp.swift::func EmuquMain.main()": "78441ed5272f3d2d",
+    "Emuqu/Sources/Utilities/GlobalKeyboardDismissal.swift::func GlobalKeyboardDismissal.attach(to:)": "97c8cf454a830592",
+    "Emuqu/Sources/Utilities/GlobalKeyboardDismissal.swift::func GlobalKeyboardDismissal.windowDidBecomeKey(_:)": "e7bfeada79a556e1",
+    "Emuqu/Sources/Utilities/GlobalKeyboardDismissal.swift::var UIApplication.activeKeyWindow": "0641757d80699503"
+   }
+  },
+  {
+   "key": "func GlobalKeyboardDismissal.attach(to:)",
+   "hash": "522dc0b93aae90bf",
+   "does": "Adds a non-cancelling, non-delaying UITapGestureRecognizer (target handleTap, delegate self) to the window, unless the window already carries a recognizer whose delegate is this object.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/GlobalKeyboardDismissal.swift::func GlobalKeyboardDismissal.handleTap()",
+    "ext:UITapGestureRecognizer",
+    "ext:UIWindow.addGestureRecognizer"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "window already has a recognizer delegated to self",
+     "effect": "returns without adding a second one"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/GlobalKeyboardDismissal.swift::func GlobalKeyboardDismissal.handleTap()": "4cedd06615286925"
+   }
+  },
+  {
+   "key": "func GlobalKeyboardDismissal.windowDidBecomeKey(_:)",
+   "hash": "fded0bb660d7741d",
+   "does": "Attaches the tap recognizer to the window that just became key.",
+   "entry": "notif:UIWindow.didBecomeKeyNotification (observer added by install)",
+   "calls": [
+    "Emuqu/Sources/Utilities/GlobalKeyboardDismissal.swift::func GlobalKeyboardDismissal.attach(to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "notification object is not a UIWindow",
+     "effect": "returns"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/GlobalKeyboardDismissal.swift::func GlobalKeyboardDismissal.attach(to:)": "97c8cf454a830592"
+   }
+  },
+  {
+   "key": "func GlobalKeyboardDismissal.handleTap()",
+   "hash": "9197cadb9c987eb5",
+   "does": "Sends resignFirstResponder up the responder chain, dismissing any keyboard.",
+   "entry": "UITapGestureRecognizer target-action",
+   "calls": [
+    "ext:UIApplication.sendAction"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func GlobalKeyboardDismissal.prewarmKeyboard()",
+   "hash": "b4b3afce73f83dab",
+   "does": "Starts the keyboard prewarm with prewarmWindowRetries (20) retries allowed while no window exists yet.",
+   "entry": "EmuquApp.installGlobalKeyboardDismissal (EmuquApp.swift), right after install()",
+   "calls": [
+    "Emuqu/Sources/Utilities/GlobalKeyboardDismissal.swift::func GlobalKeyboardDismissal.prewarmKeyboard(retriesLeft:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/GlobalKeyboardDismissal.swift::func GlobalKeyboardDismissal.prewarmKeyboard(retriesLeft:)": "6a3c0768ecaf872f"
+   }
+  },
+  {
+   "key": "func GlobalKeyboardDismissal.prewarmKeyboard(retriesLeft:)",
+   "hash": "f2d75d821e6d1d22",
+   "does": "With no active key window, retries itself every 250 ms while retriesLeft > 0 (about 5 s in all). With a window and nothing in it first responder, adds an off-screen UITextField, makes it first responder, then on the next main-queue turn resigns and removes it.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/GlobalKeyboardDismissal.swift::var UIApplication.activeKeyWindow",
+    "Emuqu/Sources/Utilities/GlobalKeyboardDismissal.swift::func GlobalKeyboardDismissal.containsFirstResponder(_:)",
+    "ext:DispatchQueue.main.asyncAfter",
+    "ext:DispatchQueue.main.async",
+    "ext:UITextField.becomeFirstResponder"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no active key window",
+     "effect": "schedules a retry in 250 ms with retriesLeft - 1 and returns"
+    },
+    {
+     "at": "+2",
+     "cond": "retriesLeft is 0",
+     "effect": "gives up without prewarming"
+    },
+    {
+     "at": "+8",
+     "cond": "something in the window is already first responder",
+     "effect": "returns without prewarming (would dismiss the user's keyboard)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/EmuquApp.swift::func EmuquMain.main()": "78441ed5272f3d2d",
+    "Emuqu/Sources/Utilities/GlobalKeyboardDismissal.swift::func GlobalKeyboardDismissal.containsFirstResponder(_:)": "0732b0978defcd5d",
+    "Emuqu/Sources/Utilities/GlobalKeyboardDismissal.swift::var UIApplication.activeKeyWindow": "0641757d80699503"
+   }
+  },
+  {
+   "key": "func GlobalKeyboardDismissal.containsFirstResponder(_:)",
+   "hash": "b776623a53615af0",
+   "does": "Recursively checks whether view or any subview is first responder.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/GlobalKeyboardDismissal.swift::func GlobalKeyboardDismissal.containsFirstResponder(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var UIApplication.activeKeyWindow",
+   "hash": "77ad2d4ec3415908",
+   "does": "Returns the key window of the foreground-active scene, else foreground-inactive, else the first connected scene; first window if none is key.",
+   "entry": null,
+   "calls": [
+    "ext:UIApplication.connectedScenes"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "no foregroundActive scene",
+     "effect": "tries foregroundInactive"
+    },
+    {
+     "at": "+6",
+     "cond": "no window scene",
+     "effect": "nil"
+    },
+    {
+     "at": "+7",
+     "cond": "no key window in scene",
+     "effect": "scene.windows.first"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func GlobalKeyboardDismissal.gestureRecognizer(_:shouldRecognizeSimultaneouslyWith:)",
+   "hash": "478fd6bca08a55e4",
+   "does": "Always allows simultaneous recognition.",
+   "entry": "UIGestureRecognizerDelegate callback",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func GlobalKeyboardDismissal.gestureRecognizer(_:shouldReceive:)",
+   "hash": "eee2b77390872eca",
+   "does": "Rejects touches whose view or any ancestor is UITextField, UITextView or UIControl; accepts others.",
+   "entry": "UIGestureRecognizerDelegate callback",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "walk up superviews",
+     "effect": "loops until nil"
+    },
+    {
+     "at": "+6",
+     "cond": "view is text field/view/control",
+     "effect": "false (no dismiss)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

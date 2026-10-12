@@ -143,6 +143,9 @@ struct LostSessionsView: View {
             ForEach(lostSessions, id: \.id) { session in
                 sessionRow(session)
                     .tag(session.id)
+                    // Recover All walks the list it read when it started; a
+                    // row swiped away meanwhile would still be recovered.
+                    .deleteDisabled(isRecovering)
             }
             .onDelete(perform: deleteSessionsAtOffsets)
         }
@@ -158,10 +161,9 @@ struct LostSessionsView: View {
                     .font(.caption)
                     .foregroundColor(AppTheme.textSecondary)
             }
+            // No duration: a backup's beat count alone cannot give one (it
+            // would assume a heart rate), and the row already shows the count.
             Spacer()
-            Text(formatDuration(session.beatCount))
-                .font(.caption)
-                .foregroundColor(AppTheme.textTertiary)
         }
     }
 
@@ -357,13 +359,6 @@ struct LostSessionsView: View {
 
     private func formatDate(_ date: Date) -> String {
         date.formatted(Date.FormatStyle(date: .abbreviated, time: .shortened).locale(LanguageManager.appLocale))
-    }
-
-    private func formatDuration(_ beatCount: Int) -> String {
-        // Rough estimate: ~60 bpm average = 1 beat per second
-        let minutes = beatCount / 60
-        let duration = minutes < 60 ? LocalizedDuration.minutes(minutes) : LocalizedDuration.hoursMinutes(minutes: minutes)
-        return "~\(duration)"
     }
 }
 

@@ -1,0 +1,1217 @@
+{
+ "file": "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift",
+ "hash": "44d287b41ddfda75",
+ "role": "Overnight stats card (8 boxes: recording length, sleep, deep sleep, HR range, nadir HR+time, peak HRV+time), overnight HR chart with analysis-window band and clock axis, tags & notes block, peak rolling-RMSSD scan, rolling-window HR nadir, and sleep-stat fallbacks (HealthKit total -> HealthKit boundaries -> recording estimate) for the recovery PDF.",
+ "types": [
+  "OvernightReportRenderer: extension — overnight section drawing and stats",
+  "OvernightReportRenderer.OvernightStatValues: struct — what the two stat rows display (HR range optional, peak RMSSD/time optional, recording length, sleep stats)",
+  "OvernightReportRenderer.OvernightHRRange: struct — nadir and max HR plus the nadir's clock time (optional)",
+  "OvernightReportRenderer.OvernightSleepStats: struct — sleep/deep minutes, formatted strings and labels for row 1",
+  "OvernightReportRenderer.PeakRMSSDResult: struct — peak rolling RMSSD and the t_ms of the beat its window is centred on",
+  "OvernightReportRenderer.PeakScanWindow: struct — scan window size/step (beats) and optional ms time band"
+ ],
+ "state": [],
+ "toplevel": "File-scope private helpers (formatRecordingDuration, overnightHRSamples, overnightHRY, drawOvernightHRGrid, overnightHRPath, strokeTagPill, storedHRStats, nadirOffset, rollingWindowHRStats, rollingHRSamples, rollingHRWindow, inScanBand) plus five nested value types with synthesized memberwise inits; no globals or persistent state.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func OvernightReportRenderer.drawOvernightStatsSection(_:series:yPosition:pageRect:)",
+   "hash": "20e17a585199e6af",
+   "does": "Computes overnight stat values from the RR series, inputs.artifactFlags, session, HealthKit sleep and HealthKit HR. When there are none (100 or fewer beats) returns yPosition with nothing drawn; otherwise draws the 'Overnight Summary' heading, a grey card with two rows of four stat boxes, and returns the y 115pt below the heading.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.overnightStatValues(series:flags:session:sleepData:healthKitHR:)",
+    "Emuqu/Sources/Export/OvernightReportRenderer.swift::func OvernightReportRenderer.drawSectionHeading(_:yPosition:pageRect:)",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.fillOvernightStatsCard(y:width:height:)",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.drawOvernightStatsRows(_:y:boxWidth:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "overnightStatValues returned nil (series has 100 or fewer points)",
+     "effect": "returns yPosition unchanged, no heading; otherwise draws heading, 100pt card and both rows"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.drawOvernightStatsRows(_:y:boxWidth:)": "579c94c41713458d",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.fillOvernightStatsCard(y:width:height:)": "f55ff4f7b022aff6",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.overnightStatValues(series:flags:session:sleepData:healthKitHR:)": "993e312f74f9355f",
+    "Emuqu/Sources/Export/OvernightReportRenderer.swift::func OvernightReportRenderer.drawSectionHeading(_:yPosition:pageRect:)": "348cea763d178dda",
+    "Emuqu/Sources/Export/OvernightReportRenderer.swift::var OvernightReportRenderer.config": "e592fcae7fc2f962",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func OvernightReportRenderer.fillOvernightStatsCard(y:width:height:)",
+   "hash": "e9464c88c68bf773",
+   "does": "Fills a rounded (r=8) light-grey rectangle at the left margin, y, width x height as the stats card background.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/OvernightReportRenderer.swift::var OvernightReportRenderer.config": "e592fcae7fc2f962"
+   }
+  },
+  {
+   "key": "func OvernightReportRenderer.drawOvernightStatsRows(_:y:boxWidth:)",
+   "hash": "d964e94f35dfd3a0",
+   "does": "Builds a 'jmm' clock formatter and draws stat row 1 (recording, sleep, deep, HR range) and row 2 (nadir HR + time, peak HRV + time) at boxWidth = contentWidth/4, passing the optional HR range and peak values through.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/LocalizedDateFormat.swift::func LocalizedDateFormat.formatter(template:)",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.drawOvernightStatsRow1(sleepStats:durationFormatted:hrRange:y:boxWidth:)",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.drawOvernightStatsRow2(hrRange:peakRMSSD:peakHRVTime:timeFormatter:y:boxWidth:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.drawOvernightStatsRow1(sleepStats:durationFormatted:hrRange:y:boxWidth:)": "f7b5f69d5b11b2f6",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.drawOvernightStatsRow2(hrRange:peakRMSSD:peakHRVTime:timeFormatter:y:boxWidth:)": "0ead9fa2f175fc56",
+    "Emuqu/Sources/Utilities/LocalizedDateFormat.swift::func LocalizedDateFormat.formatter(template:)": "ca42a77cea56606e"
+   }
+  },
+  {
+   "key": "func OvernightReportRenderer.overnightStatValues(series:flags:session:sleepData:healthKitHR:)",
+   "hash": "2ce69eccc1d2294e",
+   "does": "Returns nil if the series has <=100 points. Otherwise: the peak-HRV search band from peakSearchBand (30-70% of the HealthKit sleep envelope, or of the recording), the peak rolling RMSSD in it (nil when none measurable) with its clock time from series.wallClockTime; the HR range and nadir time from overnightHRRange (nil when no HR); the recording length as first-to-last beat on the wall clock (gaps included); and sleep stats from computeOvernightSleepStats with the t_ms-based recording minutes (the same input the Overnight screen's estimate uses). Packs them into OvernightStatValues.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.peakSearchBand(points:sleepData:sessionStart:)",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.calculatePeakRMSSD(points:flags:band:)",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.computeOvernightSleepStats(sleepData:durationMinutes:)",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.overnightHRRange(points:series:healthKitHR:)",
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.wallClockTime(forTMs:)",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func formatRecordingDuration(series:first:last:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "points.count > 100 and first/last exist",
+     "effect": "false: returns nil (section draws nothing); true: computes stats"
+    },
+    {
+     "at": "+15",
+     "cond": "calculatePeakRMSSD returned nil",
+     "effect": "peakRMSSD and peakHRVTime are nil (boxes print as missing); otherwise the peak and its wall-clock time"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.calculatePeakRMSSD(points:flags:band:)": "51ae75dc8120de1a",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.computeOvernightSleepStats(sleepData:durationMinutes:)": "88adc00603697aac",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.overnightHRRange(points:series:healthKitHR:)": "44d867b257b0d62a",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.peakSearchBand(points:sleepData:sessionStart:)": "ccb629fbc26bad71",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func formatRecordingDuration(series:first:last:)": "eabe55d6b4a8ca63",
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.wallClockTime(forTMs:)": "8f9579b405dd05f1"
+   }
+  },
+  {
+   "key": "func OvernightReportRenderer.drawOvernightStatsRow1(sleepStats:durationFormatted:hrRange:y:boxWidth:)",
+   "hash": "719b3288e160c2ba",
+   "does": "Draws row 1 of the overnight card: Recording (formatted length), the sleep box (label/value from OvernightSleepStats), the deep-sleep box, and HR Range as 'min-max' in whole bpm, or the missing-value dash when hrRange is nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/OvernightReportRenderer.swift::func OvernightReportRenderer.drawCompactStatBox(title:value:color:rect:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "hrRange nil",
+     "effect": "HR Range box prints the missing-value dash"
+    },
+    {
+     "at": "+16",
+     "cond": "for each of the 4 stats",
+     "effect": "draws one compact stat box at its column"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/OvernightReportRenderer.swift::func OvernightReportRenderer.drawCompactStatBox(title:value:color:rect:)": "904866480255520a",
+    "Emuqu/Sources/Export/OvernightReportRenderer.swift::var OvernightReportRenderer.config": "e592fcae7fc2f962",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func OvernightReportRenderer.drawOvernightStatsRow2(hrRange:peakRMSSD:peakHRVTime:timeFormatter:y:boxWidth:)",
+   "hash": "8a76fd1535bcd503",
+   "does": "Draws row 2 of the overnight card: Nadir HR ('N bpm'), its clock time, Peak HRV ('N ms') and its clock time. Each value that is nil (no HR range, unknown nadir moment, no measurable peak) prints the missing-value dash rather than a placeholder.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/OvernightReportRenderer.swift::func OvernightReportRenderer.drawCompactStatBox(title:value:color:rect:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "date nil",
+     "effect": "clock box prints the missing-value dash; otherwise the formatted time"
+    },
+    {
+     "at": "+9",
+     "cond": "peakRMSSD nil",
+     "effect": "Peak HRV prints the missing-value dash"
+    },
+    {
+     "at": "+12",
+     "cond": "hrRange nil",
+     "effect": "Nadir HR prints the missing-value dash"
+    },
+    {
+     "at": "+18",
+     "cond": "for each of the 4 stats",
+     "effect": "draws one compact stat box"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/OvernightReportRenderer.swift::func OvernightReportRenderer.drawCompactStatBox(title:value:color:rect:)": "904866480255520a",
+    "Emuqu/Sources/Export/OvernightReportRenderer.swift::var OvernightReportRenderer.config": "e592fcae7fc2f962",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "func OvernightReportRenderer.overnightHRRange(points:series:healthKitHR:)",
+   "hash": "55408efab2aca31c",
+   "does": "HR range for the overnight card. With HealthKit HR stats: their min, max and nadirTime (logged). Otherwise calculateRollingWindowHRStats on the RR points; nil (logged as a warning) when that yields nothing, so no HR is printed as measured. The derived nadir's clock time is read from series.wallClockTime at first beat t_ms + nadir offset (nil when the offset is unknown).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.calculateRollingWindowHRStats(points:)",
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.wallClockTime(forTMs:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "healthKitHR present",
+     "effect": "returns the HealthKit range"
+    },
+    {
+     "at": "+9",
+     "cond": "no HR derivable from the points",
+     "effect": "warning log, returns nil"
+    },
+    {
+     "at": "+15",
+     "cond": "nadirOffset nil",
+     "effect": "nadirTime nil; otherwise the wall-clock time of the nadir beat"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.calculateRollingWindowHRStats(points:)": "fe920842464497c8",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func nadirOffset(at:in:)": "67316d478e6d3a0f",
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.wallClockTime(forTMs:)": "8f9579b405dd05f1",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func OvernightReportRenderer.drawOvernightHRChart(series:result:yPosition:in:pageRect:)",
+   "hash": "e91bbb51ca958eaf",
+   "does": "Draws the 'Overnight Heart Rate' heading and a 100pt light-grey chart frame; if the body draws, adds the analysis-window legend and returns y+138, else returns y+133 leaving the empty frame.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Export/OvernightReportRenderer.swift::func OvernightReportRenderer.drawSectionHeading(_:yPosition:pageRect:)",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.drawOvernightHRBody(series:result:in:)",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.drawOvernightWindowLegend(in:xAxisHeight:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+17",
+     "cond": "drawOvernightHRBody returned true",
+     "effect": "true: draws legend, returns heading y+100+18+20; false: returns y+100+18+15 with only the blank frame"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.drawOvernightHRBody(series:result:in:)": "c543a65b8d420e8b",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.drawOvernightWindowLegend(in:xAxisHeight:)": "f591cebacf81e235",
+    "Emuqu/Sources/Export/OvernightReportRenderer.swift::func OvernightReportRenderer.drawSectionHeading(_:yPosition:pageRect:)": "348cea763d178dda",
+    "Emuqu/Sources/Export/OvernightReportRenderer.swift::var OvernightReportRenderer.config": "e592fcae7fc2f962",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func OvernightReportRenderer.drawOvernightHRBody(series:result:in:)",
+   "hash": "c1b6c2332fba2ffb",
+   "does": "Inside the chart rect: downsamples HR, draws 10-bpm grid, analysis-window band, HR curve, border, min/max/bpm labels and the clock-time axis. Returns false when there is too little data.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func overnightHRSamples(points:)",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func drawOvernightHRGrid(in:minHR:maxHR:range:)",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.drawOvernightAnalysisWindow(result:pointCount:in:)",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.drawOvernightHRCurve(_:pointCount:in:minHR:range:)",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.drawOvernightHRAxisLabels(in:minHR:maxHR:)",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.drawOvernightTimeAxis(series:in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "points.count > 10",
+     "effect": "false: returns false (empty frame)"
+    },
+    {
+     "at": "+4",
+     "cond": "hrData non-empty after RR 300-2000 filter",
+     "effect": "false: returns false"
+    },
+    {
+     "at": "+6",
+     "cond": "hrData min ?? 50",
+     "effect": "50 used only if hrData empty; unreachable after the guard at 191"
+    },
+    {
+     "at": "+7",
+     "cond": "hrData max ?? 100",
+     "effect": "100 used only if hrData empty; unreachable after the guard at 191"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.drawOvernightAnalysisWindow(result:pointCount:in:)": "6d9b0b5ba6c7b944",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.drawOvernightHRAxisLabels(in:minHR:maxHR:)": "fd2ee563a5175113",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.drawOvernightHRCurve(_:pointCount:in:minHR:range:)": "fa85ac1240b04856",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.drawOvernightTimeAxis(series:in:)": "961ecae7d44496a0",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func drawOvernightHRGrid(in:minHR:maxHR:range:)": "afb9d71cf243c410",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func overnightHRSamples(points:)": "a8646d45dfcd8311"
+   }
+  },
+  {
+   "key": "func OvernightReportRenderer.drawOvernightAnalysisWindow(result:pointCount:in:)",
+   "hash": "78056cf901ab3273",
+   "does": "Fills a translucent primary-colour band over the chart spanning result.windowStart..windowEnd as fractions of the point count (index based).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/OvernightReportRenderer.swift::var OvernightReportRenderer.config": "e592fcae7fc2f962"
+   }
+  },
+  {
+   "key": "func OvernightReportRenderer.drawOvernightHRCurve(_:pointCount:in:minHR:range:)",
+   "hash": "685494002af457c9",
+   "does": "Builds the HR path and strokes it in the accent colour at 1pt.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func overnightHRPath(_:pointCount:in:minHR:range:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func overnightHRPath(_:pointCount:in:minHR:range:)": "f7ffb8415f8972c0",
+    "Emuqu/Sources/Export/OvernightReportRenderer.swift::var OvernightReportRenderer.config": "e592fcae7fc2f962",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accentColor": "1bf17e24334cbbf7",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.Size.lineWidth": "2d14bae4bbb8fc1d"
+   }
+  },
+  {
+   "key": "var OvernightReportRenderer.overnightChartLabelAttributes",
+   "hash": "d5ade67b81da4071",
+   "does": "Computed attributes: caption font, grey, shared by every chart label.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/OvernightReportRenderer.swift::var OvernightReportRenderer.config": "e592fcae7fc2f962"
+   }
+  },
+  {
+   "key": "func OvernightReportRenderer.drawOvernightHRAxisLabels(in:minHR:maxHR:)",
+   "hash": "1508a3bb209d26e5",
+   "does": "Draws max HR, min HR (%.0f) and 'bpm' labels to the right of the chart.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::var OvernightReportRenderer.overnightChartLabelAttributes",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::var OvernightReportRenderer.overnightChartLabelAttributes": "e764d60ecf1e1878",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "29c985d5d464ee1e",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "func OvernightReportRenderer.drawOvernightTimeAxis(series:in:)",
+   "hash": "9fef38a149145ee5",
+   "does": "Draws five clock-time labels under the chart at fractions 0, 1/4, 1/2, 3/4, 1 of the width. Each label is the wall-clock time (series.wallClockTime) of the beat the HR curve draws at that x (index = min(count-1, fraction*count)), so labels match the curve and strap gaps read as on the Overnight screen. Returns false for an empty series.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/LocalizedDateFormat.swift::func LocalizedDateFormat.formatter(template:)",
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.wallClockTime(forTMs:)",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.drawOvernightTimeLabel(_:fraction:index:of:in:y:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "series empty",
+     "effect": "returns false; unreachable since the caller already required >10 points"
+    },
+    {
+     "at": "+5",
+     "cond": "loop i in 0..<5",
+     "effect": "each iteration draws one label"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.drawOvernightTimeLabel(_:fraction:index:of:in:y:)": "1a683fb0266c2ec9",
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.wallClockTime(forTMs:)": "8f9579b405dd05f1",
+    "Emuqu/Sources/Utilities/LocalizedDateFormat.swift::func LocalizedDateFormat.formatter(template:)": "ca42a77cea56606e"
+   }
+  },
+  {
+   "key": "func OvernightReportRenderer.drawOvernightTimeLabel(_:fraction:index:of:in:y:)",
+   "hash": "e98850f6b18a0848",
+   "does": "Draws one axis label: first flush-left, last flush-right, others centred on their tick.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::var OvernightReportRenderer.overnightChartLabelAttributes",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+11",
+     "cond": "index == 0",
+     "effect": "label x = chart minX"
+    },
+    {
+     "at": "+13",
+     "cond": "index == labelCount-1",
+     "effect": "label x = maxX - width; otherwise centred at minX + fraction*width - width/2"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::var OvernightReportRenderer.overnightChartLabelAttributes": "e764d60ecf1e1878",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "29c985d5d464ee1e"
+   }
+  },
+  {
+   "key": "func OvernightReportRenderer.drawOvernightWindowLegend(in:xAxisHeight:)",
+   "hash": "f6fc7ee3baa72e93",
+   "does": "Draws a small translucent swatch and the 'Analysis Window' caption below the time axis.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::var OvernightReportRenderer.overnightChartLabelAttributes",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::var OvernightReportRenderer.overnightChartLabelAttributes": "e764d60ecf1e1878",
+    "Emuqu/Sources/Export/OvernightReportRenderer.swift::var OvernightReportRenderer.config": "e592fcae7fc2f962",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "29c985d5d464ee1e",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func OvernightReportRenderer.drawTagsAndNotesSection(session:yPosition:in:pageRect:)",
+   "hash": "574fa2569302aca7",
+   "does": "Draws the 'Tags & Notes' heading, then tag pills, then the notes text; returns the y below.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Export/OvernightReportRenderer.swift::func OvernightReportRenderer.drawSectionHeading(_:yPosition:pageRect:)",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.drawSessionTags(session:y:pageRect:)",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.drawSessionNotes(session:y:pageRect:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.drawSessionNotes(session:y:pageRect:)": "fb3fc6db3cda0ac9",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.drawSessionTags(session:y:pageRect:)": "132af1c962a73fab",
+    "Emuqu/Sources/Export/OvernightReportRenderer.swift::func OvernightReportRenderer.drawSectionHeading(_:yPosition:pageRect:)": "348cea763d178dda",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func OvernightReportRenderer.drawSessionTags(session:y:pageRect:)",
+   "hash": "70bb3a34f932aeb9",
+   "does": "Draws session.tags as wrapped pills starting at the left margin; advances y by one pill height + 8 when any tags exist.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.drawTagPill(tag:x:y:tagHeight:tagSpacing:contentWidth:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "session.tags non-empty",
+     "effect": "false: returns y unchanged"
+    },
+    {
+     "at": "+8",
+     "cond": "for each tag",
+     "effect": "draws a pill and carries the pen (x,y) forward"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.drawTagPill(tag:x:y:tagHeight:tagSpacing:contentWidth:)": "720cecd4a6c0b7f4",
+    "Emuqu/Sources/Export/OvernightReportRenderer.swift::var OvernightReportRenderer.config": "e592fcae7fc2f962"
+   }
+  },
+  {
+   "key": "func OvernightReportRenderer.drawTagPill(tag:x:y:tagHeight:tagSpacing:contentWidth:)",
+   "hash": "6d305c336c445495",
+   "does": "Measures the tag name, wraps to a new row (y += height+4, x = margin) if it would overflow the content width, strokes the pill, and returns the next pen position.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func strokeTagPill(_:attributes:x:y:width:height:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "pill right edge exceeds content width",
+     "effect": "true: wraps to next row at left margin; false: stays on the current row"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func strokeTagPill(_:attributes:x:y:width:height:)": "8fbad2a7d4c55e1c",
+    "Emuqu/Sources/Export/OvernightReportRenderer.swift::var OvernightReportRenderer.config": "e592fcae7fc2f962"
+   }
+  },
+  {
+   "key": "func OvernightReportRenderer.drawSessionNotes(session:y:pageRect:)",
+   "hash": "b408788f8b3ea93d",
+   "does": "Draws session.notes as word-wrapped body text in a rect as tall as the note wraps to (sessionNotesHeight), capped at the space left above the page's bottom limit (pageHeight - bottom margin - 20); returns y + drawn height + 10. The caller reserves room for the whole note (up to one page body) first.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.sessionNotesHeight(session:pageRect:)",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.sessionNotesAttributed(_:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func NSAttributedString.pdfDraw(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "notes non-nil and non-empty",
+     "effect": "false: returns y unchanged"
+    },
+    {
+     "at": "+4",
+     "cond": "note taller than the space left on the page",
+     "effect": "drawn height is capped at that space"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "data-loss",
+     "sev": "low",
+     "text": "A note taller than one page body (about 60 lines) is still clipped at the page's bottom limit with no continuation page; shorter notes are drawn in full after the caller's ensureSpace.",
+     "evidence": [
+      "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift:351"
+     ],
+     "found": "fix batch b13"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.sessionNotesAttributed(_:)": "f05fa143ceb33df5",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.sessionNotesHeight(session:pageRect:)": "e1ddfdbf9ca1bafd",
+    "Emuqu/Sources/Export/OvernightReportRenderer.swift::var OvernightReportRenderer.config": "e592fcae7fc2f962",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func NSAttributedString.pdfDraw(in:)": "9025a4c33d5fb3c1"
+   }
+  },
+  {
+   "key": "func OvernightReportRenderer.sessionNotesHeight(session:pageRect:)",
+   "hash": "f1d657006c0f1fbe",
+   "does": "Height (ceil) that session.notes wraps to at the content width in the notes' body style; 0 when there are no notes. Used by drawSessionNotes and, via PDFReportGenerator.sessionNotesHeight, by drawPage1Tail to reserve space.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.sessionNotesAttributed(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "notes nil or empty",
+     "effect": "returns 0"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.sessionNotesAttributed(_:)": "f05fa143ceb33df5",
+    "Emuqu/Sources/Export/OvernightReportRenderer.swift::var OvernightReportRenderer.config": "e592fcae7fc2f962"
+   }
+  },
+  {
+   "key": "func OvernightReportRenderer.sessionNotesAttributed(_:)",
+   "hash": "b35a29ac1c1146b7",
+   "does": "Wraps notes in an NSAttributedString with body font, dark grey and word-wrapping paragraph style.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/OvernightReportRenderer.swift::var OvernightReportRenderer.config": "e592fcae7fc2f962"
+   }
+  },
+  {
+   "key": "func OvernightReportRenderer.diagnosticColorForScore(_:)",
+   "hash": "cc3594b9ac93804e",
+   "does": "Colour for a 0-100 score: the canonical ScoreVerdict ladder (90/75/60/45/30 on the rounded, clamped score) converted from its SwiftUI Wong colour to UIColor, so the PDF colours a score as the app does (excellent/good teal-green, fair blue, pay attention amber, low/very low orange-red).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/ScoreVerdict.swift::init ScoreVerdict(score:)",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.color",
+    "ext:UIColor.init(_:Color)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/ScoreVerdict.swift::init ScoreVerdict(score:)": "89445abed2b3e6c9",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.color": "dc2f3b06b79e333d"
+   }
+  },
+  {
+   "key": "func OvernightReportRenderer.calculateRollingWindowHRStats(points:)",
+   "hash": "f31a4c795c76f638",
+   "does": "Returns (nadir, max, nadirOffset seconds from the first beat) HR for RR points, or nil: nil when empty; the device-stored per-beat HR stats (30-200 bpm values only) when any point has hr and one of those is in range; otherwise (no stored HR, or none in range) rolling ~10-s window stats derived from RR; nil when that also yields nothing.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func storedHRStats(points:)",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func rollingWindowHRStats(points:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "points empty",
+     "effect": "returns nil"
+    },
+    {
+     "at": "+2",
+     "cond": "any point has a stored hr and storedHRStats returns a value",
+     "effect": "returns it; otherwise rollingWindowHRStats (which may return nil)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func rollingWindowHRStats(points:)": "7ae151ad183ab439",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func storedHRStats(points:)": "3fe91418b70ce1c4"
+   }
+  },
+  {
+   "key": "func OvernightReportRenderer.computeOvernightSleepStats(sleepData:durationMinutes:)",
+   "hash": "33f2eeafd6d96e0c",
+   "does": "Chooses overnight sleep stats: HealthKit asleep total if >0, else HealthKit sleepStart/sleepEnd span labelled 'In Bed', else RecordingSleepEstimate of the recording labelled 'Est. Sleep'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.sleepStatsFromHealthKitTotal(_:)",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.sleepStatsFromHealthKitBoundaries(_:)",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.estimatedSleepStats(durationMinutes:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "HealthKit total sleep stats available",
+     "effect": "returns them"
+    },
+    {
+     "at": "+2",
+     "cond": "HealthKit sleep boundaries available",
+     "effect": "returns span-based stats; otherwise estimate from recording minutes"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.estimatedSleepStats(durationMinutes:)": "150082e778d78fa6",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.sleepStatsFromHealthKitBoundaries(_:)": "6efba92e1c1f0927",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.sleepStatsFromHealthKitTotal(_:)": "7682b06dd6639186"
+   }
+  },
+  {
+   "key": "func OvernightReportRenderer.sleepStatsFromHealthKitTotal(_:)",
+   "hash": "2ecc36efff5b6a7e",
+   "does": "If sleepData has totalSleepMinutes > 0, returns stats with that total, deep minutes, 'Time Asleep'/'Deep Sleep' labels and formatted strings (deep '—' when unmeasured); else nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.formatMinutes(_:)",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::var PDFReportGenerator.SleepData.deepSleepFormatted",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "sleepData non-nil and totalSleepMinutes > 0",
+     "effect": "true: returns HealthKit-total stats; false: nil"
+    },
+    {
+     "at": "+8",
+     "cond": "deepSleepFormatted ?? reportMissingValue",
+     "effect": "'—' when no deep-sleep minutes"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.formatMinutes(_:)": "4455397b9c9d6327",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::var PDFReportGenerator.SleepData.deepSleepFormatted": "5232932b73a9171c",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.totalSleepMinutes(in:)": "89a73025d946f183",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func OvernightReportRenderer.sleepStatsFromHealthKitBoundaries(_:)",
+   "hash": "0877e39dedfb04d3",
+   "does": "If sleepData has both sleepStart and sleepEnd, returns stats whose sleep minutes are the span (awake included) labelled 'In Bed'; else nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.formatMinutes(_:)",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::var PDFReportGenerator.SleepData.deepSleepFormatted",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "sleepData, sleepStart and sleepEnd all non-nil",
+     "effect": "true: span stats; false: nil"
+    },
+    {
+     "at": "+10",
+     "cond": "deepSleepFormatted ?? reportMissingValue",
+     "effect": "'—' when no deep sleep"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.formatMinutes(_:)": "4455397b9c9d6327",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::var PDFReportGenerator.SleepData.deepSleepFormatted": "5232932b73a9171c",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.sleepEnd(of:)": "b0b34d19018e2344"
+   }
+  },
+  {
+   "key": "func OvernightReportRenderer.estimatedSleepStats(durationMinutes:)",
+   "hash": "d5faca77a7e0f5a4",
+   "does": "Builds stats from RecordingSleepEstimate(recordingMinutes:) (90% of recording if >180 min else 85%), labelled 'Est. Sleep', deep sleep nil and printed as '—'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RecordingSleepEstimate.swift::init RecordingSleepEstimate(recordingMinutes:)",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.formatMinutes(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecordingSleepEstimate.swift::init RecordingSleepEstimate(recordingMinutes:)": "e41210dede2a638e",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.formatMinutes(_:)": "4455397b9c9d6327",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func OvernightReportRenderer.formatMinutes(_:)",
+   "hash": "b67ab76e72518d53",
+   "does": "Formats minutes as localized 'Xh Ym' via reportHoursMinutes.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func reportHoursMinutes(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func reportHoursMinutes(_:)": "1540d443b9ef0dc7"
+   }
+  },
+  {
+   "key": "func OvernightReportRenderer.peakSearchBand(points:sleepData:sessionStart:)",
+   "hash": "245bb674719f2002",
+   "does": "The peak-HRV search band in the series' t_ms: the 30-70% slice of the HealthKit sleep envelope (sleepStart/sleepEnd as ms after sessionStart, clamped to 0...recording length) when both boundaries exist, else of the whole recording (0...last-first t_ms). Mirrors OvernightChartsView.searchBand so the PDF and the Overnight screen search the same stretch. An envelope ending before it starts gives an inverted (empty) band.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "sleepData has both sleepStart and sleepEnd",
+     "effect": "band is within the sleep envelope; otherwise within the whole recording"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "532ac87707a256ac"
+   }
+  },
+  {
+   "key": "func OvernightReportRenderer.calculatePeakRMSSD(points:flags:band:)",
+   "hash": "550878f3844a6a7b",
+   "does": "Peak rolling RMSSD (300-beat window, 30-beat step) whose window centre falls inside the given t_ms band; if none qualifies, rescans the whole recording. Returns the peak and the t_ms of its centre beat, or nil when points are empty or no window anywhere had a measurable RMSSD (so the report prints a missing value, not 0 ms).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.scanPeak(points:flags:bandStart:bandEnd:peakRMSSD:peakIndex:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "points empty",
+     "effect": "returns nil"
+    },
+    {
+     "at": "+7",
+     "cond": "no peak found in the band",
+     "effect": "scans the whole recording"
+    },
+    {
+     "at": "+12",
+     "cond": "still no peak",
+     "effect": "returns nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.scanPeak(points:flags:bandStart:bandEnd:peakRMSSD:peakIndex:)": "ff01b41c0859afc7"
+   }
+  },
+  {
+   "key": "func OvernightReportRenderer.scanPeak(points:flags:bandStart:bandEnd:peakRMSSD:peakIndex:)",
+   "hash": "2be7fa291626b27e",
+   "does": "Runs scanForPeakRMSSD with a 300-beat window, 30-beat step and the given optional time band.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.scanForPeakRMSSD(points:flags:window:peakRMSSD:peakIndex:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.scanForPeakRMSSD(points:flags:window:peakRMSSD:peakIndex:)": "efbb719f91b93cc6"
+   }
+  },
+  {
+   "key": "func OvernightReportRenderer.scanForPeakRMSSD(points:flags:window:peakRMSSD:peakIndex:)",
+   "hash": "704a77dcb2cf79c4",
+   "does": "Slides index i over all points in window.step increments (snapping to the last point); for each i inside the time band computes RMSSD over [i-size/2, i+size/2) and keeps the maximum and its index in the inout vars.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func inScanBand(_:window:)",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.windowRMSSD(points:flags:from:to:)",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.advanceScanIndex(_:pointCount:stepSize:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "i <= points.count-1",
+     "effect": "loop continues until index passes the last point"
+    },
+    {
+     "at": "+9",
+     "cond": "i in band AND window RMSSD non-nil AND > current peak",
+     "effect": "true: updates peak and index; false: unchanged"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Same 300-beat window / 30-beat step / snap-to-last-index scan over TimeDomainAnalyzer.peakScanRMSSD is reimplemented in OvernightChartsView.computeRollingRMSSD; the two loops are kept identical by hand.",
+     "evidence": [
+      "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift:548",
+      "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift:557",
+      "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift:562",
+      "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:440",
+      "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:455"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.advanceScanIndex(_:pointCount:stepSize:)": "138c9385b11fefab",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func OvernightReportRenderer.windowRMSSD(points:flags:from:to:)": "8b6c9e0ada6c0837",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func inScanBand(_:window:)": "50c5922a0ef905af"
+   }
+  },
+  {
+   "key": "func OvernightReportRenderer.advanceScanIndex(_:pointCount:stepSize:)",
+   "hash": "d34deba59f123a0a",
+   "does": "Returns i+step, or count-1 when that would jump past the last element from a position before it (so the last window is always evaluated).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "i < count-1 and i+step > count-1",
+     "effect": "returns count-1; else returns i+step (which ends the loop once i is the last index)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func OvernightReportRenderer.windowRMSSD(points:flags:from:to:)",
+   "hash": "0c00defd3f02406c",
+   "does": "Returns TimeDomainAnalyzer.peakScanRMSSD over points[windowStart..<max(windowStart,windowEnd)] (nil if <30 clean beats or out of range).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.peakScanRMSSD(points:flags:range:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.peakScanRMSSD(points:flags:range:)": "56bad7f8ab0529f1"
+   }
+  },
+  {
+   "key": "func formatRecordingDuration(series:first:last:)",
+   "hash": "2ec1bad194cb4eab",
+   "does": "'7h 42m' / '42m' for the recording span: first to last beat on the series' wall clock (wallClockTime), so a strap disconnect gap counts as recorded time; negative spans clamp to 0.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.wallClockTime(forTMs:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func reportHoursMinutes(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func reportHoursMinutes(_:)": "1540d443b9ef0dc7",
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.wallClockTime(forTMs:)": "8f9579b405dd05f1"
+   }
+  },
+  {
+   "key": "func overnightHRSamples(points:)",
+   "hash": "948c83bd9c44dcdc",
+   "does": "Downsamples RR points to about 500 with step max(1, count/500), drops RR outside 300-2000 ms, returns (index, 60000/rr bpm) pairs.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "stride over points by sampleStep",
+     "effect": "each sampled index processed"
+    },
+    {
+     "at": "+7",
+     "cond": "rr in 300...2000",
+     "effect": "false: sample skipped"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func overnightHRY(_:in:minHR:range:)",
+   "hash": "0b8fce3313492260",
+   "does": "Maps an HR value to a chart y: bottom minus normalized*(0.9*height) minus 5.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func drawOvernightHRGrid(in:minHR:maxHR:range:)",
+   "hash": "84c5e58e0be38aba",
+   "does": "Strokes light grey horizontal grid lines at every multiple of 10 bpm from ceil(min/10)*10 to max.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func overnightHRY(_:in:minHR:range:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "stride 10-bpm lines through Int(maxHR)",
+     "effect": "each line drawn; none when the first multiple exceeds max"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func overnightHRY(_:in:minHR:range:)": "7ebf67579b445537",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.Size.lineWidth": "2d14bae4bbb8fc1d"
+   }
+  },
+  {
+   "key": "func overnightHRPath(_:pointCount:in:minHR:range:)",
+   "hash": "c57b678f4ef5c631",
+   "does": "Builds a UIBezierPath through (minX + idx*width/pointCount, y(hr)) for each sample.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func overnightHRY(_:in:minHR:range:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+11",
+     "cond": "for each (idx,hr)",
+     "effect": "adds a point"
+    },
+    {
+     "at": "+15",
+     "cond": "first point",
+     "effect": "move(to:) for the first, addLine for the rest"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func overnightHRY(_:in:minHR:range:)": "7ebf67579b445537"
+   }
+  },
+  {
+   "key": "func strokeTagPill(_:attributes:x:y:width:height:)",
+   "hash": "3d8880d8bec574a1",
+   "does": "Fills a rounded light-grey pill rect and draws the tag text inset 8/3pt.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "29c985d5d464ee1e"
+   }
+  },
+  {
+   "key": "func storedHRStats(points:)",
+   "hash": "95cc72c5a8acbb8b",
+   "does": "From device-recorded per-beat HR values in 30-200 bpm returns min, max and the offset of the first beat with that min; nil if none is in range.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func nadirOffset(at:in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "hr non-nil and in 30...200",
+     "effect": "false: value dropped"
+    },
+    {
+     "at": "+5",
+     "cond": "no valid HR values",
+     "effect": "returns nil"
+    },
+    {
+     "at": "+6",
+     "cond": "$0.hr ?? 0 when matching nadir",
+     "effect": "points without hr compare as 0 and never match a nadir >=30"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func nadirOffset(at:in:)": "67316d478e6d3a0f"
+   }
+  },
+  {
+   "key": "func nadirOffset(at:in:)",
+   "hash": "88973fea166665c9",
+   "does": "Returns seconds from the first point's t_ms to points[index].t_ms, or nil when index is nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "index non-nil",
+     "effect": "false: returns nil"
+    },
+    {
+     "at": "+2",
+     "cond": "points.first?.t_ms ?? 0",
+     "effect": "0 when points empty (unreachable: index exists)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func rollingWindowHRStats(points:)",
+   "hash": "e6f088eb7a93b89c",
+   "does": "Computes rolling ~10-s HR samples from RR and returns their min, max and the offset of the first window reaching the min; nil if no window produced a sample.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func rollingHRSamples(points:)",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func nadirOffset(at:in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "no samples",
+     "effect": "returns nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func nadirOffset(at:in:)": "67316d478e6d3a0f",
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func rollingHRSamples(points:)": "f4105ad283ceaf25"
+   }
+  },
+  {
+   "key": "func rollingHRSamples(points:)",
+   "hash": "548a93c251afe3fa",
+   "does": "Walks the points, taking one ~10-s window HR sample starting at each i and advancing i by min(5 beats, window end).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func rollingHRWindow(points:from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "i < points.count",
+     "effect": "loop until all points visited"
+    },
+    {
+     "at": "+5",
+     "cond": "window produced a sample",
+     "effect": "true: appended with start index i"
+    },
+    {
+     "at": "+7",
+     "cond": "next > i+5",
+     "effect": "true: advance 5 beats; false: advance to window end index"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift::func rollingHRWindow(points:from:)": "343c1b488b56fe4c"
+   }
+  },
+  {
+   "key": "func rollingHRWindow(points:from:)",
+   "hash": "3ee040ca21e66207",
+   "does": "From index start, accumulates RR in 300-2000 ms until 10 s are summed; returns (beats/duration*60000, end index), or nil HR if <5 beats or the rate is outside 30-200.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "j < count and accumulated < 10000 ms",
+     "effect": "continue accumulating"
+    },
+    {
+     "at": "+9",
+     "cond": "rr in 300...2000",
+     "effect": "false: beat skipped (not counted, not timed)"
+    },
+    {
+     "at": "+16",
+     "cond": "<5 clean beats or zero duration",
+     "effect": "returns (nil, j)"
+    },
+    {
+     "at": "+19",
+     "cond": "HR in 30...200",
+     "effect": "false: returns (nil, j); true: (HR, j)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func inScanBand(_:window:)",
+   "hash": "dafe7a6fbe6b429d",
+   "does": "True when the window has no band, else whether midTimeMs lies within [bandStart, bandEnd].",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "bandStart and bandEnd both non-nil",
+     "effect": "false: returns true (scan everything); true: range test"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

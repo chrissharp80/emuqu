@@ -50,20 +50,6 @@ enum ScoreVerdict: String, CaseIterable, Sendable {
         }
     }
 
-    /// Subverdict — second line under the verdict word in detail views and
-    /// notifications. One sentence, observational, ends with permission or
-    /// suggestion (the voice rule).
-    var subverdict: String {
-        switch self {
-        case .excellent:    "Well above your usual range. A good day to train hard if you want to."
-        case .good:         "Above your usual range. Normal training is fine."
-        case .fair:         "In your normal range. Listen to how you feel today."
-        case .payAttention: "Below your usual range. An easy day is worth considering."
-        case .low:          "Well below your usual range. Worth easing off."
-        case .veryLow:      "Far below your usual range. Worth a rest day."
-        }
-    }
-
     /// `word` in the app's language, for the screen. `word` itself stays
     /// English for the assistant's fact lines and logs.
     var localizedWord: String {
@@ -78,7 +64,9 @@ enum ScoreVerdict: String, CaseIterable, Sendable {
         }
     }
 
-    /// `subverdict` in the app's language.
+    /// Subverdict — second line under the verdict word in detail views and
+    /// notifications, in the app's language. One sentence, observational,
+    /// ends with permission or suggestion (the voice rule).
     var localizedSubverdict: String {
         let bundle = LanguageManager.appBundle
         switch self {
@@ -123,35 +111,6 @@ enum ScoreVerdict: String, CaseIterable, Sendable {
         case .fair:             AppTheme.wongGoodText
         case .payAttention:     AppTheme.wongCautionText
         case .low, .veryLow:    AppTheme.wongAttentionText
-        }
-    }
-
-    /// Lower bound (inclusive) of the score range for this tier — used for
-    /// progress arcs and confidence bands.
-    var lowerBound: Int {
-        switch self {
-        case .excellent:    90
-        case .good:         75
-        case .fair:         60
-        case .payAttention: 45
-        case .low:          30
-        case .veryLow:      0
-        }
-    }
-
-    /// Upper bound of the score range for this tier. Exclusive, matching the
-    /// half-open ranges in `init(score:)` (`.good` is `75..<90`), except
-    /// `.excellent` which is inclusive at 100. Using the exclusive value keeps
-    /// arc math `(score − lowerBound)/(upperBound − lowerBound)` in [0,1] and
-    /// removes the 1-unit dead zone that a value of 89 left between tiers.
-    var upperBound: Int {
-        switch self {
-        case .excellent:    100
-        case .good:         90
-        case .fair:         75
-        case .payAttention: 60
-        case .low:          45
-        case .veryLow:      30
         }
     }
 }

@@ -1,0 +1,461 @@
+{
+ "file": "EmuquTests/ReadinessCalculationTests.swift",
+ "hash": "60b2620c68a499dd",
+ "role": "XCTest suite for RecoveryScoreCalculator.calculateReadiness (forwarding to ReadinessScoring): capacity-ratio model, no-history novel-load path, recovery modulation, today's strain, and the non-finite fallback. Further cases live in ReadinessCalculationTests+Decay.swift.",
+ "types": [
+  "ReadinessCalculationTests: class — XCTestCase for training readiness"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func ReadinessCalculationTests.testFitAthleteAbsorbsHikeEasily()",
+   "hash": "a60e35234c615538",
+   "does": "CTL 60, ATL 30, today TRIMP 120, recovery 90: asserts readiness > 45 (capacity ratio 1.2 → ~56.7, uplifted to ~66.7).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeAcuteFatigue(todayTrimp:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeBaseReadiness(ctl:atl:acuteFatigue:rawAcuteFatigue:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.mapCapacityRatioToReadiness(_:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyACWRModifier(_:acuteChronicRatio:ctl:recoveryScore:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyFreshnessBonus(_:morningATL:atl:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyRecoveryModulation(_:recoveryScore:ctl:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyACWRModifier(_:acuteChronicRatio:ctl:recoveryScore:)": "af43b21bcbbeaaaa",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyFreshnessBonus(_:morningATL:atl:)": "e88756532c3a791e",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyRecoveryModulation(_:recoveryScore:ctl:)": "09f5a5e0dc237a38",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "dadd07d5df986633",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeAcuteFatigue(todayTrimp:recentWorkoutLoads:)": "c6894f9bcbb37dd6",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeBaseReadiness(ctl:atl:acuteFatigue:rawAcuteFatigue:)": "510a4cb6f29ffc87",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.mapCapacityRatioToReadiness(_:)": "75d9c9855af3f587",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "088bd81c4054cfaa"
+   }
+  },
+  {
+   "key": "func ReadinessCalculationTests.testUnfitAthleteCrushedBySameHike()",
+   "hash": "2fe9d23ee0227b28",
+   "does": "CTL 20, ATL 18, TRIMP 120, recovery 90: asserts readiness < 40 (ratio 3.0 → floor 10, uplift to 34).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeAcuteFatigue(todayTrimp:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeBaseReadiness(ctl:atl:acuteFatigue:rawAcuteFatigue:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.mapCapacityRatioToReadiness(_:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyACWRModifier(_:acuteChronicRatio:ctl:recoveryScore:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyFreshnessBonus(_:morningATL:atl:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyRecoveryModulation(_:recoveryScore:ctl:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyACWRModifier(_:acuteChronicRatio:ctl:recoveryScore:)": "af43b21bcbbeaaaa",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyFreshnessBonus(_:morningATL:atl:)": "e88756532c3a791e",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyRecoveryModulation(_:recoveryScore:ctl:)": "09f5a5e0dc237a38",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "dadd07d5df986633",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeAcuteFatigue(todayTrimp:recentWorkoutLoads:)": "c6894f9bcbb37dd6",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeBaseReadiness(ctl:atl:acuteFatigue:rawAcuteFatigue:)": "510a4cb6f29ffc87",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.mapCapacityRatioToReadiness(_:)": "75d9c9855af3f587",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "088bd81c4054cfaa"
+   }
+  },
+  {
+   "key": "func ReadinessCalculationTests.testFitVsUnfitDramaticDifference()",
+   "hash": "126185df71182657",
+   "does": "Asserts the fit (CTL 60/ATL 30) minus unfit (CTL 20/ATL 18) readiness for the same 120-TRIMP day exceeds 20.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeAcuteFatigue(todayTrimp:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeBaseReadiness(ctl:atl:acuteFatigue:rawAcuteFatigue:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.mapCapacityRatioToReadiness(_:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyACWRModifier(_:acuteChronicRatio:ctl:recoveryScore:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyFreshnessBonus(_:morningATL:atl:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyRecoveryModulation(_:recoveryScore:ctl:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyACWRModifier(_:acuteChronicRatio:ctl:recoveryScore:)": "af43b21bcbbeaaaa",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyFreshnessBonus(_:morningATL:atl:)": "e88756532c3a791e",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyRecoveryModulation(_:recoveryScore:ctl:)": "09f5a5e0dc237a38",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "dadd07d5df986633",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeAcuteFatigue(todayTrimp:recentWorkoutLoads:)": "c6894f9bcbb37dd6",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeBaseReadiness(ctl:atl:acuteFatigue:rawAcuteFatigue:)": "510a4cb6f29ffc87",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.mapCapacityRatioToReadiness(_:)": "75d9c9855af3f587",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "088bd81c4054cfaa"
+   }
+  },
+  {
+   "key": "func ReadinessCalculationTests.testRestDayHighReadiness()",
+   "hash": "63f36b26a096e7b0",
+   "does": "CTL 60, ATL 0, no TRIMP, recovery 90: asserts readiness >= 85 (model 100, trust 0.55 → 95.5).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeAcuteFatigue(todayTrimp:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeBaseReadiness(ctl:atl:acuteFatigue:rawAcuteFatigue:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.mapCapacityRatioToReadiness(_:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyACWRModifier(_:acuteChronicRatio:ctl:recoveryScore:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyFreshnessBonus(_:morningATL:atl:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyRecoveryModulation(_:recoveryScore:ctl:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyACWRModifier(_:acuteChronicRatio:ctl:recoveryScore:)": "af43b21bcbbeaaaa",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyFreshnessBonus(_:morningATL:atl:)": "e88756532c3a791e",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyRecoveryModulation(_:recoveryScore:ctl:)": "09f5a5e0dc237a38",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "dadd07d5df986633",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeAcuteFatigue(todayTrimp:recentWorkoutLoads:)": "c6894f9bcbb37dd6",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeBaseReadiness(ctl:atl:acuteFatigue:rawAcuteFatigue:)": "510a4cb6f29ffc87",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.mapCapacityRatioToReadiness(_:)": "75d9c9855af3f587",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "088bd81c4054cfaa"
+   }
+  },
+  {
+   "key": "func ReadinessCalculationTests.testMatchedLoadModerateReadiness()",
+   "hash": "639556ddb7cc0328",
+   "does": "CTL = ATL = 60, recovery 90: asserts readiness ≈ 76 ±5 (ratio 1.0 → 70, uplift 30% of gap).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeAcuteFatigue(todayTrimp:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeBaseReadiness(ctl:atl:acuteFatigue:rawAcuteFatigue:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.mapCapacityRatioToReadiness(_:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyACWRModifier(_:acuteChronicRatio:ctl:recoveryScore:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyFreshnessBonus(_:morningATL:atl:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyRecoveryModulation(_:recoveryScore:ctl:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyACWRModifier(_:acuteChronicRatio:ctl:recoveryScore:)": "af43b21bcbbeaaaa",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyFreshnessBonus(_:morningATL:atl:)": "e88756532c3a791e",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyRecoveryModulation(_:recoveryScore:ctl:)": "09f5a5e0dc237a38",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "dadd07d5df986633",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeAcuteFatigue(todayTrimp:recentWorkoutLoads:)": "c6894f9bcbb37dd6",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeBaseReadiness(ctl:atl:acuteFatigue:rawAcuteFatigue:)": "510a4cb6f29ffc87",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.mapCapacityRatioToReadiness(_:)": "75d9c9855af3f587",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "088bd81c4054cfaa"
+   }
+  },
+  {
+   "key": "func ReadinessCalculationTests.testNoTrainingHistoryRestDayIsHigh()",
+   "hash": "a596526bfccc6397",
+   "does": "CTL 0, no load, recovery 90: asserts readiness >= 85 (novel-load model 100, zero trust → recovery 90).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeAcuteFatigue(todayTrimp:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeBaseReadiness(ctl:atl:acuteFatigue:rawAcuteFatigue:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyACWRModifier(_:acuteChronicRatio:ctl:recoveryScore:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyFreshnessBonus(_:morningATL:atl:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyRecoveryModulation(_:recoveryScore:ctl:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyACWRModifier(_:acuteChronicRatio:ctl:recoveryScore:)": "af43b21bcbbeaaaa",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyFreshnessBonus(_:morningATL:atl:)": "e88756532c3a791e",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyRecoveryModulation(_:recoveryScore:ctl:)": "09f5a5e0dc237a38",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "dadd07d5df986633",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeAcuteFatigue(todayTrimp:recentWorkoutLoads:)": "c6894f9bcbb37dd6",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeBaseReadiness(ctl:atl:acuteFatigue:rawAcuteFatigue:)": "510a4cb6f29ffc87",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "088bd81c4054cfaa"
+   }
+  },
+  {
+   "key": "func ReadinessCalculationTests.testNoTrainingHistoryHeavyWorkoutCrashes()",
+   "hash": "c3f85aedc51ce46e",
+   "does": "CTL 0, TRIMP 200, recovery 90: asserts readiness < 40 (novel-load 100-200*0.5 floored to 10, uplift to 34).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeAcuteFatigue(todayTrimp:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeBaseReadiness(ctl:atl:acuteFatigue:rawAcuteFatigue:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyACWRModifier(_:acuteChronicRatio:ctl:recoveryScore:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyFreshnessBonus(_:morningATL:atl:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyRecoveryModulation(_:recoveryScore:ctl:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyACWRModifier(_:acuteChronicRatio:ctl:recoveryScore:)": "af43b21bcbbeaaaa",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyFreshnessBonus(_:morningATL:atl:)": "e88756532c3a791e",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyRecoveryModulation(_:recoveryScore:ctl:)": "09f5a5e0dc237a38",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "dadd07d5df986633",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeAcuteFatigue(todayTrimp:recentWorkoutLoads:)": "c6894f9bcbb37dd6",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeBaseReadiness(ctl:atl:acuteFatigue:rawAcuteFatigue:)": "510a4cb6f29ffc87",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "088bd81c4054cfaa"
+   }
+  },
+  {
+   "key": "func ReadinessCalculationTests.testSparseDataFallbackToRecovery()",
+   "hash": "e1a3baac3502069d",
+   "does": "CTL 0, recovery 75: asserts readiness ≈ 75 ±1 (zero model trust).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeAcuteFatigue(todayTrimp:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeBaseReadiness(ctl:atl:acuteFatigue:rawAcuteFatigue:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyACWRModifier(_:acuteChronicRatio:ctl:recoveryScore:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyFreshnessBonus(_:morningATL:atl:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyRecoveryModulation(_:recoveryScore:ctl:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyACWRModifier(_:acuteChronicRatio:ctl:recoveryScore:)": "af43b21bcbbeaaaa",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyFreshnessBonus(_:morningATL:atl:)": "e88756532c3a791e",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyRecoveryModulation(_:recoveryScore:ctl:)": "09f5a5e0dc237a38",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "dadd07d5df986633",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeAcuteFatigue(todayTrimp:recentWorkoutLoads:)": "c6894f9bcbb37dd6",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeBaseReadiness(ctl:atl:acuteFatigue:rawAcuteFatigue:)": "510a4cb6f29ffc87",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "088bd81c4054cfaa"
+   }
+  },
+  {
+   "key": "func ReadinessCalculationTests.testSparseDataFallbackDoesNotOverrideOverload()",
+   "hash": "29518992621721e9",
+   "does": "CTL 3, ATL 10, TRIMP 150, recovery 85: asserts readiness < 40 (novel-load 20, uplift to 39.5).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeAcuteFatigue(todayTrimp:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeBaseReadiness(ctl:atl:acuteFatigue:rawAcuteFatigue:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyACWRModifier(_:acuteChronicRatio:ctl:recoveryScore:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyFreshnessBonus(_:morningATL:atl:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyRecoveryModulation(_:recoveryScore:ctl:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Expected value is 39.5 against a < 40 bound, so any small change in the uplift fraction or strain coefficient flips the test; the margin is 0.5 points.",
+     "evidence": [
+      "EmuquTests/ReadinessCalculationTests.swift:178",
+      "Emuqu/Sources/Utilities/Constants+RecoveryScore.swift:190"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyACWRModifier(_:acuteChronicRatio:ctl:recoveryScore:)": "af43b21bcbbeaaaa",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyFreshnessBonus(_:morningATL:atl:)": "e88756532c3a791e",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyRecoveryModulation(_:recoveryScore:ctl:)": "09f5a5e0dc237a38",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "dadd07d5df986633",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeAcuteFatigue(todayTrimp:recentWorkoutLoads:)": "c6894f9bcbb37dd6",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeBaseReadiness(ctl:atl:acuteFatigue:rawAcuteFatigue:)": "510a4cb6f29ffc87",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "088bd81c4054cfaa"
+   }
+  },
+  {
+   "key": "func ReadinessCalculationTests.testLowCTLRecoveryDominates()",
+   "hash": "72cc6c88258a52ea",
+   "does": "CTL 5, ATL 0, recovery 70: asserts readiness ≈ 71.5 ±3.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeAcuteFatigue(todayTrimp:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeBaseReadiness(ctl:atl:acuteFatigue:rawAcuteFatigue:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.mapCapacityRatioToReadiness(_:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyACWRModifier(_:acuteChronicRatio:ctl:recoveryScore:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyFreshnessBonus(_:morningATL:atl:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyRecoveryModulation(_:recoveryScore:ctl:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Comment computes modelTrust as (5/40)*0.4 = 0.05 → 71.5, but the code uses modelTrustCeiling 0.55 (→ 72.06); the test passes only because of the ±3 tolerance and its stated arithmetic is stale.",
+     "evidence": [
+      "EmuquTests/ReadinessCalculationTests.swift:187",
+      "Emuqu/Sources/Utilities/Constants+RecoveryScore.swift:188"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyACWRModifier(_:acuteChronicRatio:ctl:recoveryScore:)": "af43b21bcbbeaaaa",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyFreshnessBonus(_:morningATL:atl:)": "e88756532c3a791e",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyRecoveryModulation(_:recoveryScore:ctl:)": "09f5a5e0dc237a38",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "dadd07d5df986633",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeAcuteFatigue(todayTrimp:recentWorkoutLoads:)": "c6894f9bcbb37dd6",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeBaseReadiness(ctl:atl:acuteFatigue:rawAcuteFatigue:)": "510a4cb6f29ffc87",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.mapCapacityRatioToReadiness(_:)": "75d9c9855af3f587",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "088bd81c4054cfaa"
+   }
+  },
+  {
+   "key": "func ReadinessCalculationTests.testHighCTLRecoveryStillInfluences()",
+   "hash": "2d94eece3a0f23c3",
+   "does": "CTL 60, ATL 0: asserts readiness with recovery 90 > readiness with recovery 40, and the recovery-40 readiness > 40.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeAcuteFatigue(todayTrimp:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeBaseReadiness(ctl:atl:acuteFatigue:rawAcuteFatigue:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.mapCapacityRatioToReadiness(_:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyACWRModifier(_:acuteChronicRatio:ctl:recoveryScore:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyFreshnessBonus(_:morningATL:atl:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyRecoveryModulation(_:recoveryScore:ctl:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Comment says modelTrust = min(60/40,1)*0.4 and 'recovery says 60' → 76, but the code uses a 0.55 ceiling and the test passes recovery 40 (→ 73); the narrative does not match the inputs or constants.",
+     "evidence": [
+      "EmuquTests/ReadinessCalculationTests.swift:206",
+      "EmuquTests/ReadinessCalculationTests.swift:207",
+      "EmuquTests/ReadinessCalculationTests.swift:218",
+      "Emuqu/Sources/Utilities/Constants+RecoveryScore.swift:188"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyACWRModifier(_:acuteChronicRatio:ctl:recoveryScore:)": "af43b21bcbbeaaaa",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyFreshnessBonus(_:morningATL:atl:)": "e88756532c3a791e",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyRecoveryModulation(_:recoveryScore:ctl:)": "09f5a5e0dc237a38",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "dadd07d5df986633",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeAcuteFatigue(todayTrimp:recentWorkoutLoads:)": "c6894f9bcbb37dd6",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeBaseReadiness(ctl:atl:acuteFatigue:rawAcuteFatigue:)": "510a4cb6f29ffc87",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.mapCapacityRatioToReadiness(_:)": "75d9c9855af3f587",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "088bd81c4054cfaa"
+   }
+  },
+  {
+   "key": "func ReadinessCalculationTests.testStrainReducesReadiness()",
+   "hash": "c441f616748fee95",
+   "does": "CTL 50, ATL 40, recovery 90: asserts readiness with 200 TRIMP today < readiness with 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeAcuteFatigue(todayTrimp:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeBaseReadiness(ctl:atl:acuteFatigue:rawAcuteFatigue:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.mapCapacityRatioToReadiness(_:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyACWRModifier(_:acuteChronicRatio:ctl:recoveryScore:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyFreshnessBonus(_:morningATL:atl:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyRecoveryModulation(_:recoveryScore:ctl:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyACWRModifier(_:acuteChronicRatio:ctl:recoveryScore:)": "af43b21bcbbeaaaa",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyFreshnessBonus(_:morningATL:atl:)": "e88756532c3a791e",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyRecoveryModulation(_:recoveryScore:ctl:)": "09f5a5e0dc237a38",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "dadd07d5df986633",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeAcuteFatigue(todayTrimp:recentWorkoutLoads:)": "c6894f9bcbb37dd6",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeBaseReadiness(ctl:atl:acuteFatigue:rawAcuteFatigue:)": "510a4cb6f29ffc87",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.mapCapacityRatioToReadiness(_:)": "75d9c9855af3f587",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "088bd81c4054cfaa"
+   }
+  },
+  {
+   "key": "func ReadinessCalculationTests.testHigherFitnessReducesStrainImpact()",
+   "hash": "8ce4de8907210e08",
+   "does": "TRIMP 200, recovery 90: asserts CTL 100/ATL 80 readiness > CTL 20/ATL 15 readiness.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeAcuteFatigue(todayTrimp:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeBaseReadiness(ctl:atl:acuteFatigue:rawAcuteFatigue:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.mapCapacityRatioToReadiness(_:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyACWRModifier(_:acuteChronicRatio:ctl:recoveryScore:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyFreshnessBonus(_:morningATL:atl:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyRecoveryModulation(_:recoveryScore:ctl:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyACWRModifier(_:acuteChronicRatio:ctl:recoveryScore:)": "af43b21bcbbeaaaa",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyFreshnessBonus(_:morningATL:atl:)": "e88756532c3a791e",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyRecoveryModulation(_:recoveryScore:ctl:)": "09f5a5e0dc237a38",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "dadd07d5df986633",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeAcuteFatigue(todayTrimp:recentWorkoutLoads:)": "c6894f9bcbb37dd6",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeBaseReadiness(ctl:atl:acuteFatigue:rawAcuteFatigue:)": "510a4cb6f29ffc87",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.mapCapacityRatioToReadiness(_:)": "75d9c9855af3f587",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "088bd81c4054cfaa"
+   }
+  },
+  {
+   "key": "func ReadinessCalculationTests.testNonFiniteResultDegradesToTheMidpointNotFullyReady()",
+   "hash": "c4b6090c13ae4ed5",
+   "does": "Recovery +infinity with CTL 40, ATL 30: asserts the non-finite result degrades to exactly 50.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeAcuteFatigue(todayTrimp:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeBaseReadiness(ctl:atl:acuteFatigue:rawAcuteFatigue:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.mapCapacityRatioToReadiness(_:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyACWRModifier(_:acuteChronicRatio:ctl:recoveryScore:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyFreshnessBonus(_:morningATL:atl:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyRecoveryModulation(_:recoveryScore:ctl:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyACWRModifier(_:acuteChronicRatio:ctl:recoveryScore:)": "af43b21bcbbeaaaa",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyFreshnessBonus(_:morningATL:atl:)": "e88756532c3a791e",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyRecoveryModulation(_:recoveryScore:ctl:)": "09f5a5e0dc237a38",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "dadd07d5df986633",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeAcuteFatigue(todayTrimp:recentWorkoutLoads:)": "c6894f9bcbb37dd6",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeBaseReadiness(ctl:atl:acuteFatigue:rawAcuteFatigue:)": "510a4cb6f29ffc87",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.mapCapacityRatioToReadiness(_:)": "75d9c9855af3f587",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "088bd81c4054cfaa"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -17,14 +17,14 @@ extension DashboardV2View {
     }
 
     private var hrvChip: some View {
-        ContributorChip(variant: hrvVariant, state: hrvState, compact: true) {
+        ContributorChip(variant: hrvVariant, state: hrvState, compact: true, recordedAgo: nightAgeLabel(for: latestOvernightComplete)) {
             dependencies.services.validationTelemetry.recordChipTap(.hrv)
             navTarget = .hrv
         }
     }
 
     private var sleepChip: some View {
-        ContributorChip(variant: sleepVariant, state: sleepState, compact: true) {
+        ContributorChip(variant: sleepVariant, state: sleepState, compact: true, recordedAgo: nightAgeLabel(for: sleepChipSession)) {
             dependencies.services.validationTelemetry.recordChipTap(.sleep)
             navTarget = .sleep
         }
@@ -102,8 +102,7 @@ extension DashboardV2View {
     /// report: "sleep looks fine in the sleep section but the
     /// dashboard doesn't reflect that."
     var sleepVariant: ContributorChip.Variant {
-        let snap = latestOvernightComplete?.sleepSnapshot ?? latestWithSleep?.sleepSnapshot
-        if let snap, snap.totalSleepIncludingNapMinutes > 0 {
+        if let snap = sleepChipSession?.sleepSnapshot, snap.totalSleepIncludingNapMinutes > 0 {
             return .sleep(duration: LocalizedDuration.hoursMinutes(minutes: snap.totalSleepIncludingNapMinutes), efficiency: nil)
         }
         // Cold-start seed: full sessions not decrypted yet — show the latest
@@ -115,9 +114,17 @@ extension DashboardV2View {
         return .sleep(duration: "—", efficiency: nil)
     }
 
+    /// The session whose sleep the chip shows: the morning overnight when it
+    /// carries a sleep snapshot, else the newest session that does.
+    var sleepChipSession: HRVSession? {
+        if let overnight = latestOvernightComplete, overnight.sleepSnapshot != nil { return overnight }
+        return latestWithSleep
+    }
+
     var sleepState: ContributorChip.DisplayState {
-        // Same source priority as `sleepVariant` above.
-        if (latestOvernightComplete?.sleepSnapshot ?? latestWithSleep?.sleepSnapshot) != nil { return .default }
+        // Same rule as `sleepVariant` above: a snapshot with no sleep minutes
+        // renders "—", so it is the no-data state, not a default-styled dash.
+        if let snap = sleepChipSession?.sleepSnapshot, snap.totalSleepIncludingNapMinutes > 0 { return .default }
         if sessions.isEmpty,
            (cachedDashboard?.sleepMinutes ?? seedSummary?.sleepMinutes) != nil { return .default }
         return .noData
@@ -192,17 +199,9 @@ extension DashboardV2View {
         guard let metrics = cache.current else {
             return .load(verdict: .buildingBaseline, subline: "—")
         }
-        // Pull the past-90-day series so we can read CTL from a week
-        // ago + compute ramp rate. `samplesSince` returns newest-first;
-        // the verdict helper expects no particular order — it pulls
-        // count-based positions out — so we just feed it the count.
-        let cutoff = Calendar.current.date(byAdding: .day, value: -90, to: Date()) ?? Date()
-        let series = cache.samplesSince(cutoff).sorted { $0.date < $1.date }
         // No load at all is "building baseline", not "→ Maintaining" over zeros.
         guard metrics.ctl > 0 || metrics.atl > 0 || metrics.todayTrimp > 0 else { return .load(verdict: .buildingBaseline, subline: "—") }
-        let ctlAnchors = anchoredCTL(series)
-        let rampRate = ctlRampRate(series, liveCTL: metrics.ctl)
-        let verdict = loadVerdict(series: series, anchors: ctlAnchors, rampRate: rampRate, metrics: metrics)
+        let verdict = loadVerdict(series: trajectorySeries(cache, live: metrics))
         // todayTrimp = today's summed effectiveLoad
         // (power/HR TSS-preferred), the same metric shown as "LOAD" on the
         // workout summary and trajectory — not raw Banister TRIMP. Label "LOAD".
@@ -210,60 +209,41 @@ extension DashboardV2View {
         return .load(verdict: verdict, subline: String(localized: "LOAD \(trimpInt) today", bundle: LanguageManager.appBundle))
     }
 
-    private func loadVerdict(
-        series: [TrainingMetricsCache.DaySample],
-        anchors: (yesterday: Double?, weekAgo: Double?),
-        rampRate: Double,
-        metrics: TrainingMetrics
-    ) -> TrajectoryVerdict {
+    /// One day of the trajectory the verdict reads.
+    typealias TrajectoryDay = (ctl: Double, atl: Double, tsb: Double)
+
+    /// The series the Load & Trajectory screen plots
+    /// (`LoadTrajectoryLoader.makeSamples`): the last 90 days, oldest first,
+    /// with today's bucket read live from `TrainingMetricsCache.current`.
+    /// The chip's verdict is computed from exactly what that screen shows.
+    private func trajectorySeries(_ cache: TrainingMetricsCache, live: TrainingMetrics) -> [TrajectoryDay] {
+        let calendar = Calendar.current
+        let cutoff = calendar.date(byAdding: .day, value: -90, to: Date()) ?? Date()
+        return cache.samplesSince(cutoff).reversed().map { day -> TrajectoryDay in
+            calendar.isDateInToday(day.date) ? (live.ctl, live.atl, live.tsb) : (day.ctl, day.atl, day.tsb)
+        }
+    }
+
+    /// The Load & Trajectory screen's verdict inputs, taken from the same
+    /// series: current CTL and TSB from its newest day, week-ago CTL from
+    /// `count - 8`, the regression ramp rate over its CTL, and the peaking
+    /// heuristic over its last four days.
+    private func loadVerdict(series: [TrajectoryDay]) -> TrajectoryVerdict {
         TrajectoryVerdict.compute(.init(
-            // Use yesterday's CTL as the "current" reference for the
-            // verdict — see comment above on yesterday-vs-8-days-ago.
-            // metrics.ctl (today's morning value) stays the source for
-            // any other consumer of `metrics`; only the verdict input
-            // is yesterday-anchored here.
-            currentCTL: anchors.yesterday ?? metrics.ctl,
-            ctlOneWeekAgo: anchors.weekAgo,
+            currentCTL: series.last?.ctl ?? 0,
+            ctlOneWeekAgo: series.count >= 8 ? series[series.count - 8].ctl : nil,
             sampleCount: series.count,
             comebackActive: settingsManager.settings.isComebackModeActive,
             overreachActive: settingsManager.settings.isIntentionalOverreachInEffect,
             peakingDetected: peakingDetected(series),
-            rampRate: rampRate,
-            currentTSB: metrics.tsb
+            rampRate: TrajectoryVerdict.ctlSlopePerWeek(series.map { $0.ctl }),
+            currentTSB: series.last?.tsb
         ))
-    }
-
-    /// Anchor the trajectory comparison on YESTERDAY
-    /// (last completed training day) rather than the most-recent
-    /// sample. The most-recent sample is "today's morning state" —
-    /// CTL with today's TRIMP=0 already applied as a discrete
-    /// EWMA step (TrainingHealthQueries+Queries line 335-336). At
-    /// 06:00 with no workout yet today, that drags CTL down by
-    /// ~0.65 vs. yesterday end-of-day. Comparing today-morning to
-    /// 7-days-ago-end-of-day is apples-to-oranges and routinely
-    /// tripped the "delta < -1 → Detraining" gate even when the
-    /// user was actively training. Yesterday-vs-8-days-ago is
-    /// apples-to-apples (both end-of-day completed states).
-    /// Zero unless BOTH anchors exist — a one-sided delta would read as a huge
-    /// ramp on a user with under 9 days of history.
-    /// The Load & Trajectory screen's ramp rate: `TrajectoryVerdict.ctlSlopePerWeek`
-    /// over the same daily CTL that screen plots, with today's point read
-    /// live, so the chip and the screen give the same verdict.
-    private func ctlRampRate(_ series: [TrainingMetricsCache.DaySample], liveCTL: Double) -> Double {
-        let calendar = Calendar.current
-        return TrajectoryVerdict.ctlSlopePerWeek(series.map { calendar.isDateInToday($0.date) ? liveCTL : $0.ctl })
-    }
-
-    private func anchoredCTL(_ series: [TrainingMetricsCache.DaySample]) -> (yesterday: Double?, weekAgo: Double?) {
-        (
-            yesterday: series.count >= 2 ? series[series.count - 2].ctl : nil,
-            weekAgo: series.count >= 9 ? series[series.count - 9].ctl : nil
-        )
     }
 
     /// Peaking heuristic: ATL < CTL by >10% sustained 4+ days. Only
     /// fires when the user has opted into peaking detection.
-    private func peakingDetected(_ series: [TrainingMetricsCache.DaySample]) -> Bool {
+    private func peakingDetected(_ series: [TrajectoryDay]) -> Bool {
         guard settingsManager.settings.peakingDetectionEnabled else { return false }
         let last4 = series.suffix(4)
         guard last4.count == 4 else { return false }
@@ -347,33 +327,13 @@ extension DashboardV2View {
     }
 
     // MARK: - Footer
-
-    /// There is deliberately no "View full report ▸"
-    /// link under the Recent strip. The hero ring
-    /// already drills into the same destination, every chip drills into
-    /// its own detail surface, and Recent rows drill in too — a fifth
-    /// "everything" link adds a decision the joystick test can't afford.
-    /// What survives: the empty-state CTA for users with zero sessions
-    /// (a real action, not a redundant link).
-    @ViewBuilder
-    var fullReportLink: some View {
-        if daysCollected == 0 {
-            Button(action: onStartRecording) {
-                Text(String(localized: "Take your first reading", bundle: LanguageManager.appBundle))
-                    // Dynamic Type via @ScaledMetric.
-                    .font(.system(size: rowTitleFontSize, weight: .semibold))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(AppTheme.primary)
-                    )
-                    .foregroundStyle(.white)
-            }
-            .buttonStyle(.plain)
-            .padding(.top, 8)
-        }
-    }
+    //
+    // There is deliberately no "View full report ▸" link under the Recent
+    // strip. The hero ring already drills into the same destination, every
+    // chip drills into its own detail surface, and Recent rows drill in too —
+    // a fifth "everything" link adds a decision the joystick test can't
+    // afford. With zero sessions the Get started checklist's "Take your first
+    // reading" row is the call to action.
 
     func ageFromBirthday(_ birthday: Date?) -> Int? {
         guard let birthday else { return nil }
@@ -428,7 +388,10 @@ extension DashboardV2View {
             toast = ToastPayload(glyph: "info.circle", message: String(localized: "Nothing to re-analyze yet.", bundle: LanguageManager.appBundle))
             return
         }
-        let updated = await onReanalyze(session, WindowSelectionMethod.defaultMethod)
+        // The user's chosen method (set from Morning Results), not the
+        // factory default, so a refresh does not re-window the night
+        // differently and move the stored score.
+        let updated = await onReanalyze(session, settingsManager.settings.defaultWindowSelectionMethod)
         if updated != nil {
             toast = ToastPayload(glyph: "checkmark.circle.fill", message: String(localized: "Re-analyzed.", bundle: LanguageManager.appBundle))
         } else {
@@ -507,8 +470,13 @@ struct Day14ParticleBloom: View {
             .offset(x: cos(angle) * radius, y: sin(angle) * radius)
     }
 
+    /// Turning off resets the progress, so the sparks' invisibility does not
+    /// rest on the opacity factor at progress 1.
     private func restartBurst(_ isActive: Bool) {
-        guard isActive, !reduceMotion else { return }
+        guard isActive, !reduceMotion else {
+            animProgress = 0
+            return
+        }
         animProgress = 0
         withAnimation(.easeOut(duration: 0.8)) {
             animProgress = 1

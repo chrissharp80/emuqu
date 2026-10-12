@@ -1,8 +1,7 @@
 import Foundation
 
-// Sleep-classifier, baseline, sleep-science, history, dashboard, morning-
-// result and heat constants, plus `FeatureFlags`. Each is an independent
-// namespace.
+// Sleep-classifier, baseline, sleep-science, history and heat constants,
+// plus `FeatureFlags`. Each is an independent namespace.
 
 // MARK: - HRV Sleep Stage Classifier
 
@@ -158,32 +157,10 @@ enum SleepClassifierConstants {
 
 // MARK: - Baseline Tracker
 
-/// Thresholds for baseline deviation interpretation and replacement decisions.
-///
-/// The ±10% / ±20% deviation bands are a UI-layer simplification of Plews
-/// et al. 2013's Smallest Worthwhile Change (SWC = 0.5 SD of ln(RMSSD)).
-/// SWC expressed as a percentage of the baseline mean typically lands in
-/// the 8–15% range for trained populations (Plews 2013, Buchheit 2014),
-/// so 10% is a conservative "meaningful" boundary and 20% marks "clearly
-/// outside normal variation." These thresholds are display-only; the
-/// recovery score itself uses the underlying z-score directly via
+/// Thresholds for baseline replacement decisions and the z-score SD floors.
+/// The recovery score uses the underlying z-score directly via
 /// `zToRecoveryScore` in RecoveryScoreCalculator.
 enum BaselineConstants {
-    // -- RMSSD deviation interpretation thresholds (percentage) --
-
-    /// RMSSD deviation below which status is "significantly below baseline"
-    static let rmssdSignificantlyBelowThreshold: Double = -20.0
-    /// RMSSD deviation below which status is "below baseline"
-    static let rmssdBelowThreshold: Double = -10.0
-    /// RMSSD deviation above which status is "significantly above baseline"
-    static let rmssdSignificantlyAboveThreshold: Double = 20.0
-    /// RMSSD deviation above which status is "above baseline"
-    static let rmssdAboveThreshold: Double = 10.0
-
-    /// Overall status threshold (RMSSD deviation %)
-    static let overallBelowThreshold: Double = -15.0
-    static let overallAboveThreshold: Double = 15.0
-
     // -- Replacement decision thresholds --
 
     /// Score improvement required for non-consolidated to replace consolidated (15%)
@@ -224,66 +201,13 @@ enum BaselineConstants {
 
 // MARK: - Sleep Science Analyzer
 
-/// Weights and thresholds for the enhanced sleep score and architecture analysis.
+/// Fragmentation-index coefficients read by `SleepScienceAnalyzer`. Its
+/// cycle, architecture and enhanced-score weights live in the analyzer.
 enum SleepScienceConstants {
-    // -- Fragmentation index formula coefficients --
-
     /// Awakenings-per-hour multiplier in fragmentation formula
     static let fragmentationAwakeningsWeight: Double = 10.0
     /// Wake-percentage multiplier in fragmentation formula
     static let fragmentationWakePercentWeight: Double = 2.0
-
-    // -- Cycle detection --
-
-    /// Non-REM minutes after REM required to close a cycle
-    static let cycleCloseNonREMMinutes: Int = 15
-    /// Minimum combined minutes for a trailing cycle to be recorded
-    static let minimumFinalCycleMinutes: Int = 30
-
-    // -- Architecture scoring --
-
-    /// Percentage of deep sleep in first half to be considered front-loaded
-    static let architectureDeepFrontLoadedThreshold: Double = 55.0
-    /// Percentage of REM in second half to be considered back-loaded
-    static let architectureREMBackLoadedThreshold: Double = 55.0
-
-    // -- Enhanced sleep score weights (total = 100) --
-
-    /// Duration component maximum points
-    static let durationMaxPoints: Double = 25.0
-    /// Duration ratio cap (no extra credit beyond 110% of target)
-    static let durationRatioCap: Double = 1.1
-
-    /// Efficiency component maximum points
-    static let efficiencyMaxPoints: Double = 20.0
-    /// Default efficiency target when age norms are unavailable
-    static let defaultEfficiencyTarget: Double = 85.0
-    /// Efficiency ratio cap
-    static let efficiencyRatioCap: Double = 1.1
-
-    /// Stages component maximum points (deep + REM, 10 each)
-    static let stagesMaxPoints: Double = 20.0
-    /// Default stages score when no stage data is available
-    static let stagesDefaultScore: Double = 10.0
-    /// Per-stage deviation penalty multiplier (age-adjusted scoring)
-    static let stageDeviationPenalty: Double = 0.5
-    /// Population-norm deep sleep target percentage
-    static let populationDeepTarget: Double = 20.0
-    /// Population-norm REM target percentage
-    static let populationREMTarget: Double = 25.0
-
-    /// Fragmentation component maximum points
-    static let fragmentationMaxPoints: Double = 15.0
-
-    /// Cycles component maximum points
-    static let cyclesMaxPoints: Double = 10.0
-    /// Average cycle length divisor for expected-cycle calculation (hours)
-    static let averageCycleLengthHours: Double = 1.5
-    /// Minimum expected cycles (floor)
-    static let minimumExpectedCycles: Int = 3
-
-    /// Architecture component maximum points
-    static let architectureMaxPoints: Double = 10.0
 }
 
 // MARK: - History View Model
@@ -492,14 +416,5 @@ final class FeatureFlags: Sendable {
     func set(_ value: Bool, for key: Key) {
         defaults.set(value, forKey: key.rawValue)
         cache.withLock { $0[key.rawValue] = value }
-    }
-
-    /// Snapshot of current flag values for diagnostics + the Settings
-    /// → Diagnostics → "Provider status" view.
-    func snapshot() -> [(key: Key, value: Bool, isDefault: Bool)] {
-        Key.allCases.map { key in
-            let v = value(for: key)
-            return (key: key, value: v, isDefault: v == key.defaultValue)
-        }
     }
 }

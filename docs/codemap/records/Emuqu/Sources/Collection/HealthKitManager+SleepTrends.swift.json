@@ -1,0 +1,811 @@
+{
+ "file": "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift",
+ "hash": "e5cb639dd9b6f112",
+ "role": "HealthWriteAndObserve extension: writing sleep back to HealthKit (save-then-replace, sole-source gate), the per-session metric exports after acceptance (HRV, HR, RHR, sleep; failures reported to the caller), and the sleep observer with its debounced cache warm and wake push. Shared categoryResult and averageMeasuredEfficiency helpers.",
+ "types": [
+  "HealthWriteAndObserve: extension — sleep export, session metric exports, sleep observer (struct declared in HealthWriteAndObserve.swift, @MainActor, holds manager)"
+ ],
+ "state": [
+  "ud:SleepDataCache.v2 (written via SleepDataCache.write)",
+  "mem:HealthKitManager.sleepObserverQuery",
+  "mem:HealthKitManager.sleepDataVersion",
+  "mem:HealthKitManager.sleepCacheWarmTask"
+ ],
+ "toplevel": "File-private free function makeSleepObserverQuery outside the extension.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func HealthWriteAndObserve.categoryResult(_:_:)",
+   "hash": "bb92b841923c5ad0",
+   "does": "Maps HKSampleQuery (results, error) to .failure(error) when error is set, else .success(results cast to [HKCategorySample] or []).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "error non-nil",
+     "effect": "returns .failure(error)"
+    },
+    {
+     "at": "+2",
+     "cond": "results nil or not category samples",
+     "effect": "?? [] — .success([]); else .success(samples)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/OverpassClientTests.swift::var Result.failure": "0476d3f57d94bf98"
+   }
+  },
+  {
+   "key": "func HealthWriteAndObserve.averageMeasuredEfficiency(_:)",
+   "hash": "b08f74465f302c2f",
+   "does": "Mean of measuredSleepEfficiency over nights that have it; nil when none. Exercised directly by HRSleepEstimatorTests.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepData.measuredSleepEfficiency"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "no night has a measured efficiency",
+     "effect": "returns nil; else the mean"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepData.measuredSleepEfficiency": "ec0ed6304aee409d"
+   }
+  },
+  {
+   "key": "func HealthWriteAndObserve.exportSleepToHealthKit(sleepData:sessionId:)",
+   "hash": "539af6c249771b63",
+   "does": "Exports a night to Apple Health: requires sleep boundaries and some sleep, builds an inBed sample plus one sample per stage interval (asleepUnspecified/awake) tagged with ExternalUUID, and — when any sample is valid — saves them before removing this session's previous sleep export (replacePreviousSleepExport). A night with nothing valid to write leaves the previous export untouched.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.category(_:caller:file:line:)",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.sleepExportSamples(sleepData:sleepType:sessionId:inBedStart:sleepEnd:)",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.replacePreviousSleepExport(with:sessionId:sleepType:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable"
+   ],
+   "reads": [
+    "hk:sleepAnalysis"
+   ],
+   "writes": [
+    "hk:sleepAnalysis"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "HealthKit unavailable",
+     "effect": "throws notAvailable"
+    },
+    {
+     "at": "+2",
+     "cond": "sleepStart or sleepEnd nil",
+     "effect": "logs 'No sleep boundaries' and returns without writing"
+    },
+    {
+     "at": "+6",
+     "cond": "no stage intervals AND 0 night-sleep minutes",
+     "effect": "logs 'empty' and returns"
+    },
+    {
+     "at": "+10",
+     "cond": "sleepAnalysis type nil",
+     "effect": "throws typeUnavailable"
+    },
+    {
+     "at": "+15",
+     "cond": "inBedStart nil",
+     "effect": "?? sleepStart — inBed sample starts at sleepStart"
+    },
+    {
+     "at": "+17",
+     "cond": "no samples built (all intervals invalid)",
+     "effect": "returns; the previous export stays in Health"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.inBedStart(ctx:sleepStages:)": "e886c94430ea6083",
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.category(_:caller:file:line:)": "315f6413360002af",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.replacePreviousSleepExport(with:sessionId:sleepType:)": "03eff2afc1e674d8",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.sleepExportSamples(sleepData:sleepType:sessionId:inBedStart:sleepEnd:)": "55d1c6719b0a2bdb",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable": "6a80ac7c585d4e2f",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.stageIntervals()": "4cec6874d7fcb65a"
+   }
+  },
+  {
+   "key": "func HealthWriteAndObserve.replacePreviousSleepExport(with:sessionId:sleepType:)",
+   "hash": "2cf09279afdf8206",
+   "does": "Reads this session's previous sleep export (previousSleepExport), saves the new samples, then deletes the previous ones; a failed read throws before anything is written, a failed save leaves the previous export in place.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.previousSleepExport(sessionId:sleepType:)",
+    "ext:HKHealthStore.save",
+    "ext:HKHealthStore.delete"
+   ],
+   "reads": [
+    "hk:sleepAnalysis"
+   ],
+   "writes": [
+    "hk:sleepAnalysis"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "there was a previous export",
+     "effect": "deleted after the save"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.previousSleepExport(sessionId:sleepType:)": "d8808059abce7e02"
+   }
+  },
+  {
+   "key": "func HealthWriteAndObserve.sleepExportSamples(sleepData:sleepType:sessionId:inBedStart:sleepEnd:)",
+   "hash": "da826b287219bc51",
+   "does": "Builds the export samples: an inBed category sample [inBedStart, sleepEnd] and one per stage interval with HealthExportIdentity series-member ExternalUUIDs and Source=Emuqu metadata; invalid spans are dropped by HealthSampleFactory. Tested by HealthSampleFactoryTests.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.seriesMember(sessionId:metric:suffix:)",
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.categorySample(type:value:start:end:metadata:)",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.hkSleepValue(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+24",
+     "cond": "inBed sample nil (end before start)",
+     "effect": "?? [] — only stage samples returned"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.seriesMember(sessionId:metric:suffix:)": "f7e37cdf5b6e9f40",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.hkSleepValue(for:)": "35ef18f5560d97c5",
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.categorySample(type:value:start:end:metadata:)": "bbfe7ff437dcd502",
+    "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.stageIntervals()": "4cec6874d7fcb65a"
+   }
+  },
+  {
+   "key": "func HealthWriteAndObserve.hkSleepValue(for:)",
+   "hash": "a58d1c1c5f33bb9e",
+   "does": "Maps a SleepStage to .awake for awake, otherwise .asleepUnspecified (no deep/REM/core claims written).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "stage == .awake",
+     "effect": "returns .awake; else .asleepUnspecified"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HealthWriteAndObserve.previousSleepExport(sessionId:sleepType:)",
+   "hash": "9b2027031dda2be1",
+   "does": "This app's own sleep samples (bounded, fail-closed read) whose ExternalUUID belongs to the session's sleep export (summary or series members).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.appWrittenSleepSamples(sleepType:predicate:label:)",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.belongsToSession(_:sessionId:metric:)"
+   ],
+   "reads": [
+    "hk:sleepAnalysis"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "sample has no ExternalUUID",
+     "effect": "not ours to replace"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.belongsToSession(_:sessionId:metric:)": "aa8a931034a7607a",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.appWrittenSleepSamples(sleepType:predicate:label:)": "4b899ffe0f3d3cb8"
+   }
+  },
+  {
+   "key": "func HealthWriteAndObserve.appWrittenSleepSamples(sleepType:predicate:label:)",
+   "hash": "0abce1431ea4e748",
+   "does": "Bounded (8 s) unlimited HKSampleQuery for the sleep type with the given predicate; errors throw and a timeout throws HealthKitError.queryTimedOut(label) (fail closed).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedThrowingQuery(timeout:makeQuery:onTimeout:)",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.sampleResult(_:_:)",
+    "ext:HKSampleQuery",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::var HealthKitManager.sleepQueryTimeoutSec"
+   ],
+   "reads": [
+    "hk:sleepAnalysis"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedThrowingQuery(timeout:makeQuery:onTimeout:)": "8768717f4143c6f1",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.sampleResult(_:_:)": "c78e3b43f87fb646",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::var HealthKitManager.sleepQueryTimeoutSec": "160bd17db71e3f7b",
+    "EmuquTests/OverpassClientTests.swift::var Result.failure": "0476d3f57d94bf98"
+   }
+  },
+  {
+   "key": "func HealthWriteAndObserve.deleteAllAppWrittenSleepSamples()",
+   "hash": "49fabc5f2b328f10",
+   "does": "Deletes every sleepAnalysis sample written by this app's HKSource and returns how many; returns 0 when none. Throws on unavailability, missing type, query error/timeout or delete failure.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.category(_:caller:file:line:)",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.appWrittenSleepSamples(sleepType:predicate:label:)",
+    "ext:HKHealthStore.delete",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable"
+   ],
+   "reads": [
+    "hk:sleepAnalysis"
+   ],
+   "writes": [
+    "hk:sleepAnalysis"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "HealthKit unavailable",
+     "effect": "throws notAvailable"
+    },
+    {
+     "at": "+3",
+     "cond": "sleepAnalysis type nil",
+     "effect": "throws typeUnavailable"
+    },
+    {
+     "at": "+11",
+     "cond": "no app-written samples",
+     "effect": "returns 0; else deletes and returns the count"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.category(_:caller:file:line:)": "315f6413360002af",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.appWrittenSleepSamples(sleepType:predicate:label:)": "4b899ffe0f3d3cb8",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable": "6a80ac7c585d4e2f",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func HealthWriteAndObserve.exportSessionMetrics(from:)",
+   "hash": "874f060235e59497",
+   "does": "After acceptance: skips sessions with no analysis result or built from HealthKit data; otherwise, per the user's export settings, attempts HRV, HR, resting HR and sleep (sole-source only), each helper logging and returning its error, then throws the first failure so the caller learns an export failed.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.isHealthKitSourced(_:)",
+    "closure:manager.settingsProvider (settings snapshot)",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.exportHRVMetrics(session:result:)",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.exportHRMetrics(session:result:)",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.exportRHRMetric(session:result:)",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.exportSleepIfSoleSource(session:)"
+   ],
+   "reads": [
+    "mem:UserSettings.exportSDNN",
+    "mem:UserSettings.exportHeartRate",
+    "mem:UserSettings.exportRestingHeartRate",
+    "mem:UserSettings.exportSleepData"
+   ],
+   "writes": [
+    "hk:heartRateVariabilitySDNN",
+    "hk:heartRate",
+    "hk:restingHeartRate",
+    "hk:sleepAnalysis"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no analysisResult OR session is HealthKit-sourced",
+     "effect": "returns without exporting"
+    },
+    {
+     "at": "+4",
+     "cond": "settings.exportSDNN",
+     "effect": "exports HRV; a failure is collected"
+    },
+    {
+     "at": "+5",
+     "cond": "settings.exportHeartRate",
+     "effect": "exports HR; a failure is collected"
+    },
+    {
+     "at": "+6",
+     "cond": "settings.exportRestingHeartRate",
+     "effect": "exports/removes resting HR; a failure is collected"
+    },
+    {
+     "at": "+7",
+     "cond": "settings.exportSleepData",
+     "effect": "sole-source sleep export; a failure is collected"
+    },
+    {
+     "at": "+8",
+     "cond": "any metric failed",
+     "effect": "throws the first failure"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+HRV.swift::func HealthWriteAndObserve.exportSDNN(value:at:sessionId:)": "00a9060158c34297",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.exportHRMetrics(session:result:)": "26864cd95cb407f1",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.exportHRVMetrics(session:result:)": "b2bdc6d8c3b5892f",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.exportRHRMetric(session:result:)": "a51ebbb65a26987c",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.exportSleepIfSoleSource(session:)": "2e690cbeb928af37",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.settingsProvider": "962bc6e493a1aa94",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.isHealthKitSourced(_:)": "3e2fd096f03ca384"
+   }
+  },
+  {
+   "key": "func HealthWriteAndObserve.exportHRVMetrics(session:result:)",
+   "hash": "320ce3672d9982c7",
+   "does": "Exports the windowed SDNN series (windowedHRVWritten); when it wrote nothing (fewer than 30 beats, or no 5-minute window with enough clean beats) writes a single SDNN at endDate (or startDate) instead. Returns nil, or the logged error.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.windowedHRVWritten(_:)",
+    "Emuqu/Sources/Collection/HealthKitManager+HRV.swift::func HealthWriteAndObserve.exportSDNN(value:at:sessionId:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "hk:heartRateVariabilitySDNN"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "windowed series wrote samples",
+     "effect": "return nil; else single SDNN"
+    },
+    {
+     "at": "+3",
+     "cond": "endDate nil",
+     "effect": "?? startDate used as the sample date"
+    },
+    {
+     "at": "+6",
+     "cond": "export threw",
+     "effect": "logs 'HRV export failed' and returns the error"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+HRV.swift::func HealthWriteAndObserve.exportSDNN(value:at:sessionId:)": "00a9060158c34297",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.windowedHRVWritten(_:)": "c9db19b1c08926d5",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func HealthWriteAndObserve.windowedHRVWritten(_:)",
+   "hash": "1f5279ebbd65a9e1",
+   "does": "Runs exportWindowedHRV for a session with at least 30 RR points and returns how many samples it wrote; 0 without running it for shorter sessions.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+HRV.swift::func HealthWriteAndObserve.exportWindowedHRV(from:sessionStart:sessionId:)"
+   ],
+   "reads": [],
+   "writes": [
+    "hk:heartRateVariabilitySDNN"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no rrSeries or fewer than 30 points",
+     "effect": "return 0"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+HRV.swift::func HealthWriteAndObserve.exportWindowedHRV(from:sessionStart:sessionId:)": "a7901d230bed66b4"
+   }
+  },
+  {
+   "key": "func HealthWriteAndObserve.exportHRMetrics(session:result:)",
+   "hash": "a245034c956f4431",
+   "does": "Exports a minute-level HR series when >= 30 RR points, else one mean-HR sample at endDate (or startDate). Returns nil, or the logged error.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.exportHeartRateSeries(from:sessionStart:sessionId:)",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.exportHeartRate(value:at:sessionId:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "hk:heartRate"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "rrSeries has >= 30 points",
+     "effect": "exports HR series; else single mean HR"
+    },
+    {
+     "at": "+5",
+     "cond": "endDate nil",
+     "effect": "?? startDate"
+    },
+    {
+     "at": "+9",
+     "cond": "export threw",
+     "effect": "logs 'HR export failed' and returns the error"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.exportHeartRate(value:at:sessionId:)": "c1edecda41559036",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.exportHeartRateSeries(from:sessionStart:sessionId:)": "876e67f1d40151c2",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func HealthWriteAndObserve.exportRHRMetric(session:result:)",
+   "hash": "4c8454285444e2f1",
+   "does": "Writes the overnight nocturnal median as resting HR; when there is none (non-overnight or missing median) removes any resting HR previously exported for the session. Returns nil, or the logged error.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.restingHeartRateToExport(session:result:)",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.removeExportedRestingHeartRate(at:sessionId:)",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.exportRestingHeartRate(value:at:sessionId:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "hk:restingHeartRate"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "endDate nil",
+     "effect": "?? startDate as sample date"
+    },
+    {
+     "at": "+3",
+     "cond": "restingHeartRateToExport nil",
+     "effect": "removes previous RHR export for the session and returns nil; else exports the value"
+    },
+    {
+     "at": "+9",
+     "cond": "export/removal threw",
+     "effect": "logs 'RHR export failed' and returns the error"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.exportRestingHeartRate(value:at:sessionId:)": "f96679a1025460f2",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.removeExportedRestingHeartRate(at:sessionId:)": "f91a1483fa90a5e1",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.restingHeartRateToExport(session:result:)": "f44d6aa3e880c6df",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func HealthWriteAndObserve.restingHeartRateToExport(session:result:)",
+   "hash": "1ea85723cad42b87",
+   "does": "Returns result.ansMetrics?.nocturnalMedianHR for overnight sessions, nil otherwise. Tested by HealthSampleFactoryTests.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "sessionType != .overnight",
+     "effect": "returns nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.nocturnalMedianHR(from:)": "77131ad0c4ed2e97",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef"
+   }
+  },
+  {
+   "key": "func HealthWriteAndObserve.exportSleepIfSoleSource(session:)",
+   "hash": "56b85e000960a046",
+   "does": "Writes the session's sleep to Apple Health only when its boundary source is hrEstimated/healthKitHREstimated, it has start (inBedStart or sleepStart) and end, and a fresh fail-closed check finds no other source's sleep in that span. Returns nil (written or deliberately skipped), or the logged error.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.category(_:caller:file:line:)",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.otherSourceWroteSleep(from:to:sleepType:)",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.exportSleepToHealthKit(sleepData:sessionId:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "hk:sleepAnalysis"
+   ],
+   "writes": [
+    "hk:sleepAnalysis"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "session has no sleepSnapshot",
+     "effect": "returns nil"
+    },
+    {
+     "at": "+5",
+     "cond": "not HR-estimated source, or no start (inBedStart ?? sleepStart both nil), or no sleepEnd, or type nil",
+     "effect": "returns nil without export"
+    },
+    {
+     "at": "+9",
+     "cond": "another source wrote sleep in the span",
+     "effect": "logs 'skipped' and returns nil; else exports"
+    },
+    {
+     "at": "+15",
+     "cond": "source check or export threw (incl. timeout)",
+     "effect": "logs 'Sleep export failed' and returns the error"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.inBedStart(ctx:sleepStages:)": "e886c94430ea6083",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.category(_:caller:file:line:)": "315f6413360002af",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.exportSleepToHealthKit(sleepData:sessionId:)": "4fe19ca7b7913f8d",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.otherSourceWroteSleep(from:to:sleepType:)": "6924f0e530d76ba8",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func HealthWriteAndObserve.otherSourceWroteSleep(from:to:sleepType:)",
+   "hash": "771fdfffe0e4937e",
+   "does": "Bounded (8 s) limit-1 query for non-own sleep samples overlapping [start, end]; returns true if any exist; timeout throws queryTimedOut (fail closed).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.sleepReadExcludingOwnWrites(dateRange:)",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedThrowingQuery(timeout:makeQuery:onTimeout:)",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.categoryResult(_:_:)",
+    "ext:HKSampleQuery",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::var HealthKitManager.sleepQueryTimeoutSec"
+   ],
+   "reads": [
+    "hk:sleepAnalysis"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedThrowingQuery(timeout:makeQuery:onTimeout:)": "8768717f4143c6f1",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::var HealthKitManager.sleepQueryTimeoutSec": "160bd17db71e3f7b",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.sleepReadExcludingOwnWrites(dateRange:)": "ebda1c7c0034ca53",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.categoryResult(_:_:)": "61229f395d11819c",
+    "EmuquTests/OverpassClientTests.swift::var Result.failure": "0476d3f57d94bf98"
+   }
+  },
+  {
+   "key": "func HealthWriteAndObserve.startObservingSleepData()",
+   "hash": "5af74771bdfca906",
+   "does": "Stops any existing sleep observer, creates the 48 h-bounded anchored observer query, stores it on the manager, executes it and enables immediate background delivery for sleepAnalysis, logging a warning when HealthKit reports the registration failed.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.stopObservingSleepData()",
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.category(_:caller:file:line:)",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func makeSleepObserverQuery(for:owner:)",
+    "ext:HKHealthStore.execute",
+    "ext:HKHealthStore.enableBackgroundDelivery",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:HealthKitManager.sleepObserverQuery"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "HealthKit unavailable",
+     "effect": "returns without observing"
+    },
+    {
+     "at": "+3",
+     "cond": "sleepAnalysis type nil",
+     "effect": "returns after having stopped the previous observer"
+    },
+    {
+     "at": "+10",
+     "cond": "background delivery not enabled",
+     "effect": "warning logged with HealthKit's error"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.category(_:caller:file:line:)": "315f6413360002af",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.stopObservingSleepData()": "84b2554c12adafac",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func makeSleepObserverQuery(for:owner:)": "9db10235df916ca0",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable": "6a80ac7c585d4e2f",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func HealthWriteAndObserve.handleSleepSamplesArrived(_:)",
+   "hash": "b58d9d3250bf6f7a",
+   "does": "Filters newly-delivered samples to category samples from other sources (the observer already drops this app's own), takes the latest endDate, schedules a debounced SleepDataCache warm for that date and asks MorningNotificationScheduler to deliver the wake-triggered morning push if appropriate.",
+   "entry": "HKAnchoredObjectQuery updateHandler set in makeSleepObserverQuery, after a MainActor hop, when HealthKit delivers new sleep samples",
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.scheduleSleepCacheWarm(referenceDate:)",
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.deliverWakeTriggeredPushIfAppropriate(sleepEnd:)"
+   ],
+   "reads": [
+    "mem:AppDependencies.current.services.morningNotificationScheduler"
+   ],
+   "writes": [
+    "notif:wake-triggered morning push (UNUserNotification via scheduler)"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "no non-own category samples (max endDate nil)",
+     "effect": "returns without warming or pushing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.scheduleSleepCacheWarm(referenceDate:)": "659eaadcdac31477",
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.deliverWakeTriggeredPushIfAppropriate(sleepEnd:)": "1c7399ed939f6455",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "8f71f3de23c47a6a"
+   }
+  },
+  {
+   "key": "func HealthWriteAndObserve.scheduleSleepCacheWarm(referenceDate:)",
+   "hash": "500d275cecd19492",
+   "does": "Hops to the MainActor (weak manager) and calls restartSleepCacheWarmTask on a fresh HealthWriteAndObserve.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.writes",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.restartSleepCacheWarmTask(referenceDate:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.restartSleepCacheWarmTask(referenceDate:)": "da913385cd3e952a",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.writes": "1e0830bcc1eaab16"
+   }
+  },
+  {
+   "key": "func HealthWriteAndObserve.restartSleepCacheWarmTask(referenceDate:)",
+   "hash": "ad67397620bfcd96",
+   "does": "Cancels the manager's pending sleepCacheWarmTask and starts a new one that sleeps 1.5 s, then (if not cancelled and the manager still exists) warms the sleep cache for referenceDate.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.writes",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.warmSleepCache(referenceDate:)"
+   ],
+   "reads": [
+    "mem:HealthKitManager.sleepCacheWarmTask"
+   ],
+   "writes": [
+    "mem:HealthKitManager.sleepCacheWarmTask"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "task cancelled during the 1.5 s wait OR manager deallocated",
+     "effect": "returns without fetching; else warms"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.warmSleepCache(referenceDate:)": "c913ab427f880909",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.writes": "1e0830bcc1eaab16",
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "c0fa5e77e7dfe851"
+   }
+  },
+  {
+   "key": "func HealthWriteAndObserve.warmSleepCache(referenceDate:)",
+   "hash": "802ee68e365fe1b8",
+   "does": "Fetches last-night sleep relative to referenceDate and writes it to SleepDataCache when it has >0 minutes; fetch errors are logged at .info and ignored.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.fetchLastNightSleep(relativeTo:)",
+    "Emuqu/Sources/Storage/SleepDataCache.swift::func SleepDataCache.write(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "hk:sleepAnalysis"
+   ],
+   "writes": [
+    "ud:SleepDataCache.v2"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "fetched night has > 0 sleep minutes",
+     "effect": "writes it to the cache; else leaves the cache"
+    },
+    {
+     "at": "+7",
+     "cond": "fetchLastNightSleep threw (locked device, no permission)",
+     "effect": "logs at .info and leaves the cache unchanged"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.fetchLastNightSleep(relativeTo:)": "7e0dfc61d0a518ae",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
+    "Emuqu/Sources/Storage/SleepDataCache.swift::func SleepDataCache.write(_:)": "5aff1c00ec434565",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func HealthWriteAndObserve.stopObservingSleepData()",
+   "hash": "e803869d3c081104",
+   "does": "Stops and clears the manager's sleep observer query if one is running (background delivery stays enabled).",
+   "entry": null,
+   "calls": [
+    "ext:HKHealthStore.stop"
+   ],
+   "reads": [
+    "mem:HealthKitManager.sleepObserverQuery"
+   ],
+   "writes": [
+    "mem:HealthKitManager.sleepObserverQuery"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "an observer query exists",
+     "effect": "stops it and sets nil; else no-op"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func makeSleepObserverQuery(for:owner:)",
+   "hash": "844388d1211a6028",
+   "does": "Builds an HKAnchoredObjectQuery over sleep samples overlapping [now-48h, open end) (default non-strict predicate, so samples ENDING after creation-48h; window fixed at creation), ignoring initial results; its updateHandler (weak manager) drops samples this app wrote, and when any remain hops to the MainActor, increments manager.sleepDataVersion and calls handleSleepSamplesArrived with them.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.writes",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.handleSleepSamplesArrived(_:)",
+    "ext:HKAnchoredObjectQuery"
+   ],
+   "reads": [
+    "hk:sleepAnalysis"
+   ],
+   "writes": [
+    "mem:HealthKitManager.sleepDataVersion"
+   ],
+   "branches": [
+    {
+     "at": "+17",
+     "cond": "manager gone OR no new samples from another source",
+     "effect": "update ignored (the app's own exports bump nothing); else bumps sleepDataVersion and handles samples"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.handleSleepSamplesArrived(_:)": "6935a8c280f7ff6b",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.writes": "1e0830bcc1eaab16",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.sleepDataVersion": "54b219476485cd53"
+   }
+  }
+ ],
+ "deps": {}
+}

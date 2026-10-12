@@ -38,17 +38,18 @@ import UIKit
 /// 3. **Real-time sampling** during recording — periodic
 ///    `task_info(MACH_TASK_BASIC_INFO)` for resident memory + thermal
 ///    state notifications + memory warning notifications. We log
-///    these to the debug log on each tick AND to a structured
-///    in-memory sample buffer so a workout that gets killed has its
+///    these to the debug log on each tick AND as JSON lines in
+///    `memory_trace.jsonl` on disk, so a workout that gets killed has its
 ///    last-known memory/thermal trace visible in the next launch's
 ///    diagnostics. Without this, we know iOS killed the app but
 ///    have no idea what its memory footprint was at the time.
 ///
-/// Wired into `EmuquApp.init` next to `CrashLogManager.install()`.
-/// `@unchecked Sendable`: the sampler state, the counters and every
-/// memory-trace write run on `samplingQueue` (the notification handlers and
-/// `install` hop onto it), and MetricKit delivers payloads on its own serial
-/// queue.
+/// Installed by `EmuquApp.installDiagnostics()` (from `EmuquMain.main()`,
+/// before `EmuquApp.main()`) next to `CrashLogManager.install()`.
+/// `@unchecked Sendable`: the sampler state, the counters and every file
+/// write run on `samplingQueue` — the notification handlers and `install`
+/// hop onto it, and the MetricKit callbacks encode each payload on
+/// MetricKit's queue and hand the bytes to it.
 final class SystemDiagnosticsManager: NSObject, MXMetricManagerSubscriber, @unchecked Sendable {
     static let shared = SystemDiagnosticsManager()
 
@@ -73,10 +74,6 @@ final class SystemDiagnosticsManager: NSObject, MXMetricManagerSubscriber, @unch
     private var samplingTimer: DispatchSourceTimer?
     private let samplingQueue = DispatchQueue(label: "com.chrissharp.flowrecovery.diagnostics", qos: .utility)
 
-    /// Last-seen memory footprint for stop-recording reconciliation.
-    /// Reads from `task_info`, in bytes.
-    @objc dynamic var lastResidentMemoryBytes: UInt64 = 0
-    @objc dynamic var lastThermalStateRaw: Int = ProcessInfo.ThermalState.nominal.rawValue
     @objc dynamic var memoryWarningCount: Int = 0
 
     override private init() {
@@ -85,15 +82,9 @@ final class SystemDiagnosticsManager: NSObject, MXMetricManagerSubscriber, @unch
 
     // MARK: - Install
 
-    /// Called from `EmuquApp.init` once per launch.
+    /// Called once per launch from `EmuquApp.installDiagnostics()`.
     func install() {
-        // Make sure the directory exists; ignore if already present.
-        _ = attempt("SystemDiagnosticsManager.create") {
-            try FileManager.default.createDirectory(
-                at: diagnosticsDirectory,
-                withIntermediateDirectories: true
-            )
-        }
+        ensureDiagnosticsDirectory()
         // Subscribe to MetricKit. Apple delivers payloads on a
         // background thread; we just persist on receipt.
         MXMetricManager.shared.add(self)
@@ -102,6 +93,18 @@ final class SystemDiagnosticsManager: NSObject, MXMetricManagerSubscriber, @unch
         // it is on disk before the termination report reads the trace and
         // tells this launch's samples from the previous process's by it.
         samplingQueue.sync { sampleMemoryAndThermal(reason: "launch") }
+    }
+
+    /// Create the Diagnostics folder if it is missing. Run at install and
+    /// before every new file, because "Delete All My Data" sweeps the App
+    /// Group (folder included) while the app keeps running.
+    private func ensureDiagnosticsDirectory() {
+        attempt("SystemDiagnosticsManager.create") {
+            try FileManager.default.createDirectory(
+                at: diagnosticsDirectory,
+                withIntermediateDirectories: true
+            )
+        }
     }
 
     /// Memory warning observer — when iOS posts the warning notification, the
@@ -127,12 +130,6 @@ final class SystemDiagnosticsManager: NSObject, MXMetricManagerSubscriber, @unch
         )
     }
 
-    deinit {
-        MXMetricManager.shared.remove(self)
-        NotificationCenter.default.removeObserver(self)
-        samplingTimer?.cancel()
-    }
-
     // MARK: - Real-time sampling (start/stop)
 
     /// Start periodic memory + thermal sampling. Call when a recording
@@ -144,7 +141,7 @@ final class SystemDiagnosticsManager: NSObject, MXMetricManagerSubscriber, @unch
         samplingQueue.async { [weak self] in
             guard let self else { return }
             self.samplingTimer?.cancel()
-            self.trimMemoryTraceIfNeeded()
+            self.trimIfNeeded(self.memoryTraceURL, maxBytes: Self.memoryTraceMaxBytes)
             let timer = DispatchSource.makeTimerSource(queue: self.samplingQueue)
             timer.schedule(deadline: .now() + 5, repeating: 5.0)
             timer.setEventHandler { [weak self] in
@@ -189,15 +186,29 @@ final class SystemDiagnosticsManager: NSObject, MXMetricManagerSubscriber, @unch
 
     private func persistMetricPayload(_ payload: MXMetricPayload) {
         let summary = summarizeMetricPayload(payload)
-        appendJSONLine(at: metricKitLogURL, line: summary)
+        enqueueMetricKitLine(summary)
         debugLog("[Diagnostics] MXMetricPayload received: \(summary["summary"] as? String ?? "(no summary)")")
     }
 
     private func persistDiagnosticPayload(_ payload: MXDiagnosticPayload) {
         let summary = summarizeDiagnosticPayload(payload)
-        appendJSONLine(at: metricKitLogURL, line: summary)
+        enqueueMetricKitLine(summary)
         debugLog("[Diagnostics] MXDiagnosticPayload received: \(summary["summary"] as? String ?? "(no summary)")")
         for crash in payload.crashDiagnostics ?? [] { logCrashCallStack(crash) }
+    }
+
+    /// MetricKit calls back on its own queue. The summary is encoded here and
+    /// only the bytes cross to `samplingQueue`, where every diagnostics file
+    /// write runs, so a payload append never interleaves with a sample append
+    /// or a trim. The history is trimmed after each append so it stays bounded.
+    private func enqueueMetricKitLine(_ summary: [String: Any]) {
+        guard let line = jsonLineData(summary) else { return }
+        let url = metricKitLogURL
+        samplingQueue.async { [weak self] in
+            guard let self else { return }
+            self.appendLine(line, to: url)
+            self.trimIfNeeded(url, maxBytes: Self.metricKitHistoryMaxBytes)
+        }
     }
 
     /// Write the crashing call stack into the debug log, one frame per line.
@@ -266,8 +277,8 @@ final class SystemDiagnosticsManager: NSObject, MXMetricManagerSubscriber, @unch
     /// Reduce an `MXMetricPayload` to the fields that matter for "why
     /// did iOS kill us". The full payload has dozens of fields; we
     /// keep the exit-data counters + a couple of CPU/memory rollups
-    /// that contextualize them. The full JSON dictionary is also
-    /// preserved as a fallback in case future fields prove useful.
+    /// that contextualize them. Only these fields are kept; the rest of
+    /// the payload is dropped.
     private func summarizeMetricPayload(_ payload: MXMetricPayload) -> [String: Any] {
         var dict: [String: Any] = [
             "kind": "metric",
@@ -275,7 +286,7 @@ final class SystemDiagnosticsManager: NSObject, MXMetricManagerSubscriber, @unch
             "begin": ISO8601DateFormatter().string(from: payload.timeStampBegin),
             "end": ISO8601DateFormatter().string(from: payload.timeStampEnd)
         ]
-        if #available(iOS 14.0, *), let exit = payload.applicationExitMetrics {
+        if let exit = payload.applicationExitMetrics {
             let bgCounts = Self.exitCounts(background: exit.backgroundExitData)
             let fgCounts = Self.exitCounts(foreground: exit.foregroundExitData)
             dict["exit_background"] = bgCounts
@@ -301,7 +312,6 @@ final class SystemDiagnosticsManager: NSObject, MXMetricManagerSubscriber, @unch
     /// to the ones present in iOS 14+ that matter for our case.
     /// (BackgroundURLSession / BackgroundFetch timeout counters are surfaced
     /// through diagnostics, not here.)
-    @available(iOS 14.0, *)
     private static func exitCounts(background bg: MXBackgroundExitData) -> [String: Int] {
         [
             "memory_resource_limit": bg.cumulativeMemoryResourceLimitExitCount,
@@ -316,7 +326,6 @@ final class SystemDiagnosticsManager: NSObject, MXMetricManagerSubscriber, @unch
         ]
     }
 
-    @available(iOS 14.0, *)
     private static func exitCounts(foreground fg: MXForegroundExitData) -> [String: Int] {
         [
             "memory_resource_limit": fg.cumulativeMemoryResourceLimitExitCount,
@@ -420,8 +429,6 @@ final class SystemDiagnosticsManager: NSObject, MXMetricManagerSubscriber, @unch
     private func sampleMemoryAndThermal(reason: String) {
         let bytes = currentResidentMemoryBytes()
         let thermal = ProcessInfo.processInfo.thermalState
-        lastResidentMemoryBytes = bytes
-        lastThermalStateRaw = thermal.rawValue
         let sample: [String: Any] = [
             "ts": ISO8601DateFormatter().string(from: Date()),
             "reason": reason,
@@ -457,11 +464,15 @@ final class SystemDiagnosticsManager: NSObject, MXMetricManagerSubscriber, @unch
     /// A memory warning escalates only the heartbeat that follows it: the
     /// count lives for the whole process, so keying on `> 0` turned one early
     /// warning into a warning-level line every 5 s for the rest of the night.
+    ///
+    /// The tick counter advances on every tick, whatever the thermal state,
+    /// so the once-a-minute cadence carries on unbroken through a warm spell.
     private func logHeartbeat(reason: String, bytes: UInt64, thermal: ProcessInfo.ThermalState) {
         let hasNewMemoryWarning = memoryWarningCount > lastHeartbeatMemoryWarningCount
         lastHeartbeatMemoryWarningCount = memoryWarningCount
         let isNonNominal = thermal != .nominal || hasNewMemoryWarning
-        guard isNonNominal || isHeartbeatTick(reason: reason) else { return }
+        let isTick = isHeartbeatTick(reason: reason)
+        guard isNonNominal || isTick else { return }
         let isAlarming = thermal == .serious || thermal == .critical || hasNewMemoryWarning
         let mb = String(format: "%.1f", Double(bytes) / 1_048_576)
         debugLog(
@@ -515,8 +526,9 @@ final class SystemDiagnosticsManager: NSObject, MXMetricManagerSubscriber, @unch
 
     /// Read all persisted MetricKit payload summaries (one per JSONL
     /// line) so the diagnostics UI can render a list. Newest first.
+    /// Reads at most the trimmed history's size from the end of the file.
     func readMetricKitHistory() -> [[String: Any]] {
-        readJSONLines(at: metricKitLogURL).reversed()
+        readJSONLines(from: tail(of: metricKitLogURL, maxBytes: Self.metricKitHistoryMaxBytes)).reversed()
     }
 
     /// Read recent memory trace samples for the diagnostics chart.
@@ -538,12 +550,19 @@ final class SystemDiagnosticsManager: NSObject, MXMetricManagerSubscriber, @unch
     /// of a recording. It otherwise grew by about 0.8 MB a night, forever.
     private static let memoryTraceMaxBytes = 2_000_000
 
-    private func trimMemoryTraceIfNeeded() {
-        let url = memoryTraceURL
-        guard let size = attempt("diagnostics.size", {
-            try FileManager.default.attributesOfItem(atPath: url.path)[.size] as? Int
-        }) ?? nil, size > Self.memoryTraceMaxBytes else { return }
-        let kept = tail(of: url, maxBytes: Self.memoryTraceMaxBytes / 2)
+    /// Past this the MetricKit history is cut back to its most recent half
+    /// after an append. Payloads arrive about once a day; a crash payload
+    /// carries up to 40 frames per crash, so this holds many months.
+    private static let metricKitHistoryMaxBytes = 1_000_000
+
+    /// Cut a JSONL file larger than `maxBytes` back to its most recent half,
+    /// on whole lines. Runs on `samplingQueue`.
+    private func trimIfNeeded(_ url: URL, maxBytes: Int) {
+        guard FileManager.default.fileExists(atPath: url.path),
+              let size = attempt("diagnostics.size", {
+                  try FileManager.default.attributesOfItem(atPath: url.path)[.size] as? Int
+              }) ?? nil, size > maxBytes else { return }
+        let kept = tail(of: url, maxBytes: maxBytes / 2)
         // Drop the partial first line the byte cut landed in.
         guard let firstBreak = kept.firstIndex(of: 0x0A) else { return }
         createDiagnosticsFile(at: url, first: Data(kept[kept.index(after: firstBreak)...]))
@@ -561,24 +580,32 @@ final class SystemDiagnosticsManager: NSObject, MXMetricManagerSubscriber, @unch
         } ?? Data()
     }
 
-    /// Truncate the trace files. Used by the "Delete All My Data"
-    /// flow + manual "Clear" buttons in diagnostics UI.
-    func clearAll() {
-        _ = attempt("SystemDiagnosticsManager.remove") { try FileManager.default.removeItem(at: metricKitLogURL) }
-        _ = attempt("SystemDiagnosticsManager.remove") { try FileManager.default.removeItem(at: memoryTraceURL) }
-    }
-
     // MARK: - JSONL helpers
 
+    /// Encode and append one line. Runs on `samplingQueue`.
     private func appendJSONLine(at url: URL, line: [String: Any]) {
-        guard let data = try? JSONSerialization.data(withJSONObject: line, options: []) else { return }
-        var lineData = data
-        lineData.append(0x0A) // newline
+        guard let lineData = jsonLineData(line) else { return }
+        appendLine(lineData, to: url)
+    }
+
+    /// One JSON object plus the trailing newline, or nil (logged) when the
+    /// dictionary holds something JSONSerialization cannot encode.
+    private func jsonLineData(_ line: [String: Any]) -> Data? {
+        guard var data = attempt("diagnostics.encode", {
+            try JSONSerialization.data(withJSONObject: line, options: [])
+        }) else { return nil }
+        data.append(0x0A) // newline
+        return data
+    }
+
+    /// Append encoded bytes, creating the file (and its folder) when it is
+    /// missing. Runs on `samplingQueue`.
+    private func appendLine(_ lineData: Data, to url: URL) {
         guard FileManager.default.fileExists(atPath: url.path) else {
             createDiagnosticsFile(at: url, first: lineData)
             return
         }
-        guard let handle = try? FileHandle(forWritingTo: url) else { return }
+        guard let handle = attempt("diagnostics.openAppend", { try FileHandle(forWritingTo: url) }) else { return }
         // Throwing calls: the legacy `write(_:)` raises an uncatchable
         // exception on a full disk, and this runs every 5 s of a recording.
         attempt("diagnostics.append") {
@@ -593,6 +620,7 @@ final class SystemDiagnosticsManager: NSObject, MXMetricManagerSubscriber, @unch
     /// writable while the device is locked (these get appended
     /// to during background recording).
     private func createDiagnosticsFile(at url: URL, first lineData: Data) {
+        ensureDiagnosticsDirectory()
         attempt("diagnostics.write") { try lineData.write(to: url, options: .atomic) }
         _ = attempt("SystemDiagnosticsManager.setAttributes") {
             try FileManager.default.setAttributes(
@@ -600,11 +628,6 @@ final class SystemDiagnosticsManager: NSObject, MXMetricManagerSubscriber, @unch
                 ofItemAtPath: url.path
             )
         }
-    }
-
-    private func readJSONLines(at url: URL) -> [[String: Any]] {
-        guard let data = try? Data(contentsOf: url) else { return [] }
-        return readJSONLines(from: data)
     }
 
     /// Split on newline bytes, not decoded text: a tail read can start inside

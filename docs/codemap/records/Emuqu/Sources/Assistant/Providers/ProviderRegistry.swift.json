@@ -1,0 +1,391 @@
+{
+ "file": "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift",
+ "hash": "021bb3d03a132d45",
+ "role": "Main-actor @Observable singleton holding the six provider instances, the persisted active provider/model selection, feature-flag gating per provider and cached availability bools for hot UI paths.",
+ "types": [
+  "ProviderRegistry: class (@Observable, @MainActor) — provider holder and selection state"
+ ],
+ "state": [
+  "mem:ProviderRegistry.shared (singleton; served by AppDependencies.providerRegistry unless overridden)",
+  "mem:ProviderRegistry.retiredDisplayNames",
+  "ud:assistant.activeProvider (standard)",
+  "ud:assistant.activeModelID (standard)",
+  "mem:ProviderRegistry.activeProvider / activeModel / activeProviderAvailable"
+ ],
+ "toplevel": "Stored lets apple/anthropic/openai/gemini/grok/deepseek are created once in init; retiredDisplayNames maps nine retired API ids to names.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var ProviderRegistry.allProviders",
+   "hash": "f2760ea9367dfcf6",
+   "does": "Returns [apple, anthropic, openai, gemini, grok, deepseek] in that fixed order (the fallback/routing order other code depends on).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ProviderRegistry.displayName(forApiID:providerID:)",
+   "hash": "e51f30a6b4f19797",
+   "does": "Display name for a stored (provider, apiID): the catalog model name, else the retired-name table, else the raw apiID.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::var ProviderRegistry.allProviders",
+    "dyn:AIProvider.availableModels → Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift:29|Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::var AnthropicProvider.availableModels|Emuqu/Sources/Assistant/Providers/OpenAIProvider.swift::var OpenAIProvider.availableModels|Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::var GeminiProvider.availableModels|Emuqu/Sources/Assistant/Providers/GrokProvider.swift::var GrokProvider.availableModels|Emuqu/Sources/Assistant/Providers/DeepSeekProvider.swift::var DeepSeekProvider.availableModels"
+   ],
+   "reads": [
+    "mem:ProviderRegistry.retiredDisplayNames"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "provider found and apiID in its catalog",
+     "effect": "returns model.displayName."
+    },
+    {
+     "at": "+5",
+     "cond": "apiID in retiredDisplayNames",
+     "effect": "retired name; ?? raw apiID otherwise."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::var ProviderRegistry.allProviders": "ac9ddbe514f8e580"
+   }
+  },
+  {
+   "key": "init ProviderRegistry()",
+   "hash": "7aef7f53745a745b",
+   "does": "Creates one instance of each provider, restores the saved selection (or a fallback) and refreshes the availability cache on every path.",
+   "entry": "Run once when ProviderRegistry.shared is first touched (AppDependencies.providerRegistry).",
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.restoreSelection(from:fallback:)",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.refreshAvailabilityCache()"
+   ],
+   "reads": [
+    "ud:assistant.activeProvider",
+    "ud:assistant.activeModelID",
+    "kc:com.chrissharp.flowrecovery.assistant.apikey"
+   ],
+   "writes": [
+    "mem:ProviderRegistry.activeProvider",
+    "mem:ProviderRegistry.activeModel"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.refreshAvailabilityCache()": "a522a84243a7a3fb",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.restoreSelection(from:fallback:)": "1adee3e309c0338b"
+   }
+  },
+  {
+   "key": "func ProviderRegistry.restoreSelection(from:fallback:)",
+   "hash": "fa2f88d18c158be0",
+   "does": "Chooses the startup selection: saved selection if valid, else the first available-and-enabled provider with its default model, else Apple with AppleFoundationProvider.model.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.savedSelection(from:)",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.isEnabled(_:)",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.defaultModel(of:)",
+    "dyn:AIProvider.isAvailable → Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift:37|Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::var AnthropicProvider.isAvailable|Emuqu/Sources/Assistant/Providers/OpenAIProvider.swift::var OpenAIProvider.isAvailable|Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::var GeminiProvider.isAvailable|Emuqu/Sources/Assistant/Providers/GrokProvider.swift::var GrokProvider.isAvailable|Emuqu/Sources/Assistant/Providers/DeepSeekProvider.swift::var DeepSeekProvider.isAvailable"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "savedSelection returned a value",
+     "effect": "returns it."
+    },
+    {
+     "at": "+6",
+     "cond": "some provider is available, enabled and has a default model",
+     "effect": "returns it; otherwise Apple fallback (UI gates sending)."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.defaultModel(of:)": "5f383b6c9e34857e",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.isEnabled(_:)": "4d1d71f3bef78e55",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.savedSelection(from:)": "8489302fe78b7837"
+   }
+  },
+  {
+   "key": "func ProviderRegistry.savedSelection(from:)",
+   "hash": "118ba4d8a64a6f85",
+   "does": "Reads the saved provider id and model id from UserDefaults; returns them if the provider is available and enabled, substituting the default model when the saved model left the catalog.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.isEnabled(_:)",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.defaultModel(of:)",
+    "dyn:AIProvider.isAvailable → Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift:37|Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::var AnthropicProvider.isAvailable|Emuqu/Sources/Assistant/Providers/OpenAIProvider.swift::var OpenAIProvider.isAvailable|Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::var GeminiProvider.isAvailable|Emuqu/Sources/Assistant/Providers/GrokProvider.swift::var GrokProvider.isAvailable|Emuqu/Sources/Assistant/Providers/DeepSeekProvider.swift::var DeepSeekProvider.isAvailable",
+    "dyn:AIProvider.availableModels → Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift:29|Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::var AnthropicProvider.availableModels|Emuqu/Sources/Assistant/Providers/OpenAIProvider.swift::var OpenAIProvider.availableModels|Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::var GeminiProvider.availableModels|Emuqu/Sources/Assistant/Providers/GrokProvider.swift::var GrokProvider.availableModels|Emuqu/Sources/Assistant/Providers/DeepSeekProvider.swift::var DeepSeekProvider.availableModels"
+   ],
+   "reads": [
+    "ud:assistant.activeProvider",
+    "ud:assistant.activeModelID"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "saved provider id exists, parses, is in the list, is available and enabled",
+     "effect": "continues; otherwise nil."
+    },
+    {
+     "at": "+8",
+     "cond": "saved model id is in the catalog / else default model exists",
+     "effect": "saved model; ?? defaultModel; nil if both missing."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.defaultModel(of:)": "5f383b6c9e34857e",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.isEnabled(_:)": "4d1d71f3bef78e55"
+   }
+  },
+  {
+   "key": "func ProviderRegistry.defaultModel(of:)",
+   "hash": "15b604e11864fcde",
+   "does": "Provider's model flagged isDefault, else its first model, else nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "a model is flagged default",
+     "effect": "returns it; ?? first model (nil if catalog empty)."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ProviderRegistry.refreshAvailabilityCache()",
+   "hash": "3186d54eb4f11617",
+   "does": "Recomputes activeProviderAvailable (active provider isAvailable, a Keychain read for cloud providers), assigning only on change to avoid Observation churn; emits a keyboard-perf signpost.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.event(_:)",
+    "dyn:AIProvider.isAvailable → Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift:37|Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::var AnthropicProvider.isAvailable|Emuqu/Sources/Assistant/Providers/OpenAIProvider.swift::var OpenAIProvider.isAvailable|Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::var GeminiProvider.isAvailable|Emuqu/Sources/Assistant/Providers/GrokProvider.swift::var GrokProvider.isAvailable|Emuqu/Sources/Assistant/Providers/DeepSeekProvider.swift::var DeepSeekProvider.isAvailable"
+   ],
+   "reads": [
+    "kc:com.chrissharp.flowrecovery.assistant.apikey"
+   ],
+   "writes": [
+    "mem:ProviderRegistry.activeProviderAvailable"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "cached active availability differs",
+     "effect": "writes new value; otherwise untouched."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.event(_:)": "17747315684bc090"
+   }
+  },
+  {
+   "key": "var ProviderRegistry.visibleProviders",
+   "hash": "0768961030f6ef11",
+   "does": "Providers shown in pickers: Apple always, others only with a Keychain key, all subject to the provider feature-flag switch.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::var ProviderRegistry.allProviders",
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.hasKey(for:)",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.isEnabled(_:)"
+   ],
+   "reads": [
+    "kc:com.chrissharp.flowrecovery.assistant.apikey"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "provider is Apple or has a key",
+     "effect": "kept if enabled; otherwise excluded."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.hasKey(for:)": "227ac15ee3157ece",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.isEnabled(_:)": "4d1d71f3bef78e55",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::var ProviderRegistry.allProviders": "ac9ddbe514f8e580",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "3848c612cbdb11bc"
+   }
+  },
+  {
+   "key": "func ProviderRegistry.isEnabled(_:)",
+   "hash": "2c24286eac1dcee9",
+   "does": "Whether the provider's Settings kill switch is on: Apple always true, others read their FeatureFlags key.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift::func FeatureFlags.value(for:)"
+   ],
+   "reads": [
+    "ud:FeatureFlags providerAnthropicEnabled/providerOpenAIEnabled/providerGeminiEnabled/providerGrokEnabled/providerDeepSeekEnabled"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".apple",
+     "effect": "true."
+    },
+    {
+     "at": "+3",
+     "cond": ".anthropic",
+     "effect": "flag providerAnthropicEnabled."
+    },
+    {
+     "at": "+4",
+     "cond": ".openai",
+     "effect": "flag providerOpenAIEnabled."
+    },
+    {
+     "at": "+5",
+     "cond": ".gemini",
+     "effect": "flag providerGeminiEnabled."
+    },
+    {
+     "at": "+6",
+     "cond": ".grok",
+     "effect": "flag providerGrokEnabled."
+    },
+    {
+     "at": "+7",
+     "cond": ".deepseek",
+     "effect": "flag providerDeepSeekEnabled."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift::func FeatureFlags.value(for:)": "a2781a86fccf2cac"
+   }
+  },
+  {
+   "key": "func ProviderRegistry.setActive(provider:model:)",
+   "hash": "b963e78317afa01e",
+   "does": "Sets the active provider with the requested model if in its catalog, else its default/first model; persists and refreshes availability.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.persist()",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.refreshAvailabilityCache()",
+    "dyn:AIProvider.availableModels → Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift:29|Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::var AnthropicProvider.availableModels|Emuqu/Sources/Assistant/Providers/OpenAIProvider.swift::var OpenAIProvider.availableModels|Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::var GeminiProvider.availableModels|Emuqu/Sources/Assistant/Providers/GrokProvider.swift::var GrokProvider.availableModels|Emuqu/Sources/Assistant/Providers/DeepSeekProvider.swift::var DeepSeekProvider.availableModels"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:ProviderRegistry.activeProvider",
+    "mem:ProviderRegistry.activeModel",
+    "ud:assistant.activeProvider",
+    "ud:assistant.activeModelID"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "model given and in provider catalog",
+     "effect": "uses it."
+    },
+    {
+     "at": "+4",
+     "cond": "otherwise",
+     "effect": "default model ?? availableModels[0] (traps on an empty catalog; none of the six is empty)."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.persist()": "1ffdde36f05cb51b",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.refreshAvailabilityCache()": "a522a84243a7a3fb"
+   }
+  },
+  {
+   "key": "func ProviderRegistry.setActive(model:)",
+   "hash": "c0a40e040217b68c",
+   "does": "Selects a model and its provider (from the model picker); persists and refreshes availability. No availability or kill-switch check.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::var ProviderRegistry.allProviders",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.persist()",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.refreshAvailabilityCache()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:ProviderRegistry.activeProvider",
+    "mem:ProviderRegistry.activeModel",
+    "ud:assistant.activeProvider",
+    "ud:assistant.activeModelID"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "provider for model.providerID exists",
+     "effect": "switches; otherwise returns without change."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.persist()": "1ffdde36f05cb51b",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.refreshAvailabilityCache()": "a522a84243a7a3fb",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::var ProviderRegistry.allProviders": "ac9ddbe514f8e580"
+   }
+  },
+  {
+   "key": "func ProviderRegistry.keysChanged()",
+   "hash": "3ac52d51c7d9527e",
+   "does": "After key or switch changes: if the active provider lost its key or was switched off, switches to the first visible available provider; always refreshes availability.",
+   "entry": "Called from SwiftUI: AssistantChatSupport onAppear/scenePhase active, settings sheet onDismiss, AIAssistantSettingsPage after key edits.",
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::var ProviderRegistry.visibleProviders",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.isEnabled(_:)",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.setActive(provider:model:)",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.refreshAvailabilityCache()",
+    "dyn:AIProvider.isAvailable → Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift:37|Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::var AnthropicProvider.isAvailable|Emuqu/Sources/Assistant/Providers/OpenAIProvider.swift::var OpenAIProvider.isAvailable|Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::var GeminiProvider.isAvailable|Emuqu/Sources/Assistant/Providers/GrokProvider.swift::var GrokProvider.isAvailable|Emuqu/Sources/Assistant/Providers/DeepSeekProvider.swift::var DeepSeekProvider.isAvailable"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "active unavailable or disabled AND a visible available provider exists",
+     "effect": "setActive(provider: fallback) with default model; otherwise keeps the current (possibly unusable) selection."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.isEnabled(_:)": "4d1d71f3bef78e55",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.refreshAvailabilityCache()": "a522a84243a7a3fb",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.setActive(provider:model:)": "7017aa5ebcacdde3",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::var ProviderRegistry.visibleProviders": "14b8c52d4b300460"
+   }
+  },
+  {
+   "key": "func ProviderRegistry.persist()",
+   "hash": "ebf8fa04893b5c68",
+   "does": "Writes active provider rawValue and model apiID to standard UserDefaults.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "ud:assistant.activeProvider",
+    "ud:assistant.activeModelID"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

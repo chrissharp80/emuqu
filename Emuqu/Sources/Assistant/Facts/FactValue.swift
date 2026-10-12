@@ -82,12 +82,8 @@ struct Availability: Sendable {
     /// archive holds a single workout, otherwise valid across the span of
     /// archived workout dates. Shared by the `walks.*` and `hrr.*` namespaces.
     static func workouts(in archive: SessionArchive) -> Availability {
-        let hasAny = archive.entries.contains { $0.sessionType == .workout }
-        guard hasAny else { return .unavailable }
         let dates = archive.entries.filter { $0.sessionType == .workout }.map(\.date)
-        guard let earliest = dates.min(), let latest = dates.max() else {
-            return .alwaysAvailable
-        }
+        guard let earliest = dates.min(), let latest = dates.max() else { return .unavailable }
         return Availability(hasData: true, validRange: earliest ... latest, lastUpdated: latest)
     }
 }
@@ -101,9 +97,9 @@ struct Availability: Sendable {
 ///
 /// Rendering rules:
 ///   • .integer / .double → compact numeric with up to 2 decimals
-///   • .string → quoted, truncated for display if very long
+///   • .string → the text as it is (unquoted, not truncated)
 ///   • .date → ISO 8601 with the local UTC offset (unambiguous, machine-parseable)
-///   • .duration → "63m 07s" (human) + seconds in a record when precise
+///   • .duration → "45s", "3m 07s", or "1h 3m 7s" from an hour up
 ///   • .boolean → yes / no
 ///   • .missing → structured `{missingReason, detail?}` in the wire format
 ///   • .list → bracketed, comma-separated
@@ -282,7 +278,7 @@ enum FactValue: Sendable {
            let s = String(data: data, encoding: .utf8) {
             return s
         }
-        return "{\"missingReason\":\"internalError\",\"detail\":\"encoding failed\"}"
+        return #"{"value":null,"missingReason":"internalError","detail":"FactValue not JSON-serialisable"}"#
     }
 
     /// Public-surface JSON serialization for cross-provider tool-result
@@ -291,18 +287,14 @@ enum FactValue: Sendable {
     /// "missingReason": …}`). Exposed so the
     /// `AppleToolDispatcher` can hand the same JSON payload to
     /// Apple's `Tool.call` return value.
+    ///
+    /// The same bytes as `toolResultJSON`: one encoder, so the two entry
+    /// points cannot drift apart.
     func toToolResultJSON() -> String {
-        let env = envelope()
-        guard JSONSerialization.isValidJSONObject(env),
-              let data = try? JSONSerialization.data(withJSONObject: env, options: [.sortedKeys])
-        else {
-            return #"{"value":null,"missingReason":"internalError","detail":"FactValue not JSON-serialisable"}"#
-        }
-        return String(data: data, encoding: .utf8) ?? "{}"
+        toolResultJSON
     }
 
-    /// Build the dictionary that `toolResultJSON` and
-    /// `toToolResultJSON()` encode.
+    /// Build the dictionary that `toolResultJSON` encodes.
     private func envelope() -> [String: Any] {
         var env: [String: Any] = [
             "asOf": Self.localISO8601(Date()),

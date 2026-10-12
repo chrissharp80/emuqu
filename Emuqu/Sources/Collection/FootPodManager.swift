@@ -27,7 +27,7 @@ import Foundation
 //   - Auto-reconnect on next workout.
 //   - Publish speed / cadence / distance / power as observable for the
 //     WorkoutRecorder to consume.
-//   - Persist a short log line per reconnect so debugging is possible.
+//   - Log a line (debug log) per mid-workout reconnect so debugging is possible.
 //
 // What this manager does NOT do (left for future passes):
 //   - Stryd's proprietary LSS / Leg Spring Stiffness / Wind Detection protocol.
@@ -105,7 +105,8 @@ final class FootPodManager: NSObject, BLEPeripheralConnecting {
     private(set) var connectionState: ConnectionState = .disconnected
     /// Most-recent speed in m/s. Nil when the pod is silent.
     private(set) var instantaneousSpeedMS: Double?
-    /// Running cadence in steps per minute from the pod.
+    /// Running cadence in steps per minute from the pod. An FTMS indoor bike
+    /// reports crank revolutions per minute here instead (`parseIndoorBikeData`).
     private(set) var cadenceStepsPerMin: Double?
     /// Stride length (m) when the pod reports it.
     private(set) var strideLengthMeters: Double?
@@ -240,8 +241,16 @@ final class FootPodManager: NSObject, BLEPeripheralConnecting {
     private func armScanTimeout() {
         scanTimeoutTimer?.invalidate()
         scanTimeoutTimer = Timer.scheduledTimer(withTimeInterval: 20, repeats: false) { [weak self] _ in
-            Task { @MainActor in self?.stopScanning() }
+            Task { @MainActor in self?.endTimedOutScan() }
         }
+    }
+
+    /// The sensor a parked reconnect was scanning for did not appear, so the
+    /// reconnect ends with the scan; left parked, a later unrelated scan or
+    /// Bluetooth power-on attached it outside any workout.
+    private func endTimedOutScan() {
+        pendingReconnectId = nil
+        stopScanning()
     }
 
     func stopScanning() {
@@ -259,10 +268,13 @@ final class FootPodManager: NSObject, BLEPeripheralConnecting {
     }
 
     /// Called at a workout's start and stop. At the stop, a reconnect still
-    /// waiting for the sensor is cancelled.
+    /// waiting for the sensor — a connect in flight or an id parked while
+    /// Bluetooth was off — is cancelled.
     func holdLinkForWorkout(_ holds: Bool) {
         workoutHoldsLink = holds
-        if !holds, expectsLink, connectionState == .connecting { disconnect() }
+        guard !holds, expectsLink else { return }
+        pendingReconnectId = nil
+        if connectionState == .connecting { disconnect() }
     }
 
     func disconnect() {
@@ -429,6 +441,21 @@ extension FootPodManager: CBCentralManagerDelegate {
         Task { @MainActor in
             self.lastStatusLine = String(localized: "Connect failed: \(err)", bundle: LanguageManager.appBundle)
             self.cleanupAfterDisconnect()
+            if self.expectsLink, self.workoutHoldsLink { self.retryConnect(peripheral) }
+        }
+    }
+
+    /// A reconnect that failed mid-workout is asked for again after a short
+    /// pause (a failure can come back at once, so not in a tight loop);
+    /// before, the first failure ended pace, cadence and power for the rest
+    /// of the workout.
+    @MainActor
+    private func retryConnect(_ peripheral: CBPeripheral) {
+        debugLog("[FootPod] Reconnect failed mid-workout — asking again")
+        Task { @MainActor [weak self] in
+            await sleepQuietly(2_000_000_000, context: "foot pod reconnect after a failed connect")
+            guard let self, self.expectsLink, self.workoutHoldsLink, self.connectionState == .disconnected else { return }
+            self.attach(peripheral: peripheral)
         }
     }
 
@@ -440,7 +467,9 @@ extension FootPodManager: CBCentralManagerDelegate {
         Task { @MainActor in
             self.lastStatusLine = String(localized: "Disconnected", bundle: LanguageManager.appBundle)
             self.cleanupAfterDisconnect()
-            if self.expectsLink, self.workoutHoldsLink { self.attach(peripheral: peripheral) }
+            guard self.expectsLink, self.workoutHoldsLink else { return }
+            debugLog("[FootPod] Link dropped mid-workout — reconnecting")
+            self.attach(peripheral: peripheral)
         }
     }
 }

@@ -17,11 +17,14 @@ import SwiftUI
 ///   • Big "Connect" button — fires `requestAuthorization()`
 ///   • "Skip for now" tertiary
 ///
-/// Post-return verification:
-///   • Auth completed → confirmation card "You're connected" + scope
-///     summary
-///   • Partial grant → warning card listing what's missing and how to
-///     fix in Settings
+/// Post-return verification (inferred from data presence, as iOS hides
+/// read denials):
+///   • Data found for every scope → "You're connected" card
+///   • Data for some scopes → a note that some categories show no recent
+///     data and where to check them
+///   • No data at all → a warning with the path to the Health switches
+///     and an Open Settings button
+///   • The request itself failed → the failure, with its reason
 struct OnboardingHealthPage: View {
     @Environment(RRCollector.self) var collector
     let advance: () -> Void
@@ -294,16 +297,12 @@ struct OnboardingHealthPage: View {
     /// `openSettingsURLString`. iOS has no documented URL for the Health app,
     /// so the text above gives the path to the switches in both places.
     private var openHealthButton: some View {
-        Button(action: openSettings) {
+        Button(action: openAppSettings) {
             Label(String(localized: "Open Settings", bundle: LanguageManager.appBundle), systemImage: "gear")
         }
         .buttonStyle(.bordered)
     }
 
-    private func openSettings() {
-        guard let settings = URL(string: UIApplication.openSettingsURLString) else { return }
-        UIApplication.shared.open(settings)
-    }
 
     private var scopesPendingRow: some View {
         HStack(spacing: 10) {
@@ -339,6 +338,15 @@ struct OnboardingHealthPage: View {
         requesting = false
         didAttempt = true
     }
+}
+
+/// Opens this app's page in iOS Settings, through the documented
+/// `openSettingsURLString`. Shared by the onboarding pages that send the user
+/// there (Apple Health switches, Bluetooth access).
+@MainActor
+func openAppSettings() {
+    guard let settings = URL(string: UIApplication.openSettingsURLString) else { return }
+    UIApplication.shared.open(settings)
 }
 
 #Preview {

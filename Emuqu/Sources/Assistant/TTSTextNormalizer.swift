@@ -38,8 +38,11 @@ enum TTSTextNormalizer {
     /// `AVSpeechUtterance(attributedString:)`. Chains every entity-
     /// specific pass plus the existing homograph layer.
     ///
-    /// `english: false` skips the pre-passes, which write English words
-    /// ("zone one", "per minute", year read-outs) into the text.
+    /// `english: false` skips every pass that writes English words into the
+    /// text or matches English phrases: the pre-passes here ("zone one",
+    /// "per minute", year read-outs) and PhoneticOverrides' ZIP read-out
+    /// ("dash") and "live" respellings. AI-authored pronunciation markup is
+    /// still applied.
     static func normalize(_ input: String, english: Bool = true) -> NSAttributedString {
         // Pre-passes that mutate the spoken text directly. Order is
         // load-bearing — see comment at top of file.
@@ -52,7 +55,7 @@ enum TTSTextNormalizer {
         // ZIP expansion + homographs + AI markup all live in
         // PhoneticOverrides and emit an NSAttributedString. Hand the
         // post-pre-pass text to it as the final stage.
-        return PhoneticOverrides.speechAttributedString(working)
+        return PhoneticOverrides.speechAttributedString(working, english: english)
     }
 
     /// Display-safe version (no attributes, no respellings) for chat
@@ -207,23 +210,27 @@ enum TTSTextNormalizer {
     // expect "twenty twenty-six". Split into halves and spellOut each.
     //
     // Special cases:
-    //   • 2000–2009 — "two thousand X" sounds natural ("two thousand four")
+    //   • 2000 — "two thousand"
+    //   • 2001–2009 — "two thousand X" sounds natural ("two thousand four")
     //   • 2010–2099 — "twenty X" or "twenty-XX"
     //   • 1100–1999 — "<first-half> <second-half>" ("nineteen ninety")
-    //   • 1000–1099 — "ten oh X" sounds odd; emit "one thousand X"
+    // Nothing below 1100 is read as a year ("ten oh X" sounds odd), so
+    // 1000–1099 stays a number.
     //
     // Match years only in non-numeric context: preceded/followed by
     // word boundary, NOT by another digit / decimal / colon. Avoids
     // touching prices ($1990), pace strings (8:45), step counts, etc.
 
+    /// A ZIP+4 suffix ("62704-1234") is not a year: it is left for
+    /// PhoneticOverrides' ZIP read-out, which runs after this pass.
     static func expandYears(_ input: String) -> String {
         // Match a 4-digit year 1100-2099 in non-numeric context.
         // Lookbehind/ahead reject `\d`, `.`, `:`, `,`, `$` so prices
         // ($1990), decimals (1990.5), times (12:1990), and grouped
         // numerics (12,1990) all pass through unchanged. A number followed
         // by a unit is a count, not a year: "1205 steps" stays a number
-        // rather than "twelve oh five steps".
-        let pattern = #"(?<![\d.,:$])\b(1[1-9]\d{2}|20\d{2})\b(?![\d.,:])"# + Self.notFollowedByUnit
+        // rather than "twelve oh five steps". Nor is a ZIP+4 suffix (above).
+        let pattern = #"(?<![\d.,:$])(?<!\d{5}-)\b(1[1-9]\d{2}|20\d{2})\b(?![\d.,:])"# + Self.notFollowedByUnit
         guard let regex = try? NSRegularExpression(pattern: pattern) else {
             return input
         }
@@ -243,11 +250,13 @@ enum TTSTextNormalizer {
     private static let notFollowedByUnit =
         #"(?!\s*(?i:steps?|kcal|cal|calories|kj|m|meters?|metres?|km|mi|miles?|ft|feet|ms|bpm|beats|w|watts?|kg|lbs?|s|secs?|seconds?|mins?|minutes?|h|hrs?|hours?|rpm|spm|trimp|tss|points?|%)(?![\w]))"#
 
-    /// How a year is read aloud: "two thousand four", "twenty twenty six",
-    /// "nineteen ninety", "nineteen oh four", "nineteen hundred". Outside the
-    /// range we trust, it's spelled as a plain number.
+    /// How a year is read aloud: "two thousand", "two thousand four",
+    /// "twenty twenty six", "nineteen ninety", "nineteen oh four",
+    /// "nineteen hundred". `expandYears` only passes 1100–2099; anything
+    /// else is spelled as a plain number.
     private static func spokenYear(_ year: Int) -> String {
-        if year >= 2000, year <= 2009 { return "two thousand \(numberAsWords(year - 2000))" }
+        if year == 2000 { return "two thousand" }
+        if year >= 2001, year <= 2009 { return "two thousand \(numberAsWords(year - 2000))" }
         if year >= 2010, year <= 2099 { return "twenty \(numberAsWords(year - 2000))" }
         guard year >= 1100, year <= 1999 else { return numberAsWords(year) }
         return splitCenturyYear(year)

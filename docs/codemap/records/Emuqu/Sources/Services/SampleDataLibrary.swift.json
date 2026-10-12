@@ -1,0 +1,540 @@
+{
+ "file": "Emuqu/Sources/Services/SampleDataLibrary.swift",
+ "hash": "06de70f288efd617",
+ "role": "Loads and removes synthetic sample nights for the Dashboard first-run card and Settings → Troubleshooting: seeds via DemoSessionSeeder with the real analysis pipeline and acceptance-style scoring, and on removal deletes archive entries, sends iCloud deletions, rebuilds the baseline and restores the prior settings baseline.",
+ "types": [
+  "SampleDataLibrary: struct (@MainActor) — load/remove orchestration",
+  "SampleDataLibrary.Ledger: struct Codable — seeded ids + prior settings baseline",
+  "SampleDataError: enum LocalizedError — busy, noOpenNights, incompleteRemoval"
+ ],
+ "state": [
+  "mem:SampleDataLibrary.isBusy (static var, SampleDataLibrary.swift:33)",
+  "ud:sampleData.ledger.v1 (SampleDataLibrary.ledgerKey, :36; JSON Ledger in injectable defaults, .standard in production)"
+ ],
+ "toplevel": "Stored properties collector, deleteFromCloud and defaults (= .standard). Second type SampleDataError at file end.",
+ "flags": [],
+ "units": [
+  {
+   "key": "init SampleDataLibrary(collector:cloudSync:)",
+   "hash": "ff514d64f547ded4",
+   "does": "Convenience init: wires deleteFromCloud to CloudKitSyncManager.uploadDeletion. Used by SampleDataViews (lines 123/163/275).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadDeletion(_:)",
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::init SampleDataLibrary(collector:deleteFromCloud:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::init SampleDataLibrary(collector:deleteFromCloud:)": "667a3d5522df068c",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadDeletion(_:)": "35795a3f19c6054a"
+   }
+  },
+  {
+   "key": "init SampleDataLibrary(collector:deleteFromCloud:)",
+   "hash": "d9793c9fd6ee8e7a",
+   "does": "Designated init storing the collector and the cloud-deletion closure (tests inject a recorder).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var SampleDataLibrary.isPresent",
+   "hash": "673ec75085b99a62",
+   "does": "True when any sample session id exists.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::var SampleDataLibrary.sampleIds"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries",
+    "ud:sampleData.ledger.v1"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::var SampleDataLibrary.sampleIds": "4aa299c2c77d0c56"
+   }
+  },
+  {
+   "key": "var SampleDataLibrary.sampleIds",
+   "hash": "4f4a14dbbc3e71ff",
+   "does": "Ids of archive entries carrying the sample tag or listed in this device's ledger.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.sampleSessionIds(in:seededIds:)",
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::func SampleDataLibrary.loadLedger()"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries",
+    "ud:sampleData.ledger.v1"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.sampleSessionIds(in:seededIds:)": "a1ac307f7190fba9",
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::func SampleDataLibrary.loadLedger()": "6c7b21808d1824df",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.sessionIds(indexedSince:)": "9881e57fec097721"
+   }
+  },
+  {
+   "key": "func SampleDataLibrary.load(nights:progress:)",
+   "hash": "7ff8fa4b72624016",
+   "does": "Seeds sample nights: refuses when busy, records the prior settings baseline once, runs DemoSessionSeeder.seed with nightPlans(now), the app pipeline and finalize; throws noOpenNights when none written, else appends ids to ledger, notifies archive change and returns count. Any error runs undoFailedSeed (baseline rebuilt, settings baseline restored, empty ledger dropped) and rethrows.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::func SampleDataLibrary.recordPriorBaselineIfNeeded()",
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.seed(_:into:pipeline:finalize:progress:)",
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.nightPlans(count:now:calendar:)",
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::var SampleDataLibrary.pipeline",
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::func SampleDataLibrary.finalize(_:)",
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::func SampleDataLibrary.appendToLedger(_:)",
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()",
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::func SampleDataLibrary.undoFailedSeed()"
+   ],
+   "reads": [
+    "mem:SampleDataLibrary.isBusy",
+    "ud:sampleData.ledger.v1"
+   ],
+   "writes": [
+    "mem:SampleDataLibrary.isBusy",
+    "ud:sampleData.ledger.v1",
+    "archive:SessionArchive.archive (via DemoSessionSeeder.writeAll)",
+    "mem:ArchiveSignal.version",
+    "mem:BaselineTracker baseline points"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "isBusy",
+     "effect": "true: throw .busy; false: set busy (cleared by defer)"
+    },
+    {
+     "at": "+13",
+     "cond": "seed returned no ids",
+     "effect": "throw .noOpenNights (caught → undoFailedSeed, rethrown)"
+    },
+    {
+     "at": "+17",
+     "cond": "any error from seed or noOpenNights",
+     "effect": "catch: undoFailedSeed then rethrow to SampleDataModel"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()": "1c38f37d10093863",
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.nightPlans(count:now:calendar:)": "415ae79c57f4d3b9",
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.seed(_:into:pipeline:finalize:progress:)": "6289abf541e92267",
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::func SampleDataLibrary.appendToLedger(_:)": "8078e3e5f74e2bd0",
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::func SampleDataLibrary.finalize(_:)": "6abef58bcb1949a0",
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::func SampleDataLibrary.recordPriorBaselineIfNeeded()": "a8448850006885d8",
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::func SampleDataLibrary.undoFailedSeed()": "292424e75b25c07d",
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::var SampleDataLibrary.pipeline": "c6fdbcd680c543f2"
+   }
+  },
+  {
+   "key": "func SampleDataLibrary.undoFailedSeed()",
+   "hash": "01c04d887312e7d0",
+   "does": "After a failed seed: rebuilds the baseline tracker from the archive, restores the settings baseline recorded before the first load when the tracker has no valid baseline (restoreSettingsBaselineIfNeeded), and removes the ledger when it lists no sample nights so the next load records the prior baseline again.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::func SampleDataLibrary.rebuildBaseline()",
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::func SampleDataLibrary.restoreSettingsBaselineIfNeeded()",
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::func SampleDataLibrary.loadLedger()"
+   ],
+   "reads": [
+    "ud:sampleData.ledger.v1"
+   ],
+   "writes": [
+    "ud:sampleData.ledger.v1",
+    "mem:BaselineTracker baseline points",
+    "mem:UserSettings.baselineRMSSD/baselineHR"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "ledger lists sample nights",
+     "effect": "keep it; else remove it"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::func SampleDataLibrary.loadLedger()": "6c7b21808d1824df",
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::func SampleDataLibrary.rebuildBaseline()": "ef07f3c23fba93ba",
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::func SampleDataLibrary.restoreSettingsBaselineIfNeeded()": "dc72d244a9783b94",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.sessionIds(indexedSince:)": "9881e57fec097721"
+   }
+  },
+  {
+   "key": "var SampleDataLibrary.pipeline",
+   "hash": "53e56254597c0eed",
+   "does": "Builds the NightPipeline: per night a fresh HRVAnalysisPipeline with a new WindowSelector runs analyzeWithAutoWindow within stored sleep bounds with no training context and the collector's current ANS config; falls back to analyzeFullSeries on artifact-detected full series when no window qualifies.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.currentANSConfig",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::init HRVAnalysisPipeline(artifactDetector:windowSelector:healthKit:)",
+    "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeWithAutoWindow(session:sleepStartMs:wakeTimeMs:trainingContext:ansConfig:baselineStats:)",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeFullSeries(series:flags:windowStart:windowEnd:trainingContext:ansConfig:daytimeRestingHR:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+11",
+     "cond": "windowed result nil and session has rrSeries",
+     "effect": "true: full-series analysis; false: return windowed (or nil if no series)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)": "603a4d925fb360fb",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeFullSeries(series:flags:windowStart:windowEnd:trainingContext:ansConfig:daytimeRestingHR:)": "16f070d35d68d9c8",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeWithAutoWindow(session:sleepStartMs:wakeTimeMs:trainingContext:ansConfig:baselineStats:)": "4199736e0169638a",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::init HRVAnalysisPipeline(artifactDetector:windowSelector:healthKit:)": "458e2091ed3d7cb2",
+    "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)": "c6fe89367e88ef08",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.currentANSConfig": "b5c61f5c04bc37f8",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.healthKit": "f61a7a679f5280dd"
+   }
+  },
+  {
+   "key": "func SampleDataLibrary.finalize(_:)",
+   "hash": "e3faec71636bdfc7",
+   "does": "Scores one sample night like acceptance: sets the sample note, classifies HRV quality against the prior-nights baseline, computes recovery score/breakdown/frozenReadiness via collector.computeRecoveryScore, then feeds it into BaselineTracker.update so the next night scores against it.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::var SampleDataLibrary.sampleNote",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.classifyHRVQuality(result:sleepData:baselineStats:recordingStart:recordingEnd:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.scoringBaselineStats(for:)",
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.computeRecoveryScore(for:from:)",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.computeFrozenReadiness(compositeScore:trainingContext:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.update(with:sleepSchedule:)"
+   ],
+   "reads": [
+    "mem:BaselineTracker baseline points"
+   ],
+   "writes": [
+    "mem:BaselineTracker baseline points"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "night.analysisResult nil",
+     "effect": "return session with note only (no score, no baseline update)"
+    },
+    {
+     "at": "+7",
+     "cond": "night.endDate nil",
+     "effect": "recordingEnd = startDate"
+    },
+    {
+     "at": "+9",
+     "cond": "computeRecoveryScore returned outcome",
+     "effect": "true: set score/breakdown/frozenReadiness; false: leave unscored (still added to baseline)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.update(with:sleepSchedule:)": "39b522c63ba99f84",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.computeRecoveryScore(for:from:)": "b6f0ec9cba482ce9",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.scoringBaselineStats(for:)": "f465e8f605f0556c",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.computeFrozenReadiness(compositeScore:trainingContext:)": "7aa853f03a8994f8",
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::var SampleDataLibrary.sampleNote": "d8c4dbbbffd9d72e",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.classifyHRVQuality(result:sleepData:baselineStats:recordingStart:recordingEnd:)": "ef2cf4065b8aca0b"
+   }
+  },
+  {
+   "key": "var SampleDataLibrary.sampleNote",
+   "hash": "832b47573ec7dc91",
+   "does": "Localized note text marking a session as synthetic sample data.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func SampleDataLibrary.remove()",
+   "hash": "a3713a0dc086ac4f",
+   "does": "Removes all sample nights: refuses when busy, deletes ids (archive delete + discard trash) off-main, notifies archive change, sends iCloud deletions for removed ids, rebuilds baseline; throws incompleteRemoval if any id failed, otherwise restores the prior settings baseline when needed and deletes the ledger.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::var SampleDataLibrary.sampleIds",
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.remove(_:from:)",
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()",
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::func SampleDataLibrary.sendCloudDeletions(_:)",
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::func SampleDataLibrary.rebuildBaseline()",
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::func SampleDataLibrary.restoreSettingsBaselineIfNeeded()"
+   ],
+   "reads": [
+    "mem:SampleDataLibrary.isBusy",
+    "archive:SessionArchive.entries",
+    "ud:sampleData.ledger.v1"
+   ],
+   "writes": [
+    "mem:SampleDataLibrary.isBusy",
+    "archive:SessionArchive.delete",
+    "archive:SessionArchive.discardTrashed",
+    "mem:ArchiveSignal.version",
+    "ck:session deletion",
+    "mem:BaselineTracker baseline points",
+    "ud:sampleData.ledger.v1"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "isBusy",
+     "effect": "true: throw .busy"
+    },
+    {
+     "at": "+13",
+     "cond": "removed.count == ids.count",
+     "effect": "false: throw incompleteRemoval (ledger and prior baseline kept for retry); true: restore settings and remove ledger"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()": "1c38f37d10093863",
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.remove(_:from:)": "318b67317a20ae0a",
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::func SampleDataLibrary.rebuildBaseline()": "ef07f3c23fba93ba",
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::func SampleDataLibrary.restoreSettingsBaselineIfNeeded()": "dc72d244a9783b94",
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::func SampleDataLibrary.sendCloudDeletions(_:)": "792728dd3da022da",
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::var SampleDataLibrary.sampleIds": "4aa299c2c77d0c56"
+   }
+  },
+  {
+   "key": "func SampleDataLibrary.sendCloudDeletions(_:)",
+   "hash": "e8016b40a00c5517",
+   "does": "Fire-and-forget Task that awaits deleteFromCloud for each removed id sequentially.",
+   "entry": null,
+   "calls": [
+    "closure:deleteFromCloud — CloudKitSyncManager.uploadDeletion in production (init at :38)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadDeletion(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ck:session deletion"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "ids empty",
+     "effect": "return"
+    },
+    {
+     "at": "+4",
+     "cond": "for each id",
+     "effect": "await deletion"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadDeletion(_:)": "35795a3f19c6054a"
+   }
+  },
+  {
+   "key": "func SampleDataLibrary.rebuildBaseline()",
+   "hash": "7bd2ca78322ad903",
+   "does": "Rebuilds the rolling baseline: retrieves every archive entry as lightweight sessions off-main, resets BaselineTracker and rebuildFromSessions with the current sleep schedule.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.reset()",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.rebuildFromSessions(_:sleepSchedule:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.retrieveLightweight"
+   ],
+   "writes": [
+    "mem:BaselineTracker baseline points"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.rebuildFromSessions(_:sleepSchedule:)": "d1901cb2aed50e88",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.reset()": "bf511a859401a83f",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "8dd50c9f204fb5d6"
+   }
+  },
+  {
+   "key": "func SampleDataLibrary.recordPriorBaselineIfNeeded()",
+   "hash": "2f74955c42a3db2d",
+   "does": "First time only, stores the current settings baselineRMSSD/baselineHR in the ledger with hasPriorBaseline=true.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::func SampleDataLibrary.loadLedger()",
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::func SampleDataLibrary.saveLedger(_:)"
+   ],
+   "reads": [
+    "ud:sampleData.ledger.v1",
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [
+    "ud:sampleData.ledger.v1"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "ledger.hasPriorBaseline",
+     "effect": "true: return; false: record"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::func SampleDataLibrary.loadLedger()": "6c7b21808d1824df",
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::func SampleDataLibrary.saveLedger(_:)": "c0ec0228ddc48428"
+   }
+  },
+  {
+   "key": "func SampleDataLibrary.restoreSettingsBaselineIfNeeded()",
+   "hash": "2badd72ccd3f658a",
+   "does": "When a prior baseline was recorded and the rebuilt tracker has no valid baseline, writes the ledger's prior baselineRMSSD/HR back into settings.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::func SampleDataLibrary.loadLedger()",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.hasValidBaseline"
+   ],
+   "reads": [
+    "ud:sampleData.ledger.v1",
+    "mem:BaselineTracker baseline points"
+   ],
+   "writes": [
+    "mem:SettingsManager.settings"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "hasPriorBaseline && !hasValidBaseline",
+     "effect": "false: return (rebuild already wrote a fresh baseline or nothing to restore); true: restore"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.hasValidBaseline": "83641d8f92c7b8d4",
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::func SampleDataLibrary.loadLedger()": "6c7b21808d1824df"
+   }
+  },
+  {
+   "key": "func SampleDataLibrary.loadLedger()",
+   "hash": "bbea0ee3705ae9d2",
+   "does": "Decodes the Ledger JSON from defaults; returns an empty Ledger when missing or undecodable (logging a warning).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "ud:sampleData.ledger.v1"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no data under key",
+     "effect": "return Ledger()"
+    },
+    {
+     "at": "+4",
+     "cond": "JSON decode throws",
+     "effect": "catch: log warning, return Ledger() (seeded ids then rely on the sample tag only)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func SampleDataLibrary.saveLedger(_:)",
+   "hash": "4bf2c93b3bf9ff37",
+   "does": "Encodes and stores the Ledger under sampleData.ledger.v1; logs and drops on encode failure.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:sampleData.ledger.v1"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "JSON encode throws",
+     "effect": "catch: warning logged, ledger not saved"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func SampleDataLibrary.appendToLedger(_:)",
+   "hash": "563ae951d597d5f5",
+   "does": "Appends seeded ids to the ledger and saves it.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::func SampleDataLibrary.loadLedger()",
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::func SampleDataLibrary.saveLedger(_:)"
+   ],
+   "reads": [
+    "ud:sampleData.ledger.v1"
+   ],
+   "writes": [
+    "ud:sampleData.ledger.v1"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::func SampleDataLibrary.loadLedger()": "6c7b21808d1824df",
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::func SampleDataLibrary.saveLedger(_:)": "c0ec0228ddc48428",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.sessionIds(indexedSince:)": "9881e57fec097721"
+   }
+  },
+  {
+   "key": "var SampleDataError.errorDescription",
+   "hash": "741d85e1f6a1b02e",
+   "does": "Localized message for each SampleDataError case.",
+   "entry": "LocalizedError witness; read via error.localizedDescription when SampleDataModel shows the failure",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .busy",
+     "effect": "'Sample data is already being updated…'"
+    },
+    {
+     "at": "+4",
+     "cond": "case .noOpenNights",
+     "effect": "'Every recent night already has a recording…'"
+    },
+    {
+     "at": "+6",
+     "cond": "case .incompleteRemoval(remaining)",
+     "effect": "'<n> sample nights could not be removed…'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -1,0 +1,23 @@
+{
+ "file": "Emuqu/Sources/Collection/DeviceStatus.swift",
+ "hash": "4947734fdfffd6fb",
+ "role": "Observable mirror of Polar strap state (connection, streaming, battery, on-device recording, device type, fetch progress) so BLE-state views re-render independently of the collector. Written by RRCollector+Bindings.swift (e.g. lines 51, 66, 72, 202) and, for isStreaming = false at the end of a night, by RRCollector+OvernightGather.publishGatherSavingState; read via @Environment.",
+ "types": [
+  "DeviceStatus: class (@MainActor @Observable) — published strap state"
+ ],
+ "state": [
+  "mem:DeviceStatus.isDeviceConnected",
+  "mem:DeviceStatus.isStreaming",
+  "mem:DeviceStatus.hasStoredExercise",
+  "mem:DeviceStatus.batteryLevel",
+  "mem:DeviceStatus.isRecordingOnDevice",
+  "mem:DeviceStatus.connectedDeviceType",
+  "mem:DeviceStatus.recordingState",
+  "mem:DeviceStatus.connectionState",
+  "mem:DeviceStatus.fetchProgress"
+ ],
+ "toplevel": "Stored-property defaults only (false/nil/.idle/.disconnected). All properties are publicly settable (no private(set)), so any holder of the environment object can write them.",
+ "flags": [],
+ "units": [],
+ "deps": {}
+}

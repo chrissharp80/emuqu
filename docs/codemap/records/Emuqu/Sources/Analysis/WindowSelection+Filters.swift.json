@@ -1,0 +1,132 @@
+{
+ "file": "Emuqu/Sources/Analysis/WindowSelection+Filters.swift",
+ "hash": "3f9f31dec40d9b63",
+ "role": "WindowSelector extension with the isolated-spike filter (neighbours are the adjacent surviving windows of the scan), masked RMSSD over adjacent ectopic-kept beats (the gate is TimeDomainAnalyzer.ectopicKeepMask), a time formatter and one legacy selectRecoveryWindow wrapper kept for the window-selection tests.",
+ "types": [],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func WindowSelector.filterIsolatedSpikes(_:)",
+   "hash": "1d5ae43f10524ce6",
+   "does": "Splits windows into those kept and a count of rejected isolated spikes (interior windows whose RMSSD is >=1.5x both neighbours).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.isIsolatedSpike(at:in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each window",
+     "effect": "iterate"
+    },
+    {
+     "at": "+4",
+     "cond": "isIsolatedSpike",
+     "effect": "count as rejected; else keep"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.isIsolatedSpike(at:in:)": "fc3c52eba75b47fe"
+   }
+  },
+  {
+   "key": "func WindowSelector.isIsolatedSpike(at:in:)",
+   "hash": "f5173f1a744125e8",
+   "does": "True when the window has both neighbours, both neighbours have non-zero RMSSD, and its RMSSD >= isolatedSpikeRatio x each neighbour.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "i is first or last index",
+     "effect": "return false (edge windows never spikes)"
+    },
+    {
+     "at": "+4",
+     "cond": "either neighbour RMSSD is ~0",
+     "effect": "return false; else compare against both"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WindowSelector.maskedRMSSD(_:kept:breaks:)",
+   "hash": "35888d687477e207",
+   "does": "RMSSD over successive differences of beats that are adjacent in the original series, both kept, and not across a recording break; 0 when no such pair or input sizes mismatch.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.rootMeanSquare(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "fewer than 2 values or kept.count mismatch",
+     "effect": "return 0"
+    },
+    {
+     "at": "+4",
+     "cond": "pair adjacent, both kept, no break",
+     "effect": "append difference; else skip pair"
+    },
+    {
+     "at": "+9",
+     "cond": "no diffs",
+     "effect": "return 0; else root mean square"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.rootMeanSquare(_:)": "fc0d58e5da7718f5"
+   }
+  },
+  {
+   "key": "func WindowSelector.formatTime(_:)",
+   "hash": "bf78b1e3a7be9a56",
+   "does": "Formats milliseconds as HH:MM:SS for log lines.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WindowSelector.selectRecoveryWindow(series:flags:wakeTimeMs:)",
+   "hash": "49cd25d1e0c8ab48",
+   "does": "Legacy wrapper: findBestWindow with only wakeTimeMs (no sleep start, no baseline).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "No production caller; used only by WindowSelectionTests (lines 86-352).",
+     "evidence": [
+      "EmuquTests/WindowSelectionTests.swift:86"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "15efe5b42c0fbb9e"
+   }
+  }
+ ],
+ "deps": {}
+}

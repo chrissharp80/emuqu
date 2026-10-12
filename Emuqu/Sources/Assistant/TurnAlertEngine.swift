@@ -55,6 +55,10 @@ struct TurnAlertState {
     /// firing is monotonic: once threshold 2 fired we never fire
     /// threshold 1 again for the same step.
     var lastThresholdLevel: Int = 0
+    /// True once the arrival line was spoken for this route. Kept across
+    /// step changes, so a step index that moves while the user stands at
+    /// the destination does not announce the arrival again.
+    var arrivalAnnounced = false
 }
 
 /// Pure-data payload describing one turn-alert utterance. Caller
@@ -121,7 +125,9 @@ enum TurnAlertEngine {
         // step's "far" alert can fire.
         var working = state
         if step.currentStepIndex != state.lastStepIndex {
-            working = TurnAlertState(lastStepIndex: step.currentStepIndex, lastThresholdLevel: 0)
+            working = TurnAlertState(
+                lastStepIndex: step.currentStepIndex, lastThresholdLevel: 0, arrivalAnnounced: state.arrivalAnnounced
+            )
         }
         if step.arrived || step.remainingDistanceMeters <= arrivalMeters {
             return arrivalAlert(step: step, working: &working)
@@ -134,15 +140,16 @@ enum TurnAlertEngine {
     }
 
     /// Arrival short-circuit. Once we're within `arrivalMeters`
-    /// of the destination, fire the arrival alert (level 4 to
-    /// distinguish it in the state machine — anything > 3 means
-    /// "we're done with this step").
+    /// of the destination, fire the arrival alert once per route
+    /// (`arrivalAnnounced`), and mark the step level 4 to distinguish it in
+    /// the state machine — anything > 3 means "we're done with this step".
     private static func arrivalAlert(
         step: ActiveRouteSession.StepResult,
         working: inout TurnAlertState
     ) -> (payload: TurnAlertPayload?, nextState: TurnAlertState) {
-        guard working.lastThresholdLevel < 4 else { return (nil, working) }
         working.lastThresholdLevel = 4
+        guard !working.arrivalAnnounced else { return (nil, working) }
+        working.arrivalAnnounced = true
         let payload = TurnAlertPayload(
             stepInstruction: step.upcomingInstruction,
             distanceMeters: 0,
@@ -210,11 +217,11 @@ enum TurnAlertFormatter {
     }
 
     /// Lower-case the first letter of an instruction so "Turn right"
-    /// reads naturally after "In 500 feet, ". English only: other
-    /// languages capitalise differently (German nouns, for one), so their
-    /// instruction is left as written. Preserves proper-noun casing
-    /// further into the string.
-    private static func lowercaseFirst(_ s: String) -> String {
+    /// reads naturally after "In 500 feet, " (and after "Done: " in
+    /// `TurnMarkerFormatter`). English only: other languages capitalise
+    /// differently (German nouns, for one), so their instruction is left as
+    /// written. Preserves proper-noun casing further into the string.
+    static func lowercaseFirst(_ s: String) -> String {
         guard LanguageManager.appLocale.language.languageCode == .english,
               let first = s.first else { return s }
         return first.lowercased() + s.dropFirst()

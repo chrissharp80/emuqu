@@ -19,9 +19,11 @@ enum VitalsScoring {
     /// **Sub-score rules:**
     /// - RHR: 100 if at/below personal baseline; linear penalty of
     ///   `Vitals.rhrPenaltyPerSD` per +1 SD above baseline; floor 0.
-    /// - RR: 100 if within ±`respiratoryRateBandBreathsPerMin` br/min of
-    ///   baseline; linear penalty of `respiratoryRatePenaltyPerBreath` per
-    ///   br/min above baseline; floor 0.
+    /// - RR: 100 at or below baseline + `respiratoryRateBandBreathsPerMin`
+    ///   br/min (any rate below baseline scores 100); linear penalty of
+    ///   `respiratoryRatePenaltyPerBreath` per br/min above that band edge
+    ///   (baseline + band), not above baseline; floor 0. Without a baseline,
+    ///   the population window (`respiratoryPopulationScore`).
     /// - Temperature deviation: step function on the POSITIVE deviation
     ///   only — ≤0.3°C = 100, 0.3–0.5 = 75, 0.5–1.0 = 50, >1.0 = 25.
     ///   **Negative deviation (cooler than baseline) returns 100.** The
@@ -53,8 +55,11 @@ enum VitalsScoring {
         var subScores: [Double] = []
         if let rhr = restingHRSubScore(vitals: vitals, baselineStats: baselineStats) { subScores.append(rhr) }
         if let rr = respiratorySubScore(vitals: vitals) { subScores.append(rr) }
-        // Wrist temperature arrives as a deviation already, and the bands are
-        // asymmetric — see `temperatureSubScore`.
+        // `wristTemperature` must already be the personal deviation: callers
+        // pass vitals through
+        // `RecoveryScoreCalculator.wristTemperatureAgainstPersonalBaseline`
+        // first (the raw field is an offset from a fixed 36.5 °C). The bands
+        // are asymmetric — see `temperatureSubScore`.
         if let tempDev = vitals.wristTemperature { subScores.append(temperatureSubScore(tempDev)) }
         guard !subScores.isEmpty else { return nil }
         return subScores.reduce(0, +) / Double(subScores.count)
@@ -146,10 +151,11 @@ enum VitalsScoring {
     ) -> ScoreFactorFacts.Vitals {
         var facts = ScoreFactorFacts.Vitals(average: score)
         facts.sleepHR = vitals.restingHeartRate
-        if let sleepHR = vitals.restingHeartRate, let baseline = baselineStats?.meanHRBaseline,
-           let subScore = restingHRSubScore(vitals: vitals, baselineStats: baselineStats) {
+        // The delta needs only a baseline; the sub-score also needs its SD,
+        // so a baseline without one yields a delta and no score.
+        if let sleepHR = vitals.restingHeartRate, let baseline = baselineStats?.meanHRBaseline, baseline > 0 {
             facts.sleepHRDelta = sleepHR - baseline
-            facts.sleepHRScore = subScore
+            facts.sleepHRScore = restingHRSubScore(vitals: vitals, baselineStats: baselineStats)
         }
         facts.respiratoryDeviation = vitals.respiratoryDeviation
         facts.respiratoryRate = vitals.respiratoryRate
@@ -184,16 +190,29 @@ enum VitalsScoring {
     /// fallback when no strap recording exists, and the label still works there.
     private static func sleepHRClause(_ facts: ScoreFactorFacts.Vitals) -> String {
         guard let sleepHR = facts.sleepHR else { return String(localized: "Sleep HR — no data", bundle: NarrativeLanguage.bundle) }
-        guard let delta = facts.sleepHRDelta, let subScore = facts.sleepHRScore else {
+        guard let delta = facts.sleepHRDelta else {
             let rate = NarrativeLanguage.integer(Int(sleepHR.rounded()))
             return String(localized: "Sleep HR \(rate) (no baseline yet)", bundle: NarrativeLanguage.bundle)
         }
+        guard let subScore = facts.sleepHRScore else { return unscoredSleepHRClause(sleepHR, delta: delta) }
         let (rate, score) = (NarrativeLanguage.number(sleepHR), NarrativeLanguage.integer(Int(subScore.rounded())))
         if abs(delta) < 1.0 {
             return String(localized: "Sleep HR \(rate) at baseline → \(score)", bundle: NarrativeLanguage.bundle)
         }
         let change = NarrativeLanguage.signedNumber(delta, decimals: 0)
         return String(localized: "Sleep HR \(rate) (\(change) bpm) → \(score)", bundle: NarrativeLanguage.bundle)
+    }
+
+    /// A baseline exists but has no spread to score against (no SD yet), so
+    /// the value and its distance from the baseline are shown with no
+    /// sub-score — it did not feed the average.
+    private static func unscoredSleepHRClause(_ sleepHR: Double, delta: Double) -> String {
+        let bpm = Int(sleepHR.rounded())
+        guard abs(delta) >= 1 else {
+            return String(localized: "Sleep HR \(bpm) bpm (at baseline)", bundle: NarrativeLanguage.bundle)
+        }
+        let sign = delta >= 0 ? "+" : ""
+        return String(localized: "Sleep HR \(bpm) bpm (\(sign)\(Int(delta.rounded())) vs baseline)", bundle: NarrativeLanguage.bundle)
     }
 
     /// Three states, as Sleep HR has. Rate AND baseline → deviation +

@@ -1,0 +1,55 @@
+{
+ "file": "EmuquTests/ConversationVoicePickerTests.swift",
+ "hash": "05d68883f5a7cb68",
+ "role": "XCTest suite for ConversationVoicePicker.bestVoice(for:): voice found for en-US and the per-language cache returns the same instance.",
+ "types": [
+  "ConversationVoicePickerTests: class (XCTestCase)"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func ConversationVoicePickerTests.testLookupRunsOffTheMainActorAndIsCached()",
+   "hash": "1d925da31e242636",
+   "does": "From two detached tasks calls ConversationVoicePicker.bestVoice(for: \"en-US\"); asserts the first is non-nil and both results are the identical AVSpeechSynthesisVoice object (cache hit).",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func ConversationVoicePicker.bestVoice(for:)",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func ConversationVoicePicker.bestInstalledVoice(matching:)",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func ConversationVoicePicker.logged(_:)",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func ConversationVoicePicker.qualityRank(_:)",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func ConversationVoicePicker.qualityName(_:)",
+    "ext:AVSpeechSynthesisVoice.speechVoices"
+   ],
+   "reads": [
+    "mem:ConversationVoicePicker.cache"
+   ],
+   "writes": [
+    "mem:ConversationVoicePicker.cache"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Name says the lookup 'runs off the main actor', but nothing asserts the executing thread; it only calls from Task.detached. Also the cache is a process-global static (VoiceConversationController+Speech.swift:623), so if any earlier test in the process looked up en-US both calls hit the cache and the 'second lookup enumerated again' regression could not be detected by this test.",
+     "evidence": [
+      "EmuquTests/ConversationVoicePickerTests.swift:9",
+      "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift:602",
+      "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift:623"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func ConversationVoicePicker.bestInstalledVoice(matching:)": "8d71e407667420c8",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func ConversationVoicePicker.bestVoice(for:)": "85014ab958e8c3aa",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func ConversationVoicePicker.logged(_:)": "949fbe62262f8989",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func ConversationVoicePicker.qualityName(_:)": "f87cb035eace2a64",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func ConversationVoicePicker.qualityRank(_:)": "43011858c7bdfb2b"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -14,13 +14,13 @@ extension OvernightReportRenderer {
         yPosition: CGFloat,
         pageRect: CGRect
     ) -> CGFloat {
-        let stats = overnightStatValues(
+        // Too short a recording to say anything: no heading with nothing under it.
+        guard let stats = overnightStatValues(
             series: series, flags: inputs.artifactFlags, session: inputs.session,
             sleepData: inputs.sleepData, healthKitHR: inputs.healthKitHR
-        )
+        ) else { return yPosition }
         let contentWidth = pageRect.width - config.margins.left - config.margins.right
         let y = drawSectionHeading(String(localized: "Overnight Summary", bundle: LanguageManager.appBundle), yPosition: yPosition, pageRect: pageRect)
-        guard let stats else { return y }
         let cardHeight: CGFloat = 100
         fillOvernightStatsCard(y: y, width: contentWidth, height: cardHeight)
         drawOvernightStatsRows(stats, y: y, boxWidth: contentWidth / 4)
@@ -38,14 +38,16 @@ extension OvernightReportRenderer {
     private func drawOvernightStatsRows(_ stats: OvernightStatValues, y: CGFloat, boxWidth: CGFloat) {
         let timeFormatter = LocalizedDateFormat.formatter(template: "jmm")
         drawOvernightStatsRow1(sleepStats: stats.sleepStats, durationFormatted: stats.durationFormatted,
-                               minHR: stats.minHR, maxHR: stats.maxHR, y: y, boxWidth: boxWidth)
-        drawOvernightStatsRow2(minHR: stats.minHR, nadirTime: stats.nadirTime, peakRMSSD: stats.peakRMSSD,
+                               hrRange: stats.hrRange, y: y, boxWidth: boxWidth)
+        drawOvernightStatsRow2(hrRange: stats.hrRange, peakRMSSD: stats.peakRMSSD,
                                peakHRVTime: stats.peakHRVTime, timeFormatter: timeFormatter,
                                y: y, boxWidth: boxWidth)
     }
 
     /// Everything the two stat rows need. Nil when the recording is too short
-    /// to say anything (fewer than 100 beats).
+    /// to say anything (fewer than 100 beats). Clock times come from the
+    /// series' wall clock, as on the Overnight screen, so a strap gap does not
+    /// shift them.
     private func overnightStatValues(
         series: RRSeries,
         flags: [ArtifactFlags],
@@ -53,23 +55,16 @@ extension OvernightReportRenderer {
         sleepData: PDFReportGenerator.SleepData?,
         healthKitHR: HeartRateStats?
     ) -> OvernightStatValues? {
-        // Calculate overnight stats from RR data
         let points = series.points
-        guard points.count > 100 else { return nil }
-        let (minHR, maxHR, nadirTime) = overnightHRRange(points: points, session: session, healthKitHR: healthKitHR)
-        let startTimeMs = points.first?.t_ms ?? 0
-        // Calculate peak HRV using rolling RMSSD within 30-70% of recording
-        let peakResult = calculatePeakRMSSD(points: points, flags: flags, startTimeMs: startTimeMs)
-        let peakRMSSD = peakResult.rmssd
-        let peakHRVTime = session.startDate.addingTimeInterval(Double(peakResult.offsetMs) / 1000.0)
-        let durationFormatted = formatRecordingDuration(points: points, startTimeMs: startTimeMs)
-        let durationMinutes = Int(((points.last?.t_ms ?? 0) - startTimeMs) / 60000)
-        // Use actual HealthKit sleep data when available, otherwise estimate
-        let sleepStats = computeOvernightSleepStats(sleepData: sleepData, durationMinutes: durationMinutes)
+        guard points.count > 100, let first = points.first, let last = points.last else { return nil }
+        let band = peakSearchBand(points: points, sleepData: sleepData, sessionStart: session.startDate)
+        let peak = calculatePeakRMSSD(points: points, flags: flags, band: band)
+        // HealthKit sleep when available, otherwise the recording-length estimate
+        let sleepStats = computeOvernightSleepStats(sleepData: sleepData, durationMinutes: Int((last.t_ms - first.t_ms) / 60000))
         return OvernightStatValues(
-            minHR: minHR, maxHR: maxHR, nadirTime: nadirTime,
-            peakRMSSD: peakRMSSD, peakHRVTime: peakHRVTime,
-            durationFormatted: durationFormatted, sleepStats: sleepStats
+            hrRange: overnightHRRange(points: points, series: series, healthKitHR: healthKitHR),
+            peakRMSSD: peak?.rmssd, peakHRVTime: peak.map { series.wallClockTime(forTMs: $0.timeMs) },
+            durationFormatted: formatRecordingDuration(series: series, first: first, last: last), sleepStats: sleepStats
         )
     }
 
@@ -77,17 +72,17 @@ extension OvernightReportRenderer {
     private func drawOvernightStatsRow1(
         sleepStats: OvernightSleepStats,
         durationFormatted: String,
-        minHR: Double,
-        maxHR: Double,
+        hrRange: OvernightHRRange?,
         y: CGFloat,
         boxWidth: CGFloat
     ) {
+        let hrRangeText = hrRange.map { "\(Int($0.min))-\(Int($0.max))" } ?? reportMissingValue
         // Row 1: Duration, Sleep, Deep Sleep, HR Range
         let row1Stats: [(String, String, UIColor)] = [
             (String(localized: "Recording", bundle: LanguageManager.appBundle), durationFormatted, config.primaryColor),
             (sleepStats.sleepLabel, sleepStats.sleepFormatted, UIColor(red: 0.4, green: 0.3, blue: 0.7, alpha: 1)),
             (sleepStats.deepLabel, sleepStats.deepFormatted, UIColor(red: 0.3, green: 0.4, blue: 0.7, alpha: 1)),
-            (String(localized: "HR Range", bundle: LanguageManager.appBundle), "\(Int(minHR))-\(Int(maxHR))", config.secondaryColor)
+            (String(localized: "HR Range", bundle: LanguageManager.appBundle), hrRangeText, config.secondaryColor)
         ]
 
         for (i, stat) in row1Stats.enumerated() {
@@ -101,22 +96,24 @@ extension OvernightReportRenderer {
         }
     }
 
-    /// Nadir HR and peak HRV, each with the clock time it happened.
+    /// Nadir HR and peak HRV, each with the clock time it happened. A value
+    /// that could not be measured prints as missing, never as a placeholder.
     private func drawOvernightStatsRow2(
-        minHR: Double,
-        nadirTime: Date,
-        peakRMSSD: Double,
-        peakHRVTime: Date,
+        hrRange: OvernightHRRange?,
+        peakRMSSD: Double?,
+        peakHRVTime: Date?,
         timeFormatter: DateFormatter,
         y: CGFloat,
         boxWidth: CGFloat
     ) {
+        let clock = { (date: Date?) in date.map { timeFormatter.string(from: $0) } ?? reportMissingValue }
+        let peakText = peakRMSSD.map { String(format: "%.0f ms", locale: LanguageManager.appLocale, $0) } ?? reportMissingValue
         // Row 2: Nadir HR, Peak HRV with times
         let row2Stats: [(String, String, UIColor)] = [
-            (String(localized: "Nadir HR", bundle: LanguageManager.appBundle), "\(Int(minHR)) bpm", UIColor(red: 0.2, green: 0.6, blue: 0.4, alpha: 1)),
-            (String(localized: "@ Time", bundle: LanguageManager.appBundle), timeFormatter.string(from: nadirTime), UIColor.darkGray),
-            (String(localized: "Peak HRV", bundle: LanguageManager.appBundle), String(format: "%.0f ms", locale: LanguageManager.appLocale, peakRMSSD), config.primaryColor),
-            (String(localized: "@ Time", bundle: LanguageManager.appBundle), timeFormatter.string(from: peakHRVTime), UIColor.darkGray)
+            (String(localized: "Nadir HR", bundle: LanguageManager.appBundle), hrRange.map { "\(Int($0.min)) bpm" } ?? reportMissingValue, UIColor(red: 0.2, green: 0.6, blue: 0.4, alpha: 1)),
+            (String(localized: "@ Time", bundle: LanguageManager.appBundle), clock(hrRange?.nadirTime), UIColor.darkGray),
+            (String(localized: "Peak HRV", bundle: LanguageManager.appBundle), peakText, config.primaryColor),
+            (String(localized: "@ Time", bundle: LanguageManager.appBundle), clock(peakHRVTime), UIColor.darkGray)
         ]
 
         for (i, stat) in row2Stats.enumerated() {
@@ -131,29 +128,27 @@ extension OvernightReportRenderer {
     }
 
     /// Apple Watch HR is ground truth when present; otherwise derive it from RR.
+    /// Nil when neither gives a heart rate, so nothing is printed as measured.
     private func overnightHRRange(
         points: [RRPoint],
-        session: HRVSession,
+        series: RRSeries,
         healthKitHR: HeartRateStats?
-    ) -> (min: Double, max: Double, nadirTime: Date) {
-        let minHR: Double, maxHR: Double, nadirTime: Date
+    ) -> OvernightHRRange? {
         if let hkStats = healthKitHR {
-            // Use HealthKit HR (Apple Watch samples - ground truth)
-            minHR = hkStats.min
-            maxHR = hkStats.max
-            nadirTime = hkStats.nadirTime
-            debugLog("[PDF] Using HealthKit HR: nadir=\(minHR), max=\(maxHR)")
-        } else {
-            // Fall back to calculated HR from RR intervals
-            let hrStats = calculateRollingWindowHRStats(points: points)
-            minHR = hrStats.nadir
-            maxHR = hrStats.max
-            let recordingStart = session.rrSeries?.startDate ?? session.startDate
-            nadirTime = recordingStart.addingTimeInterval(hrStats.nadirOffset ?? 0)
-            debugLog("[PDF] Using calculated HR: nadir=\(minHR), max=\(maxHR)")
+            debugLog("[PDF] Using HealthKit HR: nadir=\(hkStats.min), max=\(hkStats.max)")
+            return OvernightHRRange(min: hkStats.min, max: hkStats.max, nadirTime: hkStats.nadirTime)
         }
-
-        return (minHR, maxHR, nadirTime)
+        guard let hrStats = calculateRollingWindowHRStats(points: points) else {
+            debugLog("[PDF] No heart rate in the recording; HR boxes print as missing", level: .warning)
+            return nil
+        }
+        // The nadir's offset is from the first beat; read its clock time off the wall clock.
+        let firstTMs = points.first?.t_ms ?? 0
+        let nadirTime = hrStats.nadirOffset.map {
+            series.wallClockTime(forTMs: firstTMs + Int64(($0 * 1000).rounded()))
+        }
+        debugLog("[PDF] Using calculated HR: nadir=\(hrStats.nadir), max=\(hrStats.max)")
+        return OvernightHRRange(min: hrStats.nadir, max: hrStats.max, nadirTime: nadirTime)
     }
 
     // MARK: - Overnight HR Chart
@@ -245,20 +240,18 @@ extension OvernightReportRenderer {
         String(localized: "bpm", bundle: LanguageManager.appBundle).pdfDraw(at: CGPoint(x: graphRect.maxX + 3, y: graphRect.midY - 5), withAttributes: labelAttributes)
     }
 
-    /// Five evenly-spaced clock times under the chart. Returns false when the
-    /// series has no endpoints to interpolate between.
+    /// Five evenly-spaced clock times under the chart. The curve places beat
+    /// k at k / count of the width, so each label reads the beat drawn above
+    /// it, on the series' wall clock. Returns false for an empty series.
     private func drawOvernightTimeAxis(series: RRSeries, in graphRect: CGRect) -> Bool {
         let points = series.points
-        // X-axis time labels showing actual clock times
         let xAxisY = graphRect.maxY + 3
-        guard let firstPoint = points.first, let lastPoint = points.last else { return false }
-        let startTimeMs = firstPoint.t_ms
-        let endTimeMs = lastPoint.t_ms
+        guard !points.isEmpty else { return false }
         let timeFormatter = LocalizedDateFormat.formatter(template: "jmm")
         for i in 0 ..< 5 {
             let fraction = CGFloat(i) / 4
-            let relativeMs = startTimeMs + Int64(Double(endTimeMs - startTimeMs) * Double(fraction))
-            let actualTime = series.startDate.addingTimeInterval(Double(relativeMs) / 1000.0)
+            let index = min(points.count - 1, Int(fraction * CGFloat(points.count)))
+            let actualTime = series.wallClockTime(forTMs: points[index].t_ms)
             drawOvernightTimeLabel(timeFormatter.string(from: actualTime),
                                    fraction: fraction, index: i, of: 5,
                                    in: graphRect, y: xAxisY)
@@ -349,17 +342,26 @@ extension OvernightReportRenderer {
         return (tagX + tagWidth + tagSpacing, y)
     }
 
+    /// The whole note, as tall as it wraps to, down to the page's bottom
+    /// limit at most (the caller makes room first; see `sessionNotesHeight`).
     private func drawSessionNotes(session: HRVSession, y: CGFloat, pageRect: CGRect) -> CGFloat {
         guard let notes = session.notes, !notes.isEmpty else { return y }
         let contentWidth = pageRect.width - config.margins.left - config.margins.right
-        let attributedNotes = sessionNotesAttributed(notes)
-        attributedNotes.pdfDraw(in: CGRect(x: config.margins.left, y: y, width: contentWidth, height: 60))
-        let boundingRect = attributedNotes.boundingRect(
+        let bottomLimit = pageRect.height - config.margins.bottom - 20
+        let height = min(sessionNotesHeight(session: session, pageRect: pageRect), max(0, bottomLimit - y))
+        sessionNotesAttributed(notes).pdfDraw(in: CGRect(x: config.margins.left, y: y, width: contentWidth, height: height))
+        return y + height + 10
+    }
+
+    /// Height the session's notes wrap to at the content width; 0 without notes.
+    func sessionNotesHeight(session: HRVSession, pageRect: CGRect) -> CGFloat {
+        guard let notes = session.notes, !notes.isEmpty else { return 0 }
+        let contentWidth = pageRect.width - config.margins.left - config.margins.right
+        return ceil(sessionNotesAttributed(notes).boundingRect(
             with: CGSize(width: contentWidth, height: .greatestFiniteMagnitude),
             options: [.usesLineFragmentOrigin, .usesFontLeading],
             context: nil
-        )
-        return y + min(boundingRect.height + 10, 70)
+        ).height)
     }
 
     private func sessionNotesAttributed(_ notes: String) -> NSAttributedString {
@@ -372,23 +374,22 @@ extension OvernightReportRenderer {
         ])
     }
 
-    /// Get color for diagnostic score
+    /// Colour for a 0-100 score: the canonical `ScoreVerdict` ladder
+    /// (90/75/60/45/30) and its palette, so the PDF colours a score the way
+    /// the app does.
     func diagnosticColorForScore(_ score: Double) -> UIColor {
-        if score >= 80 { return config.secondaryColor }
-        if score >= 60 { return config.primaryColor }
-        if score >= 40 { return UIColor.orange }
-        return config.accentColor
+        UIColor(ScoreVerdict(score: score).color)
     }
 
-    /// Calculate HR statistics using rolling 10-second windows
-    /// Returns proper nadir, max, and nadir timestamp
-    func calculateRollingWindowHRStats(points: [RRPoint]) -> (nadir: Double, max: Double, nadirOffset: TimeInterval?) {
-        guard !points.isEmpty else {
-            return (nadir: 50, max: 100, nadirOffset: nil)
-        }
-        // Prefer HR the strap already recorded; only derive it when absent.
-        if points.contains(where: { $0.hr != nil }) {
-            return storedHRStats(points: points)
+    /// Overnight HR nadir, max and the nadir's offset in seconds from the
+    /// first beat. Uses the per-beat HR the strap recorded (30-200 bpm only)
+    /// when any point carries one; otherwise, or when none of those is in
+    /// range, derives HR from RR over rolling ~10-second windows. Nil when
+    /// neither yields a heart rate.
+    func calculateRollingWindowHRStats(points: [RRPoint]) -> (nadir: Double, max: Double, nadirOffset: TimeInterval?)? {
+        guard !points.isEmpty else { return nil }
+        if points.contains(where: { $0.hr != nil }), let stored = storedHRStats(points: points) {
+            return stored
         }
         return rollingWindowHRStats(points: points)
     }
@@ -398,13 +399,21 @@ extension OvernightReportRenderer {
     /// Everything the two overnight stat rows display. A struct rather than a
     /// seven-member tuple — the fields are read by name at every use site.
     struct OvernightStatValues {
-        let minHR: Double
-        let maxHR: Double
-        let nadirTime: Date
-        let peakRMSSD: Double
-        let peakHRVTime: Date
+        /// Nil when no heart rate could be measured or derived.
+        let hrRange: OvernightHRRange?
+        /// Nil when no window held enough clean beats to measure RMSSD.
+        let peakRMSSD: Double?
+        let peakHRVTime: Date?
         let durationFormatted: String
         let sleepStats: OvernightSleepStats
+    }
+
+    /// The night's lowest and highest heart rate and when the lowest happened
+    /// (nil when that moment is unknown).
+    struct OvernightHRRange {
+        let min: Double
+        let max: Double
+        let nadirTime: Date?
     }
 
     /// Result of computing overnight sleep stats for display
@@ -486,30 +495,42 @@ extension OvernightReportRenderer {
     /// Result of peak RMSSD calculation
     struct PeakRMSSDResult {
         let rmssd: Double
-        let offsetMs: Int64
+        /// t_ms of the beat the peak window is centred on.
+        let timeMs: Int64
     }
 
-    /// Calculate peak rolling RMSSD, preferring the 30-70% recording band, with global fallback
-    func calculatePeakRMSSD(points: [RRPoint], flags: [ArtifactFlags], startTimeMs: Int64) -> PeakRMSSDResult {
-        // Empty input would trap at `points[min(_, points.count - 1)]`
-        // (index -1). Currently unreachable but latent — guard it.
-        guard !points.isEmpty else { return PeakRMSSDResult(rmssd: 0.0, offsetMs: 0) }
-        let endTimeMs = points.last?.t_ms ?? startTimeMs
-        let durationMs = endTimeMs - startTimeMs
+    /// The 30-70% slice of the HealthKit sleep envelope, or of the whole
+    /// recording when there are no sleep boundaries, in the series' t_ms —
+    /// the band the Overnight screen searches (`OvernightChartsView.searchBand`).
+    /// An envelope that ends before it starts gives an empty band.
+    func peakSearchBand(points: [RRPoint], sleepData: PDFReportGenerator.SleepData?, sessionStart: Date) -> (start: Int64, end: Int64) {
+        let durationMs = (points.last?.t_ms ?? 0) - (points.first?.t_ms ?? 0)
+        var boundaryStart: Int64 = 0
+        var boundaryEnd = durationMs
+        if let sleepStart = sleepData?.sleepStart, let sleepEnd = sleepData?.sleepEnd {
+            boundaryStart = max(0, MillisecondOffset.between(sleepStart, and: sessionStart, fallback: 0))
+            boundaryEnd = min(durationMs, MillisecondOffset.between(sleepEnd, and: sessionStart, fallback: 0))
+        }
+        let span = Double(boundaryEnd - boundaryStart)
+        return (boundaryStart + Int64(span * 0.30), boundaryStart + Int64(span * 0.70))
+    }
+
+    /// Peak rolling RMSSD inside `band`, falling back to the whole recording.
+    /// Nil when no window anywhere held enough clean beats to measure.
+    func calculatePeakRMSSD(points: [RRPoint], flags: [ArtifactFlags], band: (start: Int64, end: Int64)) -> PeakRMSSDResult? {
+        guard !points.isEmpty else { return nil }
         var peakRMSSD = 0.0
         var peakHRVIndex = 0
-        // First pass: the 30-70% band, where a sleeper is most likely settled.
-        scanPeak(points: points, flags: flags,
-                 bandStart: startTimeMs + Int64(Double(durationMs) * 0.30),
-                 bandEnd: startTimeMs + Int64(Double(durationMs) * 0.70),
+        // First pass: the sleep band, where a sleeper is most likely settled.
+        scanPeak(points: points, flags: flags, bandStart: band.start, bandEnd: band.end,
                  peakRMSSD: &peakRMSSD, peakIndex: &peakHRVIndex)
         if peakRMSSD == 0.0 {
             // Fallback: scan the entire recording.
             scanPeak(points: points, flags: flags, bandStart: nil, bandEnd: nil,
                      peakRMSSD: &peakRMSSD, peakIndex: &peakHRVIndex)
         }
-        let peakTimeMs = points[min(peakHRVIndex, points.count - 1)].t_ms
-        return PeakRMSSDResult(rmssd: peakRMSSD, offsetMs: peakTimeMs - startTimeMs)
+        guard peakRMSSD > 0 else { return nil }
+        return PeakRMSSDResult(rmssd: peakRMSSD, timeMs: points[min(peakHRVIndex, points.count - 1)].t_ms)
     }
 
     /// Window and step are fixed at ~5 min / 30 beats to match OvernightChartsView.
@@ -584,14 +605,15 @@ extension OvernightReportRenderer {
 // its parts across every file, so code that does not need the type inflates
 // that number without making the type do more.
 
-/// "7h 42m" / "42m" for the recording span.
-private func formatRecordingDuration(points: [RRPoint], startTimeMs: Int64) -> String {
-    // Recording duration
-    let durationMs = (points.last?.t_ms ?? 0) - startTimeMs
-    return reportHoursMinutes(Int(durationMs / 60000))
+/// "7h 42m" / "42m" for the recording span, first to last beat on the
+/// series' wall clock, so a strap disconnect gap counts as recorded time.
+private func formatRecordingDuration(series: RRSeries, first: RRPoint, last: RRPoint) -> String {
+    let seconds = series.wallClockTime(forTMs: last.t_ms).timeIntervalSince(series.wallClockTime(forTMs: first.t_ms))
+    return reportHoursMinutes(Int(max(0, seconds) / 60))
 }
 
-/// Every tenth beat or so, artifacts dropped, converted to bpm.
+/// About 500 beats spread evenly over the night (every count/500-th beat,
+/// at least every beat), artifacts dropped, converted to bpm.
 private func overnightHRSamples(points: [RRPoint]) -> [(Int, Double)] {
     // Compute HR values with downsampling for display
     // Filter out artifact values (RR < 300ms or > 2000ms)
@@ -659,14 +681,13 @@ private func strokeTagPill(_ text: String, attributes: [NSAttributedString.Key: 
 }
 
 /// HR as recorded during streaming.
-private func storedHRStats(points: [RRPoint]) -> (nadir: Double, max: Double, nadirOffset: TimeInterval?) {
+/// Nil when no stored value is in 30-200 bpm.
+private func storedHRStats(points: [RRPoint]) -> (nadir: Double, max: Double, nadirOffset: TimeInterval?)? {
     let hrValues = points.compactMap { point -> Double? in
         guard let hr = point.hr, hr >= 30, hr <= 200 else { return nil }
         return Double(hr)
     }
-    guard !hrValues.isEmpty else { return (nadir: 50, max: 100, nadirOffset: nil) }
-    let nadir = hrValues.min() ?? 50
-    let peak = hrValues.max() ?? 100
+    guard let nadir = hrValues.min(), let peak = hrValues.max() else { return nil }
     let index = points.firstIndex { Double($0.hr ?? 0) == nadir }
     return (nadir: nadir, max: peak, nadirOffset: nadirOffset(at: index, in: points))
 }
@@ -679,24 +700,23 @@ private func nadirOffset(at index: Int?, in points: [RRPoint]) -> TimeInterval? 
     return Double(offsetMs) / 1000.0
 }
 
-/// No stored HR — derive it from RR over rolling 10-second windows.
-private func rollingWindowHRStats(points: [RRPoint]) -> (nadir: Double, max: Double, nadirOffset: TimeInterval?) {
+/// No stored HR — derive it from RR over rolling 10-second windows. Nil
+/// when no window held enough clean beats.
+private func rollingWindowHRStats(points: [RRPoint]) -> (nadir: Double, max: Double, nadirOffset: TimeInterval?)? {
     let hrSamples = rollingHRSamples(points: points)
-    guard !hrSamples.isEmpty else { return (nadir: 50, max: 100, nadirOffset: nil) }
-    let nadir = hrSamples.map(\.hr).min() ?? 50
-    let peak = hrSamples.map(\.hr).max() ?? 100
+    guard let nadir = hrSamples.map(\.hr).min(), let peak = hrSamples.map(\.hr).max() else { return nil }
     let index = hrSamples.first { $0.hr == nadir }?.index
     return (nadir: nadir, max: peak, nadirOffset: nadirOffset(at: index, in: points))
 }
 
-/// One HR sample per 10-second window, stepped with 50% overlap.
+/// One HR sample per ~10-second window, a new window every 5 beats.
 private func rollingHRSamples(points: [RRPoint]) -> [(hr: Double, index: Int)] {
     var hrSamples: [(hr: Double, index: Int)] = []
     var i = 0
     while i < points.count {
         let (sample, next) = rollingHRWindow(points: points, from: i)
         if let sample { hrSamples.append((hr: sample, index: i)) }
-        // Advance by ~5 seconds (50% overlap)
+        // Advance by 5 beats, or to where the window ended if that is sooner
         i = next > i + 5 ? i + 5 : next
     }
     return hrSamples

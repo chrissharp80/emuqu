@@ -48,7 +48,8 @@ enum AppleContextCompactor {
     static let compactionThreshold: Double = 0.70
 
     /// Estimate token count for a string. Conservative
-    /// (over-estimates) to avoid edge-case overruns.
+    /// (over-estimates) to avoid edge-case overruns: ASCII is charged
+    /// chars / 4 × 1.05, and every non-ASCII scalar a whole token.
     static func estimateTokens(_ text: String) -> Int {
         var ascii = 0
         var nonASCII = 0
@@ -69,26 +70,33 @@ enum AppleContextCompactor {
     /// text: a turn, a prompt, a reply or a tool call.
     static let entryOverhead = 8
 
-    /// Compact a transcript by dropping oldest user/assistant
-    /// pairs until estimated token count is under the threshold.
-    /// Returns the trimmed transcript + a flag indicating whether
-    /// any compaction occurred.
+    /// Compact a transcript by dropping the oldest turns until the estimated
+    /// token count is under the threshold. The newest turn (the question
+    /// being answered) always stays, and a kept transcript never opens with
+    /// an assistant reply whose question was dropped, so what goes is whole
+    /// exchanges. Returns the trimmed transcript + a flag indicating whether
+    /// any turn was dropped.
     ///
     /// `systemPromptTokens` is the size of the static prefix that
-    /// can't be trimmed (Apple's `instructions:` parameter to
-    /// `LanguageModelSession`). The remaining budget for the
-    /// transcript is `contextWindow * compactionThreshold − systemPromptTokens`.
+    /// can't be trimmed: what the caller passes, which for
+    /// `AppleFoundationProvider` is the `instructions:` text plus the tool
+    /// descriptions. The remaining budget for the transcript is
+    /// `contextWindow * compactionThreshold − systemPromptTokens`.
     ///
     /// A non-positive budget means the system prompt alone exceeds the
     /// threshold — the caller is in trouble regardless, so we return an empty
-    /// transcript apart from the user's latest turn, which at least has room.
+    /// transcript apart from the latest turn, which at least has room.
     static func compact(
         _ messages: [ChatTurn],
         systemPromptTokens: Int
     ) -> (compacted: [ChatTurn], didCompact: Bool) {
         let budget = Int(Double(contextWindow) * compactionThreshold) - systemPromptTokens
-        guard budget > 0 else { return (Array(messages.suffix(1)), true) }
-        let (keep, used) = newestTurnsFitting(messages, budget: budget)
+        guard budget > 0 else {
+            let latest = Array(messages.suffix(1))
+            return (latest, latest.count < messages.count)
+        }
+        let (fitting, used) = newestTurnsFitting(messages, budget: budget)
+        let keep = droppingOrphanReply(fitting, from: messages)
         let didCompact = keep.count < messages.count
         if didCompact {
             let dropped = messages.count - keep.count
@@ -113,6 +121,13 @@ enum AppleContextCompactor {
             used += cost
         }
         return (keep, used)
+    }
+
+    /// When turns were dropped and the oldest kept one is an assistant reply,
+    /// its question is gone: drop the reply too. The newest turn always stays.
+    private static func droppingOrphanReply(_ keep: [ChatTurn], from messages: [ChatTurn]) -> [ChatTurn] {
+        guard keep.count < messages.count, keep.count > 1, keep.first?.role == .assistant else { return keep }
+        return Array(keep.dropFirst())
     }
 
     /// Convenience: compact + return prompt-ready transcript for
@@ -248,10 +263,13 @@ extension AppleContextCompactor {
                 charge(Self.spentNote)
                 return Self.spentNote
             }
+            let overhead = AppleContextCompactor.entryOverhead
             let capped = AppleContextCompactor.truncate(
-                output, toTokens: min(perCallCap, remaining), note: AppleContextCompactor.toolOutputCutNote
+                output, toTokens: min(perCallCap, remaining - overhead), note: AppleContextCompactor.toolOutputCutNote
             )
-            spend(AppleContextCompactor.estimateTokens(capped))
+            // The result sits in the transcript under its own role marker,
+            // like every entry `charge` counts.
+            spend(AppleContextCompactor.estimateTokens(capped) + overhead)
             return capped
         }
 

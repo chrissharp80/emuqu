@@ -27,7 +27,9 @@ struct LoadTrajectoryLoader: View {
     /// rrSeries, no hash check) so the view paints immediately and the
     /// archive work happens off the main thread.
     @State private var recentWorkouts: [LoadTrajectoryView.RecentWorkout] = []
-    @State private var archiveVersionSnapshot: Int = -1
+    /// Bumped by each recent-workouts load; only the newest load may publish,
+    /// so an older snapshot that finishes last cannot overwrite a newer one.
+    @State private var recentWorkoutsGeneration = 0
     @Environment(ArchiveSignal.self) var archiveSignal
 
     var body: some View {
@@ -69,7 +71,6 @@ struct LoadTrajectoryLoader: View {
             onComebackTap: toggleComeback,
             onPeakingTap: togglePeakingDetection,
             onOverreachTap: toggleOverreach,
-            onWorkoutTap: nil,
             onChartLongPress: { openContextSheet(for: $0) },
             peakingDetectionEnabled: settingsManager.settings.peakingDetectionEnabled
         )
@@ -77,7 +78,8 @@ struct LoadTrajectoryLoader: View {
 
     /// Long-pressing a chart day opens "what was happening" for that day. Its
     /// workouts are read from the archive, not the 20-row recent list, because
-    /// the chart spans 90 days.
+    /// the chart spans 90 days, plus the Apple Health workouts the archive
+    /// holds no copy of: the chart's load counts those too.
     private func openContextSheet(for date: Date) {
         let day = Calendar.current.startOfDay(for: date)
         contextSheetWorkouts = nil
@@ -93,7 +95,41 @@ struct LoadTrajectoryLoader: View {
         let entries = collector.archive.entries
             .filter { $0.sessionType == .workout && Calendar.current.isDate($0.date, inSameDayAs: day) }
             .sorted { $0.date < $1.date }
-        return await workoutRows(for: entries)
+        let archived = await workoutRows(for: entries)
+        return (archived + (await healthKitOnlyRows(on: day))).sorted { $0.date < $1.date }
+    }
+
+    /// That day's Apple Health workouts minus those the archive holds, by the
+    /// rule the chart's daily load uses (`mergeArchiveAuthoritative`, as in
+    /// `TrainingMetricsCache.mergedWorkouts`). Their load is not shown: the
+    /// row carries only what Apple Health gives (type and duration).
+    @MainActor
+    private func healthKitOnlyRows(on day: Date) async -> [LoadTrajectoryView.RecentWorkout] {
+        let calendar = Calendar.current
+        guard let dayEnd = calendar.date(byAdding: .day, value: 1, to: day) else { return [] }
+        let healthKit = await collector.healthKit.fetchWorkoutsExtended(days: 1, relativeTo: dayEnd)
+            .filter { calendar.isDate($0.date, inSameDayAs: day) }
+        guard !healthKit.isEmpty else { return [] }
+        let archive = collector.archive
+        let archived = await Task.detached(priority: .userInitiated) {
+            HealthKitManager.WorkoutSummary.fromAppArchive(archive: archive, days: 1, relativeTo: dayEnd)
+        }.value
+        let merged = HealthKitManager.mergeArchiveAuthoritative(archive: archived, healthKit: healthKit)
+        return merged
+            .filter { kept in healthKit.contains { $0.date == kept.date && $0.workoutType == kept.workoutType } }
+            .map(Self.healthKitRow)
+    }
+
+    private static func healthKitRow(_ workout: HealthKitManager.WorkoutSummary) -> LoadTrajectoryView.RecentWorkout {
+        LoadTrajectoryView.RecentWorkout(
+            id: UUID(),
+            sportSymbolName: "heart.text.square",
+            sportLabel: workout.localizedTypeDescription,
+            date: workout.date,
+            durationMinutes: max(0, Int(workout.durationMinutes.rounded())),
+            trimp: nil,
+            loadSource: nil
+        )
     }
 
     private func loadTrajectory() async {
@@ -173,12 +209,16 @@ struct LoadTrajectoryLoader: View {
     /// (MainActor-isolated because of the UserSettings backing).
     @MainActor
     private func loadRecentWorkouts() async {
+        recentWorkoutsGeneration += 1
+        let generation = recentWorkoutsGeneration
         let entrySnapshot = collector.archive.entries
             .filter { $0.sessionType == .workout }
             .sorted { $0.date > $1.date }
             .prefix(20)
             .map(\.self)
-        recentWorkouts = await workoutRows(for: entrySnapshot)
+        let rows = await workoutRows(for: entrySnapshot)
+        guard generation == recentWorkoutsGeneration else { return }
+        recentWorkouts = rows
     }
 
     /// Lightweight decode off the main thread, then the MainActor row mapping.
@@ -280,12 +320,13 @@ struct LoadTrajectoryLoader: View {
 
     // MARK: - Mode toggles
 
+    /// Through `TrainingModeSwitches`, the same switch Settings → Modes
+    /// uses, so the activation is counted in telemetry from here too.
     private func toggleComeback() {
-        if settingsManager.settings.isComebackModeActive {
-            settingsManager.settings.comebackModeStartDate = nil
-        } else {
-            settingsManager.settings.comebackModeStartDate = Date()
-        }
+        TrainingModeSwitches.setComeback(
+            !settingsManager.settings.isComebackModeActive,
+            settings: settingsManager, telemetry: dependencies.services.validationTelemetry
+        )
     }
 
     private func togglePeakingDetection() {
@@ -293,11 +334,13 @@ struct LoadTrajectoryLoader: View {
     }
 
     /// Follows what the screen shows: a block whose end date has passed reads
-    /// as off, so a tap switches it on again, open-ended. Either way the old
-    /// end date is cleared.
+    /// as off, so a tap switches it on again. Through `TrainingModeSwitches`,
+    /// as Settings → Modes does: on gets an end date a week out (never
+    /// open-ended) and is counted in telemetry; off clears the end date.
     private func toggleOverreach() {
-        let turnOn = !settingsManager.settings.isIntentionalOverreachInEffect
-        settingsManager.settings.intentionalOverreachActive = turnOn
-        settingsManager.settings.intentionalOverreachEndDate = nil
+        TrainingModeSwitches.setOverreach(
+            !settingsManager.settings.isIntentionalOverreachInEffect,
+            settings: settingsManager, telemetry: dependencies.services.validationTelemetry
+        )
     }
 }

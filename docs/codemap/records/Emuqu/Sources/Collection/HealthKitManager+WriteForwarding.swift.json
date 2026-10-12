@@ -1,0 +1,118 @@
+{
+ "file": "Emuqu/Sources/Collection/HealthKitManager+WriteForwarding.swift",
+ "hash": "be2dde9fbe4c9113",
+ "role": "HealthKitManager extension forwarding exportSessionMetrics (the HealthKitServiceProtocol witness), deleteAllAppWrittenSleepSamples, sleep observer start/stop and categoryResult to HealthWriteAndObserve. (Forwarders with no caller — exportSDNN, exportSleepToHealthKit, fetchSleepTrend, analyzeSleepTrend — were removed.)",
+ "types": [
+  "HealthKitManager: extension — write/observe forwarders"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func HealthKitManager.exportSessionMetrics(from:)",
+   "hash": "223f8bf5ae18af5d",
+   "does": "Forwards exportSessionMetrics(from:) to HealthWriteAndObserve; protocol witness called by SessionAcceptanceService.swift:369 after acceptance.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.writes",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.exportSessionMetrics(from:)"
+   ],
+   "reads": [
+    "mem:UserSettings.exportSDNN/exportHeartRate/exportRestingHeartRate/exportSleepData",
+    "hk:sleepAnalysis"
+   ],
+   "writes": [
+    "hk:heartRateVariabilitySDNN",
+    "hk:heartRate",
+    "hk:restingHeartRate",
+    "hk:sleepAnalysis"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.exportSessionMetrics(from:)": "0b12486677b9e72c",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.writes": "1e0830bcc1eaab16"
+   }
+  },
+  {
+   "key": "func HealthKitManager.deleteAllAppWrittenSleepSamples()",
+   "hash": "b28fe53e54e620f7",
+   "does": "Forwards deleteAllAppWrittenSleepSamples() to HealthWriteAndObserve; called by WearablesSettingsPage.swift:577 cleanup button.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.writes",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.deleteAllAppWrittenSleepSamples()"
+   ],
+   "reads": [
+    "hk:sleepAnalysis"
+   ],
+   "writes": [
+    "hk:sleepAnalysis"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.deleteAllAppWrittenSleepSamples()": "d52ef712eea9eabb",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.writes": "1e0830bcc1eaab16"
+   }
+  },
+  {
+   "key": "func HealthKitManager.startObservingSleepData()",
+   "hash": "937b71116094f549",
+   "does": "Forwards startObservingSleepData() to HealthWriteAndObserve; called by AppLaunchTasks:724,738 and RRCollector+OvernightStreaming:135.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.writes",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.startObservingSleepData()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:HealthKitManager.sleepObserverQuery"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.startObservingSleepData()": "8dc94919a24b42fb",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.writes": "1e0830bcc1eaab16"
+   }
+  },
+  {
+   "key": "func HealthKitManager.stopObservingSleepData()",
+   "hash": "c27830238122a587",
+   "does": "Forwards stopObservingSleepData() to HealthWriteAndObserve; called by RRCollector+Acceptance (61,104,129).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.writes",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.stopObservingSleepData()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:HealthKitManager.sleepObserverQuery"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.stopObservingSleepData()": "84b2554c12adafac",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.writes": "1e0830bcc1eaab16"
+   }
+  },
+  {
+   "key": "func HealthKitManager.categoryResult(_:_:)",
+   "hash": "9e42063ef84b072e",
+   "does": "Static forwarder to HealthWriteAndObserve.categoryResult; used by SleepHealthQueries.executeSleepQuery (HealthKitManager+Sleep.swift:188).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.categoryResult(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.categoryResult(_:_:)": "61229f395d11819c"
+   }
+  }
+ ],
+ "deps": {}
+}

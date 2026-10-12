@@ -1,0 +1,219 @@
+{
+ "file": ".github/workflows/security.yml",
+ "hash": "5ec57b02730168d2",
+ "role": "Manual security workflow: CodeQL SAST over the Swift code and a dependency-review diff between two refs.",
+ "types": [],
+ "state": [
+  "permissions contents: read (codeql job elevates; dependency-review stays contents: read)",
+  "concurrency group security-<workflow>-<ref>, cancel-in-progress"
+ ],
+ "toplevel": "Trigger: workflow_dispatch only, inputs base-ref/head-ref. Two independent jobs. No schedule, so neither scan runs unless dispatched.",
+ "flags": [],
+ "units": [
+  {
+   "key": "job codeql",
+   "hash": "05a0c02f2c452b56",
+   "does": "macOS-26 job \"CodeQL (Swift)\" (timeout 60, security-events: write): checkout, Xcode 26.6, CodeQL init (security-and-quality), explicit Debug simulator build, analyze.",
+   "entry": "GitHub Actions job; workflow_dispatch only.",
+   "calls": [
+    ".github/workflows/security.yml::step codeql/Checkout",
+    ".github/workflows/security.yml::step codeql/Select Xcode",
+    ".github/workflows/security.yml::step codeql/Initialize CodeQL",
+    ".github/workflows/security.yml::step codeql/Build for analysis",
+    ".github/workflows/security.yml::step codeql/Analyze"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    ".github/workflows/security.yml::step codeql/Analyze": "f8dcb2e83a103f01",
+    ".github/workflows/security.yml::step codeql/Build for analysis": "740f4d5186d6b34a",
+    ".github/workflows/security.yml::step codeql/Checkout": "b6cba8170626a479",
+    ".github/workflows/security.yml::step codeql/Initialize CodeQL": "63bf84558417cd7c",
+    ".github/workflows/security.yml::step codeql/Select Xcode": "18461322b7591486"
+   }
+  },
+  {
+   "key": "step codeql/Checkout",
+   "hash": "9327ffe2a86f8ef0",
+   "does": "actions/checkout (depth 1).",
+   "entry": "Step of security.yml codeql job",
+   "calls": [
+    "ext:actions/checkout"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "step codeql/Select Xcode",
+   "hash": "9e2bb56bd64b7ece",
+   "does": "Selects Xcode 26.6.",
+   "entry": "Step of security.yml codeql job",
+   "calls": [
+    "ext:xcode-select"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "step codeql/Initialize CodeQL",
+   "hash": "f3442fdee207eae5",
+   "does": "github/codeql-action/init (SHA-pinned v3.37.9) for language swift with query suite security-and-quality.",
+   "entry": "Step of security.yml codeql job",
+   "calls": [
+    "ext:github/codeql-action/init"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "step codeql/Build for analysis",
+   "hash": "1df6e2b2d45f75a5",
+   "does": "`xcodebuild build` Emuqu scheme, generic iOS Simulator, Debug, CODE_SIGNING_ALLOWED=NO, SWIFT_TREAT_WARNINGS_AS_ERRORS=NO so CodeQL's extractor observes the compile.",
+   "entry": "Step of security.yml codeql job",
+   "calls": [
+    "ext:xcodebuild build"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "step codeql/Analyze",
+   "hash": "f406a2aa8e8528a8",
+   "does": "github/codeql-action/analyze, category /language:swift; uploads SARIF to code scanning.",
+   "entry": "Step of security.yml codeql job",
+   "calls": [
+    "ext:github/codeql-action/analyze"
+   ],
+   "reads": [],
+   "writes": [
+    "net:github code scanning (SARIF)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "job dependency-review",
+   "hash": "596d6f2a63b8134d",
+   "does": "ubuntu job \"Dependency review\" (timeout 15, permissions contents: read only): full-history checkout, a guard that fails unless base and head resolve to different commits, then dependency-review-action between the two refs.",
+   "entry": "GitHub Actions job; workflow_dispatch only.",
+   "calls": [
+    ".github/workflows/security.yml::step dependency-review/Checkout",
+    ".github/workflows/security.yml::step dependency-review/Refuse an empty comparison",
+    ".github/workflows/security.yml::step dependency-review/Review dependencies"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    ".github/workflows/security.yml::step dependency-review/Checkout": "9da0953536fabfa0",
+    ".github/workflows/security.yml::step dependency-review/Refuse an empty comparison": "aa30258b3369e71a",
+    ".github/workflows/security.yml::step dependency-review/Review dependencies": "07daac0754c5d09e"
+   }
+  },
+  {
+   "key": "step dependency-review/Checkout",
+   "hash": "8c99ed15e62f8b46",
+   "does": "actions/checkout with fetch-depth 0, so the next step can resolve both refs.",
+   "entry": "Step of security.yml dependency-review job",
+   "calls": [
+    "ext:actions/checkout"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "step dependency-review/Refuse an empty comparison",
+   "hash": "2e0d25c78be70470",
+   "does": "Resolves BASE_REF (inputs.base-ref or the default branch) and HEAD_REF (inputs.head-ref or github.sha) to commits, trying the ref as given and then origin/<ref>. Fails if either does not resolve, or if both are the same commit (the review would compare nothing and report success), telling the user to dispatch with base-ref set to an earlier tag or SHA; otherwise prints the two commits.",
+   "entry": "Step of security.yml dependency-review job (workflow_dispatch only); a failing step fails the job and skips the review.",
+   "calls": [
+    "ext:git rev-parse"
+   ],
+   "reads": [
+    "git:refs (local branches, tags, origin/*)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "inputs.base-ref empty",
+     "effect": "BASE_REF = repository default branch"
+    },
+    {
+     "at": "+3",
+     "cond": "inputs.head-ref empty",
+     "effect": "HEAD_REF = dispatched commit sha"
+    },
+    {
+     "at": "+8",
+     "cond": "ref does not resolve as given",
+     "effect": "resolve() tries origin/<ref>; fails if that does not resolve either"
+    },
+    {
+     "at": "+10",
+     "cond": "BASE_REF does not resolve",
+     "effect": "error to stderr, exit 1"
+    },
+    {
+     "at": "+14",
+     "cond": "HEAD_REF does not resolve",
+     "effect": "error to stderr, exit 1"
+    },
+    {
+     "at": "+18",
+     "cond": "base and head are the same commit",
+     "effect": "explains the empty comparison, exit 1"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "step dependency-review/Review dependencies",
+   "hash": "cada29e8a2111f2b",
+   "does": "actions/dependency-review-action v5.0.0 (SHA-pinned) comparing base-ref (input or default branch) to head-ref (input or github.sha), the same two refs the previous step proved distinct; fails on high/critical advisories or GPL-2.0/GPL-3.0/AGPL-3.0/LGPL-3.0 licences. Posts no PR comment (none exists on dispatch).",
+   "entry": "Step of security.yml dependency-review job",
+   "calls": [
+    "ext:actions/dependency-review-action"
+   ],
+   "reads": [
+    "net:GitHub dependency graph / advisory database"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "inputs.base-ref empty",
+     "effect": "base = repository default branch"
+    },
+    {
+     "at": "+4",
+     "cond": "inputs.head-ref empty",
+     "effect": "head = dispatched commit sha"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

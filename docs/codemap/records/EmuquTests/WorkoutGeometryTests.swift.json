@@ -1,0 +1,340 @@
+{
+ "file": "EmuquTests/WorkoutGeometryTests.swift",
+ "hash": "72f444c4e581d09c",
+ "role": "@MainActor XCTest suite for WorkoutGeometry's pure helpers: great-circle bearing, signed bearing delta, turn labels, %HRmax zones, track length and nextIndex along cumulative route distances.",
+ "types": [
+  "WorkoutGeometryTests: class — XCTestCase for WorkoutGeometry"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func WorkoutGeometryTests.testBearingDueNorthIsZero()",
+   "hash": "7a36801bd3d66708",
+   "does": "Asserts bearing from 51.500,-0.1 to 51.510,-0.1 is 0 ±0.5.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.bearing(from:to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.bearing(from:to:)": "94c5409d1721db44"
+   }
+  },
+  {
+   "key": "func WorkoutGeometryTests.testBearingDueEastIsNinety()",
+   "hash": "4c193479093cf78a",
+   "does": "Asserts a due-east step gives bearing 90 ±0.5.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.bearing(from:to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.bearing(from:to:)": "94c5409d1721db44"
+   }
+  },
+  {
+   "key": "func WorkoutGeometryTests.testBearingDueSouthIsOneEighty()",
+   "hash": "4f771138a738df38",
+   "does": "Asserts a due-south step gives bearing 180 ±0.5.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.bearing(from:to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.bearing(from:to:)": "94c5409d1721db44"
+   }
+  },
+  {
+   "key": "func WorkoutGeometryTests.testBearingIsAlwaysInZeroTo360()",
+   "hash": "9aeb794262892402",
+   "does": "Asserts a due-west step gives 270 ±0.5 and lies in [0,360).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.bearing(from:to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.bearing(from:to:)": "94c5409d1721db44"
+   }
+  },
+  {
+   "key": "func WorkoutGeometryTests.testDeltaWrapsTheShortWayRound()",
+   "hash": "f8b0e416b39a53a3",
+   "does": "Asserts signedBearingDelta 350→10 is +20 and 10→350 is -20.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.signedBearingDelta(from:to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.signedBearingDelta(from:to:)": "cd1ecf0f89751fd1"
+   }
+  },
+  {
+   "key": "func WorkoutGeometryTests.testDeltaSignIndicatesTurnDirection()",
+   "hash": "fcb8e10f5f4397bd",
+   "does": "Asserts 90→135 is positive (right) and 90→45 negative (left).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.signedBearingDelta(from:to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.signedBearingDelta(from:to:)": "cd1ecf0f89751fd1"
+   }
+  },
+  {
+   "key": "func WorkoutGeometryTests.testDeltaOfNoTurnIsZero()",
+   "hash": "495ee65ff598fc35",
+   "does": "Asserts 42→42 is 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.signedBearingDelta(from:to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.signedBearingDelta(from:to:)": "cd1ecf0f89751fd1"
+   }
+  },
+  {
+   "key": "func WorkoutGeometryTests.testTurnLabelNamesTheCorrectSide()",
+   "hash": "0680573d7bddba7e",
+   "does": "Asserts turnLabel(90) contains 'right' and turnLabel(-90) contains 'left'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.turnLabel(deltaDegrees:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.turnLabel(deltaDegrees:)": "2e37d85d4ffc1857"
+   }
+  },
+  {
+   "key": "func WorkoutGeometryTests.testTurnLabelIsNeverEmpty()",
+   "hash": "856b3703c92837cc",
+   "does": "Asserts turnLabel is non-empty for every delta from -180 to 180 in 15° steps.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.turnLabel(deltaDegrees:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for delta in stride -180...180 by 15",
+     "effect": "each delta's label checked non-empty"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.turnLabel(deltaDegrees:)": "2e37d85d4ffc1857"
+   }
+  },
+  {
+   "key": "func WorkoutGeometryTests.testHRMaxZonesSpanOneToFive()",
+   "hash": "ab1511152b726581",
+   "does": "Asserts hrMaxZone with max 200 maps HR 110/130/150/170/185 to zones 1/2/3/4/5.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.hrMaxZone(hr:maxHR:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.hrMaxZone(hr:maxHR:)": "6ec78123269abbc8"
+   }
+  },
+  {
+   "key": "func WorkoutGeometryTests.testHRMaxZoneMatchesTheBreakdownBands()",
+   "hash": "62e7f0b6051de0c3",
+   "does": "Asserts HR 150 with max 190 (79%) is zone 3.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.hrMaxZone(hr:maxHR:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.hrMaxZone(hr:maxHR:)": "6ec78123269abbc8"
+   }
+  },
+  {
+   "key": "func WorkoutGeometryTests.testHRMaxZoneWithoutAHeartRateIsNil()",
+   "hash": "677af9b63b896053",
+   "does": "Asserts hrMaxZone with nil HR is nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.hrMaxZone(hr:maxHR:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.hrMaxZone(hr:maxHR:)": "6ec78123269abbc8"
+   }
+  },
+  {
+   "key": "func WorkoutGeometryTests.testHRMaxZoneRejectsAMissingMax()",
+   "hash": "857dd549ef76cb34",
+   "does": "Asserts hrMaxZone with maxHR 0 is nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.hrMaxZone(hr:maxHR:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.hrMaxZone(hr:maxHR:)": "6ec78123269abbc8"
+   }
+  },
+  {
+   "key": "func WorkoutGeometryTests.testVeryLowHeartRateIsStillZoneOne()",
+   "hash": "f25c475ed1ce1b75",
+   "does": "Asserts HR 40 with max 190 (21%) is zone 1.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.hrMaxZone(hr:maxHR:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.hrMaxZone(hr:maxHR:)": "6ec78123269abbc8"
+   }
+  },
+  {
+   "key": "func WorkoutGeometryTests.testTrackLengthSumsConsecutiveLegs()",
+   "hash": "6c173cce6facc9bc",
+   "does": "Asserts trackLengthMeters equals the sum of consecutive CLLocation.distance legs for a 4-point track.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.trackLengthMeters(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.trackLengthMeters(_:)": "f1edad8137733746"
+   }
+  },
+  {
+   "key": "func WorkoutGeometryTests.testTrackLengthOfFewerThanTwoPointsIsZero()",
+   "hash": "5d6767fd1b1b3c30",
+   "does": "Asserts trackLengthMeters is 0 for empty and single-point tracks.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.trackLengthMeters(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.trackLengthMeters(_:)": "f1edad8137733746"
+   }
+  },
+  {
+   "key": "func WorkoutGeometryTests.testNextIndexFindsThePointPastTheDistance()",
+   "hash": "943f09a2e4307bf3",
+   "does": "Asserts nextIndex(after 0, 250 m) in [0,100,200,300,400] is 3.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.nextIndex(after:atDistance:in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.nextIndex(after:atDistance:in:)": "ffa0c1e5ff18be3c"
+   }
+  },
+  {
+   "key": "func WorkoutGeometryTests.testNextIndexIsNilAtEndOfRoute()",
+   "hash": "e3b5edc884e2508c",
+   "does": "Asserts nextIndex returns nil when the target distance is past the route end.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.nextIndex(after:atDistance:in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.nextIndex(after:atDistance:in:)": "ffa0c1e5ff18be3c"
+   }
+  },
+  {
+   "key": "func WorkoutGeometryTests.testNextIndexPastTheEndIsNilNotACrash()",
+   "hash": "12f2337bed9b621b",
+   "does": "Asserts nextIndex with startIdx 99 beyond the array returns nil instead of trapping.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.nextIndex(after:atDistance:in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.nextIndex(after:atDistance:in:)": "ffa0c1e5ff18be3c"
+   }
+  },
+  {
+   "key": "func WorkoutGeometryTests.testNextIndexOnAnEmptyRouteIsNil()",
+   "hash": "409d82190be78cd3",
+   "does": "Asserts nextIndex on an empty array returns nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.nextIndex(after:atDistance:in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.nextIndex(after:atDistance:in:)": "ffa0c1e5ff18be3c"
+   }
+  }
+ ],
+ "deps": {}
+}

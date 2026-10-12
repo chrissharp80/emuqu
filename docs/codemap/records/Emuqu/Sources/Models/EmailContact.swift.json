@@ -1,0 +1,392 @@
+{
+ "file": "Emuqu/Sources/Models/EmailContact.swift",
+ "hash": "b36475df5a1f4977",
+ "role": "Defines the EmailContact value (name/email/notes) and EmailContactStore, the @Observable @MainActor singleton address book persisted as email_contacts.json in Application Support, used by the AI's assistant.email.compose / contacts.add / contacts.remove actions and the Settings email-contacts section.",
+ "types": [
+  "EmailContact: struct — Codable/Identifiable/Hashable contact record (id, name, email, notes, createdAt)",
+  "EmailContactStore: class (@Observable @MainActor) — in-memory contact list + JSON file persistence via LatestWinsFileWriter, name→address resolution",
+  "EmailContactStore.NameResolution: enum (private) — resolved(email)/unknown/ambiguous per name"
+ ],
+ "state": [
+  "mem:EmailContactStore.shared (static singleton; returned by AppDependencies.app.emailContactStore unless overridden)",
+  "mem:EmailContactStore.contacts (@Observable, private(set)) read by SettingsView+Pages EmailContactsSection and AppFactResolver+AssistantEmail",
+  "mem:EmailContactStore.loadFailed (private; set while the file cannot be read; blocks saves)",
+  "file:<ApplicationSupport>/email_contacts.json (falls back to <AppGroup container>/email_contacts.json when Application Support cannot be resolved), written atomic with .completeFileProtectionUntilFirstUserAuthentication",
+  "file:<store dir>/email_contacts.undecodable.json (copy of a contacts file that read but did not decode)"
+ ],
+ "toplevel": "`static let shared = EmailContactStore()` lazily creates the singleton on first access, whose init reads email_contacts.json. EmailContact gets synthesized Codable/Equatable/Hashable.",
+ "flags": [],
+ "units": [
+  {
+   "key": "init EmailContact(id:name:email:notes:createdAt:)",
+   "hash": "8c16d091765796db",
+   "does": "Memberwise initializer for EmailContact: stores id (default new UUID), name, email, notes (default nil) and createdAt (default now).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func EmailContactStore.forgetAfterPurge()",
+   "hash": "f882da0131b51802",
+   "does": "Delete-All-My-Data hook: empties the in-memory contacts, clears loadFailed, and calls the writer's discard(), which drops any pending write and queues deletion of email_contacts.json on the writer's queue, after any write in progress.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.discard()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:EmailContactStore.contacts",
+    "file:email_contacts.json"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.discard()": "47e4239bbc7bec8e"
+   }
+  },
+  {
+   "key": "init EmailContactStore(storeURL:)",
+   "hash": "9d7a8bd8ad127e0a",
+   "does": "Initializer: uses the injected storeURL, or <ApplicationSupport>/email_contacts.json (creating the directory; the App Group container when Application Support cannot be resolved), builds a LatestWinsFileWriter (atomic, completeFileProtectionUntilFirstUserAuthentication, label emailContacts) and synchronously loads the file.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "Emuqu/Sources/Utilities/Constants.swift::func AppConfig.sharedContainerURL()",
+    "Emuqu/Sources/Models/SavedRoute.swift::init LatestWinsFileWriter(url:options:label:)",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.load()",
+    "ext:FileManager.url(for:.applicationSupportDirectory,create:true)"
+   ],
+   "reads": [
+    "file:email_contacts.json"
+   ],
+   "writes": [
+    "mem:EmailContactStore.contacts"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "a storeURL was injected (tests)",
+     "effect": "true: use it; false: resolve Application Support path"
+    },
+    {
+     "at": "+5",
+     "cond": "?? — Application Support URL lookup threw (attempt returned nil, logged)",
+     "effect": "falls back to AppConfig.sharedContainerURL(), which persists like Application Support"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.load()": "157bcf7d925c42b3",
+    "Emuqu/Sources/Models/SavedRoute.swift::init LatestWinsFileWriter(url:options:label:)": "ee7815cbe4a936ef",
+    "Emuqu/Sources/Utilities/Constants.swift::func AppConfig.sharedContainerURL()": "9cf3a08c95588151",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+   }
+  },
+  {
+   "key": "func EmailContactStore.add(_:)",
+   "hash": "c37c8ac4c3274c5c",
+   "does": "Re-reads the file if the last load failed; while it still cannot be read returns false and adds nothing (memory stays matching disk); otherwise appends the contact, enqueues a save of the full list and returns true.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.retryLoadIfBlocked()",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.save()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:EmailContactStore.contacts",
+    "file:email_contacts.json"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "loadFailed after the retry",
+     "effect": "return false, nothing added"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.retryLoadIfBlocked()": "9a408cb5bcdee313",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.save()": "07b23a30e5577ba5"
+   }
+  },
+  {
+   "key": "func EmailContactStore.remove(id:)",
+   "hash": "28c3b7fa049661d0",
+   "does": "Re-reads the file if the last load failed; while it still cannot be read returns false and removes nothing; otherwise removes every contact with the id, saves and returns true.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.retryLoadIfBlocked()",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.save()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:EmailContactStore.contacts",
+    "file:email_contacts.json"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "loadFailed after the retry",
+     "effect": "return false, nothing removed"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.retryLoadIfBlocked()": "9a408cb5bcdee313",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.save()": "07b23a30e5577ba5"
+   }
+  },
+  {
+   "key": "func EmailContactStore.find(name:)",
+   "hash": "9d028ba09bfef843",
+   "does": "Returns all contacts whose name equals the whitespace-trimmed argument case-insensitively.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:EmailContactStore.contacts"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func EmailContactStore.resolveNames(_:)",
+   "hash": "b211548035f44057",
+   "does": "Splits a comma-separated list, trims and drops empty entries, classifies each as resolved address / unknown / ambiguous and returns the three lists.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.classify(_:)"
+   ],
+   "reads": [
+    "mem:EmailContactStore.contacts"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "for each non-empty name",
+     "effect": "classify it"
+    },
+    {
+     "at": "+10",
+     "cond": "case .resolved(email)",
+     "effect": "append email to resolved"
+    },
+    {
+     "at": "+11",
+     "cond": "case .unknown",
+     "effect": "append name to unknown"
+    },
+    {
+     "at": "+12",
+     "cond": "case .ambiguous",
+     "effect": "append name to ambiguous"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.classify(_:)": "92584adbeea8d829"
+   }
+  },
+  {
+   "key": "func EmailContactStore.classify(_:)",
+   "hash": "b1f8191cecf59b6d",
+   "does": "Classifies one name: a string looksLikeEmailAddress accepts passes through as an address; otherwise looks it up by name — 0 matches unknown, >1 ambiguous, 1 resolved to that contact's email.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.looksLikeEmailAddress(_:)",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.find(name:)"
+   ],
+   "reads": [
+    "mem:EmailContactStore.contacts"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "looksLikeEmailAddress(name)",
+     "effect": "returned as-is as a resolved address"
+    },
+    {
+     "at": "+3",
+     "cond": "no contact matches",
+     "effect": "return .unknown"
+    },
+    {
+     "at": "+4",
+     "cond": "more than one match",
+     "effect": "return .ambiguous; else resolved to the single match's email"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.find(name:)": "38cd212e69874bc9",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.looksLikeEmailAddress(_:)": "d97ded06e79d0f8d",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e"
+   }
+  },
+  {
+   "key": "func EmailContactStore.looksLikeEmailAddress(_:)",
+   "hash": "b3f390d6008a2a6b",
+   "does": "True for one address-shaped string: exactly one '@' with a non-empty part before it, no whitespace, and a domain containing a dot that is neither its first nor last character ('j.smith@' and 'chris.p' are false).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "not exactly two '@' parts, empty local part, or whitespace",
+     "effect": "false"
+    },
+    {
+     "at": "+4",
+     "cond": "domain has an inner dot",
+     "effect": "true; otherwise false"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func EmailContactStore.load()",
+   "hash": "412de926ba4e5071",
+   "does": "If email_contacts.json exists: a read error sets loadFailed (blocking saves) and logs at .error; a decode error sets the file aside as email_contacts.undecodable.json and leaves saves allowed (blocked only when the copy fails); a successful decode replaces contacts and clears loadFailed. Missing file leaves contacts as-is.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.setAsideUndecodable(_:reason:)",
+    "ext:Data(contentsOf:)",
+    "ext:JSONDecoder.decode"
+   ],
+   "reads": [
+    "file:email_contacts.json"
+   ],
+   "writes": [
+    "mem:EmailContactStore.contacts",
+    "mem:EmailContactStore.loadFailed",
+    "file:email_contacts.undecodable.json"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "file does not exist",
+     "effect": "return; contacts unchanged (empty on first launch)"
+    },
+    {
+     "at": "+5",
+     "cond": "catch: read threw",
+     "effect": "loadFailed=true, error logged, return; contacts keep their value"
+    },
+    {
+     "at": "+15",
+     "cond": "catch: decode threw",
+     "effect": "loadFailed = the copy aside failed; otherwise contacts = decoded, loadFailed=false"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.setAsideUndecodable(_:reason:)": "860ed7f5a0511a3e",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func EmailContactStore.setAsideUndecodable(_:reason:)",
+   "hash": "6857639ceccb23fc",
+   "does": "Copies the contacts file to email_contacts.undecodable.json beside it (removing an older copy) via attempt, logs at .error whether it was set aside, and returns whether the copy is in place.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:FileManager.removeItem",
+    "ext:FileManager.copyItem"
+   ],
+   "reads": [
+    "file:email_contacts.json"
+   ],
+   "writes": [
+    "file:email_contacts.undecodable.json"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "an older copy exists",
+     "effect": "remove it first"
+    },
+    {
+     "at": "+5",
+     "cond": "attempt returned nil",
+     "effect": "copied=false"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+   }
+  },
+  {
+   "key": "func EmailContactStore.retryLoadIfBlocked()",
+   "hash": "5c6a47ba8cecb0a7",
+   "does": "Before an edit, when the last read failed: reloads; on success appends the contacts added in memory while the file was unreadable (by id), so they are kept and saved with the next edit.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.load()"
+   ],
+   "reads": [
+    "file:email_contacts.json"
+   ],
+   "writes": [
+    "mem:EmailContactStore.contacts"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "loadFailed",
+     "effect": "reload; otherwise no-op"
+    },
+    {
+     "at": "+4",
+     "cond": "reload still failed",
+     "effect": "return, keeping the in-memory list"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.load()": "157bcf7d925c42b3"
+   }
+  },
+  {
+   "key": "func EmailContactStore.save()",
+   "hash": "87820287e230ef60",
+   "does": "Enqueues the current contact list on the latest-wins writer unless the last load failed.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.enqueue(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:email_contacts.json"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "loadFailed",
+     "effect": "true: log error and return without writing — the edit stays in memory and is merged and saved once the file reads (retryLoadIfBlocked); false: enqueue write"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.enqueue(_:)": "ee33d1b89059305a",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  }
+ ],
+ "deps": {}
+}

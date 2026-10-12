@@ -1,0 +1,46 @@
+{
+ "file": "Emuqu/Sources/Collection/HealthExportClaims.swift",
+ "hash": "1ee909675d102815",
+ "role": "In-process mutual exclusion so the workout recorder's export and the foreground back-fill do not export the same session to Apple Health twice.",
+ "types": [
+  "HealthExportClaims: enum — static claim/release over a locked Set<UUID>"
+ ],
+ "state": [
+  "mem:HealthExportClaims.claimed (static OSAllocatedUnfairLock<Set<UUID>>, process lifetime only)"
+ ],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func HealthExportClaims.claim(_:)",
+   "hash": "943776377f1c12ee",
+   "does": "Atomically inserts the session id; returns true if it was not already claimed. Callers: WorkoutRecorder+Metrics.swift:229 (returns when false), HealthKitManager.swift:425 (counts as failed when false).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:HealthExportClaims.claimed"
+   ],
+   "writes": [
+    "mem:HealthExportClaims.claimed"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HealthExportClaims.release(_:)",
+   "hash": "bb4ec40d5d20b453",
+   "does": "Removes the session id from the claimed set (deferred by both callers).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:HealthExportClaims.claimed"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

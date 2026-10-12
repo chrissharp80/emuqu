@@ -9,13 +9,14 @@ import SwiftUI
 /// results can render NavigationLinks directly without re-implementing
 /// the routing logic that lives in SettingsView's body.
 struct SettingsSearchEntry: Identifiable {
-    /// Stable identity derived from the (English) title. Was `UUID()`,
-    /// which minted a fresh id every time the index was rebuilt — and
-    /// the index was rebuilt in `SettingsView.body` on every keystroke,
-    /// so `ForEach` treated every result as brand-new each frame (no
-    /// view reuse → jank). Deriving `id` from the title keeps rows
-    /// stable across rebuilds. Titles are unique in the catalogue.
-    var id: String { title }
+    /// Stable identity derived from the row's symbol and title. Was
+    /// `UUID()`, which minted a fresh id every time the index was rebuilt —
+    /// and the index was rebuilt in `SettingsView.body` on every keystroke,
+    /// so `ForEach` treated every result as brand-new each frame (no view
+    /// reuse → jank). The title is the translated one, so it alone could
+    /// coincide for two rows in some language; every entry has its own SF
+    /// Symbol, so the pair stays unique in every language.
+    var id: String { "\(systemImage)|\(title)" }
     /// Primary label shown in the search row.
     let title: String
     /// Subtitle used both as a hint and as an additional fuzzy-match
@@ -59,22 +60,22 @@ struct SettingsSearchEntry: Identifiable {
 /// best terms (synonyms, common questions) match the right destinations.
 @MainActor
 enum SettingsSearchIndex {
-    static func entries(scrollToTopToken: UUID, settingsManager: SettingsManager) -> [SettingsSearchEntry] {
-        identityProfileEntries(scrollToTopToken: scrollToTopToken, settingsManager: settingsManager)
-            + dataSourcesEntries(scrollToTopToken: scrollToTopToken, settingsManager: settingsManager)
-            + recoveryTrainingEntries(scrollToTopToken: scrollToTopToken, settingsManager: settingsManager)
-            + floMainAiEntries(scrollToTopToken: scrollToTopToken, settingsManager: settingsManager)
-            + notificationsEntries(scrollToTopToken: scrollToTopToken, settingsManager: settingsManager)
-            + appearanceEntries(scrollToTopToken: scrollToTopToken, settingsManager: settingsManager)
-            + advancedEntries(scrollToTopToken: scrollToTopToken, settingsManager: settingsManager)
-            + helpAboutEntries(scrollToTopToken: scrollToTopToken, settingsManager: settingsManager)
+    /// `scrollToTopToken` is not used by any entry; the parameter stays only
+    /// because `SettingsView` still passes it. Only the Reports entry needs
+    /// `settingsManager`.
+    static func entries(scrollToTopToken _: UUID, settingsManager: SettingsManager) -> [SettingsSearchEntry] {
+        identityProfileEntries()
+            + dataSourcesEntries(settingsManager: settingsManager)
+            + recoveryTrainingEntries()
+            + floMainAiEntries()
+            + notificationsEntries()
+            + appearanceEntries()
+            + advancedEntries()
+            + helpAboutEntries()
     }
 
     /// Search entries for the Identity & Profile section of Settings.
-    private static func identityProfileEntries(
-        scrollToTopToken: UUID,
-        settingsManager: SettingsManager
-    ) -> [SettingsSearchEntry] {
+    private static func identityProfileEntries() -> [SettingsSearchEntry] {
         [
 
             SettingsSearchEntry(
@@ -93,10 +94,7 @@ enum SettingsSearchIndex {
     }
 
     /// Search entries for the Data & Sources section of Settings.
-    private static func dataSourcesEntries(
-        scrollToTopToken: UUID,
-        settingsManager: SettingsManager
-    ) -> [SettingsSearchEntry] {
+    private static func dataSourcesEntries(settingsManager: SettingsManager) -> [SettingsSearchEntry] {
         [
             wearablesSettingsPageEntry(),
             dataSettingsPageEntry(),
@@ -132,10 +130,7 @@ enum SettingsSearchIndex {
     }
 
     /// Search entries for the Recovery & Training section of Settings.
-    private static func recoveryTrainingEntries(
-        scrollToTopToken: UUID,
-        settingsManager: SettingsManager
-    ) -> [SettingsSearchEntry] {
+    private static func recoveryTrainingEntries() -> [SettingsSearchEntry] {
         [
             sleepSettingsPageEntry(),
             trainingSettingsPageEntry(),
@@ -191,10 +186,7 @@ enum SettingsSearchIndex {
     }
 
     /// Search entries for the Flo (main AI) section of Settings.
-    private static func floMainAiEntries(
-        scrollToTopToken: UUID,
-        settingsManager: SettingsManager
-    ) -> [SettingsSearchEntry] {
+    private static func floMainAiEntries() -> [SettingsSearchEntry] {
         // Aliases keep "coach" / "assistant" so search still lands here
         // regardless of which name the user types.
         [
@@ -208,10 +200,7 @@ enum SettingsSearchIndex {
     }
 
     /// Search entries for the Notifications section of Settings.
-    private static func notificationsEntries(
-        scrollToTopToken: UUID,
-        settingsManager: SettingsManager
-    ) -> [SettingsSearchEntry] {
+    private static func notificationsEntries() -> [SettingsSearchEntry] {
         [
 
             SettingsSearchEntry(
@@ -230,10 +219,7 @@ enum SettingsSearchIndex {
     }
 
     /// Search entries for the Appearance section of Settings.
-    private static func appearanceEntries(
-        scrollToTopToken: UUID,
-        settingsManager: SettingsManager
-    ) -> [SettingsSearchEntry] {
+    private static func appearanceEntries() -> [SettingsSearchEntry] {
         [
             appearancePageEntry(),
             performanceSettingsPageEntry(),
@@ -269,10 +255,7 @@ enum SettingsSearchIndex {
     }
 
     /// Search entries for the Advanced section of Settings.
-    private static func advancedEntries(
-        scrollToTopToken: UUID,
-        settingsManager: SettingsManager
-    ) -> [SettingsSearchEntry] {
+    private static func advancedEntries() -> [SettingsSearchEntry] {
         [
 
             SettingsSearchEntry(
@@ -302,10 +285,7 @@ enum SettingsSearchIndex {
     }
 
     /// Search entries for the Help & About section of Settings.
-    private static func helpAboutEntries(
-        scrollToTopToken: UUID,
-        settingsManager: SettingsManager
-    ) -> [SettingsSearchEntry] {
+    private static func helpAboutEntries() -> [SettingsSearchEntry] {
         helpEntries() + legalEntries()
     }
 

@@ -1,0 +1,768 @@
+{
+ "file": "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift",
+ "hash": "955ecefa2777f0fc",
+ "role": "Core recovery-score calculator: score breakdown model types (ScoreFactor, ScoreBreakdown), configuration, z-score→score mapping with versioned band tables, input sanitising, the two calculateWithBreakdown entry points, perceived-readiness blending and final composition (missing-sleep deduction, clamp, SpO2 override).",
+ "types": [
+  "RecoveryScoreCalculator: enum — namespace for recovery scoring",
+  "RecoveryScoreCalculator.ScoreFactor: struct (Identifiable, Codable) — one breakdown row with label/detail/score/weight/impact/facts",
+  "RecoveryScoreCalculator.ScoreFactor.Impact: enum — positive/neutral/negative",
+  "RecoveryScoreCalculator.ScoreBreakdown: struct (Codable) — composite, tier, factors, penalties, spo2PenaltyApplied, scoringVersion",
+  "RecoveryScoreCalculator.ScoringConfiguration: struct — settings injected by callers",
+  "RecoveryScoreCalculator.ScoringParameters: struct (Equatable) — versioned z-score band table",
+  "RecoveryScoreCalculator.ScoreInputs: struct — physiological inputs of one scoring pass",
+  "RecoveryScoreCalculator.FiniteHRVInputs: fileprivate struct — HRV inputs with non-finite values coerced to nil"
+ ],
+ "state": [
+  "mem:RecoveryScoreCalculator.scoringParametersV1 (v1.2026-05-01 bands)",
+  "mem:RecoveryScoreCalculator.scoringParametersV2 (v2.2026-06-22 SWC-deadband bands)",
+  "mem:RecoveryScoreCalculator.defaultScoringParameters = scoringParametersV2",
+  "archive:ScoreBreakdown Codable keys compositeScore,tier,factors,penalties,spo2PenaltyApplied,scoringVersion (persisted inside HRVSession.scoreBreakdown)"
+ ],
+ "toplevel": "Static lets scoringParametersV1/V2/defaultScoringParameters (V1 is referenced only by EmuquTests/ScoringCharacterizationTests.swift:589). ScoreBreakdown.scoringVersion stored-property default ScoringVersion.current. ScoreFactor and ScoreFactorFacts use synthesized Codable; ScoreBreakdown has custom decode and synthesized encode via CodingKeys.",
+ "flags": [],
+ "units": [
+  {
+   "key": "init RecoveryScoreCalculator.ScoreFactor(label:detail:score:weight:impact:facts:)",
+   "hash": "d0b2fa8516266dba",
+   "does": "Memberwise ScoreFactor init; id derived deterministically from the label via identity(for:).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.ScoreFactor.identity(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.ScoreFactor.identity(for:)": "6b9334b0b7601406"
+   }
+  },
+  {
+   "key": "var RecoveryScoreCalculator.ScoreFactor.contribution",
+   "hash": "5b423435a2072174",
+   "does": "Weighted contribution = score * weight.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RecoveryScoreCalculator.ScoreFactor.identity(for:)",
+   "hash": "f0178bb445e9b25d",
+   "does": "Deterministic UUID from SHA-256 of the label's UTF-8 bytes (first 16 bytes, v5 variant/version bits set).",
+   "entry": null,
+   "calls": [
+    "ext:CryptoKit.SHA256.hash"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "init RecoveryScoreCalculator.ScoreBreakdown(compositeScore:tier:factors:penalties:spo2PenaltyApplied:scoringVersion:)",
+   "hash": "f927e6cf3f0f3e4f",
+   "does": "Constructs a ScoreBreakdown; spo2PenaltyApplied defaults to scanning penalties for the English 'Low blood oxygen' prefix when not supplied; scoringVersion defaults to ScoringVersion.current.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.listsEnglishSpO2Penalty(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "spo2PenaltyApplied ?? listsEnglishSpO2Penalty(penalties)",
+     "effect": "nil argument: inferred from English penalty text (a non-English legacy line yields false); explicit value used otherwise"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.listsEnglishSpO2Penalty(_:)": "20f04f9001cc30b3"
+   }
+  },
+  {
+   "key": "init RecoveryScoreCalculator.ScoreBreakdown(from:)",
+   "hash": "58a5efa1efed0f63",
+   "does": "Decodes a ScoreBreakdown; missing spo2PenaltyApplied inferred from English penalty text; missing scoringVersion becomes 'unversioned'. Missing required keys throw.",
+   "entry": "Decodable synthesis/JSONDecoder when HRVSession/session metadata containing a scoreBreakdown is decoded (archive, CloudKit payloads)",
+   "calls": [
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.listsEnglishSpO2Penalty(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "spo2PenaltyApplied key present",
+     "effect": "absent: inferred from English 'Low blood oxygen' prefix in penalties"
+    },
+    {
+     "at": "+11",
+     "cond": "scoringVersion key present",
+     "effect": "absent: ScoringVersion.unversioned"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.listsEnglishSpO2Penalty(_:)": "20f04f9001cc30b3"
+   }
+  },
+  {
+   "key": "var RecoveryScoreCalculator.ScoreBreakdown.message",
+   "hash": "2c1f4e8a7f1e3adb",
+   "does": "Advice message for the breakdown with no load level (ScoreBreakdownCopy.message(for:)).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "ScoreBreakdown.message has no production reader: every production screen calls ScoreBreakdownCopy.message(for:loadLevel:) directly; only EmuquTests/ScoreBreakdownMessageTests.swift reads .message.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift:156",
+      "Emuqu/Sources/Views/MorningResultsView.swift:253",
+      "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift:56",
+      "EmuquTests/ScoreBreakdownMessageTests.swift:28"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:)": "c5ebaac0d7086a28"
+   }
+  },
+  {
+   "key": "var RecoveryScoreCalculator.ScoreBreakdown.displayPenalties",
+   "hash": "26b5184de6b9d13e",
+   "does": "penalties mapped through ScoreBreakdownCopy.displayPenalty to the current app language.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.displayPenalty(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.displayPenalty(_:)": "a885486a54084f3d"
+   }
+  },
+  {
+   "key": "var RecoveryScoreCalculator.ScoreBreakdown.gapFromFactors",
+   "hash": "d15be5ba7d1b1c78",
+   "does": "Sum of factor contributions minus compositeScore (positive = something outside the factors pulled the composite down).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreFactor.contribution"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreFactor.contribution": "ae0a47f30691925e"
+   }
+  },
+  {
+   "key": "init RecoveryScoreCalculator.ScoringConfiguration(from:)",
+   "hash": "e413eec7e12dd8d3",
+   "does": "Builds ScoringConfiguration from UserSettings fields (training-load flag, training break, sleep integration, penalize missing sleep, age, comeback mode).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:UserSettings.enableSleepIntegration",
+    "mem:UserSettings.penalizeMissingSleep",
+    "mem:UserSettings.age",
+    "mem:UserSettings.isComebackModeActive",
+    "mem:UserSettings.isOnTrainingBreak",
+    "mem:UserSettings.enableTrainingLoadIntegration"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isComebackModeActive": "4a697d3be6c9e5eb",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isOnTrainingBreak": "4d09b6e877f250f8"
+   }
+  },
+  {
+   "key": "init RecoveryScoreCalculator.ScoringConfiguration(enableTrainingLoadIntegration:isOnTrainingBreak:enableSleepIntegration:penalizeMissingSleep:userAge:isComebackModeActive:)",
+   "hash": "91969f649da89010",
+   "does": "Memberwise ScoringConfiguration init (comeback defaults false).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RecoveryScoreCalculator.zToPercentileScore(_:)",
+   "hash": "178323a8f3d7bd45",
+   "does": "Normal-CDF percentile mapping of z (clamped ±3) to 0-100; NaN → 50.",
+   "entry": null,
+   "calls": [
+    "ext:Foundation.erf"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "z is NaN",
+     "effect": "returns neutralScore 50; else 0.5*(1+erf(z/√2))*100"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "Doc says 'Not used for recovery scoring'; only EmuquTests (RecoveryScoreCalculatorTests, ScoringCharacterizationTests) call zToPercentileScore.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift:222",
+      "EmuquTests/RecoveryScoreCalculatorTests.swift:79"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func RecoveryScoreCalculator.ScoringParameters.==(lhs:rhs:)",
+   "hash": "866ddce8ee46c038",
+   "does": "Equality of ScoringParameters: same version and pairwise equal (z, score) bands.",
+   "entry": "Equatable conformance (== operator)",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var RecoveryScoreCalculator.ScoringParameters.isMonotonicInZ",
+   "hash": "9e6e776d71447ba7",
+   "does": "True when band z values strictly increase.",
+   "entry": "XCTest: ScoringCharacterizationTests.testShippedScoringParametersAreMonotonicAndInRange (a test-side invariant check by design)",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var RecoveryScoreCalculator.ScoringParameters.hasScoresInRange",
+   "hash": "eede26cbd36b6917",
+   "does": "True when every band score is within 0...100.",
+   "entry": "XCTest: ScoringCharacterizationTests.testShippedScoringParametersAreMonotonicAndInRange (a test-side invariant check by design)",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RecoveryScoreCalculator.zToRecoveryScore(_:parameters:)",
+   "hash": "44beb1dbb210cc4a",
+   "does": "Maps a z-score to a 0-100 recovery score by piecewise-linear interpolation over parameters.zScoreBands (default V2: -3→5, -1.5→25, -0.75→64, [-0.5,0.5]→72, 1.5→90); NaN or empty table → 50; below/above endpoints → endpoint score.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.interpolate(_:in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "bands has first and last",
+     "effect": "false (empty table) returns neutralScore 50"
+    },
+    {
+     "at": "+13",
+     "cond": "z is NaN",
+     "effect": "returns 50 (finite/infinite z continue)"
+    },
+    {
+     "at": "+14",
+     "cond": "z <= lowest.z",
+     "effect": "returns lowest.score (5)"
+    },
+    {
+     "at": "+15",
+     "cond": "z >= highest.z",
+     "effect": "returns highest.score (90)"
+    },
+    {
+     "at": "+16",
+     "cond": "interpolate(...) ?? highest.score",
+     "effect": "nil (no bracketing band, excluded by guards) falls back to highest score"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.interpolate(_:in:)": "075db2dc3aabc4cb"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCalculator.interpolate(_:in:)",
+   "hash": "1e1a48f8e8ac2eb9",
+   "does": "Linear interpolation between the first band pair whose upper z >= z; nil when no pair matches.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each i where z <= bands[i+1].z",
+     "effect": "first match returns lo.score + t*(hi.score-lo.score); no match returns nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RecoveryScoreCalculator.ScoreInputs.substitutingHRV(_:)",
+   "hash": "a13d9f7da60e2f9e",
+   "does": "Copy of ScoreInputs with the four HRV fields replaced by FiniteHRVInputs values.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RecoveryScoreCalculator.ScoreInputs.scoringWristTemperatureAgainstBaseline()",
+   "hash": "2d3202ddb476aac1",
+   "does": "Copy of ScoreInputs with vitals re-expressed via wristTemperatureAgainstPersonalBaseline.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.wristTemperatureAgainstPersonalBaseline(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.wristTemperatureAgainstPersonalBaseline(_:)": "dcfe2903310294ab"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCalculator.wristTemperatureAgainstPersonalBaseline(_:)",
+   "hash": "a2a5bcaa7b103ce5",
+   "does": "Returns RecoveryVitals with wristTemperature replaced by (temp - baseline) and baseline 0 when both present; otherwise temperature and baseline nil; other vitals copied.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "wristTemperature and wristTemperatureBaseline both non-nil",
+     "effect": "true: deviation = temp-baseline; false: deviation nil (temperature dropped from scoring)"
+    },
+    {
+     "at": "+9",
+     "cond": "deviation == nil",
+     "effect": "true: baseline nil; false: baseline 0 (idempotent)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingMetrics:config:ansBalance:referenceDate:)",
+   "hash": "78c306d36b0e4477",
+   "does": "Entry point taking TrainingMetrics (ignored): returns computeBreakdown(inputs, config, ansBalance, referenceDate).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.computeBreakdown(_:config:ansBalance:referenceDate:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "referenceDate defaults to Date(); callers that omit it score the staleness penalty against the wall clock instead of the session's night, so the same session can score differently on different days.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift:458",
+      "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift:80"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "No production code calls the trainingMetrics overload any more; only EmuquTests/ScoringCharacterizationTests.swift:278 does. Every app caller uses the trainingContext overload.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift:457",
+      "EmuquTests/ScoringCharacterizationTests.swift:278"
+     ],
+     "found": "fix pass b03"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.computeBreakdown(_:config:ansBalance:referenceDate:)": "157b8438d8f25096"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingContext:config:useBaselineHRV:perceivedReadiness:ansBalance:referenceDate:)",
+   "hash": "6cd27e80992c066b",
+   "does": "Entry point taking TrainingContext (ignored): sanitises HRV inputs; when useBaselineHRV and baselineStats exist, stands the baseline in for the HRV readings (readiness and DFA dropped) and drops ansBalance too, since it came from the same unusable recording; computes the breakdown; and only when the baseline actually stood in and perceivedReadiness is set, blends 70/30 baseline/subjective into the HRV factor and recomposes. With useBaselineHRV but no baseline the recording is scored as it stands, with its ansBalance and no blend.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.FiniteHRVInputs(readiness:rmssd:meanHR:dfaAlpha1:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.FiniteHRVInputs.substitutingBaseline(_:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.ScoreInputs.substitutingHRV(_:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.computeBreakdown(_:config:ansBalance:referenceDate:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.blendingPerceivedReadiness(_:vitals:missingSleep:into:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.missingSleepPenaltyApplies(_:tier:config:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+13",
+     "cond": "useBaselineHRV and baselineStats non-nil (standIn)",
+     "effect": "true: substitutingBaseline(stats); false: readings kept (only finite-sanitised)"
+    },
+    {
+     "at": "+21",
+     "cond": "standIn == nil",
+     "effect": "true: ansBalance passed to computeBreakdown; false (baseline stood in): ansBalance nil"
+    },
+    {
+     "at": "+23",
+     "cond": "standIn non-nil and perceivedReadiness non-nil",
+     "effect": "false: returns computed breakdown; true: returns blendingPerceivedReadiness(...)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "referenceDate defaults to Date(); RecoveryScoreDetailView.liveBreakdown, MorningProcessingService+Merging and RRCollector+Analysis still omit it, so their staleness term uses today rather than the night scored.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift:488",
+      "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:183",
+      "Emuqu/Sources/Services/MorningProcessingService+Merging.swift:412",
+      "Emuqu/Sources/Collection/RRCollector+Analysis.swift:27"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.FiniteHRVInputs.substitutingBaseline(_:)": "d61172f6bfb07ff4",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.ScoreInputs.substitutingHRV(_:)": "4888f1b610040da4",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.blendingPerceivedReadiness(_:vitals:missingSleep:into:)": "d0620f0c8638139f",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.computeBreakdown(_:config:ansBalance:referenceDate:)": "157b8438d8f25096",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.missingSleepPenaltyApplies(_:tier:config:)": "a0db52565e02ade0",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.FiniteHRVInputs(readiness:rmssd:meanHR:dfaAlpha1:)": "e376fb98af1e5ea0"
+   }
+  },
+  {
+   "key": "init RecoveryScoreCalculator.FiniteHRVInputs(readiness:rmssd:meanHR:dfaAlpha1:)",
+   "hash": "83abf8226eb60c91",
+   "does": "FiniteHRVInputs init: each of readiness/rmssd/meanHR/dfaAlpha1 kept only when finite, else nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "readiness finite",
+     "effect": "non-finite → nil"
+    },
+    {
+     "at": "+2",
+     "cond": "rmssd finite",
+     "effect": "non-finite → nil"
+    },
+    {
+     "at": "+3",
+     "cond": "meanHR finite",
+     "effect": "non-finite → nil"
+    },
+    {
+     "at": "+4",
+     "cond": "dfaAlpha1 finite",
+     "effect": "non-finite → nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "init RecoveryScoreCalculator.FiniteHRVInputs(readiness:rmssd:meanHR:dfaAlpha1:unchecked:)",
+   "hash": "86967c514f7f6ae3",
+   "does": "Private unchecked FiniteHRVInputs init storing values as given (used only by substitutingBaseline).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RecoveryScoreCalculator.FiniteHRVInputs.substitutingBaseline(_:)",
+   "hash": "8f05c86797a00546",
+   "does": "When stats given, returns inputs with readiness nil, rmssd=exp(lnRmssdMean), meanHR=meanHRBaseline, dfaAlpha1 nil; otherwise self.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.FiniteHRVInputs(readiness:rmssd:meanHR:dfaAlpha1:unchecked:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "stats is nil",
+     "effect": "returns self unchanged (raw sanitised readings)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.FiniteHRVInputs(readiness:rmssd:meanHR:dfaAlpha1:unchecked:)": "182e25957f76a047"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCalculator.blendingPerceivedReadiness(_:vitals:missingSleep:into:)",
+   "hash": "1ba56e5208d1f93a",
+   "does": "Rebuilds a breakdown with the HRV factor blended with subjective readiness and the composite recomposed via composeFinalScore (missing-sleep deduction, clamp, SpO2 override); penalties and spo2 flag copied; scoringVersion defaults to current.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.blendedFactors(_:in:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.composeFinalScore(weightedSum:vitals:missingSleep:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreFactor.contribution",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(compositeScore:tier:factors:penalties:spo2PenaltyApplied:scoringVersion:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.blendedFactors(_:in:)": "b7f5bd297f5b23da",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.composeFinalScore(weightedSum:vitals:missingSleep:)": "e2b0f7314f854d76",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(compositeScore:tier:factors:penalties:spo2PenaltyApplied:scoringVersion:)": "6d045d2ab75f0630",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreFactor.contribution": "ae0a47f30691925e"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCalculator.blendedFactors(_:in:)",
+   "hash": "989df4f686c7a20c",
+   "does": "Maps factors: the HRV factor is replaced by score*0.70 + subjectiveScore*0.30 with note hrvWithAssessment, same weight, and its impact re-banded from the blended score (ScoreDetailBuilder.hrvImpact); others unchanged.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.subjectiveScore(from:)",
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::var ScoreFactorFacts.Note.text",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.hrvImpact(_:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreFactor(label:detail:score:weight:impact:facts:)",
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::init ScoreFactorFacts(note:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "factor.label == \"HRV\"",
+     "effect": "false: factor unchanged; true: rebuilt with blended score, same weight, impact from hrvImpact(blended)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.subjectiveScore(from:)": "4d2ec64f284e2b74",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreFactor(label:detail:score:weight:impact:facts:)": "1f7485fa01851fa3",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.hrvImpact(_:)": "55f26a01bbe2237c",
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::init ScoreFactorFacts(note:)": "e75ae69725eec00b",
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::var ScoreFactorFacts.Note.text": "e1d316e2213c2af0"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCalculator.subjectiveScore(from:)",
+   "hash": "7fa7728d11123ac5",
+   "does": "Maps perceived readiness (0...1) to 0...100 with clamping; non-finite → neutralSubjectiveScore 50.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "perceived is finite",
+     "effect": "false: returns 50; true: clamp(0,1)*100"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RecoveryScoreCalculator.composeFinalScore(weightedSum:vitals:missingSleep:)",
+   "hash": "4ebeb0bb46516027",
+   "does": "Composite = applyVitalsOverrides(clamp0-100(weightedSum - (missingSleep ? 10 : 0)), vitals).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+VitalsForwarding.swift::func RecoveryScoreCalculator.applyVitalsOverrides(score:vitals:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "missingSleep",
+     "effect": "true: deduct missingSleepPenalty 10; false: 0"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+VitalsForwarding.swift::func RecoveryScoreCalculator.applyVitalsOverrides(score:vitals:)": "43c7b65751c41958",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::var ScoreBreakdownCopy.missingSleepPenalty": "ba9e8171680faff8"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCalculator.computeBreakdown(_:config:ansBalance:referenceDate:)",
+   "hash": "e123245725c49c51",
+   "does": "Core scoring: re-expresses wrist temperature vs baseline, computes vitals score, builds tier composite (tier 3/2/1 by sleep/vitals presence), applies missing-sleep and SpO2 composition, logs triage, returns ScoreBreakdown with penalties (SpO2 line, missing-sleep line) and spo2PenaltyApplied.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.ScoreInputs.scoringWristTemperatureAgainstBaseline()",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+VitalsForwarding.swift::func RecoveryScoreCalculator.calculateVitalsScore(vitals:baselineStats:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.tierInputs(_:vitalsScore:config:ansBalance:referenceDate:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+DetailForwarding.swift::func RecoveryScoreCalculator.buildTierComposite(_:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.missingSleepPenaltyApplies(_:tier:config:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.composeFinalScore(weightedSum:vitals:missingSleep:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.logScoreTriage(tier:composite:hasHRV:hasSleep:hasVitals:comebackModeActive:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+VitalsForwarding.swift::func RecoveryScoreCalculator.vitalsPenaltyDescriptions(_:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.missingSleepPenaltyDescription",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(compositeScore:tier:factors:penalties:spo2PenaltyApplied:scoringVersion:)",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.isSpO2Concerning"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+16",
+     "cond": "missingSleep",
+     "effect": "true: appends missingSleepPenaltyDescription to penalties; false: only vitals penalty lines"
+    },
+    {
+     "at": "+17",
+     "cond": "inputs.vitals?.isSpO2Concerning ?? false",
+     "effect": "nil vitals → spo2PenaltyApplied false"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+DetailForwarding.swift::func RecoveryScoreCalculator.buildTierComposite(_:)": "83c2f2d8b97bfa6a",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+VitalsForwarding.swift::func RecoveryScoreCalculator.calculateVitalsScore(vitals:baselineStats:)": "b59dd8519dd71d65",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+VitalsForwarding.swift::func RecoveryScoreCalculator.vitalsPenaltyDescriptions(_:)": "f999067fc753885a",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.ScoreInputs.scoringWristTemperatureAgainstBaseline()": "80f5ec1a436e6a7f",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.composeFinalScore(weightedSum:vitals:missingSleep:)": "e2b0f7314f854d76",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.logScoreTriage(tier:composite:hasHRV:hasSleep:hasVitals:comebackModeActive:)": "6f582e26ae69f410",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.missingSleepPenaltyApplies(_:tier:config:)": "a0db52565e02ade0",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.tierInputs(_:vitalsScore:config:ansBalance:referenceDate:)": "3a49d7e1e08f9271",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(compositeScore:tier:factors:penalties:spo2PenaltyApplied:scoringVersion:)": "6d045d2ab75f0630",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.missingSleepPenaltyDescription": "7fe4b93ee9185313",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.isSpO2Concerning": "49a3d7fabe5624e5",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isComebackModeActive": "4a697d3be6c9e5eb"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCalculator.tierInputs(_:vitalsScore:config:ansBalance:referenceDate:)",
+   "hash": "1eb997005132d77f",
+   "does": "Builds TierInputs: tier1 score (rmssd nil → 0), sleep score only if enableSleepIntegration, vitals score, HRV detail via ScoreDetailBuilder.describeHRV, sleep data, comeback flag.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateTier1(rmssd:meanHR:dfaAlpha1:baselineStats:readiness:ansBalance:referenceDate:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateSleepScore(sleepData:typicalSleepHours:userAge:)",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.describeHRV(rmssd:baselineStats:meanHR:dfaAlpha1:hrvReadiness:ansBalance:referenceDate:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "inputs.rmssd ?? 0",
+     "effect": "nil rmssd passed as 0, which sends calculateTier1 to readiness / neutral fallback"
+    },
+    {
+     "at": "+13",
+     "cond": "config.enableSleepIntegration",
+     "effect": "false: sleepScore nil (forces tier 1 even with vitals); true: calculateSleepScore"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateSleepScore(sleepData:typicalSleepHours:userAge:)": "042f75023c6f6a31",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateTier1(rmssd:meanHR:dfaAlpha1:baselineStats:readiness:ansBalance:referenceDate:)": "89cf0881d7057b9f",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.describeHRV(rmssd:baselineStats:meanHR:dfaAlpha1:hrvReadiness:ansBalance:referenceDate:)": "4923fa3d00ee27f9",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isComebackModeActive": "4a697d3be6c9e5eb"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCalculator.missingSleepPenaltyApplies(_:tier:config:)",
+   "hash": "00d9f1a5adf0a25f",
+   "does": "True when tier==1, sleep integration on, penalize-missing-sleep on, and sleepData nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var RecoveryScoreCalculator.missingSleepPenaltyDescription",
+   "hash": "42e951367b02b8f6",
+   "does": "Localised missing-sleep penalty line from ScoreBreakdownCopy.missingSleepPenalty.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::var ScoreBreakdownCopy.missingSleepPenalty"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::var ScoreBreakdownCopy.missingSleepPenalty": "ba9e8171680faff8"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCalculator.logScoreTriage(tier:composite:hasHRV:hasSleep:hasVitals:comebackModeActive:)",
+   "hash": "ca171bbda96df74c",
+   "does": "DEBUG-only debugLog of tier/composite/input presence/comeback; no-op in Release.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:DebugLogger log (DEBUG builds only)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  }
+ ],
+ "deps": {}
+}

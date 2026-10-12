@@ -28,8 +28,12 @@ import Foundation
 /// tests into a real labeled-precision gate is worthwhile future work.
 ///
 /// **What this module does NOT do.** This is not an NLU framework;
-/// it's a curated set of top-N voice queries that map 1:1 to an
-/// existing fact-catalog read. Anything ambiguous, anything with
+/// it's a curated set of top-N voice queries, each answering what one
+/// fact-catalog read answers. The handlers do not go through
+/// `FactResolverRegistry`: they read `SessionArchive` and `UserSettings`
+/// directly and repeat the catalog's rules (e.g. the 0–10 → 0–100 recovery
+/// scaling), so a change to a catalog fact's semantics has to be made here
+/// too. Anything ambiguous, anything with
 /// mid-sentence parameters, anything that needs a tool call, anything
 /// in the speculation/medical/web band — falls through.
 ///
@@ -94,8 +98,13 @@ enum DeterministicIntent {
         triggers: [String]
     ) -> [NSRegularExpression] {
         if let hit = compiledCache[id] { return hit }
-        let regexes = triggers.compactMap {
-            try? NSRegularExpression(pattern: $0, options: [.caseInsensitive])
+        let regexes = triggers.compactMap { trigger -> NSRegularExpression? in
+            do {
+                return try NSRegularExpression(pattern: trigger, options: [.caseInsensitive])
+            } catch {
+                debugLog("[DeterministicIntent] pattern \(id) has a trigger that does not compile: \(error)", level: .warning)
+                return nil
+            }
         }
         compiledCache[id] = regexes
         return regexes
@@ -112,7 +121,7 @@ enum DeterministicIntent {
         Pattern(
             id: "recovery_score_today",
             triggers: [
-                #"^\s*(what(?:['']s| is)?(?:\smy)?|how(?:['']s| is)?\s+my)?\s*recovery(?:\s+score)?(?:\s+today)?\??\s*$"#,
+                #"^\s*(what(?:['’]?s| is)?(?:\smy)?|how(?:['’]?s| is)?\s+my)?\s*recovery(?:\s+score)?(?:\s+today)?\??\s*$"#,
                 #"^\s*how\s+(?:am|are)\s+(?:i|we)\s+doing(?:\s+today)?\??\s*$"#,
                 #"^\s*recovery\??\s*$"#
             ],
@@ -139,13 +148,13 @@ enum DeterministicIntent {
         Pattern(
             id: "resting_hr_today",
             triggers: [
-                #"^\s*(what(?:['']s| is)?(?:\smy)?|how(?:['']s| is)?\s+my)?\s*(?:resting\s+(?:heart\s+rate|hr|pulse)|rhr)(?:\s+today)?\??\s*$"#,
+                #"^\s*(what(?:['’]?s| is)?(?:\smy)?|how(?:['’]?s| is)?\s+my)?\s*(?:resting\s+(?:heart\s+rate|hr|pulse)|rhr)(?:\s+today)?\??\s*$"#,
                 #"^\s*rhr\??\s*$"#
             ],
             handler: { _, ctx in
                 let recent = Self.todaysOvernightEntry(now: ctx.now, archive: ctx.archive)
                 guard let entry = recent,
-                      let session = try? ctx.archive.retrieve(entry.sessionId),
+                      let session = ctx.archive.retrieveLightweightOrLog(entry.sessionId),
                       let rhr = session.vitalsSnapshot?.restingHeartRate
                 else { return nil }
                 let bpm = Int(rhr.rounded())
@@ -157,7 +166,7 @@ enum DeterministicIntent {
         Pattern(
             id: "hrv_rmssd_today",
             triggers: [
-                #"^\s*(what(?:['']s| is)?(?:\smy)?)?\s*(?:rmssd|hrv)(?:\s+today)?\??\s*$"#
+                #"^\s*(what(?:['’]?s| is)?(?:\smy)?)?\s*(?:rmssd|hrv)(?:\s+today)?\??\s*$"#
             ],
             handler: { _, ctx in
                 let recent = Self.todaysOvernightEntry(now: ctx.now, archive: ctx.archive)
@@ -177,7 +186,7 @@ enum DeterministicIntent {
             handler: { _, ctx in
                 let recent = Self.todaysOvernightEntry(now: ctx.now, archive: ctx.archive)
                 guard let entry = recent,
-                      let session = try? ctx.archive.retrieve(entry.sessionId),
+                      let session = ctx.archive.retrieveLightweightOrLog(entry.sessionId),
                       let sleep = session.sleepSnapshot
                 else { return nil }
                 let slept = spokenDuration(minutes: sleep.nightSleepMinutes)
@@ -221,13 +230,15 @@ enum DeterministicIntent {
             handler: { utterance, ctx in
                 let isYesterday = utterance.contains("yesterday")
                 let target = dayStart(isYesterday: isYesterday, now: ctx.now)
-                let match = ctx.archive.entries
-                    .first {
-                        $0.sessionType == .workout
-                            && Calendar.current.isDate($0.date, inSameDayAs: target)
+                // Every workout that day counts: two sessions are one
+                // answer of their combined time, not the newest one's.
+                let sameDay = ctx.archive.entries.filter {
+                    $0.sessionType == .workout && Calendar.current.isDate($0.date, inSameDayAs: target)
+                }
+                if !sameDay.isEmpty {
+                    let mins = sameDay.reduce(0) { total, m in
+                        total + (m.endDate.map { Int($0.timeIntervalSince(m.date) / 60) } ?? 0)
                     }
-                if let m = match {
-                    let mins = m.endDate.map { Int($0.timeIntervalSince(m.date) / 60) } ?? 0
                     return trainedReply(minutes: mins)
                 }
                 return isYesterday
@@ -246,12 +257,12 @@ enum DeterministicIntent {
         Pattern(
             id: "score_breakdown_today",
             triggers: [
-                #"^\s*(?:what(?:['']s| is)?\s+)?(?:my\s+)?score\s+breakdown(?:\s+today)?\??\s*$"#,
+                #"^\s*(?:what(?:['’]?s| is)?\s+)?(?:my\s+)?score\s+breakdown(?:\s+today)?\??\s*$"#,
                 #"^\s*why\s+(?:is\s+)?my\s+score(?:\s+\w+)?\??\s*$"# // "why is my score this"
             ],
             handler: { _, ctx in
                 guard let entry = Self.todaysOvernightEntry(now: ctx.now, archive: ctx.archive),
-                      let session = try? ctx.archive.retrieve(entry.sessionId),
+                      let session = ctx.archive.retrieveLightweightOrLog(entry.sessionId),
                       let breakdown = session.scoreBreakdown
                 else { return nil }
                 // ScoreBreakdown stores per-factor sub-scores in
@@ -269,17 +280,19 @@ enum DeterministicIntent {
             }
         ),
 
-        // Sleep stage breakdown — deep / REM / light / awake
+        // Sleep stage breakdown — total, deep and REM. A light-sleep question
+        // is not matched: the reply does not state light sleep, so the LLM
+        // answers it.
         Pattern(
             id: "sleep_stages_last_night",
             triggers: [
-                #"^\s*(?:how\s+much\s+)?(?:deep\s+sleep|rem\s+sleep|light\s+sleep)(?:\s+(?:did\s+i\s+get|last\s+night))?\??\s*$"#,
+                #"^\s*(?:how\s+much\s+)?(?:deep\s+sleep|rem\s+sleep)(?:\s+(?:did\s+i\s+get|last\s+night))?\??\s*$"#,
                 #"^\s*sleep\s+stages\??\s*$"#,
                 #"^\s*sleep\s+breakdown\??\s*$"#
             ],
             handler: { _, ctx in
                 guard let entry = Self.todaysOvernightEntry(now: ctx.now, archive: ctx.archive),
-                      let session = try? ctx.archive.retrieve(entry.sessionId),
+                      let session = ctx.archive.retrieveLightweightOrLog(entry.sessionId),
                       let sleep = session.sleepSnapshot
                 else { return nil }
                 // "Total" is the Sleep page's total: the night plus any
@@ -300,7 +313,7 @@ enum DeterministicIntent {
         Pattern(
             id: "body_weight",
             triggers: [
-                #"^\s*(?:what(?:['']s| is)?\s+)?(?:my\s+)?(?:body\s+)?weight\??\s*$"#,
+                #"^\s*(?:what(?:['’]?s| is)?\s+)?(?:my\s+)?(?:body\s+)?weight\??\s*$"#,
                 #"^\s*how\s+(?:much\s+)?(?:do\s+)?(?:i\s+)?weigh(?:\s+now)?\??\s*$"#
             ],
             handler: { _, ctx in
@@ -317,7 +330,7 @@ enum DeterministicIntent {
         Pattern(
             id: "max_hr",
             triggers: [
-                #"^\s*(?:what(?:['']s| is)?\s+)?(?:my\s+)?max(?:imum)?\s+(?:heart\s+rate|hr)\??\s*$"#,
+                #"^\s*(?:what(?:['’]?s| is)?\s+)?(?:my\s+)?max(?:imum)?\s+(?:heart\s+rate|hr)\??\s*$"#,
                 #"^\s*max\s+hr\??\s*$"#
             ],
             handler: { _, ctx in
@@ -331,7 +344,7 @@ enum DeterministicIntent {
         Pattern(
             id: "lthr",
             triggers: [
-                #"^\s*(?:what(?:['']s| is)?\s+)?(?:my\s+)?(?:lthr|lactate\s+threshold(?:\s+hr)?)\??\s*$"#
+                #"^\s*(?:what(?:['’]?s| is)?\s+)?(?:my\s+)?(?:lthr|lactate\s+threshold(?:\s+hr)?)\??\s*$"#
             ],
             handler: { _, ctx in
                 guard let lthr = ctx.userSettings.lactateThresholdHR, lthr >= MaxHeartRate.minimumUserEntered else { return nil }
@@ -348,7 +361,7 @@ enum DeterministicIntent {
             ],
             handler: { _, ctx in
                 guard let entry = Self.todaysOvernightEntry(now: ctx.now, archive: ctx.archive),
-                      let session = try? ctx.archive.retrieve(entry.sessionId),
+                      let session = ctx.archive.retrieveLightweightOrLog(entry.sessionId),
                       let mins = session.sleepSnapshot?.sleepLatencyMinutes
                 else { return nil }
                 // The Sleep page's latency (stage timeline first): plain
@@ -363,11 +376,11 @@ enum DeterministicIntent {
         Pattern(
             id: "sleep_efficiency",
             triggers: [
-                #"^\s*(?:what(?:['']s| was)?\s+)?(?:my\s+)?sleep\s+efficiency\??\s*$"#
+                #"^\s*(?:what(?:['’]?s| was)?\s+)?(?:my\s+)?sleep\s+efficiency\??\s*$"#
             ],
             handler: { _, ctx in
                 guard let entry = Self.todaysOvernightEntry(now: ctx.now, archive: ctx.archive),
-                      let session = try? ctx.archive.retrieve(entry.sessionId),
+                      let session = ctx.archive.retrieveLightweightOrLog(entry.sessionId),
                       let sleep = session.sleepSnapshot
                 else { return nil }
                 // Efficiency is a 0–100 percentage, nil when the night's wake was not measured.

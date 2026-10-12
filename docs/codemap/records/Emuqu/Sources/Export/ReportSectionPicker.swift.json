@@ -1,0 +1,330 @@
+{
+ "file": "Emuqu/Sources/Export/ReportSectionPicker.swift",
+ "hash": "14d1d24976146db3",
+ "role": "SwiftUI sheet letting the user pick report sections (presets Summary / Full Report / Sleep Report, per-section toggles, Summary/Comprehensive detail level) before generating a PDF; calls onGenerate(style, sections).",
+ "types": [
+  "ReportSectionPicker: struct (View) — section/preset/detail-level picker sheet presented from MorningResultsView+Actions"
+ ],
+ "state": [
+  "mem:ReportSectionPicker.sections (@State, initial = all ∩ available ∪ hrvSummary)",
+  "mem:ReportSectionPicker.style (@State, default .comprehensive)",
+  "onGenerate closure (let)",
+  "availableSections (let)"
+ ],
+ "toplevel": "Stored @Environment(\\.dismiss). No other top-level code.",
+ "flags": [],
+ "units": [
+  {
+   "key": "init ReportSectionPicker(onGenerate:availableSections:)",
+   "hash": "eb34f18f9e40d8d3",
+   "does": "Stores the onGenerate callback and availableSections (default .all), and seeds the sections state to every section that has data plus hrvSummary (the Full Report preset).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var ReportSectionPicker.body",
+   "hash": "118c21ab8df97046",
+   "does": "Navigation stack with a List of the presets, section toggles and detail-level picker, inline title 'Report Sections' and the Cancel/Generate toolbar.",
+   "entry": "SwiftUI body of the sheet presented by MorningResultsView+Actions (emailSectionPickerSheet / reportSectionPickerSheet)",
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionPicker.swift::var ReportSectionPicker.presetsSection",
+    "Emuqu/Sources/Export/ReportSectionPicker.swift::var ReportSectionPicker.sectionsSection",
+    "Emuqu/Sources/Export/ReportSectionPicker.swift::var ReportSectionPicker.detailLevelSection",
+    "Emuqu/Sources/Export/ReportSectionPicker.swift::var ReportSectionPicker.pickerToolbar",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/ReportSectionPicker.swift::var ReportSectionPicker.detailLevelSection": "f7dbebdf8397b53c",
+    "Emuqu/Sources/Export/ReportSectionPicker.swift::var ReportSectionPicker.pickerToolbar": "89ff8e88c595126e",
+    "Emuqu/Sources/Export/ReportSectionPicker.swift::var ReportSectionPicker.presetsSection": "76b290f820e0b64e",
+    "Emuqu/Sources/Export/ReportSectionPicker.swift::var ReportSectionPicker.sectionsSection": "2606f57c8ade9038",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var ReportSectionPicker.pickerToolbar",
+   "hash": "9d81714f6c07afcf",
+   "does": "Toolbar with a Cancel button (dismiss) and the Generate button.",
+   "entry": "SwiftUI toolbar builder; Cancel button tap dismisses the sheet",
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionPicker.swift::var ReportSectionPicker.generateButton",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/ReportSectionPicker.swift::var ReportSectionPicker.generateButton": "547eaf251fac7f2c",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var ReportSectionPicker.generateButton",
+   "hash": "2f7b4ca1ad80151d",
+   "does": "Generate button: dismisses the sheet then invokes onGenerate(style, sections). Always enabled: sections always holds hrvSummary.",
+   "entry": "SwiftUI button tap",
+   "calls": [
+    "closure:onGenerate — set by MorningResultsView+Actions.swift:184 (emailReport) and :307 (exportPDF)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var ReportSectionPicker.presetsSection",
+   "hash": "16595243e0a9ff9b",
+   "does": "Section with three preset rows: Summary (summaryPreset, .summary), Full Report (.all, .comprehensive), Sleep Report (sleepPreset, .summary).",
+   "entry": "SwiftUI view property",
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionPicker.swift::func ReportSectionPicker.presetRow(_:icon:preset:presetStyle:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/ReportSectionPicker.swift::func ReportSectionPicker.presetRow(_:icon:preset:presetStyle:)": "23c0dc452347fcb3",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var ReportSectionPicker.detailLevelSection",
+   "hash": "097a88b656716b47",
+   "does": "Segmented picker binding style to Summary/Comprehensive with a footer explaining Comprehensive only adds deep-dive pages when Deep-Dive is enabled.",
+   "entry": "SwiftUI view property; picker selection writes @State style",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [
+    "mem:ReportSectionPicker.style"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func ReportSectionPicker.sectionToggle(_:)",
+   "hash": "5f098f3405e41025",
+   "does": "A Toggle for one section bound via binding(for:), labelled with the localized label/icon, disabled when the section is not in availableSections.",
+   "entry": "SwiftUI view builder",
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionPicker.swift::func ReportSectionPicker.binding(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "380cb385515abafc",
+    "Emuqu/Sources/Export/ReportSectionPicker.swift::func ReportSectionPicker.binding(for:)": "82f72bc24a561f06",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+   }
+  },
+  {
+   "key": "func ReportSectionPicker.binding(for:)",
+   "hash": "33b59b4579766fab",
+   "does": "Returns a Binding<Bool> that reads whether sections contains the bit and inserts/removes it on set.",
+   "entry": "Binding get/set invoked by SwiftUI Toggle",
+   "calls": [],
+   "reads": [
+    "mem:ReportSectionPicker.sections"
+   ],
+   "writes": [
+    "mem:ReportSectionPicker.sections"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "new toggle value is true",
+     "effect": "inserts the section bit; false → removes it"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var ReportSectionPicker.sectionsSection",
+   "hash": "2325a5fa37ed6820",
+   "does": "Section listing a toggle per ReportSections.sectionLabels entry (ForEach keyed by label) with a footer saying unavailable sections are greyed out.",
+   "entry": "SwiftUI view property",
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::var PDFReportGenerator.ReportSections.sectionLabels",
+    "Emuqu/Sources/Export/ReportSectionPicker.swift::func ReportSectionPicker.sectionToggle(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "USERS_MANUAL describes the Email Report section choice as three groups (Metrics & Data, Visualizations, Analysis Summary); the picker actually offers seven toggles (Overnight Stats, Sleep, Training Load, Vitals, Score Breakdown, Charts, Deep-Dive) plus three presets, and the analysis-summary page has no switch of its own (it rides on Deep-Dive + Comprehensive).",
+     "evidence": [
+      "docs/USERS_MANUAL.md:956",
+      "docs/USERS_MANUAL.md:959",
+      "Emuqu/Sources/Export/PDFReportGenerator.swift:56",
+      "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift:181"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::var PDFReportGenerator.ReportSections.sectionLabels": "ddae913f7cc8a645",
+    "Emuqu/Sources/Export/ReportSectionPicker.swift::func ReportSectionPicker.sectionToggle(_:)": "a704cbfbc97645c8",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func ReportSectionPicker.presetRow(_:icon:preset:presetStyle:)",
+   "hash": "b0c1740be7f0fca5",
+   "does": "A Button row that applies the preset on tap, labelled by presetRowLabel.",
+   "entry": "SwiftUI button tap applies the preset",
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionPicker.swift::func ReportSectionPicker.applyPreset(_:style:)",
+    "Emuqu/Sources/Export/ReportSectionPicker.swift::func ReportSectionPicker.presetRowLabel(_:icon:preset:presetStyle:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/ReportSectionPicker.swift::func ReportSectionPicker.applyPreset(_:style:)": "24ad1e8141f65483",
+    "Emuqu/Sources/Export/ReportSectionPicker.swift::func ReportSectionPicker.presetRowLabel(_:icon:preset:presetStyle:)": "fd843a7eaef18822"
+   }
+  },
+  {
+   "key": "func ReportSectionPicker.applyPreset(_:style:)",
+   "hash": "0bdabe305bb2fd94",
+   "does": "Animated: sets sections to preset ∩ availableSections, adding hrvSummary back if the preset has it, and sets style to the preset's style.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:ReportSectionPicker.sections",
+    "mem:ReportSectionPicker.style"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "preset contains .hrvSummary",
+     "effect": "true → hrvSummary unioned back in; false → nothing added (never happens: all three presets contain hrvSummary)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ReportSectionPicker.presetRowLabel(_:icon:preset:presetStyle:)",
+   "hash": "4522aed6c7249514",
+   "does": "HStack of the preset label/icon, a spacer and the checkmark.",
+   "entry": "SwiftUI view builder",
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionPicker.swift::func ReportSectionPicker.presetCheckmark(_:presetStyle:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/ReportSectionPicker.swift::func ReportSectionPicker.presetCheckmark(_:presetStyle:)": "5b00d601b556a61d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+   }
+  },
+  {
+   "key": "func ReportSectionPicker.presetCheckmark(_:presetStyle:)",
+   "hash": "f194ff3768f8c975",
+   "does": "Shows a checkmark only on the preset that matchedPreset returns, so at most one row is checked.",
+   "entry": "SwiftUI @ViewBuilder",
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionPicker.swift::var ReportSectionPicker.matchedPreset"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "matchedPreset equals this preset and style",
+     "effect": "true → checkmark image; false → empty view"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/ReportSectionPicker.swift::var ReportSectionPicker.matchedPreset": "0c39a0a7199725a1",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+   }
+  },
+  {
+   "key": "var ReportSectionPicker.matchedPreset",
+   "hash": "5828e9f8cd54ab77",
+   "does": "The first preset in list order (Summary, Full Report, Sleep Report, each with its style) that sectionsMatch the current selection, or nil. When two presets reduce to the same sections (missing data), only the first is returned.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionPicker.swift::func ReportSectionPicker.sectionsMatch(_:style:)"
+   ],
+   "reads": [
+    "mem:ReportSectionPicker.sections",
+    "mem:ReportSectionPicker.style"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/ReportSectionPicker.swift::func ReportSectionPicker.sectionsMatch(_:style:)": "eb1724fda1cdc52f"
+   }
+  },
+  {
+   "key": "func ReportSectionPicker.sectionsMatch(_:style:)",
+   "hash": "a9a874b46eebe779",
+   "does": "True when sections equals preset ∩ availableSections (∪ hrvSummary if preset has it) AND style equals the preset style.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:ReportSectionPicker.sections",
+    "mem:ReportSectionPicker.style"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "preset contains .hrvSummary",
+     "effect": "adds hrvSummary to the comparison set; false → [] (unreachable for the three presets)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

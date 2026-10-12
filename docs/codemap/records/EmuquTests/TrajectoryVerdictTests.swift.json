@@ -1,0 +1,559 @@
+{
+ "file": "EmuquTests/TrajectoryVerdictTests.swift",
+ "hash": "f549351068b88175",
+ "role": "XCTest suite table-driving every threshold edge of TrajectoryVerdict.compute: mode precedence, the sampleCount > 7 / week-ago gate, rising delta > 1.5 and rapid rampRate > 8, the −1.5 detraining deadband gated on TSB < −5, deep-fatigue highStrain below −15, and the rampRate == 0 fallback.",
+ "types": [
+  "TrajectoryVerdictTests: class — XCTestCase over TrajectoryVerdict.compute"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "duplicate",
+   "sev": "low",
+   "text": "TrajectoryAndGPXRoundTripTests re-tests the same TrajectoryVerdict.compute precedence, baseline gate, deep-fatigue, rising/rapid and rampRate==0 fallback cases this file table-drives, with its own second inputs() builder (defaults CTL 50/48 there vs 40/40 here).",
+   "evidence": [
+    "EmuquTests/TrajectoryVerdictTests.swift:12",
+    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift:270",
+    "EmuquTests/TrajectoryAndGPXRoundTripTests.swift:39"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "test-defect",
+   "sev": "low",
+   "text": "Stale comments: the file doc calls compute an \"8-branch\" classifier but TrajectoryVerdict has 9 cases (TrajectoryVerdict.swift:15-23), and the falling-branch note says \"regardless of the flag's state\" for a flag that no longer exists in compute (TrajectoryVerdict.swift:197-227).",
+   "evidence": [
+    "EmuquTests/TrajectoryVerdictTests.swift:5",
+    "EmuquTests/TrajectoryVerdictTests.swift:94",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift:197"
+   ],
+   "found": "second read"
+  }
+ ],
+ "units": [
+  {
+   "key": "func TrajectoryVerdictTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)",
+   "hash": "27fcf52ac40bff9c",
+   "does": "Test helper: TrajectoryVerdict.Inputs with defaults CTL 40, week-ago 40, 30 samples, no modes, ramp 0, TSB nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "e34710ee41988efb"
+   }
+  },
+  {
+   "key": "func TrajectoryVerdictTests.testComebackWinsEvenWithRapidRamp()",
+   "hash": "6e02f32760a043e2",
+   "does": "Asserts comeback wins over a 12 ramp.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrajectoryVerdictTests.swift::func TrajectoryVerdictTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "545fcce91462ea50",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)": "d4884cbaba89725a",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "e34710ee41988efb",
+    "EmuquTests/TrajectoryVerdictTests.swift::func TrajectoryVerdictTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "302130c63e73e5fb"
+   }
+  },
+  {
+   "key": "func TrajectoryVerdictTests.testOverreachWinsOverAutomatic()",
+   "hash": "4628a50d0a926d15",
+   "does": "Asserts overreach wins over a 12 ramp.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrajectoryVerdictTests.swift::func TrajectoryVerdictTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "545fcce91462ea50",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)": "d4884cbaba89725a",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "e34710ee41988efb",
+    "EmuquTests/TrajectoryVerdictTests.swift::func TrajectoryVerdictTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "302130c63e73e5fb"
+   }
+  },
+  {
+   "key": "func TrajectoryVerdictTests.testPeakingWinsOverAutomatic()",
+   "hash": "327e2fb86d1c575e",
+   "does": "Asserts peaking wins over a −5 ramp.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrajectoryVerdictTests.swift::func TrajectoryVerdictTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "545fcce91462ea50",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)": "d4884cbaba89725a",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "e34710ee41988efb",
+    "EmuquTests/TrajectoryVerdictTests.swift::func TrajectoryVerdictTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "302130c63e73e5fb"
+   }
+  },
+  {
+   "key": "func TrajectoryVerdictTests.testComebackTakesPriorityOverOverreachAndPeaking()",
+   "hash": "5c9f57d7e99ab88a",
+   "does": "Asserts comeback wins over overreach and peaking together.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrajectoryVerdictTests.swift::func TrajectoryVerdictTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "545fcce91462ea50",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)": "d4884cbaba89725a",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "e34710ee41988efb",
+    "EmuquTests/TrajectoryVerdictTests.swift::func TrajectoryVerdictTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "302130c63e73e5fb"
+   }
+  },
+  {
+   "key": "func TrajectoryVerdictTests.testSampleCountAtGateReturnsBuildingBaseline()",
+   "hash": "3ef80cd700ed26fa",
+   "does": "Asserts sampleCount 7 with ramp 5 → buildingBaseline.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrajectoryVerdictTests.swift::func TrajectoryVerdictTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "545fcce91462ea50",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)": "d4884cbaba89725a",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "e34710ee41988efb",
+    "EmuquTests/TrajectoryVerdictTests.swift::func TrajectoryVerdictTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "302130c63e73e5fb"
+   }
+  },
+  {
+   "key": "func TrajectoryVerdictTests.testSampleCountJustAboveGateProceeds()",
+   "hash": "23ac3385da1e0714",
+   "does": "Asserts sampleCount 8 with ramp 5 → building.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrajectoryVerdictTests.swift::func TrajectoryVerdictTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "545fcce91462ea50",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)": "d4884cbaba89725a",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "e34710ee41988efb",
+    "EmuquTests/TrajectoryVerdictTests.swift::func TrajectoryVerdictTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "302130c63e73e5fb"
+   }
+  },
+  {
+   "key": "func TrajectoryVerdictTests.testNilWeekAgoCTLReturnsBuildingBaseline()",
+   "hash": "06b62edf94ca649d",
+   "does": "Asserts nil week-ago CTL → buildingBaseline.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrajectoryVerdictTests.swift::func TrajectoryVerdictTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "545fcce91462ea50",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)": "d4884cbaba89725a",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "e34710ee41988efb",
+    "EmuquTests/TrajectoryVerdictTests.swift::func TrajectoryVerdictTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "302130c63e73e5fb"
+   }
+  },
+  {
+   "key": "func TrajectoryVerdictTests.testDeltaJustAboveRisingThresholdBuilds()",
+   "hash": "323be48c46e2c12e",
+   "does": "Asserts ramp 1.6 → building.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrajectoryVerdictTests.swift::func TrajectoryVerdictTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "545fcce91462ea50",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)": "d4884cbaba89725a",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "e34710ee41988efb",
+    "EmuquTests/TrajectoryVerdictTests.swift::func TrajectoryVerdictTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "302130c63e73e5fb"
+   }
+  },
+  {
+   "key": "func TrajectoryVerdictTests.testDeltaAtRisingThresholdMaintains()",
+   "hash": "b126fdbbd772a35f",
+   "does": "Asserts ramp exactly 1.5 → maintaining (strict >).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrajectoryVerdictTests.swift::func TrajectoryVerdictTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "545fcce91462ea50",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)": "d4884cbaba89725a",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "e34710ee41988efb",
+    "EmuquTests/TrajectoryVerdictTests.swift::func TrajectoryVerdictTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "302130c63e73e5fb"
+   }
+  },
+  {
+   "key": "func TrajectoryVerdictTests.testRampRateAtRapidBoundaryStillBuilds()",
+   "hash": "9933f040d8555ddd",
+   "does": "Asserts ramp exactly 8.0 → building (rapid needs > 8).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrajectoryVerdictTests.swift::func TrajectoryVerdictTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "545fcce91462ea50",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)": "d4884cbaba89725a",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "e34710ee41988efb",
+    "EmuquTests/TrajectoryVerdictTests.swift::func TrajectoryVerdictTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "302130c63e73e5fb"
+   }
+  },
+  {
+   "key": "func TrajectoryVerdictTests.testRampRateJustAboveRapidBoundaryIsRapidIncrease()",
+   "hash": "d93c1e3d92fcd33c",
+   "does": "Asserts ramp 8.1 → rapidIncrease.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrajectoryVerdictTests.swift::func TrajectoryVerdictTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "545fcce91462ea50",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)": "d4884cbaba89725a",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "e34710ee41988efb",
+    "EmuquTests/TrajectoryVerdictTests.swift::func TrajectoryVerdictTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "302130c63e73e5fb"
+   }
+  },
+  {
+   "key": "func TrajectoryVerdictTests.testFallingWithFreshTSBIsDetraining()",
+   "hash": "05dd5338f8de9f05",
+   "does": "Asserts ramp −1.6 at TSB −4 → detraining.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrajectoryVerdictTests.swift::func TrajectoryVerdictTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "545fcce91462ea50",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)": "d4884cbaba89725a",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "e34710ee41988efb",
+    "EmuquTests/TrajectoryVerdictTests.swift::func TrajectoryVerdictTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "302130c63e73e5fb"
+   }
+  },
+  {
+   "key": "func TrajectoryVerdictTests.testFallingWithFatiguedTSBIsMaintaining()",
+   "hash": "1e54d802c8547f9a",
+   "does": "Asserts ramp −1.6 at TSB −6 → maintaining.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrajectoryVerdictTests.swift::func TrajectoryVerdictTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "545fcce91462ea50",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)": "d4884cbaba89725a",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "e34710ee41988efb",
+    "EmuquTests/TrajectoryVerdictTests.swift::func TrajectoryVerdictTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "302130c63e73e5fb"
+   }
+  },
+  {
+   "key": "func TrajectoryVerdictTests.testTSBAtSuppressionBoundaryIsDetraining()",
+   "hash": "d3675419b2995226",
+   "does": "Asserts ramp −1.6 at TSB exactly −5 → detraining (strict < −5).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrajectoryVerdictTests.swift::func TrajectoryVerdictTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "545fcce91462ea50",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)": "d4884cbaba89725a",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "e34710ee41988efb",
+    "EmuquTests/TrajectoryVerdictTests.swift::func TrajectoryVerdictTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "302130c63e73e5fb"
+   }
+  },
+  {
+   "key": "func TrajectoryVerdictTests.testFallingWithNilTSBIsDetraining()",
+   "hash": "4800c051e808d577",
+   "does": "Asserts ramp −1.6 with nil TSB → detraining.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrajectoryVerdictTests.swift::func TrajectoryVerdictTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "545fcce91462ea50",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)": "d4884cbaba89725a",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "e34710ee41988efb",
+    "EmuquTests/TrajectoryVerdictTests.swift::func TrajectoryVerdictTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "302130c63e73e5fb"
+   }
+  },
+  {
+   "key": "func TrajectoryVerdictTests.testDeltaJustAboveFallingThresholdMaintains()",
+   "hash": "9fd635077045e97c",
+   "does": "Asserts ramps −0.9 and −1.5 at TSB −4 → maintaining (deadband) and −1.6 → detraining.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrajectoryVerdictTests.swift::func TrajectoryVerdictTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "545fcce91462ea50",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)": "d4884cbaba89725a",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "e34710ee41988efb",
+    "EmuquTests/TrajectoryVerdictTests.swift::func TrajectoryVerdictTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "302130c63e73e5fb"
+   }
+  },
+  {
+   "key": "func TrajectoryVerdictTests.testDeepNegativeTSBWithFallingCTLIsHighStrain()",
+   "hash": "4454f2b3120dca92",
+   "does": "Asserts ramp −2 at TSB deepFatigueOverreachTSB − 5 (−20) → highStrain.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrajectoryVerdictTests.swift::func TrajectoryVerdictTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "545fcce91462ea50",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)": "d4884cbaba89725a",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "e34710ee41988efb",
+    "EmuquTests/TrajectoryVerdictTests.swift::func TrajectoryVerdictTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "302130c63e73e5fb"
+   }
+  },
+  {
+   "key": "func TrajectoryVerdictTests.testBuildingRampWithDeepFatigueIsHighStrain()",
+   "hash": "2c055196ff27e237",
+   "does": "Asserts ramps 2 and 12 at TSB −16 → highStrain (deep fatigue outranks building and rapid).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrajectoryVerdictTests.swift::func TrajectoryVerdictTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "545fcce91462ea50",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)": "d4884cbaba89725a",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "e34710ee41988efb",
+    "EmuquTests/TrajectoryVerdictTests.swift::func TrajectoryVerdictTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "302130c63e73e5fb"
+   }
+  },
+  {
+   "key": "func TrajectoryVerdictTests.testFlatCTLWithDeepFatigueIsHighStrain()",
+   "hash": "f7f1f54f61006137",
+   "does": "Asserts ramp 0.5 at TSB −18 → highStrain.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrajectoryVerdictTests.swift::func TrajectoryVerdictTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "545fcce91462ea50",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)": "d4884cbaba89725a",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "e34710ee41988efb",
+    "EmuquTests/TrajectoryVerdictTests.swift::func TrajectoryVerdictTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "302130c63e73e5fb"
+   }
+  },
+  {
+   "key": "func TrajectoryVerdictTests.testTSBAtDeepFatigueBoundaryStaysMaintaining()",
+   "hash": "81bf708a82f635df",
+   "does": "Asserts ramp −2 at TSB exactly −15 → maintaining (not deep; TSB < −5 keeps it from detraining).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrajectoryVerdictTests.swift::func TrajectoryVerdictTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "545fcce91462ea50",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)": "d4884cbaba89725a",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "e34710ee41988efb",
+    "EmuquTests/TrajectoryVerdictTests.swift::func TrajectoryVerdictTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "302130c63e73e5fb"
+   }
+  },
+  {
+   "key": "func TrajectoryVerdictTests.testModerateFatigueBetweenGatesStaysMaintaining()",
+   "hash": "7a1add6483bf7d27",
+   "does": "Asserts ramp −2 at TSB −12 → maintaining and at TSB −4 → detraining.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrajectoryVerdictTests.swift::func TrajectoryVerdictTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "545fcce91462ea50",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)": "d4884cbaba89725a",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "e34710ee41988efb",
+    "EmuquTests/TrajectoryVerdictTests.swift::func TrajectoryVerdictTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "302130c63e73e5fb"
+   }
+  },
+  {
+   "key": "func TrajectoryVerdictTests.testFlatRampMaintains()",
+   "hash": "8c1f3e015ba2cce2",
+   "does": "Asserts ramp 0 with equal CTLs → maintaining (fallback delta 0).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrajectoryVerdictTests.swift::func TrajectoryVerdictTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "545fcce91462ea50",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)": "d4884cbaba89725a",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "e34710ee41988efb",
+    "EmuquTests/TrajectoryVerdictTests.swift::func TrajectoryVerdictTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "302130c63e73e5fb"
+   }
+  },
+  {
+   "key": "func TrajectoryVerdictTests.testZeroRampFallsBackToCTLDelta()",
+   "hash": "6e217ef7c8fbd9df",
+   "does": "Asserts ramp 0 with CTL 50 vs 45 → building via the CTL-delta fallback.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrajectoryVerdictTests.swift::func TrajectoryVerdictTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "545fcce91462ea50",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)": "d4884cbaba89725a",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "e34710ee41988efb",
+    "EmuquTests/TrajectoryVerdictTests.swift::func TrajectoryVerdictTests.inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "302130c63e73e5fb"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -278,8 +278,12 @@ final class IntegrationTests: XCTestCase {
         let calendar = Calendar.current
         let anchor = calendar.startOfDay(for: Date(timeIntervalSince1970: 1_700_000_000))
 
+        // 23:00 to 03:00 the next morning: a recording that stopped before the
+        // 06:00 wake, so the night's later sleep falls after its end.
         let start = try XCTUnwrap(calendar.date(byAdding: .hour, value: 23, to: anchor))
-        let end = try XCTUnwrap(calendar.date(byAdding: .hour, value: 3, to: anchor))
+        let nextDay = try XCTUnwrap(calendar.date(byAdding: .day, value: 1, to: anchor))
+        let end = try XCTUnwrap(calendar.date(byAdding: .hour, value: 3, to: nextDay))
+        XCTAssertGreaterThan(end, start, "fixture: the recording must end after it starts")
 
         let session = makeSession(start: start, end: end, state: .complete, type: .overnight)
         let window = HRVSession.sleepFetchWindow(

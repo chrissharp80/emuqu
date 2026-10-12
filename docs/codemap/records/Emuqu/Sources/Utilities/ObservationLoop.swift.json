@@ -1,0 +1,129 @@
+{
+ "file": "Emuqu/Sources/Utilities/ObservationLoop.swift",
+ "hash": "869dd7cd3788cbeb",
+ "role": "Replacement for Combine @Published sinks: a self-re-arming withObservationTracking loop that calls onChange on the main actor each time observed @Observable state changes, with a cancel handle.",
+ "types": [
+  "ObservationHandle: class (@MainActor) — cancellation flag for one loop",
+  "ObservationLoop: enum (@MainActor) — namespace with observe/deliverInitial/arm/fire"
+ ],
+ "state": [
+  "mem:ObservationHandle.isCancelled (per-handle, private(set))"
+ ],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "untested",
+   "sev": "low",
+   "text": "No test in EmuquTests references ObservationLoop or ObservationHandle, although it drives bindings in RRCollector, WorkoutTicker, AssistantViewModel, HistoryViewModel and WatchConnectivityBridge.",
+   "evidence": [
+    "Emuqu/Sources/Utilities/ObservationLoop.swift:32",
+    "Emuqu/Sources/Collection/RRCollector+Bindings.swift"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func ObservationHandle.cancel()",
+   "hash": "4cb10d260bfdf73a",
+   "does": "Sets isCancelled = true so the next fire()/deliverInitial() returns without delivering or re-arming; the currently armed withObservationTracking still fires once (into a no-op).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ObservationLoop.observe(_:initial:read:onChange:)",
+   "hash": "8103734772117e29",
+   "does": "Creates an ObservationHandle, optionally schedules a one-hop-deferred initial delivery, arms the first withObservationTracking pass reading `read(owner)`, and returns the handle (discardable).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/ObservationLoop.swift::func ObservationLoop.deliverInitial(_:handle:read:onChange:)",
+    "Emuqu/Sources/Utilities/ObservationLoop.swift::func ObservationLoop.arm(_:handle:read:onChange:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "initial == true",
+     "effect": "schedules deliverInitial (deferred Task on main actor) before arming; when false only arms, so the first callback happens on the first change (replaces .dropFirst())"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/StoreKitManager.swift::func handle(_:)": "4ca4c631cc8c2212",
+    "Emuqu/Sources/Utilities/ObservationLoop.swift::func ObservationLoop.arm(_:handle:read:onChange:)": "04d6a8c9f34782d8",
+    "Emuqu/Sources/Utilities/ObservationLoop.swift::func ObservationLoop.deliverInitial(_:handle:read:onChange:)": "e67e68bf9f0c1c96"
+   }
+  },
+  {
+   "key": "func ObservationLoop.deliverInitial(_:handle:read:onChange:)",
+   "hash": "93c3adcbed257fdd",
+   "does": "Spawns a @MainActor Task holding owner weakly that calls onChange(owner, read(owner)) once, unless the owner was released or the handle cancelled.",
+   "entry": null,
+   "calls": [
+    "closure:onChange/read supplied by observe() callers (RRCollector+Bindings, WorkoutTicker, AssistantViewModel, etc.)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "owner still alive and handle not cancelled",
+     "effect": "delivers current value; otherwise returns silently without delivering"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/StoreKitManager.swift::func handle(_:)": "4ca4c631cc8c2212"
+   }
+  },
+  {
+   "key": "func ObservationLoop.arm(_:handle:read:onChange:)",
+   "hash": "7a19abee6e094d09",
+   "does": "Runs withObservationTracking, touching read(owner) to register dependencies; on the (one-shot, pre-mutation) change callback, spawns a @MainActor Task that calls fire() with the owner captured weakly.",
+   "entry": null,
+   "calls": [
+    "ext:Observation.withObservationTracking",
+    "Emuqu/Sources/Utilities/ObservationLoop.swift::func ObservationLoop.fire(_:handle:read:onChange:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/StoreKitManager.swift::func handle(_:)": "4ca4c631cc8c2212",
+    "Emuqu/Sources/Utilities/ObservationLoop.swift::func ObservationLoop.fire(_:handle:read:onChange:)": "736f2f32563bd11d"
+   }
+  },
+  {
+   "key": "func ObservationLoop.fire(_:handle:read:onChange:)",
+   "hash": "e4f8e3d65439aed2",
+   "does": "One delivery: if owner alive and handle not cancelled, calls onChange(owner, read(owner)) with the post-mutation value and re-arms via arm(); otherwise ends the loop.",
+   "entry": null,
+   "calls": [
+    "closure:onChange/read supplied by observe() callers",
+    "Emuqu/Sources/Utilities/ObservationLoop.swift::func ObservationLoop.arm(_:handle:read:onChange:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "owner deallocated or handle.isCancelled",
+     "effect": "returns without delivering and without re-arming, ending the loop permanently; when false delivers and re-arms"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/StoreKitManager.swift::func handle(_:)": "4ca4c631cc8c2212",
+    "Emuqu/Sources/Utilities/ObservationLoop.swift::func ObservationLoop.arm(_:handle:read:onChange:)": "04d6a8c9f34782d8"
+   }
+  }
+ ],
+ "deps": {}
+}

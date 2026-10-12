@@ -1,0 +1,368 @@
+{
+ "file": "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift",
+ "hash": "0a4edec48979e6fb",
+ "role": "Forwarders on RRCollector that delegate every recovery API to a freshly built SessionRecoveryCoordinator so existing call sites keep compiling.",
+ "types": [
+  "RRCollector: extension — recovery API forwarders"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "var RRCollector.recovery",
+   "hash": "07b0703dd74fa467",
+   "does": "Builds and returns a new SessionRecoveryCoordinator(collector: self) on each access.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RRCollector.retryFetchRecording()",
+   "hash": "a2fc3415fb5d6baf",
+   "does": "Forwards retryFetchRecording to SessionRecoveryCoordinator.retryFetchRecording on a new coordinator and returns its result unchanged.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery",
+    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::func SessionRecoveryCoordinator.retryFetchRecording()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::func SessionRecoveryCoordinator.retryFetchRecording()": "d19aadfb389a61dc",
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery": "0720dc2c9968a3e7"
+   }
+  },
+  {
+   "key": "func RRCollector.recoverFromDevice()",
+   "hash": "949beb9d8a8de8e0",
+   "does": "Forwards recoverFromDevice to SessionRecoveryCoordinator.recoverFromDevice on a new coordinator and returns its result unchanged.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery",
+    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::func SessionRecoveryCoordinator.recoverFromDevice()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::func SessionRecoveryCoordinator.recoverFromDevice()": "1cd48851ede8a255",
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery": "0720dc2c9968a3e7"
+   }
+  },
+  {
+   "key": "func RRCollector.checkForLostSessions()",
+   "hash": "648a84aec189096a",
+   "does": "Forwards checkForLostSessions to SessionRecoveryCoordinator.checkForLostSessions on a new coordinator and returns its result unchanged.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.checkForLostSessions()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.checkForLostSessions()": "e710446db2acb39d",
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery": "0720dc2c9968a3e7"
+   }
+  },
+  {
+   "key": "func RRCollector.pullCloudBackupsToLocal()",
+   "hash": "d85ada7220111ac0",
+   "does": "Forwards pullCloudBackupsToLocal to SessionRecoveryCoordinator.pullCloudBackupsToLocal on a new coordinator and returns its result unchanged.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.pullCloudBackupsToLocal()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.pullCloudBackupsToLocal()": "69ccb831d93683eb",
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery": "0720dc2c9968a3e7"
+   }
+  },
+  {
+   "key": "func RRCollector.checkForDeletedSessions()",
+   "hash": "52647af830aa12a8",
+   "does": "Forwards checkForDeletedSessions to SessionRecoveryCoordinator.checkForDeletedSessions on a new coordinator and returns its result unchanged.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.checkForDeletedSessions()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.checkForDeletedSessions()": "c71b374db9ee83b5",
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery": "0720dc2c9968a3e7"
+   }
+  },
+  {
+   "key": "func RRCollector.restoreFromTrash(_:)",
+   "hash": "3f15c790708d35e2",
+   "does": "Forwards restoreFromTrash to SessionRecoveryCoordinator.restoreFromTrash on a new coordinator and returns its result unchanged.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.restoreFromTrash(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.restoreFromTrash(_:)": "4db328385b87fb29",
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery": "0720dc2c9968a3e7"
+   }
+  },
+  {
+   "key": "func RRCollector.permanentlyDelete(_:)",
+   "hash": "b7834d80dfa091a6",
+   "does": "Forwards permanentlyDelete to SessionRecoveryCoordinator.permanentlyDelete on a new coordinator and returns its result unchanged.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.permanentlyDelete(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.permanentlyDelete(_:)": "da0bbc2cbe899181",
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery": "0720dc2c9968a3e7"
+   }
+  },
+  {
+   "key": "func RRCollector.deleteLostSessions(_:)",
+   "hash": "aff0e2112a3e0677",
+   "does": "Forwards deleteLostSessions to SessionRecoveryCoordinator.deleteLostSessions on a new coordinator and returns its result unchanged.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.deleteLostSessions(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.deleteLostSessions(_:)": "b3c4209e51a1d63a",
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery": "0720dc2c9968a3e7"
+   }
+  },
+  {
+   "key": "func RRCollector.recoverFromBackup(_:)",
+   "hash": "79ece6424baa532d",
+   "does": "Forwards recoverFromBackup to SessionRecoveryCoordinator.recoverFromBackup on a new coordinator and returns its result unchanged.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.recoverFromBackup(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.recoverFromBackup(_:)": "0656b7d1b0a6a3b9",
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery": "0720dc2c9968a3e7"
+   }
+  },
+  {
+   "key": "func RRCollector.retrimRecoveredWorkout(sessionId:endSec:)",
+   "hash": "a2fd8bfa01319b10",
+   "does": "Forwards retrimRecoveredWorkout to SessionRecoveryCoordinator.retrimRecoveredWorkout on a new coordinator and returns its result unchanged.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.retrimRecoveredWorkout(sessionId:endSec:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.retrimRecoveredWorkout(sessionId:endSec:)": "c68328a074c08890",
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery": "0720dc2c9968a3e7"
+   }
+  },
+  {
+   "key": "func RRCollector.discardRecoveredWorkout(sessionId:)",
+   "hash": "a34dfdef4f773e41",
+   "does": "Forwards discardRecoveredWorkout to SessionRecoveryCoordinator.discardRecoveredWorkout on a new coordinator and returns its result unchanged.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.discardRecoveredWorkout(sessionId:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.discardRecoveredWorkout(sessionId:)": "560be66aef70c69b",
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery": "0720dc2c9968a3e7"
+   }
+  },
+  {
+   "key": "func RRCollector.recoverRouteFromAppleWatch(sessionId:)",
+   "hash": "02a58fb1b32f01af",
+   "does": "Forwards recoverRouteFromAppleWatch to SessionRecoveryCoordinator.recoverRouteFromAppleWatch on a new coordinator and returns its result unchanged.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.recoverRouteFromAppleWatch(sessionId:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.recoverRouteFromAppleWatch(sessionId:)": "ba84fce6ceaba5cd",
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery": "0720dc2c9968a3e7"
+   }
+  },
+  {
+   "key": "func RRCollector.augmentWorkoutFromStrap(sessionId:)",
+   "hash": "a5fab6b1e23656e1",
+   "does": "Forwards augmentWorkoutFromStrap to SessionRecoveryCoordinator.augmentWorkoutFromStrap on a new coordinator and returns its result unchanged.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.augmentWorkoutFromStrap(sessionId:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.augmentWorkoutFromStrap(sessionId:)": "a785663ad0f0095b",
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery": "0720dc2c9968a3e7"
+   }
+  },
+  {
+   "key": "func RRCollector.augmentOvernightFromStrap(sessionId:)",
+   "hash": "73d13f9a9a5b2bc3",
+   "does": "Forwards augmentOvernightFromStrap to SessionRecoveryCoordinator.augmentOvernightFromStrap on a new coordinator and returns its result unchanged.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.augmentOvernightFromStrap(sessionId:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.augmentOvernightFromStrap(sessionId:)": "a0a14c62552ed068",
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery": "0720dc2c9968a3e7"
+   }
+  },
+  {
+   "key": "func RRCollector.surfaceExistingRecoveredWorkoutForReview()",
+   "hash": "df52e0a98f4ce61c",
+   "does": "Forwards surfaceExistingRecoveredWorkoutForReview to SessionRecoveryCoordinator.surfaceExistingRecoveredWorkoutForReview on a new coordinator and returns its result unchanged.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.surfaceExistingRecoveredWorkoutForReview()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.surfaceExistingRecoveredWorkoutForReview()": "1658e64d8fd09c75",
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery": "0720dc2c9968a3e7"
+   }
+  },
+  {
+   "key": "func RRCollector.findInterruptedWorkoutSessionId()",
+   "hash": "6fa1828bc0958946",
+   "does": "Forwards findInterruptedWorkoutSessionId to SessionRecoveryCoordinator.findInterruptedWorkoutSessionId on a new coordinator and returns its result unchanged.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.findInterruptedWorkoutSessionId()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.findInterruptedWorkoutSessionId()": "a0ae5beeb7837228",
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery": "0720dc2c9968a3e7"
+   }
+  },
+  {
+   "key": "func RRCollector.recoverInterruptedWorkoutFromStrap()",
+   "hash": "4a42d8de810c929d",
+   "does": "Forwards recoverInterruptedWorkoutFromStrap to SessionRecoveryCoordinator.recoverInterruptedWorkoutFromStrap on a new coordinator and returns its result unchanged.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.recoverInterruptedWorkoutFromStrap()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.recoverInterruptedWorkoutFromStrap()": "89ff1b2526fb849e",
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery": "0720dc2c9968a3e7"
+   }
+  },
+  {
+   "key": "func RRCollector.autoRecoverInterruptedWorkoutOnLaunch()",
+   "hash": "9a4d36151864c424",
+   "does": "Forwards autoRecoverInterruptedWorkoutOnLaunch to SessionRecoveryCoordinator.autoRecoverInterruptedWorkoutOnLaunch on a new coordinator and returns its result unchanged.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.autoRecoverInterruptedWorkoutOnLaunch()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.autoRecoverInterruptedWorkoutOnLaunch()": "10f0f85283cd744a",
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery": "0720dc2c9968a3e7"
+   }
+  },
+  {
+   "key": "func RRCollector.recoverToPausedState(_:sessionType:)",
+   "hash": "057bc9a34c2e620d",
+   "does": "Forwards recoverToPausedState to SessionRecoveryCoordinator.recoverToPausedState on a new coordinator and returns its result unchanged.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.recoverToPausedState(_:sessionType:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.recoverToPausedState(_:sessionType:)": "ebaa725e4f35181f",
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery": "0720dc2c9968a3e7"
+   }
+  }
+ ],
+ "deps": {}
+}

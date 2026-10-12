@@ -36,7 +36,10 @@ rewrites it encrypted at the next launch where the key is reachable.
 
 **Consequence.** A window exists where health data sits on disk without
 application-layer encryption, protected by the filesystem alone. That window is
-bounded by one app launch and is logged at `.error`. The alternative was losing
+bounded by one app launch. Only an `encrypt()` call that throws is logged (at
+`.error`); in the usual trigger, the key being unavailable before first unlock,
+the plaintext write is not logged, and the window shows only as the session's
+entry in `PendingEncryptionLedger`. The alternative was losing
 user data to protect a file the OS had already made unreadable.
 
 ## 002 — Nothing that needs macOS runs automatically

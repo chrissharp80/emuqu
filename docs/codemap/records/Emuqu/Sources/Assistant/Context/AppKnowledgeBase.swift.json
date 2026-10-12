@@ -1,0 +1,89 @@
+{
+ "file": "Emuqu/Sources/Assistant/Context/AppKnowledgeBase.swift",
+ "hash": "8b458a3f8bbec241",
+ "role": "Static app FAQ/feature reference injected into the assistant's system prompt (full or compact, AIProvider+SystemPrompt.swift:140) and served section-by-section by the app.help.lookup fact tool (AppFactResolver+HealthKitFacts.swift:137).",
+ "types": [
+  "AppKnowledgeBase: enum — holds reference/referenceCompact prompt text, help topic list and the lookup/extractSection functions"
+ ],
+ "state": [
+  "mem:AppKnowledgeBase.reference (static let, full markdown manual)",
+  "mem:AppKnowledgeBase.referenceCompact (static let, interpolates helpTopics without 'all')",
+  "mem:AppKnowledgeBase.helpTopics (static let [String], 14 topics incl. 'all'; read by referenceCompact and the app.help.lookup tool description)",
+  "mem:AppKnowledgeBase.topicHeadings (private static let alias→heading map)"
+ ],
+ "toplevel": "reference and referenceCompact are multi-line string literals of product claims (tabs, recovery-score weights 60/25/15 with all three factors, 70/30 without vitals or 85/15 on a night with HRV more than 1 SD below baseline and a sleep score under 50, HRV only without sleep, SpO2 -10 penalty below 95%, Comeback 80/20/0 for 21 days, HR zones, exports, navigation paths, capabilities). referenceCompact's lookup example is 'what's TRIMP' (covered by the Metrics section) and its valid-topic list is interpolated from helpTopics, which the tool description in AppFactResolver+HealthKitFacts.swift interpolates too.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func AppKnowledgeBase.lookup(topic:)",
+   "hash": "4255b887ffd309d7",
+   "does": "Returns the app-reference section for a topic string: normalizes (trim surrounding whitespace/newlines first, then lowercase, '-' and ' ' → '_'), returns the full reference for 'all', the matching '## heading' section for a known alias, and referenceCompact for unknown topics or a missing heading. Called by the app.help.lookup fact (AppFactResolver+HealthKitFacts.swift).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Context/AppKnowledgeBase.swift::func AppKnowledgeBase.extractSection(named:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "normalized key == 'all'",
+     "effect": "return full reference"
+    },
+    {
+     "at": "+7",
+     "cond": "key not in topicHeadings",
+     "effect": "return referenceCompact (fallback for unknown/empty topics)"
+    },
+    {
+     "at": "+8",
+     "cond": "extractSection returns nil (??)",
+     "effect": "fallback referenceCompact when the heading text is not found in reference"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/AppKnowledgeBase.swift::func AppKnowledgeBase.extractSection(named:)": "8a611afdbaa14272"
+   }
+  },
+  {
+   "key": "func AppKnowledgeBase.extractSection(named:)",
+   "hash": "008f21e656324422",
+   "does": "Scans reference line by line, starting capture at the first line beginning with '## '+heading and stopping at the next '## ' line; returns the captured block trimmed, or nil if the heading never appears.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "for each line of reference",
+     "effect": "examine line"
+    },
+    {
+     "at": "+5",
+     "cond": "already inside the section AND line starts with '## '",
+     "effect": "break (section ended)"
+    },
+    {
+     "at": "+6",
+     "cond": "line starts with target heading (prefix match)",
+     "effect": "set inside = true"
+    },
+    {
+     "at": "+7",
+     "cond": "inside",
+     "effect": "append line to captured"
+    },
+    {
+     "at": "+9",
+     "cond": "captured is empty",
+     "effect": "return nil; else return joined trimmed section"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

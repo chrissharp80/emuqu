@@ -28,6 +28,11 @@ final class WeatherService {
     /// The last snapshot, or nil once it is older than `maxSnapshotAge`.
     /// Without the age limit, yesterday's weather in another city was
     /// archived onto an offline workout today and fed heat acclimation.
+    ///
+    /// A point-in-time read: it depends on the clock, which Observation does
+    /// not track, so a view bound to it would not refresh when the snapshot
+    /// ages out. Its callers (the workout recorder's context and finalize)
+    /// read it when they need it.
     var current: WorkoutAIContext.WeatherSnapshot? {
         guard let fetchedAt, Date().timeIntervalSince(fetchedAt) < Self.maxSnapshotAge else { return nil }
         return snapshot
@@ -53,36 +58,40 @@ final class WeatherService {
     static let maxSnapshotAge: TimeInterval = 3 * 3600
 
     /// MET Norway rejects requests without an identifying User-Agent.
-    static let userAgent = "Emuqu/\(Bundle.main.appVersion) github.com/chrissharp80/emuqu"
+    nonisolated static let userAgent = "Emuqu/\(Bundle.main.appVersion) github.com/chrissharp80/emuqu"
 
     func refreshIfNeeded(for location: CLLocation?) {
         guard let loc = location, inflightTask == nil, !cacheCovers(loc) else { return }
         let coord = Self.rounded(loc.coordinate)
         let ifModifiedSince = isSamePlace(coord) ? forecast?.lastModified : nil
         lastRequestAt = Date()
+        // The task inherits the main actor, so the slot is released in the
+        // same turn as `apply`, with no window between them.
         inflightTask = Task { [weak self] in
-            defer { self?.clearInflightTask() }
+            defer { self?.inflightTask = nil }
             let outcome = await Self.fetch(at: coord, ifModifiedSince: ifModifiedSince)
             self?.apply(outcome, at: coord)
         }
     }
 
-    /// Hops back to the main actor to release the in-flight slot; `defer` can't
-    /// await, so the clear is queued rather than performed inline.
-    nonisolated private func clearInflightTask() {
-        Task { @MainActor in self.inflightTask = nil }
-    }
-
+    /// The forecast, snapshot and place change together, and only when the
+    /// response gives a snapshot: a forecast stored for a new place while
+    /// `fetchedAtCoord` still named the old one sent the new place's
+    /// Last-Modified as If-Modified-Since for the old place.
     private func apply(_ outcome: FetchOutcome, at coord: CLLocationCoordinate2D) {
+        let updated: MetNorwayForecast
         switch outcome {
         case let .fresh(newForecast):
-            forecast = newForecast
+            updated = newForecast
         case let .notModified(expires):
-            forecast?.expires = expires
+            guard var held = forecast else { return }
+            held.expires = expires
+            updated = held
         case .failed:
             return
         }
-        guard let snapshot = forecast?.snapshot(at: Date()) else { return }
+        guard let snapshot = updated.snapshot(at: Date()) else { return }
+        forecast = updated
         self.snapshot = snapshot
         fetchedAt = Date()
         fetchedAtCoord = coord
@@ -127,7 +136,9 @@ final class WeatherService {
         case failed
     }
 
-    private static func fetch(at coord: CLLocationCoordinate2D, ifModifiedSince: String?) async -> FetchOutcome {
+    /// Nonisolated, with `request` and `outcome`: the request and the JSON
+    /// decode run off the main actor, as the header says.
+    nonisolated private static func fetch(at coord: CLLocationCoordinate2D, ifModifiedSince: String?) async -> FetchOutcome {
         guard let request = request(at: coord, ifModifiedSince: ifModifiedSince) else { return .failed }
         do {
             let (data, response) = try await URLSession.shared.data(for: request)
@@ -138,7 +149,7 @@ final class WeatherService {
         }
     }
 
-    private static func request(at coord: CLLocationCoordinate2D, ifModifiedSince: String?) -> URLRequest? {
+    nonisolated private static func request(at coord: CLLocationCoordinate2D, ifModifiedSince: String?) -> URLRequest? {
         var components = URLComponents(string: "https://api.met.no/weatherapi/locationforecast/2.0/compact")
         components?.queryItems = [
             URLQueryItem(name: "lat", value: String(format: "%.2f", coord.latitude)),
@@ -157,10 +168,10 @@ final class WeatherService {
         return request
     }
 
-    private static let expiresHeader = "Expires"
-    private static let lastModifiedHeader = "Last-Modified"
+    nonisolated private static let expiresHeader = "Expires"
+    nonisolated private static let lastModifiedHeader = "Last-Modified"
 
-    private static func outcome(data: Data, response: URLResponse) throws -> FetchOutcome {
+    nonisolated private static func outcome(data: Data, response: URLResponse) throws -> FetchOutcome {
         guard let http = response as? HTTPURLResponse else { return .failed }
         let expires = http.value(forHTTPHeaderField: Self.expiresHeader).flatMap(MetNorwayForecast.httpDate)
         switch http.statusCode {
@@ -231,7 +242,8 @@ struct MetNorwayForecast: Equatable {
     /// The step nearest `date` as a snapshot, or nil when the nearest step is
     /// more than 3 hours away (a forecast held far longer than it was meant to
     /// be). MET Norway gives no apparent ("feels like") temperature, so that
-    /// field is nil rather than invented.
+    /// field is nil rather than invented. `observedAt` is the step's own time,
+    /// the time the figures describe, not the moment of the query.
     func snapshot(at date: Date) -> WorkoutAIContext.WeatherSnapshot? {
         let distance = { (hour: Hour) in abs(hour.time.timeIntervalSince(date)) }
         guard let hour = hours.min(by: { distance($0) < distance($1) }), distance(hour) <= 3 * 3600 else { return nil }
@@ -242,7 +254,7 @@ struct MetNorwayForecast: Equatable {
             windDirectionDegrees: hour.windFromDegrees,
             humidityPercent: hour.humidityPercent,
             conditions: Self.conditions(forSymbol: hour.symbolCode),
-            observedAt: date
+            observedAt: hour.time
         )
     }
 

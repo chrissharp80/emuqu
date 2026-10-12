@@ -1,0 +1,71 @@
+{
+ "file": "Emuqu/Sources/Utilities/LogCorrelation.swift",
+ "hash": "562e12b410fe6375",
+ "role": "Process-wide stack of correlation tags (label-4hex) that debugLog prefixes onto every line while a flow (sync, workout) is open.",
+ "types": [
+  "LogCorrelation: enum — ambient correlation scope stack",
+  "LogCorrelation.Entry: struct — token + label",
+  "LogCorrelation.Token: struct — scope handle"
+ ],
+ "state": [
+  "mem:LogCorrelation.storage (OSAllocatedUnfairLock<[Entry]>)"
+ ],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "fragile",
+   "sev": "low",
+   "text": "The tag is process-global: any line from any thread during an open scope (e.g. CloudKit sync) is tagged with that flow even when unrelated, as the header admits.",
+   "evidence": [
+    "Emuqu/Sources/Utilities/LogCorrelation.swift:12",
+    "Emuqu/Sources/Utilities/LogCorrelation.swift:76"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "var LogCorrelation.current",
+   "hash": "ca6fdf86c445b1d0",
+   "does": "Returns the innermost open scope's label, or nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:LogCorrelation.storage"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func LogCorrelation.begin(_:)",
+   "hash": "0f04352a393d8164",
+   "does": "Pushes a new Entry with label '<name>-<4 hex>' and returns its token.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:LogCorrelation.storage"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func LogCorrelation.end(_:)",
+   "hash": "a27118b64b2b4c48",
+   "does": "Removes the entry with this token (no-op if already removed).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:LogCorrelation.storage"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

@@ -16,6 +16,12 @@ struct LiveReadiness {
     let score: Double
     /// 0-100 — the frozen morning recovery score that fed readiness.
     let morningRecovery: Double
+    /// 0-100 — readiness as the model read it at the morning anchor: the
+    /// frozen ATL/CTL snapshot with no acute fatigue and no dissipation yet,
+    /// the inputs acceptance freezes. The drift flags and the headline's
+    /// "from this morning" numbers measure from here, so a model/recovery
+    /// gap that already existed at the reading is not told as a change.
+    let morningReadiness: Double
     /// Hours elapsed since the morning session ended. Drives intra-day
     /// fatigue dissipation.
     let hoursSinceMorning: Double
@@ -31,12 +37,14 @@ struct LiveReadiness {
     /// the interpolated ratio and form, and the week's Foster monotony.
     /// Nil without live training metrics.
     let adviceLoad: TrainingAdviceGate.Load?
-    /// True when `score` was pulled meaningfully below `morningRecovery`
-    /// by today's training (≥3 points). Lets the headline say "your
-    /// afternoon run pulled this down" instead of repeating the morning copy.
+    /// True when `score` is at least 3 points below `morningReadiness`:
+    /// training since the morning anchor has pulled it down. Lets the
+    /// headline say "your afternoon run pulled this down" instead of
+    /// repeating the morning copy.
     let pulledDownByTodaysTraining: Bool
-    /// True when fatigue dissipation since morning has lifted readiness
-    /// above where it started (rest day, ATL bleeding off).
+    /// True when `score` is at least 3 points above `morningReadiness`:
+    /// fatigue dissipation since morning has lifted readiness above where
+    /// it started (rest day, ATL bleeding off).
     let liftedByRecovery: Bool
     /// The day's marquee workout — the one worth naming in narrative copy.
     /// Picked as the highest-TRIMP today; nil on rest days. Lets the panel
@@ -74,11 +82,14 @@ struct LiveReadiness {
         let interpolated = interpolatedLoad(
             morningSession: morningSession, live: live, hoursSinceMorning: hoursSinceMorning
         )
-        // Acute-fatigue decay only fires when there's training today. On rest
-        // days the 7-day ATL EWMA already carries yesterday's workout, and the
-        // freshness bonus handles the dissipation — adding 24h-decayed acute
-        // fatigue on top would double-count yesterday's load.
-        let recentLoads = live.todayTrimp > 0 ? recentWorkoutLoads(from: live, now: now) : nil
+        // Acute fatigue counts only workouts the frozen morning ATL does not
+        // carry: those since the start of the morning reading's day (the
+        // snapshot is ATL through the day before). Earlier workouts are in
+        // that ATL already, so their 24h-decayed term would double-count them,
+        // on rest days and training days alike. Later ones keep decaying
+        // across midnight until the next morning reading re-anchors.
+        let anchor = Calendar.current.startOfDay(for: sessionEnd)
+        let recentLoads = workoutLoads(from: live, since: anchor, now: now)
         return readiness(
             recoveryScore: recoveryScore, hoursSinceMorning: hoursSinceMorning,
             live: live, interpolated: interpolated, recentLoads: recentLoads, now: now
@@ -99,14 +110,14 @@ struct LiveReadiness {
             morningATL: interpolated.morningATLForReadiness,
             acuteChronicRatio: interpolated.acr, recentWorkoutLoads: recentLoads
         )
+        let anchorScore = morningReadiness(recoveryScore: recoveryScore, interpolated: interpolated)
         return LiveReadiness(
-            score: score, morningRecovery: recoveryScore, hoursSinceMorning: hoursSinceMorning,
-            acuteFatigueLoad: computeRawAcuteFatigue(todayTrimp: live.todayTrimp, recentLoads: recentLoads),
-            todayTrimp: live.todayTrimp,
-            acuteChronicRatio: interpolated.acr,
+            score: score, morningRecovery: recoveryScore, morningReadiness: anchorScore,
+            hoursSinceMorning: hoursSinceMorning,
+            acuteFatigueLoad: ReadinessScoring.rawAcuteFatigue(todayTrimp: live.todayTrimp, recentWorkoutLoads: recentLoads),
+            todayTrimp: live.todayTrimp, acuteChronicRatio: interpolated.acr,
             adviceLoad: gateLoad(interpolated: interpolated, live: live, now: now),
-            pulledDownByTodaysTraining: recoveryScore - score >= 3,
-            liftedByRecovery: score - recoveryScore >= 3,
+            pulledDownByTodaysTraining: anchorScore - score >= 3, liftedByRecovery: score - anchorScore >= 3,
             todayPrimaryWorkout: WorkoutDescriptor.todayPrimary(
                 from: live.todayWorkouts.isEmpty ? live.recentWorkouts : live.todayWorkouts,
                 now: now
@@ -121,6 +132,7 @@ struct LiveReadiness {
         LiveReadiness(
             score: recoveryScore,
             morningRecovery: recoveryScore,
+            morningReadiness: recoveryScore,
             hoursSinceMorning: hoursSinceMorning,
             acuteFatigueLoad: 0,
             todayTrimp: 0,
@@ -142,16 +154,31 @@ struct LiveReadiness {
         return load
     }
 
+    /// Readiness at the morning anchor: the frozen ATL/CTL snapshot with no
+    /// acute fatigue and no dissipation, the same inputs acceptance freezes
+    /// (`ReanalysisService.computeFrozenReadiness`). Equals the live score at
+    /// hour 0 when nothing has been trained since the anchor.
+    private static func morningReadiness(recoveryScore: Double, interpolated: InterpolatedLoad) -> Double {
+        let atl = interpolated.morningATL
+        let ctl = interpolated.morningCTL
+        return RecoveryScoreCalculator.calculateReadiness(
+            recoveryScore: recoveryScore, todayTrimp: 0, ctl: ctl, atl: atl,
+            morningATL: atl, acuteChronicRatio: ctl > 0 ? atl / ctl : nil
+        )
+    }
+
     /// ATL/CTL blended between this morning's frozen snapshot and today's live
-    /// values, plus the anchor the freshness bonus is measured from.
+    /// values, plus the anchor the freshness bonus is measured from and the
+    /// frozen snapshot itself.
     struct InterpolatedLoad {
         let atl: Double
         let ctl: Double
         let acr: Double?
         let morningATLForReadiness: Double
+        let morningATL: Double
+        let morningCTL: Double
     }
 
-    /// Mirrors RecoveryDashboardView.computeTrainingReadiness (today branch).
     /// ATL/CTL are interpolated between the frozen morning values and the
     /// stepped EWMA values via dayFraction, so readiness matches the accepted
     /// score at acceptance time and gradually relaxes as real hours pass.
@@ -178,10 +205,10 @@ struct LiveReadiness {
         // for the freshness bonus. Using the interpolated value collapses the
         // bonus to zero rather than rewarding multi-day decay.
         return InterpolatedLoad(
-            atl: effectiveATL,
-            ctl: effectiveCTL,
+            atl: effectiveATL, ctl: effectiveCTL,
             acr: effectiveCTL > 0 ? effectiveATL / effectiveCTL : nil,
-            morningATLForReadiness: dayFraction >= 1.0 ? effectiveATL : morningATL
+            morningATLForReadiness: dayFraction >= 1.0 ? effectiveATL : morningATL,
+            morningATL: morningATL, morningCTL: morningCTL
         )
     }
 
@@ -190,15 +217,17 @@ struct LiveReadiness {
     /// down, or the rest that lifted it. Falls back to the calculator's stock
     /// readiness message when neither story applies.
     var headline: String {
-        let drop = Int((morningRecovery - score).rounded())
-        let lift = Int((score - morningRecovery).rounded())
+        let drop = Int((morningReadiness - score).rounded())
+        let lift = Int((score - morningReadiness).rounded())
         if pulledDownByTodaysTraining {
             if let w = todayPrimaryWorkout {
                 let phrase = w.phrase
                 return String(localized: "Your \(phrase) pulled readiness down about \(drop) from this morning.", bundle: NarrativeLanguage.bundle)
             }
-            // No today workout but readiness still dragged — yesterday's
-            // training is decaying out via the 24h acute-fatigue term.
+            // No workout today but readiness still dragged: a workout since
+            // the morning reading's day began (last evening, before the
+            // next reading) decaying via the 24h acute-fatigue term, or the
+            // ATL/CTL interpolation and ACWR penalty moving the model.
             return String(localized: "Recent training is pulling readiness about \(drop) below this morning.", bundle: NarrativeLanguage.bundle)
         }
         if liftedByRecovery {
@@ -231,8 +260,9 @@ struct LiveReadiness {
     // MARK: - Helpers
 
     /// Build the WorkoutLoad array `RecoveryScoreCalculator.calculateReadiness`
-    /// expects. 72h lookback so fatigue decays smoothly across midnight rather
-    /// than cliffing when `todayTrimp` resets at the new calendar day.
+    /// expects: every workout of the last 72h with a positive load, hours-ago
+    /// measured from `now`. Nil when there is none. `compute` narrows it to
+    /// the workouts since the morning anchor (`workoutLoads(from:since:now:)`).
     static func recentWorkoutLoads(
         from metrics: TrainingMetrics,
         now: Date = Date()
@@ -251,18 +281,16 @@ struct LiveReadiness {
         return loads.isEmpty ? nil : loads
     }
 
-    /// Sum of decayed TRIMP from recent workouts — the value the readiness
-    /// math actually consumes for "acute fatigue." Surfaced to the panel as
-    /// the size of the load still pulling on the user.
-    private static func computeRawAcuteFatigue(
-        todayTrimp: Double,
-        recentLoads: [RecoveryScoreCalculator.WorkoutLoad]?
-    ) -> Double {
-        guard let loads = recentLoads, !loads.isEmpty else { return todayTrimp }
-        let tau = RecoveryScoreConstants.Readiness.acuteFatigueTauHours
-        return loads.reduce(0.0) { sum, load in
-            sum + load.trimp * exp(-load.hoursAgo / tau)
-        }
+    /// `recentWorkoutLoads(from:now:)` limited to workouts on or after
+    /// `anchor`, the start of the morning reading's day. Nil when none is.
+    private static func workoutLoads(
+        from metrics: TrainingMetrics,
+        since anchor: Date,
+        now: Date
+    ) -> [RecoveryScoreCalculator.WorkoutLoad]? {
+        let hoursSinceAnchor = now.timeIntervalSince(anchor) / 3_600.0
+        let loads = recentWorkoutLoads(from: metrics, now: now)?.filter { $0.hoursAgo <= hoursSinceAnchor } ?? []
+        return loads.isEmpty ? nil : loads
     }
 }
 
@@ -357,9 +385,10 @@ struct WorkoutDescriptor: Equatable {
         }
     }
 
-    /// Bucket TRIMP into the panel's intensity vocabulary. Boundaries match
-    /// `ReadinessExplainView.todayTrainingTint` so the colour and the word
-    /// always agree.
+    /// Bucket one workout's TRIMP into the panel's intensity vocabulary. The
+    /// cut points (30/80/150) are the ones `ReadinessExplainView.todayTrainingTint`
+    /// uses, but the tint buckets the day's total TRIMP, so on a day with
+    /// several workouts the colour can sit a band above this word.
     private static func intensityWord(for trimp: Double) -> String {
         if trimp < 30 { return "easy" }
         if trimp < 80 { return "moderate" }

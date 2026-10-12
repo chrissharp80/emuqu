@@ -1,0 +1,213 @@
+{
+ "file": "EmuquTests/HRRMonotonicDropTests.swift",
+ "hash": "3198be01eac0f8b5",
+ "role": "XCTest suite pinning both sides of HRRCaptureService.enforceMonotonicDrop's 10-bpm running-max tolerance (large inversions suppressed, small dips and exact-boundary kept, running max not previous sample).",
+ "types": [
+  "HRRMonotonicDropTests: class — XCTestCase for HRR contamination filter"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "duplicate",
+   "sev": "low",
+   "text": "HRRCaptureServiceTests and HRRMonotonicDropTests both pin HRRCaptureService.enforceMonotonicDrop with overlapping cases (45→24 inversion, empty input, single sample, exactly-10-bpm tolerance boundary) and near-identical sample() helpers; two suites to keep in step for one 15-line function.",
+   "evidence": [
+    "EmuquTests/HRRCaptureServiceTests.swift:39",
+    "EmuquTests/HRRMonotonicDropTests.swift:45",
+    "EmuquTests/HRRCaptureServiceTests.swift:71",
+    "EmuquTests/HRRMonotonicDropTests.swift:70"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func HRRMonotonicDropTests.sample(offsetSec:drop:peakHR:)",
+   "hash": "3795a42f629b242c",
+   "does": "Test helper: builds a strap HRRSample with hr = peakHR − drop (peak default 170).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HRRMonotonicDropTests.testImprovingRecoveryIsKeptWhole()",
+   "hash": "25bdaa252df9d562",
+   "does": "Asserts drops 30→45 keep both.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HRRMonotonicDropTests.swift::func HRRMonotonicDropTests.sample(offsetSec:drop:peakHR:)",
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.enforceMonotonicDrop(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.enforceMonotonicDrop(_:)": "8c567af811db61af",
+    "EmuquTests/HRRMonotonicDropTests.swift::func HRRMonotonicDropTests.sample(offsetSec:drop:peakHR:)": "40f58f71280d5e49"
+   }
+  },
+  {
+   "key": "func HRRMonotonicDropTests.testFirstSampleIsAlwaysKept()",
+   "hash": "88d78d8d5e624f70",
+   "does": "Asserts a single sample is kept.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HRRMonotonicDropTests.swift::func HRRMonotonicDropTests.sample(offsetSec:drop:peakHR:)",
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.enforceMonotonicDrop(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.enforceMonotonicDrop(_:)": "8c567af811db61af",
+    "EmuquTests/HRRMonotonicDropTests.swift::func HRRMonotonicDropTests.sample(offsetSec:drop:peakHR:)": "40f58f71280d5e49"
+   }
+  },
+  {
+   "key": "func HRRMonotonicDropTests.testEmptyInputIsSafe()",
+   "hash": "b9e739884a22f873",
+   "does": "Asserts empty input yields empty output.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.enforceMonotonicDrop(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.enforceMonotonicDrop(_:)": "8c567af811db61af"
+   }
+  },
+  {
+   "key": "func HRRMonotonicDropTests.testLargeInversionIsSuppressed()",
+   "hash": "372f51ae8ba9f1f2",
+   "does": "Asserts 45→24 keeps only the 45 sample.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HRRMonotonicDropTests.swift::func HRRMonotonicDropTests.sample(offsetSec:drop:peakHR:)",
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.enforceMonotonicDrop(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.enforceMonotonicDrop(_:)": "8c567af811db61af",
+    "EmuquTests/HRRMonotonicDropTests.swift::func HRRMonotonicDropTests.sample(offsetSec:drop:peakHR:)": "40f58f71280d5e49",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "13c88f99e05e0173"
+   }
+  },
+  {
+   "key": "func HRRMonotonicDropTests.testSmallDipSurvives()",
+   "hash": "376b97dbee5ebc70",
+   "does": "Asserts 45→39 (6-bpm dip) keeps both.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HRRMonotonicDropTests.swift::func HRRMonotonicDropTests.sample(offsetSec:drop:peakHR:)",
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.enforceMonotonicDrop(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.enforceMonotonicDrop(_:)": "8c567af811db61af",
+    "EmuquTests/HRRMonotonicDropTests.swift::func HRRMonotonicDropTests.sample(offsetSec:drop:peakHR:)": "40f58f71280d5e49"
+   }
+  },
+  {
+   "key": "func HRRMonotonicDropTests.testDipExactlyAtToleranceIsKept()",
+   "hash": "080146939b13d0b0",
+   "does": "Asserts 45→35 (exactly 10 below) keeps both.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HRRMonotonicDropTests.swift::func HRRMonotonicDropTests.sample(offsetSec:drop:peakHR:)",
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.enforceMonotonicDrop(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.enforceMonotonicDrop(_:)": "8c567af811db61af",
+    "EmuquTests/HRRMonotonicDropTests.swift::func HRRMonotonicDropTests.sample(offsetSec:drop:peakHR:)": "40f58f71280d5e49"
+   }
+  },
+  {
+   "key": "func HRRMonotonicDropTests.testDipJustBeyondToleranceIsSuppressed()",
+   "hash": "54af79630b8d30f4",
+   "does": "Asserts 45→34 (11 below) keeps one.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HRRMonotonicDropTests.swift::func HRRMonotonicDropTests.sample(offsetSec:drop:peakHR:)",
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.enforceMonotonicDrop(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.enforceMonotonicDrop(_:)": "8c567af811db61af",
+    "EmuquTests/HRRMonotonicDropTests.swift::func HRRMonotonicDropTests.sample(offsetSec:drop:peakHR:)": "40f58f71280d5e49"
+   }
+  },
+  {
+   "key": "func HRRMonotonicDropTests.testToleranceIsMeasuredAgainstTheRunningMaxNotThePrevious()",
+   "hash": "d9ec0ffb6d832abd",
+   "does": "Asserts [45, 40, 33] keeps [45, 40] (33 is 12 below running max 45).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HRRMonotonicDropTests.swift::func HRRMonotonicDropTests.sample(offsetSec:drop:peakHR:)",
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.enforceMonotonicDrop(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Comment says the third drop is 34 and that 34 would pass a previous-sample comparison, but the fixture uses 33; 33 vs previous 40 is 7 below (also within tolerance), so the test still discriminates, but the comment and data disagree.",
+     "evidence": [
+      "EmuquTests/HRRMonotonicDropTests.swift:86",
+      "EmuquTests/HRRMonotonicDropTests.swift:92"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.enforceMonotonicDrop(_:)": "8c567af811db61af",
+    "EmuquTests/HRRMonotonicDropTests.swift::func HRRMonotonicDropTests.sample(offsetSec:drop:peakHR:)": "40f58f71280d5e49",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "13c88f99e05e0173"
+   }
+  },
+  {
+   "key": "func HRRMonotonicDropTests.testRunningMaxAdvancesWithDeeperRecovery()",
+   "hash": "931099a9bc3764dc",
+   "does": "Asserts [30, 50, 38] keeps [30, 50] (38 is 12 below the advanced max 50).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HRRMonotonicDropTests.swift::func HRRMonotonicDropTests.sample(offsetSec:drop:peakHR:)",
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.enforceMonotonicDrop(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.enforceMonotonicDrop(_:)": "8c567af811db61af",
+    "EmuquTests/HRRMonotonicDropTests.swift::func HRRMonotonicDropTests.sample(offsetSec:drop:peakHR:)": "40f58f71280d5e49",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "13c88f99e05e0173"
+   }
+  }
+ ],
+ "deps": {}
+}

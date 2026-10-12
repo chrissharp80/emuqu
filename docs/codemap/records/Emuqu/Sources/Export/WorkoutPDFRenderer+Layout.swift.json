@@ -1,0 +1,277 @@
+{
+ "file": "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift",
+ "hash": "77464193b19bb1f9",
+ "role": "Shared layout primitives for the workout PDF renderer (section heading, divider, two-column rows, footer with wellness disclaimer), PDFPagePrimitives — the text, wrapped-text, truncation, rule, footer and duration primitives the workout report and the daily report (HolisticDailyReport) both draw with — and the PDFDurationText formatter for elapsed minutes/seconds.",
+ "types": [
+  "WorkoutPDFRenderer: extension — layout primitives",
+  "PDFPagePrimitives: enum — drawing primitives shared by WorkoutPDFRenderer and HolisticDailyReport",
+  "PDFPagePrimitives.PageStyle: struct — page size, margin, caption font and colours a footer needs",
+  "PDFDurationText: enum — localized 'm min s s' elapsed-time formatter"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func WorkoutPDFRenderer.drawSectionHeading(_:at:)",
+   "hash": "93308611e73ff0de",
+   "does": "Draws a 9pt bold heading in the report primary colour at the left margin and advances the inout y by 14.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.drawText(_:at:font:color:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.drawText(_:at:font:color:)": "585e546a7f4e4bb8",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+   }
+  },
+  {
+   "key": "func WorkoutPDFRenderer.drawDivider(at:width:strong:)",
+   "hash": "77f014949873ddcf",
+   "does": "Draws a rule from the left margin `width` long at y (PDFPagePrimitives.drawDivider): strong = primary at half alpha 1.2pt, else the divider colour 0.5pt.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func PDFPagePrimitives.drawDivider(from:width:strong:primary:divider:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func PDFPagePrimitives.drawDivider(from:width:strong:primary:divider:)": "292430342b319b5a",
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.divider": "3dbf0b2b37c7ac21",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+   }
+  },
+  {
+   "key": "func WorkoutPDFRenderer.drawTwoColumnRows(_:startY:contentW:)",
+   "hash": "b0ba01fb27ae6b49",
+   "does": "Draws each (label, value) row 14pt tall: the value in a right-hand column min(260, 45% of contentW) wide ending at the right margin, the label from the left margin up to 8pt before it; each is one line truncated with an ellipsis, so neither overruns the other or the margin.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func PDFPagePrimitives.drawTruncated(_:in:font:color:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "for each row",
+     "effect": "draws label and value, advances 14pt"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func PDFPagePrimitives.drawTruncated(_:in:font:color:)": "8675c184d2187b3c",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func WorkoutPDFRenderer.drawFooter()",
+   "hash": "48e87290267628e7",
+   "does": "Draws the shared footer (PDFPagePrimitives.drawFooter) with the line \"Generated <date> · Session <8-char id> · Emuqu\": rule at pageHeight−margin+6, the line, and the wellness disclaimer on every page.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func PDFPagePrimitives.drawFooter(_:page:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle",
+    "mem:LanguageManager.appLocale"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func PDFPagePrimitives.drawFooter(_:page:)": "e538da86ca729ff7",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.divider": "3dbf0b2b37c7ac21",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "func PDFPagePrimitives.drawText(_:at:font:color:)",
+   "hash": "453fb45b1b7ece14",
+   "does": "Draws a single line at a point with font and colour via the reading-direction-aware String.pdfDraw(at:).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "29c985d5d464ee1e"
+   }
+  },
+  {
+   "key": "func PDFPagePrimitives.drawTruncated(_:in:font:color:)",
+   "hash": "502093950eed94f1",
+   "does": "Draws one line in rect with a truncating-tail paragraph style, so text that does not fit ends in an ellipsis.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.paragraphStyle()",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(in:withAttributes:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.paragraphStyle()": "3c25801c4b034a3a",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(in:withAttributes:)": "259840329617caee"
+   }
+  },
+  {
+   "key": "func PDFPagePrimitives.drawWrappedText(_:at:width:font:color:lineHeight:)",
+   "hash": "01822855d38deaa0",
+   "does": "Draws word-wrapped text in a rect exactly as tall as wrappedTextHeight measures (never clipped) and returns origin.y + that height.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func PDFPagePrimitives.wrappedTextHeight(_:width:font:lineHeight:)",
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func PDFPagePrimitives.wrappedText(_:font:color:lineHeight:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func NSAttributedString.pdfDraw(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func NSAttributedString.pdfDraw(in:)": "9025a4c33d5fb3c1",
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func PDFPagePrimitives.wrappedText(_:font:color:lineHeight:)": "70ca71f0d7cff931",
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func PDFPagePrimitives.wrappedTextHeight(_:width:font:lineHeight:)": "0fcff693748d4802"
+   }
+  },
+  {
+   "key": "func PDFPagePrimitives.wrappedTextHeight(_:width:font:lineHeight:)",
+   "hash": "8cc0950453f0d882",
+   "does": "ceil of the wrapped text's bounding height at width (usesLineFragmentOrigin + usesFontLeading).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func PDFPagePrimitives.wrappedText(_:font:color:lineHeight:)",
+    "ext:NSAttributedString.boundingRect"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func PDFPagePrimitives.wrappedText(_:font:color:lineHeight:)": "70ca71f0d7cff931"
+   }
+  },
+  {
+   "key": "func PDFPagePrimitives.wrappedText(_:font:color:lineHeight:)",
+   "hash": "0ddbd1be1b41a73c",
+   "does": "The attributed text: font, colour, reading-direction paragraph style with word wrapping and line spacing lineHeight − font.lineHeight (not below 0).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.paragraphStyle()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.paragraphStyle()": "3c25801c4b034a3a"
+   }
+  },
+  {
+   "key": "func PDFPagePrimitives.drawDivider(from:width:strong:primary:divider:)",
+   "hash": "ae7f4ade4afb8238",
+   "does": "Strokes a horizontal rule from start, width long, on the current context: strong = primary at half alpha 1.2pt, else divider 0.5pt; nothing without a context.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no current graphics context",
+     "effect": "returns without drawing"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func PDFPagePrimitives.drawFooter(_:page:)",
+   "hash": "eec3f3f40591a9bb",
+   "does": "At pageHeight − margin + 6: a rule across the content width, the given line in the caption font, and the 'For wellness and fitness use only…' disclaimer on the next caption line.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func PDFPagePrimitives.drawDivider(from:width:strong:primary:divider:)",
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func PDFPagePrimitives.drawText(_:at:font:color:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func PDFPagePrimitives.drawDivider(from:width:strong:primary:divider:)": "292430342b319b5a",
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func PDFPagePrimitives.drawText(_:at:font:color:)": "719d524566adf04f",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.divider": "3dbf0b2b37c7ac21",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "func PDFPagePrimitives.formatDuration(_:)",
+   "hash": "d5a4114513da127c",
+   "does": "Formats seconds as h:mm:ss when an hour or more, else m:ss.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "h > 0",
+     "effect": "h:mm:ss; else m:ss"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func PDFDurationText.minutesSeconds(_:)",
+   "hash": "39dcb4c1a62e582d",
+   "does": "Formats seconds (negatives clamped to 0) with an abbreviated DateComponentsFormatter in the app locale: minutes+seconds when ≥60 s, seconds only otherwise; falls back to 'm:ss' if the formatter returns nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [
+    "mem:LanguageManager.appLocale"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "seconds >= 60",
+     "effect": "allowedUnits [.minute,.second]; else [.second]"
+    },
+    {
+     "at": "+8",
+     "cond": "formatter.string returns nil",
+     "effect": "fallback '\\(m):\\(ss)' manual string; else formatter output"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  }
+ ],
+ "deps": {}
+}

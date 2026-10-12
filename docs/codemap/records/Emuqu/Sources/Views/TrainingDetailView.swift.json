@@ -1,0 +1,1249 @@
+{
+ "file": "Emuqu/Sources/Views/TrainingDetailView.swift",
+ "hash": "d10bd09c321b8e88",
+ "role": "Training Load detail screen (ACR gauge, ATL/CTL/TSB, ACWR zone legend, Foster monotony banner, recent workouts) plus shared TrainingLoadVisibility gate and TrainingLoadPausedCard used by other load screens.",
+ "types": [
+  "TrainingDetailView: struct View — training-load detail page fed a live TrainingMetrics and/or frozen TrainingContext",
+  "TrainingDetailView.LoadMetrics: struct — atl/ctl/tsb/acr tuple normalised from either source",
+  "TrainingLoadVisibility: enum — isPaused(settings) gate shared by load screens and the AI system prompt",
+  "TrainingLoadPausedCard: struct View — placeholder card shown while load is off / on break",
+  "MetricColumn: private struct View — label/value/subtitle column",
+  "ACRGaugeBar: private struct View — linear 0.5–2.0 ACR gauge with 4 coloured bands and a thumb",
+  "ZoneRow: private struct View — one ACWR band legend row"
+ ],
+ "state": [
+  "@State isRefreshing: Bool (TrainingDetailView, re-entrancy guard for runRefresh)",
+  "@Environment(\\.dependencies) dependencies",
+  "static ACRGaugeBar.scaleMin = 0.5, scaleMax = 2.0",
+  "followsLiveLoad: Bool = false (TrainingDetailView, caller-set: show the shared TrainingMetricsCache when no metrics are passed)",
+  "mem:TrainingMetricsCache.current (read through liveMetrics)"
+ ],
+ "toplevel": "Stored lets trainingMetrics/trainingContext and var followsLiveLoad (default false) set by the caller; #Preview builds the view with both nil. MetricColumn/ZoneRow/ACRGaugeBar are memberwise-initialised private structs.",
+ "flags": [
+  {
+   "kind": "test-defect",
+   "sev": "low",
+   "text": "The only test (ComponentSnapshotTests) renders TrainingDetailView with live metrics and no context, the path production never takes; the frozen-context path the app uses is not snapshotted.",
+   "evidence": [
+    "EmuquTests/ComponentSnapshotTests.swift:110",
+    "Emuqu/Sources/Views/MorningResultsView.swift:371"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "init TrainingDetailView.LoadMetrics(_: HealthKitManager.TrainingMetrics)",
+   "hash": "45251e17cce1e290",
+   "does": "Builds LoadMetrics from a live TrainingMetrics (atl, ctl, tsb, acuteChronicRatio which is nil when ctl<=0).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/TrainingDetailView.swift::init TrainingDetailView.LoadMetrics(atl:ctl:tsb:acr:)",
+    "Emuqu/Sources/Collection/TrainingMetrics.swift::var TrainingMetrics.acuteChronicRatio"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/TrainingMetrics.swift::var TrainingMetrics.acuteChronicRatio": "fee4f972f248039e",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::init TrainingDetailView.LoadMetrics(atl:ctl:tsb:acr:)": "f20b90acd9503411",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+   }
+  },
+  {
+   "key": "init TrainingDetailView.LoadMetrics(_: TrainingContext)",
+   "hash": "e1482a0488b68332",
+   "does": "Builds LoadMetrics from a frozen TrainingContext (atl, ctl, tsb, acuteChronicRatio nil when ctl<=0).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/TrainingDetailView.swift::init TrainingDetailView.LoadMetrics(atl:ctl:tsb:acr:)",
+    "Emuqu/Sources/Models/RRModels.swift::var TrainingContext.acuteChronicRatio"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::var TrainingContext.acuteChronicRatio": "bab331587abdd3ff",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::init TrainingDetailView.LoadMetrics(atl:ctl:tsb:acr:)": "f20b90acd9503411",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+   }
+  },
+  {
+   "key": "init TrainingDetailView.LoadMetrics(atl:ctl:tsb:acr:)",
+   "hash": "e342eb513b62984c",
+   "does": "Memberwise designated init storing atl, ctl, tsb, acr.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var TrainingDetailView.liveMetrics",
+   "hash": "c383618794e0da4c",
+   "does": "The live metrics on screen: trainingMetrics when passed, else TrainingMetricsCache.current when followsLiveLoad, else nil. Observed, so a cache refresh re-renders the screen.",
+   "entry": "Read by metrics, recentWorkoutsSection and monotonyBannerIfHigh.",
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AnalysisServices.trainingMetricsCache"
+   ],
+   "reads": [
+    "mem:TrainingMetricsCache.current"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "trainingMetrics nil",
+     "effect": "followsLiveLoad ? cache.current : nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AnalysisServices.trainingMetricsCache": "c54dab42e8e86c14"
+   }
+  },
+  {
+   "key": "var TrainingDetailView.metrics",
+   "hash": "05612af9689c8b52",
+   "does": "Chooses the numbers to display: liveMetrics if they look real, else frozen context if it looks real, else live, else frozen, else nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var TrainingDetailView.liveMetrics",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.liveLooksReal(_:)",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.frozenLooksReal(_:)",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::init TrainingDetailView.LoadMetrics(_: HealthKitManager.TrainingMetrics)",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::init TrainingDetailView.LoadMetrics(_: TrainingContext)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "liveMetrics non-nil and liveLooksReal",
+     "effect": "return LoadMetrics(live)"
+    },
+    {
+     "at": "+10",
+     "cond": "trainingContext non-nil and atl>0 or ctl>0",
+     "effect": "return LoadMetrics(frozen)"
+    },
+    {
+     "at": "+12",
+     "cond": "liveMetrics non-nil (cold/zero)",
+     "effect": "return live zeros"
+    },
+    {
+     "at": "+13",
+     "cond": "trainingContext non-nil (all-zero frozen)",
+     "effect": "return frozen zeros; else nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.frozenLooksReal(_:)": "44db115201fa77e8",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.liveLooksReal(_:)": "225d773a31e2dc82",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::init TrainingDetailView.LoadMetrics(_: HealthKitManager.TrainingMetrics)": "2348fe8d29a0008b",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::init TrainingDetailView.LoadMetrics(_: TrainingContext)": "7fc9eee515f5cc4e",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var TrainingDetailView.liveMetrics": "18ebd0e7678b8293"
+   }
+  },
+  {
+   "key": "func TrainingDetailView.liveLooksReal(_:)",
+   "hash": "19122a4b57d639ae",
+   "does": "True when live metrics have atl>0 or ctl>0 or any recent workouts.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+   }
+  },
+  {
+   "key": "func TrainingDetailView.frozenLooksReal(_:)",
+   "hash": "0b0b5068ff18faad",
+   "does": "True when frozen context has atl>0 or ctl>0.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+   }
+  },
+  {
+   "key": "var TrainingDetailView.body",
+   "hash": "2fb13070113c3a61",
+   "does": "View body: pageStack wrapped by withPageChrome.",
+   "entry": "SwiftUI body evaluation of TrainingDetailView (pushed by MorningResultsView NavigationLink at Emuqu/Sources/Views/MorningResultsView.swift:371, the preview, and ComponentSnapshotTests).",
+   "calls": [
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.withPageChrome(_:)",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var TrainingDetailView.pageStack"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.withPageChrome(_:)": "a26b11bc66361927",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var TrainingDetailView.pageStack": "3274f74643ee6bc5"
+   }
+  },
+  {
+   "key": "var TrainingDetailView.pageStack",
+   "hash": "a04e56a666c2653f",
+   "does": "ScrollView showing TrainingLoadPausedCard when load is paused in settings, else trainingCards.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingLoadVisibility.isPaused(_:)",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var TrainingLoadPausedCard.body",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var TrainingDetailView.trainingCards",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings (enableTrainingLoadIntegration, trainingBreakStartDate/End)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "TrainingLoadVisibility.isPaused(settings)",
+     "effect": "true: paused card only; false: full training cards"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingLoadVisibility.isPaused(_:)": "1d59fbbd894f7ba5",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var TrainingDetailView.trainingCards": "7bdc033472796d1d",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var TrainingLoadPausedCard.body": "a4ab56e0ba52739e"
+   }
+  },
+  {
+   "key": "var TrainingDetailView.trainingCards",
+   "hash": "24d0533286de1627",
+   "does": "VStack of monotony banner, ACR card, metrics card, zone legend and recent workouts.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var TrainingDetailView.monotonyBannerIfHigh",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var TrainingDetailView.acrCard",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var TrainingDetailView.metricsCard",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var TrainingDetailView.zonesExplanation",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var TrainingDetailView.recentWorkoutsSection"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var TrainingDetailView.acrCard": "db5b7165daf8da13",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var TrainingDetailView.metricsCard": "7ca8d2edfebb7a47",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var TrainingDetailView.monotonyBannerIfHigh": "a85a5f34a72bb26e",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var TrainingDetailView.recentWorkoutsSection": "91ef336948b56258",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var TrainingDetailView.zonesExplanation": "e52dc44d1ef5aa43"
+   }
+  },
+  {
+   "key": "var TrainingDetailView.recentWorkoutsSection",
+   "hash": "b78f6c1993d8fcea",
+   "does": "Shows the live recent-workouts card when liveMetrics have workouts, else the frozen snapshot card when the context has workouts, else nothing.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.liveWorkoutsCard(_:)",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.recentWorkoutsCard(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "liveMetrics?.recentWorkouts non-empty",
+     "effect": "liveWorkoutsCard"
+    },
+    {
+     "at": "+4",
+     "cond": "trainingContext.recentWorkouts non-nil and non-empty",
+     "effect": "recentWorkoutsCard of frozen snapshots; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.liveWorkoutsCard(_:)": "35209f735a5c6467",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.recentWorkoutsCard(_:)": "a0a26dc5e3e60bb5",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var TrainingDetailView.liveMetrics": "18ebd0e7678b8293"
+   }
+  },
+  {
+   "key": "func TrainingDetailView.withPageChrome(_:)",
+   "hash": "2ee3fb983273fc3e",
+   "does": "Applies background, localized 'Training Load' title, large title mode, pull-to-refresh calling runRefresh, and a .task calling refreshIfCold.",
+   "entry": "Modifiers: .refreshable fires on user pull-to-refresh; .task fires when the view appears.",
+   "calls": [
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.runRefresh()",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.refreshIfCold()",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "053cc91a5a90d115",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.refreshIfCold()": "3de50a95c650cc1c",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.runRefresh()": "dc8822c9bb140bbf"
+   }
+  },
+  {
+   "key": "func TrainingDetailView.refreshIfCold()",
+   "hash": "be3d51a91de97be6",
+   "does": "On appear, triggers a TrainingMetricsCache refresh when the displayed metrics are nil or have atl==0 and ctl==0.",
+   "entry": "SwiftUI .task on appear (line 110).",
+   "calls": [
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var TrainingDetailView.metrics",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.runRefresh()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "metrics non-nil with atl==0 and ctl==0",
+     "effect": "await runRefresh(); else check 124"
+    },
+    {
+     "at": "+9",
+     "cond": "metrics == nil",
+     "effect": "await runRefresh(); else no-op"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.runRefresh()": "dc8822c9bb140bbf",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var TrainingDetailView.metrics": "7d6116727c0d1911",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+   }
+  },
+  {
+   "key": "func TrainingDetailView.runRefresh()",
+   "hash": "217a494b11ad53c3",
+   "does": "Refreshes TrainingMetricsCache (forMorningReading:false) only when this screen shows the cache (followsLiveLoad and no trainingMetrics passed) and no refresh is running; isRefreshing true for the duration. The result reaches the screen through liveMetrics.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.refresh(reference:forMorningReading:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AnalysisServices.trainingMetricsCache"
+   ],
+   "reads": [
+    "hk:HKWorkout (via TrainingMetricsCache)"
+   ],
+   "writes": [
+    "mem:TrainingMetricsCache.current"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "not followsLiveLoad, metrics passed in, or already refreshing",
+     "effect": "return without refreshing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.refresh(reference:forMorningReading:)": "261edc49e75a859f",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AnalysisServices.trainingMetricsCache": "c54dab42e8e86c14"
+   }
+  },
+  {
+   "key": "var TrainingDetailView.monotonyBannerIfHigh",
+   "hash": "55c2cb6e49840239",
+   "does": "Renders the Foster monotony banner when liveMetrics dailyTrimp yields a monotony/strain pair that FosterMonotonyWarning raises.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var TrainingDetailView.liveMetrics",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Training.swift::func RecoveryScoreCalculator.fosterMonotonyStrain(dailyTrimp:referenceDate:)",
+    "Emuqu/Sources/Analysis/FosterMonotonyWarning.swift::func FosterMonotonyWarning.isRaised(_:)",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.monotonyBanner(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "liveMetrics?.dailyTrimp present, fosterMonotonyStrain non-nil and isRaised",
+     "effect": "banner shown; else nothing"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "FLOWCHART says the TrainingDetailView banner needs strain >200; the rule (FosterMonotonyWarning.isRaised) uses strainThreshold 1600, as TRAINING_LOAD.md says.",
+     "evidence": [
+      "docs/FLOWCHART.md:398",
+      "docs/FLOWCHART.md:399",
+      "Emuqu/Sources/Analysis/FosterMonotonyWarning.swift:25",
+      "Emuqu/Sources/Utilities/Constants+RecoveryScore.swift:237"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/FosterMonotonyWarning.swift::func FosterMonotonyWarning.isRaised(_:)": "2dc1e8ad595eac0d",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Training.swift::func RecoveryScoreCalculator.fosterMonotonyStrain(dailyTrimp:referenceDate:)": "ccb3c6f568b7e996",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.monotonyBanner(_:)": "0d76734a10fd6eaf",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var TrainingDetailView.liveMetrics": "18ebd0e7678b8293"
+   }
+  },
+  {
+   "key": "func TrainingDetailView.monotonyBanner(_:)",
+   "hash": "ede0032b7205335e",
+   "does": "Gold-tinted rounded HStack with icon and monotonyBannerText.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.monotonyBannerText(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.monotonyBannerText(_:)": "06b0493f069e11d1"
+   }
+  },
+  {
+   "key": "func TrainingDetailView.monotonyBannerText(_:)",
+   "hash": "a0646479beacf2bf",
+   "does": "Headline plus localized explanation formatting monotony to one decimal.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var TrainingDetailView.acrCard",
+   "hash": "0170eec186ddd113",
+   "does": "Card with 'ACUTE:CHRONIC RATIO' header and acrReadout.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var TrainingDetailView.acrReadout",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var TrainingDetailView.acrReadout": "90786fe3b7d734e2"
+   }
+  },
+  {
+   "key": "var TrainingDetailView.acrReadout",
+   "hash": "29eebf72eae15e0b",
+   "does": "Shows the ACR gauge when metrics.acr exists, else '--' placeholder.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var TrainingDetailView.metrics",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.acrGauge(_:)",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var TrainingDetailView.acrPlaceholder"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "metrics?.acr non-nil (ctl>0)",
+     "effect": "acrGauge; else acrPlaceholder '--'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.acrGauge(_:)": "09af62f38020a2e0",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var TrainingDetailView.acrPlaceholder": "39a70554bf9d8525",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var TrainingDetailView.metrics": "7d6116727c0d1911"
+   }
+  },
+  {
+   "key": "func TrainingDetailView.acrGauge(_:)",
+   "hash": "35195a0e9ffc20a5",
+   "does": "Large two-decimal ACR text and band label coloured by band, plus ACRGaugeBar.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.acrColor(_:)",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.acrLabel(_:)",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var ACRGaugeBar.body",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.acrColor(_:)": "9db9d8e02ac8e93b",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.acrLabel(_:)": "9f26793c2cff7e5e",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var ACRGaugeBar.body": "78ca8e0b434602c5"
+   }
+  },
+  {
+   "key": "var TrainingDetailView.acrPlaceholder",
+   "hash": "757376e8299c5b0f",
+   "does": "Large tertiary '--' text.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var TrainingDetailView.metricsCard",
+   "hash": "5a47a1d5524eefc6",
+   "does": "Card with 'TRAINING METRICS' header and loadColumns.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var TrainingDetailView.loadColumns",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var TrainingDetailView.loadColumns": "e1b63dcf11953068"
+   }
+  },
+  {
+   "key": "var TrainingDetailView.loadColumns",
+   "hash": "93942b4bc1a03cf8",
+   "does": "Shows ATL/CTL/TSB columns when metrics exist, else 'No training data available'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var TrainingDetailView.metrics",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.loadColumnRow(_:)",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "metrics non-nil",
+     "effect": "loadColumnRow; else no-data text"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.loadColumnRow(_:)": "105d65061d62cc07",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var TrainingDetailView.metrics": "7d6116727c0d1911"
+   }
+  },
+  {
+   "key": "func TrainingDetailView.loadColumnRow(_:)",
+   "hash": "38714f38b0e52328",
+   "does": "Three MetricColumns: ATL (%.0f), CTL (%.0f), TSB (%+.0f) with TSB colour by sign.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var MetricColumn.body",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.terracottaText",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sageText",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+18",
+     "cond": "m.tsb >= 0",
+     "effect": "sage text colour; else terracotta"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sageText": "7646093d377bac7c",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.terracottaText": "6a18b5025ee3e850",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var MetricColumn.body": "bb32a158da1d5677",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+   }
+  },
+  {
+   "key": "var TrainingDetailView.zoneRows",
+   "hash": "2a0bbf42759597c1",
+   "does": "ForEach over ACWRBand.allCases building ZoneRow(rangeText,label,detail,zoneColor).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/TrainingMetrics.swift::var ACWRBand.rangeText",
+    "Emuqu/Sources/Collection/TrainingMetrics.swift::var ACWRBand.label",
+    "Emuqu/Sources/Collection/TrainingMetrics.swift::var ACWRBand.detail",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.zoneColor(_:)",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var ZoneRow.body"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "FLOWCHART lists four ACWR ranges (Below your usual / In range / Above your usual / Sharp increase); the legend renders all five ACWRBand cases including 'Maintenance' 0.8-1.0.",
+     "evidence": [
+      "docs/FLOWCHART.md:397",
+      "Emuqu/Sources/Views/TrainingDetailView.swift:299",
+      "Emuqu/Sources/Collection/TrainingMetrics.swift:52"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/TrainingMetrics.swift::var ACWRBand.detail": "1ed042da75f55834",
+    "Emuqu/Sources/Collection/TrainingMetrics.swift::var ACWRBand.label": "9ea37e9b11a3009c",
+    "Emuqu/Sources/Collection/TrainingMetrics.swift::var ACWRBand.rangeText": "24fc941d7ace4739",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.zoneColor(_:)": "ed8a20a928839136",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var ZoneRow.body": "9e0764f6063ffeee"
+   }
+  },
+  {
+   "key": "func TrainingDetailView.zoneColor(_:)",
+   "hash": "eaaf18d32925c180",
+   "does": "Static: maps ACWRBand to its fill colour, shared by the legend rows and ACRGaugeBar's bands.",
+   "entry": "Called from zoneRows and ACRGaugeBar.bandEdges.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "belowUsual",
+     "effect": "AppTheme.mist"
+    },
+    {
+     "at": "+3",
+     "cond": "maintenance",
+     "effect": "sage at 0.7 opacity"
+    },
+    {
+     "at": "+4",
+     "cond": "inRange",
+     "effect": "sage"
+    },
+    {
+     "at": "+5",
+     "cond": "aboveUsual",
+     "effect": "softGold"
+    },
+    {
+     "at": "+6",
+     "cond": "sharpIncrease",
+     "effect": "alert"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var TrainingDetailView.zonesExplanation",
+   "hash": "8766d32721f531ce",
+   "does": "Card with 'ACR TRAINING ZONES' header and zoneRows.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var TrainingDetailView.zoneRows",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var TrainingDetailView.zoneRows": "05b3d5b44e1ecc8d"
+   }
+  },
+  {
+   "key": "func TrainingDetailView.liveWorkoutsCard(_:)",
+   "hash": "cbca95701925052f",
+   "does": "Filters live workouts to duration>=1 min and userScaledLoad>0.5 and lists them with dividers.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutSummary+UserLoad.swift::var HealthKitManager.WorkoutSummary.userScaledLoad",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var TrainingDetailView.recentWorkoutsHeader",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.liveWorkoutRow(_:)",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.dividerUnlessLast(index:count:)",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "Only reachable when trainingMetrics is non-nil: called from production nowhere (MorningResultsView passes nil); only ComponentSnapshotTests (with empty recentWorkouts) and the preview construct the view with metrics.",
+     "evidence": [
+      "Emuqu/Sources/Views/TrainingDetailView.swift:95",
+      "Emuqu/Sources/Views/MorningResultsView.swift:372",
+      "EmuquTests/ComponentSnapshotTests.swift:110"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutSummary+UserLoad.swift::var HealthKitManager.WorkoutSummary.userScaledLoad": "919b0c34f3cd4748",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.dividerUnlessLast(index:count:)": "7e78accb74d8ae94",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.liveWorkoutRow(_:)": "f0ab084f25eade62",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var TrainingDetailView.recentWorkoutsHeader": "802a09aa48c689e6"
+   }
+  },
+  {
+   "key": "func TrainingDetailView.liveWorkoutRow(_:)",
+   "hash": "03bbc2e2f961a185",
+   "does": "Row with localized workout type, date, and liveWorkoutLoad.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::var HealthWorkoutSummary.localizedTypeDescription",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.liveWorkoutLoad(_:)",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::var HealthWorkoutSummary.localizedTypeDescription": "45eeaf1e3975c035",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.liveWorkoutLoad(_:)": "29e7f4382f0b8a21"
+   }
+  },
+  {
+   "key": "func TrainingDetailView.liveWorkoutLoad(_:)",
+   "hash": "6627365d9404ba53",
+   "does": "Duration text plus '<LOAD|TRIMP>: n' using the workout's precomputed load source label and rounded userScaledLoad.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.TrainingLoadSource.displayLabel",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.formatDuration(_:)",
+    "Emuqu/Sources/Collection/WorkoutSummary+UserLoad.swift::var HealthKitManager.WorkoutSummary.userScaledLoad",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryText",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "precomputedLoadSource nil or unknown raw value",
+     "effect": "falls back to .banister → label 'TRIMP'; else that source's label"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutSummary+UserLoad.swift::var HealthKitManager.WorkoutSummary.userScaledLoad": "919b0c34f3cd4748",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.TrainingLoadSource.displayLabel": "fa5521cf8a3a0f67",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryText": "5fe81441a0858ebb",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.formatDuration(_:)": "9bc4d79002b17f14"
+   }
+  },
+  {
+   "key": "var TrainingDetailView.snapshotLoadLabel",
+   "hash": "316503b2a5557cc8",
+   "does": "Static label for frozen snapshot loads: TrainingLoadSource.hr.displayLabel ('LOAD').",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.TrainingLoadSource.displayLabel"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "Frozen snapshot rows always say LOAD, but WorkoutSnapshot.trimp is userScaledLoad, which for Banister/route-history sources is TRIMP-scale (TrainingLoadSource.displayLabel says those must read TRIMP), so a Banister workout shows under the wrong unit name.",
+     "evidence": [
+      "Emuqu/Sources/Views/TrainingDetailView.swift:391",
+      "Emuqu/Sources/Models/WorkoutMetadata.swift:510",
+      "Emuqu/Sources/Models/RRModels.swift:562"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.TrainingLoadSource.displayLabel": "fa5521cf8a3a0f67"
+   }
+  },
+  {
+   "key": "func TrainingDetailView.recentWorkoutsCard(_:)",
+   "hash": "9fe13e9ed25b2be0",
+   "does": "Filters frozen snapshots to trimp>0.5 and duration>=1 min, keeps up to 7, lists them with dividers.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var TrainingDetailView.recentWorkoutsHeader",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.snapshotWorkoutRow(_:)",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.dividerUnlessLast(index:count:)",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.dividerUnlessLast(index:count:)": "7e78accb74d8ae94",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.snapshotWorkoutRow(_:)": "fd82c88558b603d3",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var TrainingDetailView.recentWorkoutsHeader": "802a09aa48c689e6"
+   }
+  },
+  {
+   "key": "var TrainingDetailView.recentWorkoutsHeader",
+   "hash": "5e7d8136e88c6e32",
+   "does": "'RECENT WORKOUTS' caption header.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "func TrainingDetailView.dividerUnlessLast(index:count:)",
+   "hash": "daaa400338d1676a",
+   "does": "Emits a Divider unless the row is the last.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "index < count-1",
+     "effect": "Divider; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TrainingDetailView.snapshotWorkoutRow(_:)",
+   "hash": "20346cf9e54c4af6",
+   "does": "Row with localized snapshot type, date, duration and 'LOAD: n'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.localizedTypeName(_:)",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.formatDuration(_:)",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var TrainingDetailView.snapshotLoadLabel",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryText",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.localizedTypeName(_:)": "cf6803855f16c286",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryText": "5fe81441a0858ebb",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.formatDuration(_:)": "9bc4d79002b17f14",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var TrainingDetailView.snapshotLoadLabel": "927a7ec49455ea7f"
+   }
+  },
+  {
+   "key": "func TrainingDetailView.formatDuration(_:)",
+   "hash": "5cadd5ae427c9604",
+   "does": "Formats minutes as localized h/m when >=60 else localized minutes.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)",
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.minutes(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "total >= 60",
+     "effect": "LocalizedDuration.hoursMinutes; else LocalizedDuration.minutes"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)": "a4e4b582efee3f03",
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.minutes(_:)": "0eaf9ea6f219f5b6"
+   }
+  },
+  {
+   "key": "func TrainingDetailView.acrColor(_:)",
+   "hash": "c808fd827196040d",
+   "does": "Text colour for an ACR value by ACWRBand.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/TrainingMetrics.swift::init ACWRBand(ratio:)",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.mistText",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sageText",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.softGoldText",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.terracottaText"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "belowUsual (<0.8)",
+     "effect": "mistText"
+    },
+    {
+     "at": "+3",
+     "cond": "maintenance or inRange (0.8-1.3)",
+     "effect": "sageText"
+    },
+    {
+     "at": "+4",
+     "cond": "aboveUsual (1.3-1.5]",
+     "effect": "softGoldText"
+    },
+    {
+     "at": "+5",
+     "cond": "sharpIncrease (>1.5)",
+     "effect": "terracottaText"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/TrainingMetrics.swift::init ACWRBand(ratio:)": "ab23d40ded8191dc",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.mistText": "81c9b7b876926c13",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sageText": "7646093d377bac7c",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.softGoldText": "12fb8e2fb33c18ef",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.terracottaText": "6a18b5025ee3e850"
+   }
+  },
+  {
+   "key": "func TrainingDetailView.acrLabel(_:)",
+   "hash": "8a82b67df19549ef",
+   "does": "Band label for an ACR value.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/TrainingMetrics.swift::init ACWRBand(ratio:)",
+    "Emuqu/Sources/Collection/TrainingMetrics.swift::var ACWRBand.label"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/TrainingMetrics.swift::init ACWRBand(ratio:)": "ab23d40ded8191dc",
+    "Emuqu/Sources/Collection/TrainingMetrics.swift::var ACWRBand.label": "9ea37e9b11a3009c"
+   }
+  },
+  {
+   "key": "func TrainingLoadVisibility.isPaused(_:)",
+   "hash": "62725770a78f173d",
+   "does": "True when training-load integration is disabled or the user is on a training break.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isOnTrainingBreak"
+   ],
+   "reads": [
+    "mem:UserSettings.enableTrainingLoadIntegration",
+    "mem:UserSettings.trainingBreakStartDate"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isOnTrainingBreak": "4d09b6e877f250f8"
+   }
+  },
+  {
+   "key": "var TrainingLoadPausedCard.body",
+   "hash": "683bc522e797d0a2",
+   "does": "Pause icon with 'Training load paused' title and Settings hint in a card, combined for accessibility.",
+   "entry": "SwiftUI body; shown by TrainingDetailView:67 and LoadTrajectoryLoader:48.",
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var MetricColumn.body",
+   "hash": "3536061113d75ac0",
+   "does": "VStack label/value/subtitle with value in the given colour.",
+   "entry": "SwiftUI body of MetricColumn.",
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var ACRGaugeBar.bandEdges",
+   "hash": "fd4de2712f0fa946",
+   "does": "The five ACWRBand bands' upper edges (0.8, 1.0, 1.3, 1.5, then scaleMax 2.0 for the open-ended sharp increase) with TrainingDetailView.zoneColor of each, so the gauge matches the legend.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.zoneColor(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.zoneColor(_:)": "ed8a20a928839136"
+   }
+  },
+  {
+   "key": "var ACRGaugeBar.body",
+   "hash": "3f0451068078e1ba",
+   "does": "Gauge track over axis labels, forced left-to-right.",
+   "entry": "SwiftUI body of ACRGaugeBar.",
+   "calls": [
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var ACRGaugeBar.gaugeTrack",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var ACRGaugeBar.gaugeAxisLabels"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.layoutDirection": "65922f80a2b0ebd5",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var ACRGaugeBar.gaugeAxisLabels": "06fa105b55982fc0",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var ACRGaugeBar.gaugeTrack": "483b32506d023f5d"
+   }
+  },
+  {
+   "key": "func ACRGaugeBar.fraction(_:)",
+   "hash": "79f195546e3af905",
+   "does": "Maps a value to 0..1 on the 0.5–2.0 scale, clamped.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var ACRGaugeBar.gaugeAxisLabels",
+   "hash": "12a1dd328f3cd1b7",
+   "does": "GeometryReader placing tick labels 0.5/1.0/1.5/2.0 at labelX.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func ACRGaugeBar.labelX(_:width:)",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func ACRGaugeBar.labelX(_:width:)": "dab75c5312a96562"
+   }
+  },
+  {
+   "key": "func ACRGaugeBar.labelX(_:width:)",
+   "hash": "8a4ee0d3778a9979",
+   "does": "Tick x = width*fraction clamped to [10, width-10].",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func ACRGaugeBar.fraction(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func ACRGaugeBar.fraction(_:)": "17baa63cb605576d"
+   }
+  },
+  {
+   "key": "var ACRGaugeBar.gaugeTrack",
+   "hash": "c87f8cbfd4b63426",
+   "does": "20pt GeometryReader hosting gaugeLayers.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func ACRGaugeBar.gaugeLayers(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func ACRGaugeBar.gaugeLayers(_:)": "708299cdb057a5b6"
+   }
+  },
+  {
+   "key": "func ACRGaugeBar.gaugeLayers(_:)",
+   "hash": "33e7bce4e70b7f53",
+   "does": "Band strip plus a white 20pt thumb offset to fraction(acr) (clamped at 0.5 and 2.0).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func ACRGaugeBar.gaugeBands(_:)",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func ACRGaugeBar.fraction(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func ACRGaugeBar.fraction(_:)": "17baa63cb605576d",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func ACRGaugeBar.gaugeBands(_:)": "c588b93946dc7889",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "func ACRGaugeBar.gaugeBands(_:)",
+   "hash": "25f03e9a48d5f88f",
+   "does": "HStack of rectangles, each band's width proportional to its fraction span.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var ACRGaugeBar.bandEdges",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func ACRGaugeBar.fraction(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "index == 0",
+     "effect": "lower edge = scaleMin 0.5; else previous band's upper edge"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func ACRGaugeBar.fraction(_:)": "17baa63cb605576d",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var ACRGaugeBar.bandEdges": "e8a1f7f0a1e4fdb8",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var ZoneRow.body",
+   "hash": "66daa2f4dc490d78",
+   "does": "Colour bar + zoneRowText + spacer.",
+   "entry": "SwiftUI body of ZoneRow.",
+   "calls": [
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var ZoneRow.zoneRowText"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var ZoneRow.zoneRowText": "049539b8e8ef9137",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var ZoneRow.zoneRowText",
+   "hash": "37dee970903d2fdc",
+   "does": "Heading plus description text.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var ZoneRow.zoneRowHeading",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var ZoneRow.zoneRowHeading": "f8343396679fb607"
+   }
+  },
+  {
+   "key": "var ZoneRow.zoneRowHeading",
+   "hash": "da6f043c5fac0e12",
+   "does": "Monospaced range text and medium label.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  }
+ ],
+ "deps": {}
+}

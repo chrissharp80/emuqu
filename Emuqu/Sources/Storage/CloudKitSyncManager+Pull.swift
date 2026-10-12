@@ -101,13 +101,23 @@ extension CloudPullCoordinator {
     /// task), so every iteration suspends and the main actor can interleave UI
     /// work between records — no explicit Task.yield() needed. Records are
     /// still processed strictly in order, one at a time.
+    ///
+    /// A record the listing could not return is not imported this pass, and
+    /// the sync ends as an error rather than "Up to date" (`noteListingFailure`).
     private func processRemoteRecords(
         _ results: [(CKRecord.ID, Result<CKRecord, Error>)]
     ) async -> PullCounts {
         var counts = PullCounts()
         for (_, result) in results {
             if Task.isCancelled { break }
-            guard case .success(let record) = result else { continue }
+            let record: CKRecord
+            switch result {
+            case .success(let listed):
+                record = listed
+            case .failure(let error):
+                noteListingFailure(error)
+                continue
+            }
             let outcome = await processRemoteRecord(record)
             manager.noteSyncProgress() // processed a remote record — sync is advancing
             counts.newSessions += outcome.new
@@ -116,6 +126,14 @@ extension CloudPullCoordinator {
             if let id = outcome.backfillId { counts.backfillIds.append(id) }
         }
         return counts
+    }
+
+    /// One record of the listing failed. Logged, and kept as the pull's error
+    /// so the full sync does not report success over a session it did not
+    /// import.
+    private func noteListingFailure(_ error: Error) {
+        debugLog("[CloudKit] Pull: a record in the listing failed: \(error.localizedDescription)", level: .warning)
+        manager.lastPullErrorMessage = String(localized: "A session from iCloud couldn't be imported: \(error.localizedDescription)", bundle: LanguageManager.appBundle)
     }
 
     /// Pulled sessions were archived via `processRemoteRecord` without going

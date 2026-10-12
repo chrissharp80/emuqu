@@ -1,0 +1,1158 @@
+{
+ "file": "Emuqu/Sources/Assistant/Context/ContextBuilder.swift",
+ "hash": "6c736c950cb43464",
+ "role": "Enum of static builders that assemble an AssistantContext (user profile, today/yesterday session snapshots, recent lite sessions carrying the titles of this build's summaries, baselines, trends, analysis summary, workout history, live workout/HRV with the workout's samples, and ambient location) from inputs gathered by AssistantContextSource, for the AI assistant's system prompt. It reads the live brokers, the ambient location cache and the settings body weight through AppDependencies.current, and reads and writes the shared AnalysisSummaryCache, as its header says.",
+ "types": [
+  "ContextBuilder: enum — static builders turning HRVSession/UserSettings/baseline/trend inputs into AssistantContext snapshot structs",
+  "ContextBuilder.DerivedSampleMetrics: struct — avg/max HR, avg METs, kcal, avg cadence, alpha1 mean derived from per-tick WorkoutSample series"
+ ],
+ "state": [],
+ "toplevel": "No globals; extension at line 611 adds the vitals/overnight-HR/sleep sub-snapshot builders.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func ContextBuilder.build(latestSession:yesterdaySession:recentSessions:sleepInput:sleepTrend:trainingContext:userSettings:customTagNames:baseline:baselineStats:yesterdayBaselineStats:trends7Day:trends30Day:liveLoadSnapshot:)",
+   "hash": "c62a42c37819efde",
+   "does": "Generates the English analysis summary for latestSession and the yesterday diagnostic first, collects their titles by session id, then builds the AssistantContext with generatedAt=now: profile (with effective VO2max), today snapshot (live training fallback/live load), yesterday snapshot (no live data), the diagnostic, recent lite snapshots carrying those titles, baselines, 7/30-day trends, the summary, workout history, the brokers' live workout and live HRV snapshots, the ambient location snapshot and the live workout's samples.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.computeOrFetchSummary(session:recentSessions:sleepInput:sleepTrend:trainingContext:userSettings:liveLoadSnapshot:baselineStats:)",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.yesterdayDiagnostic(session:recentSessions:userSettings:baselineStats:)",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.summaryTitles(_:)",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.buildUserProfile(settings:customTagNames:effectiveVO2Max:)",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.effectiveVO2Max(settings:training:)",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.buildSessionSnapshot(session:trainingFallback:liveLoad:)",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.recentLiteSnapshots(_:liveLoad:titles:)",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.buildBaselineSnapshot(baseline:stats:)",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.buildTrendSnapshot(summary:periodLabel:)",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.buildWorkoutHistory(sessions:)",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.buildAmbientLocationSnapshot()",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.liveWorkoutSamples()",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.liveWorkoutBroker",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.liveHRVBroker",
+    "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift::func LiveWorkoutBroker.currentSnapshot()",
+    "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift::func LiveHRVBroker.currentSnapshot()"
+   ],
+   "reads": [
+    "mem:LiveWorkoutBroker.state",
+    "mem:LiveHRVBroker.provider",
+    "mem:AnalysisSummaryCache.state",
+    "mem:AmbientLocationService cached location/address"
+   ],
+   "writes": [
+    "mem:AnalysisSummaryCache.state"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.buildAmbientLocationSnapshot()": "f13f303437484f84",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.buildBaselineSnapshot(baseline:stats:)": "7dab67077fb6ab3b",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.buildSessionSnapshot(session:trainingFallback:liveLoad:)": "da8ec77555571fb9",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.buildTrendSnapshot(summary:periodLabel:)": "b2f144cc640c2fa1",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.buildUserProfile(settings:customTagNames:effectiveVO2Max:)": "b463408c2148f4e1",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.buildWorkoutHistory(sessions:)": "ddfbfcfcbdc65154",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.computeOrFetchSummary(session:recentSessions:sleepInput:sleepTrend:trainingContext:userSettings:liveLoadSnapshot:baselineStats:)": "8191e1ee6e112380",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.effectiveVO2Max(settings:training:)": "44c6082a32c78acd",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.liveWorkoutSamples()": "90aecfc83f2a507f",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.recentLiteSnapshots(_:liveLoad:titles:)": "8a1eb89c69370815",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.summaryTitles(_:)": "ab42163e1c3af8b7",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingContext(for:live:now:)": "8a2456d82b8dd52c",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.yesterdayDiagnostic(session:recentSessions:userSettings:baselineStats:)": "b75ac006e3a1f79e",
+    "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift::func LiveHRVBroker.currentSnapshot()": "9544923aae2a6add",
+    "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift::func LiveWorkoutBroker.currentSnapshot()": "a50b1a67daa97277",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "6d93847830e6d9e6",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.liveHRVBroker": "1064e6fbd1638349",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.liveWorkoutBroker": "e05e91154e3e8f2d"
+   }
+  },
+  {
+   "key": "func ContextBuilder.liveWorkoutSamples()",
+   "hash": "849baa427a99cfcb",
+   "does": "The live workout broker's current samples when it has a live (non-stale) snapshot, else nil, so the context's HR history matches its liveWorkout.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.liveWorkoutBroker",
+    "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift::func LiveWorkoutBroker.currentSnapshot()",
+    "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift::func LiveWorkoutBroker.currentSamples()"
+   ],
+   "reads": [
+    "mem:LiveWorkoutBroker.state"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "currentSnapshot() nil",
+     "effect": "nil; else currentSamples()"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift::func LiveWorkoutBroker.currentSamples()": "903bc0b6e3a3a86c",
+    "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift::func LiveWorkoutBroker.currentSnapshot()": "a50b1a67daa97277",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "6d93847830e6d9e6",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.liveWorkoutBroker": "e05e91154e3e8f2d"
+   }
+  },
+  {
+   "key": "func ContextBuilder.summaryTitles(_:)",
+   "hash": "00a7e00fe5291531",
+   "does": "Maps each (session, summary) pair where both are present to session.id → summary.analysisTitle.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "pair has both session and summary",
+     "effect": "record the title; else skip"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.analysisTitle": "14b7d507978ba64d"
+   }
+  },
+  {
+   "key": "func ContextBuilder.yesterdayDiagnostic(session:recentSessions:userSettings:baselineStats:)",
+   "hash": "ebe6a6365089f0a1",
+   "does": "Computes the analysis-summary snapshot for yesterday's session via computeOrFetchSummary using the session's own sleepSnapshot as sleep input, its frozen trainingSnapshot, no sleep trend and no live load, against the supplied yesterday baseline stats; nil when session nil or unanalysed.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.computeOrFetchSummary(session:recentSessions:sleepInput:sleepTrend:trainingContext:userSettings:liveLoadSnapshot:baselineStats:)",
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::init AnalysisSleepInput(from:)"
+   ],
+   "reads": [
+    "mem:AnalysisSummaryCache.state"
+   ],
+   "writes": [
+    "mem:AnalysisSummaryCache.state"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::init AnalysisSleepInput(from:)": "59f6fee3b5af8655",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.computeOrFetchSummary(session:recentSessions:sleepInput:sleepTrend:trainingContext:userSettings:liveLoadSnapshot:baselineStats:)": "8191e1ee6e112380",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7"
+   }
+  },
+  {
+   "key": "func ContextBuilder.effectiveVO2Max(settings:training:)",
+   "hash": "e25efe74c3ff091e",
+   "does": "Returns the user's manual VO2max override if set, else the HealthKit VO2max carried on the given TrainingContext when useHealthKitVO2Max is on, else nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "settings.vo2MaxOverride is non-nil",
+     "effect": "true: return the override; false: fall through"
+    },
+    {
+     "at": "+2",
+     "cond": "settings.useHealthKitVO2Max",
+     "effect": "true: return training?.vo2Max (nil when no training context); false: nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ContextBuilder.recentLiteSnapshots(_:liveLoad:titles:)",
+   "hash": "a3cf5eb42839f210",
+   "does": "Recent complete/paused sessions, newest first, capped at 14, as lite snapshots; each carries the title from `titles` (the summaries generated in this build) or none.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.buildLiteSnapshot(session:liveLoad:title:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.buildLiteSnapshot(session:liveLoad:title:)": "0e47dbf3035ae238"
+   }
+  },
+  {
+   "key": "func ContextBuilder.buildAmbientLocationSnapshot()",
+   "hash": "a6a84703b3957a68",
+   "does": "Reads the ambient location service's cached raw CLLocation and resolved road address (both max 600 s old) and builds an AmbientLocationSnapshot with road, cross street, locality, subdivision, admin area, country, heading, speed, altitude, accuracy and age; nil when neither is cached.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.ambientLocationService",
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.cachedLocation(maxAgeSec:)",
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.cachedResolvedAddress(maxAgeSec:)",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.cardinalDirection(courseDegrees:)",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.snapshotAgeSeconds(rawLoc:road:)"
+   ],
+   "reads": [
+    "mem:AmbientLocationService cachedLocation",
+    "mem:AmbientLocationService cachedResolvedAddress"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "rawLoc != nil || road != nil",
+     "effect": "false: return nil (no location in context); true: build snapshot"
+    },
+    {
+     "at": "+8",
+     "cond": "road?.subdivision ?? road?.subLocality ?? road?.areaOfInterest",
+     "effect": "subdivision falls back to subLocality, then areaOfInterest, else nil"
+    },
+    {
+     "at": "+12",
+     "cond": "rawLoc?.course ?? -1 (fallback -1 when no fix)",
+     "effect": "no fix maps to -1 so the ternary yields nil"
+    },
+    {
+     "at": "+12",
+     "cond": "course >= 0",
+     "effect": "true: headingDegrees = course; false (CoreLocation invalid -1 or no fix): nil"
+    },
+    {
+     "at": "+13",
+     "cond": "rawLoc?.speed ?? -1 (fallback -1 when no fix)",
+     "effect": "no fix maps to -1 so the ternary yields nil"
+    },
+    {
+     "at": "+13",
+     "cond": "speed >= 0",
+     "effect": "true: speedMS = speed; false: nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.cardinalDirection(courseDegrees:)": "395b5ff2d8144b66",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.snapshotAgeSeconds(rawLoc:road:)": "78baba9efa6c8f8c",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.speed(now:)": "14fe5393356bdfc1",
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.cachedLocation(maxAgeSec:)": "888694eec42b438e",
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.cachedResolvedAddress(maxAgeSec:)": "d6302d5b555002eb",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location": "236ffadb120d332c",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.ambientLocationService": "33a2cabc9b97ee7b"
+   }
+  },
+  {
+   "key": "func ContextBuilder.cardinalDirection(courseDegrees:)",
+   "hash": "154a3f0d0a92439b",
+   "does": "Maps a course in degrees to an 8-point compass label (N..NW) by (course+22.5) mod 360 / 45; nil for nil or negative course.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "courseDegrees non-nil and >= 0",
+     "effect": "false: return nil; true: compute index clamped to 0...7"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Same 8-point compass mapping is implemented two more times (WorkoutAIContext.compassCardinal, WorkoutTicker.cardinal), each with its own normalisation.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Context/ContextBuilder.swift:145",
+      "Emuqu/Sources/Assistant/WorkoutAIContext.swift:727",
+      "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift:664"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func ContextBuilder.snapshotAgeSeconds(rawLoc:road:)",
+   "hash": "761144eca2f75161",
+   "does": "Returns seconds since the raw fix's timestamp, else since the resolved address's observedAt, else nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "rawLoc has a timestamp (rawLoc non-nil)",
+     "effect": "true: return age of the raw fix (even when the address is newer); false: fall through"
+    },
+    {
+     "at": "+2",
+     "cond": "road?.observedAt non-nil",
+     "effect": "false: return nil; true: return age of the address"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ContextBuilder.computeOrFetchSummary(session:recentSessions:sleepInput:sleepTrend:trainingContext:userSettings:liveLoadSnapshot:baselineStats:)",
+   "hash": "a5e9258d1747601b",
+   "does": "Resolves the session's training context (trainingContext(for:live:)), then inside NarrativeLanguage.english hashes every other generator input (generatorInputsHash) into AnalysisSummaryCache.fingerprint(for:inputs:) and looks the summary up by session id + that fingerprint; on a hit maps it, on a miss runs AnalysisSummaryGenerator (canonical baseline RMSSD = exp(lnRmssdMean), baseline HR), stores it under that fingerprint (beside any display-language entry of the same session) and returns the mapped snapshot.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.analysisSummaryCache",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.generatorInputsHash(recentSessions:sleep:sleepTrend:training:liveLoad:baselineStats:)",
+    "Emuqu/Sources/Assistant/Chat/AnalysisSummaryCache.swift::func AnalysisSummaryCache.fingerprint(for:inputs:)",
+    "Emuqu/Sources/Assistant/Chat/AnalysisSummaryCache.swift::func AnalysisSummaryCache.get(forSessionId:matching:)",
+    "Emuqu/Sources/Assistant/Chat/AnalysisSummaryCache.swift::func AnalysisSummaryCache.set(_:forSessionId:fingerprint:)",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.mapSummary(_:)",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingContext(for:live:now:)",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::init AnalysisSummaryGenerator(result:session:recentSessions:selectedTags:sleep:sleepTrend:trainingContext:userAge:biologicalSex:currentReadiness:todayTrimp:liveLoadSnapshot:canonicalBaselineRMSSD:canonicalBaselineHR:referenceDate:)",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.generate()"
+   ],
+   "reads": [
+    "mem:AnalysisSummaryCache.state"
+   ],
+   "writes": [
+    "mem:AnalysisSummaryCache.state"
+   ],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "session non-nil and session.analysisResult non-nil",
+     "effect": "false: return nil (no summary in context); true: continue"
+    },
+    {
+     "at": "+17",
+     "cond": "cache has an entry for (session.id, fingerprint incl. all generator inputs)",
+     "effect": "true: return mapped cached summary; false: generate, cache, return"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.generate()": "886c28e6678bd645",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::init AnalysisSummaryGenerator(result:session:recentSessions:selectedTags:sleep:sleepTrend:trainingContext:userAge:biologicalSex:currentReadiness:todayTrimp:liveLoadSnapshot:canonicalBaselineRMSSD:canonicalBaselineHR:referenceDate:)": "b7df17a4529f5624",
+    "Emuqu/Sources/Assistant/Chat/AnalysisSummaryCache.swift::func AnalysisSummaryCache.fingerprint(for:inputs:)": "dc99d288a8f24057",
+    "Emuqu/Sources/Assistant/Chat/AnalysisSummaryCache.swift::func AnalysisSummaryCache.get(forSessionId:matching:)": "41364e8de54dfbe5",
+    "Emuqu/Sources/Assistant/Chat/AnalysisSummaryCache.swift::func AnalysisSummaryCache.set(_:forSessionId:fingerprint:)": "13115eb50fda3a87",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.generatorInputsHash(recentSessions:sleep:sleepTrend:training:liveLoad:baselineStats:)": "3c4ce716bd50c97f",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.mapSummary(_:)": "45a021d672ef6bfd",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingContext(for:live:now:)": "8a2456d82b8dd52c",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.biologicalSex": "55c985aa6bd25115",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)": "35f7ec6a1e50e9a0",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "6d93847830e6d9e6",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.analysisSummaryCache": "e99dd75f34be3634"
+   }
+  },
+  {
+   "key": "func ContextBuilder.generatorInputsHash(recentSessions:sleep:sleepTrend:training:liveLoad:baselineStats:)",
+   "hash": "30df849aeae3e878",
+   "does": "Hashes what AnalysisSummaryGenerator reads besides the session: each recent session's id and AnalysisSummaryCache.fingerprint(for:), the sleep input and sleep trend (combineSleep), and the training context, live load and baseline stats (combineLoad).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/AnalysisSummaryCache.swift::func AnalysisSummaryCache.fingerprint(for:)",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.combineSleep(_:trend:into:)",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.combineLoad(training:liveLoad:baselineStats:into:)"
+   ],
+   "reads": [
+    "mem:NarrativeLanguage.isEnglish (task-local, via fingerprint(for:))",
+    "mem:LanguageManager.shared.locale (via fingerprint(for:))"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/AnalysisSummaryCache.swift::func AnalysisSummaryCache.fingerprint(for:)": "beff482da77d0197",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.combineLoad(training:liveLoad:baselineStats:into:)": "cb83e6167d560f5c",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.combineSleep(_:trend:into:)": "c196b36cfc14c5e6",
+    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.finalize()": "dd0ee2d1995fab40"
+   }
+  },
+  {
+   "key": "func ContextBuilder.combineSleep(_:trend:into:)",
+   "hash": "86d725d87eb277ac",
+   "does": "Feeds the sleep input's total/in-bed/deep/REM/awake minutes and efficiency, and the sleep trend's averages, trend and night count, into the hasher.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "5814b8c071cb8591",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.totalSleepMinutes(in:)": "89a73025d946f183"
+   }
+  },
+  {
+   "key": "func ContextBuilder.combineLoad(training:liveLoad:baselineStats:into:)",
+   "hash": "3923b145c5b01460",
+   "does": "Feeds the training context's ATL/CTL/TSB/yesterday TRIMP, VO2max and days since a hard workout, the live load's ATL/CTL/TSB, ACWR and today's TRIMP, and the baseline stats' ln-RMSSD mean/SD, HR mean/SD and days in window, into the hasher.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/TrainingLoad.swift::func TrainingLoad.daysSinceHardWorkout(in:anchors:relativeTo:)": "cd200634574141b1",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+   }
+  },
+  {
+   "key": "func ContextBuilder.mapSummary(_:)",
+   "hash": "6d23fb237fee1043",
+   "does": "Copies an AnalysisSummary into an AssistantContext.AnalysisSummarySnapshot (title, diagnostic score, explanation, probable causes with confidence/explanation, key findings, actionable steps, trend insight).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.analysisExplanation": "617cc10550b1ed20",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.analysisTitle": "14b7d507978ba64d",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.keyFindings": "6c4b6babab02d102",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.probableCauses": "2f2390113c3460a2",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::var AnalysisSummaryGenerator.actionableSteps": "6450fdb41f000d0b",
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13"
+   }
+  },
+  {
+   "key": "func ContextBuilder.buildUserProfile(settings:customTagNames:effectiveVO2Max:)",
+   "hash": "e0bdd4d431c06f91",
+   "does": "Builds UserProfileSnapshot from settings: age, sex, fitness level, effective VO2max, typical sleep, custom tags, effective max HR and whether it is a user override, resolved units preference, training-break state/reason, sleep/training-load integration flags, comeback mode active/day, scoring algorithm version, recompute flag, and training goal with blurb.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isOnTrainingBreak",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isComebackModeActive",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.comebackDayInWindow(_:)",
+    "Emuqu/Sources/Models/UserSettings.swift::var TrainingGoal.blurb"
+   ],
+   "reads": [
+    "mem:UnitsPreferenceStore.current"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+13",
+     "cond": "(settings.maxHR ?? 0) >= MaxHeartRate.minimumUserEntered",
+     "effect": "nil maxHR falls back to 0, giving maxHRIsUserOverride=false; a stored value at or above the minimum gives true"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.comebackDayInWindow(_:)": "9832d675bcc4c82f",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.effectiveVO2Max(settings:training:)": "44c6082a32c78acd",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.biologicalSex": "55c985aa6bd25115",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "cef5ee5d9e3b4ade",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isComebackModeActive": "4a697d3be6c9e5eb",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isOnTrainingBreak": "4d09b6e877f250f8",
+    "Emuqu/Sources/Models/UserSettings.swift::var TrainingGoal.blurb": "2f092c7fee82667f"
+   }
+  },
+  {
+   "key": "func ContextBuilder.comebackDayInWindow(_:)",
+   "hash": "02212164abd4eb53",
+   "does": "Returns whole calendar days from the comeback start date to today when comeback mode is active, else nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isComebackModeActive"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "isComebackModeActive and comebackModeStartDate non-nil",
+     "effect": "false: nil; true: day difference (0 on the start day)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isComebackModeActive": "4a697d3be6c9e5eb",
+    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
+   }
+  },
+  {
+   "key": "func ContextBuilder.buildWorkoutHistory(sessions:)",
+   "hash": "eecc119504a9ea47",
+   "does": "Filters sessions to sessionType .workout, sorts newest first, keeps 30, maps each to a WorkoutHistoryEntry.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.workoutHistoryEntry(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.workoutHistoryEntry(_:)": "e717489597dbbf0a"
+   }
+  },
+  {
+   "key": "func ContextBuilder.workoutHistoryEntry(_:)",
+   "hash": "d8f3e99c02d50d69",
+   "does": "Builds a WorkoutHistoryEntry for one workout session from its workoutMetadata and per-tick samples: sport, active (un-paused) duration from WorkoutActiveTime (last sample offset, else wall clock) — the same time the workout card uses — distance, elevation, avg HR (analysis meanHR else sample average), max HR, pace and kcal over the active duration, TRIMP/hrTSS/decoupling, METs, power metrics, cadence, alpha1 mean, 1/2-minute HRR drops, feeling and note.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutStatsCards.swift::func WorkoutActiveTime.seconds(samples:wallClock:)",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.derivedSampleMetrics(samples:durationSec:)",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.paceSecPerKm(distance:durationSec:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.meanHR",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var [HRRSample].bestAtOneMinute",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var [HRRSample].bestAtTwoMinutes"
+   ],
+   "reads": [
+    "mem:SettingsManager.settingsSnapshot (via derivedSampleMetrics → estimatedCalories)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "samples' last offset > 0",
+     "effect": "active time = last offset; else wall-clock duration (nil without endDate)"
+    },
+    {
+     "at": "+3",
+     "cond": "meta?.samples ?? []",
+     "effect": "no metadata/samples: derive from an empty series (all derived values nil)"
+    },
+    {
+     "at": "+5",
+     "cond": "meta?.sport.rawValue ?? \"unknown\"",
+     "effect": "no metadata: sport reported as \"unknown\""
+    },
+    {
+     "at": "+7",
+     "cond": "s.meanHR ?? derived.avgHR",
+     "effect": "no HRV time-domain meanHR (typical for workouts): average of sample HRs, nil if none"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.derivedSampleMetrics(samples:durationSec:)": "c7e8a5069456380f",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.paceSecPerKm(distance:durationSec:)": "d952dbfe2f9bce34",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration": "2773bb6ff5712d48",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.meanHR": "a5bf3abe9c530fa0",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var [HRRSample].bestAtOneMinute": "080c4f9acef7ff40",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var [HRRSample].bestAtTwoMinutes": "85c645f2be66d347",
+    "Emuqu/Sources/Views/WorkoutStatsCards.swift::func WorkoutActiveTime.seconds(samples:wallClock:)": "903803b5c4ac8e80",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "13c88f99e05e0173"
+   }
+  },
+  {
+   "key": "func ContextBuilder.derivedSampleMetrics(samples:durationSec:)",
+   "hash": "31514c35d48d1bb8",
+   "does": "Computes max HR, mean HR, mean METs, kcal (via estimatedCalories), rounded mean cadence and mean alpha1 from the non-nil values of a WorkoutSample series.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.estimatedCalories(avgMETs:durationSec:)"
+   ],
+   "reads": [
+    "mem:SettingsManager.settingsSnapshot (via estimatedCalories; in-memory snapshot, not a UserDefaults read here)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "any HR samples",
+     "effect": "true: avgHR = mean; false: avgHR nil"
+    },
+    {
+     "at": "+9",
+     "cond": "any METs samples",
+     "effect": "true: avgMETs = mean; false: nil (so kcal nil)"
+    },
+    {
+     "at": "+12",
+     "cond": "any cadence samples",
+     "effect": "true: avgCadenceSpm = rounded mean; false: nil"
+    },
+    {
+     "at": "+16",
+     "cond": "any alpha1 samples",
+     "effect": "true: alpha1Mean = mean; false: nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.estimatedCalories(avgMETs:durationSec:)": "7a49b7f83b5f3b33",
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.mets(sport:speedKmh:)": "99b5dc9d71b51468",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.cadenceStepsPerMin": "d9315eaf78873e8c"
+   }
+  },
+  {
+   "key": "func ContextBuilder.estimatedCalories(avgMETs:durationSec:)",
+   "hash": "37981f5212312443",
+   "does": "Compendium kcal = METs*3.5*weightKg*minutes/200 using the CURRENT settings' effectiveBodyWeightKg (75 kg fallback); nil without METs or positive duration.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settingsSnapshot",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveBodyWeightKg"
+   ],
+   "reads": [
+    "mem:SettingsManager.settingsSnapshot"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "avgMETs non-nil and durationSec non-nil and > 0",
+     "effect": "false: nil; true: compute kcal"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Historical workouts' calories use today's body weight, not the weight at the time of the workout, so the history entries' kcal change when the user edits weight.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Context/ContextBuilder.swift:339"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "The Compendium kcal formula (METs*3.5*kg*min/200 with effectiveBodyWeightKg) is re-implemented in the workout card and the PDF report; the card uses active duration while this and the PDF use wall-clock duration, so the three can disagree.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Context/ContextBuilder.swift:340",
+      "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift:125",
+      "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift:274"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settingsSnapshot": "599269848673b93a",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveBodyWeightKg": "6aabde6ed09dc61f",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "320e181d89b608eb"
+   }
+  },
+  {
+   "key": "func ContextBuilder.paceSecPerKm(distance:durationSec:)",
+   "hash": "c8544cebed6978e4",
+   "does": "Returns duration*1000/distance (sec per km) when distance > 100 m and duration > 10 s, else nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "distance non-nil > 100 and duration non-nil > 10",
+     "effect": "false: nil; true: pace"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ContextBuilder.buildSessionSnapshot(session:trainingFallback:liveLoad:)",
+   "hash": "8991a09fd0ab31c1",
+   "does": "Builds a full SessionSnapshot: ids/dates/type, recovery score and tier, factor snapshots, English penalties, English score message, time/frequency/nonlinear/ANS metrics, overnight HR, sleep, vitals, training snapshot, tags, notes, morning feeling and tags, HRV quality, perceived readiness, artifact %.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.scoreFactorSnapshots(_:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreBreakdown.displayPenalties",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.englishScoreMessage(_:liveLoad:)",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.timeDomainSnapshot(_:)",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.frequencyDomainSnapshot(_:)",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.nonlinearSnapshot(_:)",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.ansSnapshot(_:)",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.overnightHRSnapshot(session:result:)",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+11",
+     "cond": "scoreBreakdown?.displayPenalties ?? []",
+     "effect": "no breakdown: empty penalties"
+    },
+    {
+     "at": "+20",
+     "cond": "session.morningFeelingTags ?? []",
+     "effect": "no tags: empty list"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.artifactPercentage(_:start:end:)": "1e5446d785cdc9fc",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreBreakdown.displayPenalties": "b00211681964aa8b",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.ansSnapshot(_:)": "4b1a47764a29ed97",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.englishScoreMessage(_:liveLoad:)": "3a5797b2cae1d44f",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.frequencyDomainSnapshot(_:)": "57b34cdb588a057a",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.nonlinearSnapshot(_:)": "4c1265e28f85333a",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.overnightHRSnapshot(session:result:)": "1e1d9605b1e6856b",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.scoreFactorSnapshots(_:)": "a8fd3641a37aad4d",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.timeDomainSnapshot(_:)": "4ea811310a1836eb",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "25ff7cdb40a8ca69",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)": "35f7ec6a1e50e9a0",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.scoreBreakdown(result:session:inputs:training:useBaselineHRV:)": "245c2d41dcd0a692"
+   }
+  },
+  {
+   "key": "func ContextBuilder.timeDomainSnapshot(_:)",
+   "hash": "07be7f228f7d1490",
+   "does": "Maps an analysis result's time-domain values (RMSSD, SDNN, pNN50, meanRR, meanHR) to a snapshot; nil when result nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ContextBuilder.frequencyDomainSnapshot(_:)",
+   "hash": "488378bc604cb034",
+   "does": "Maps the optional frequency-domain result (LF, HF, LF/HF, total power) to a snapshot; nil when result or frequencyDomain nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ContextBuilder.nonlinearSnapshot(_:)",
+   "hash": "396924ace2543e4e",
+   "does": "Maps nonlinear metrics (SD1, SD2, SD1/SD2, DFA a1/a2, sample entropy) to a snapshot; nil when result nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ContextBuilder.ansSnapshot(_:)",
+   "hash": "7d31d167229e10bd",
+   "does": "Maps ANS metrics (stress, PNS, SNS, readiness, respiration rate, nocturnal HR dip) to a snapshot; nil when result or ansMetrics nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.nocturnalHRDip(daytimeHR:nocturnalMedian:)": "1d53ef19678db16e",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb"
+   }
+  },
+  {
+   "key": "func ContextBuilder.trainingContext(for:live:now:)",
+   "hash": "b20d3eba67033a29",
+   "does": "Returns the session's frozen trainingSnapshot if present, else the live TrainingContext only when the session's end (or start) date is the same calendar day as now, else nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "session.trainingSnapshot non-nil",
+     "effect": "true: return frozen; false: fall through"
+    },
+    {
+     "at": "+4",
+     "cond": "session.endDate ?? session.startDate",
+     "effect": "no endDate: use startDate as the session day"
+    },
+    {
+     "at": "+5",
+     "cond": "sessionDay is the same day as now",
+     "effect": "true: return live; false: nil (no other day's load)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "unreachable-branch",
+     "sev": "low",
+     "text": "The only production caller passes trainingContext = latestSession?.trainingSnapshot (the frozen snapshot), so `live` is always some session's frozen snapshot: for the latest session it equals session.trainingSnapshot (already returned at 439 when non-nil, nil otherwise), and yesterdayDiagnostic passes the session's own snapshot; the same-day live fallback at 441 therefore never supplies a value outside tests.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Context/ContextBuilder.swift:441",
+      "Emuqu/Sources/Assistant/Context/ContextBuilder.swift:73",
+      "Emuqu/Sources/Assistant/Chat/AssistantContextSource.swift:87",
+      "EmuquTests/AssistantContextBuilderTests.swift:432"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7"
+   }
+  },
+  {
+   "key": "func ContextBuilder.trainingSnapshot(session:fallback:)",
+   "hash": "50919b117111b9e9",
+   "does": "Resolves the session's training context via trainingContext(for:live:) and maps ATL/CTL/TSB/ACWR/yesterday TRIMP/days since hard workout/VO2max to a TrainingSnapshot; nil when none.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingContext(for:live:now:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingContext(for:live:now:)": "8a2456d82b8dd52c",
+    "Emuqu/Sources/Collection/TrainingLoad.swift::func TrainingLoad.daysSinceHardWorkout(in:anchors:relativeTo:)": "cd200634574141b1",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+   }
+  },
+  {
+   "key": "func ContextBuilder.scoreFactorSnapshots(_:)",
+   "hash": "8f6c43a36e6646ef",
+   "does": "Maps the score breakdown's factors to ScoreFactorSnapshots with English detail text in Celsius, score, weight, impact string and contribution; empty when no breakdown.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)",
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::func RecoveryScoreCalculator.ScoreFactor.displayDetail(temperatureUnit:)",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.impactString(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "session.scoreBreakdown?.factors... ?? []",
+     "effect": "no breakdown: empty array"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreFactor.contribution": "ae0a47f30691925e",
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::func RecoveryScoreCalculator.ScoreFactor.displayDetail(temperatureUnit:)": "c9b14f11b904eab6",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.impactString(_:)": "0e71badab4b64eac",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)": "35f7ec6a1e50e9a0",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.scoreBreakdown(result:session:inputs:training:useBaselineHRV:)": "245c2d41dcd0a692",
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13"
+   }
+  },
+  {
+   "key": "func ContextBuilder.buildLiteSnapshot(session:liveLoad:title:)",
+   "hash": "cffc30ce207991db",
+   "does": "Builds a SessionSnapshotLite: date, type, stored 0–10 score, RMSSD/mean HR/stress index, sleep minutes and stages (core derived), feeling, tags, frozen training load, the given analysis title (nil unless this build generated the session's summary), the English score message and nocturnal dip.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.englishScoreMessage(_:liveLoad:)",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.coreSleepMinutes(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.nocturnalHRDip(daytimeHR:nocturnalMedian:)": "1d53ef19678db16e",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "5814b8c071cb8591",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.coreSleepMinutes(_:)": "e0b7831edf6d70ef",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.englishScoreMessage(_:liveLoad:)": "3a5797b2cae1d44f",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+   }
+  },
+  {
+   "key": "func ContextBuilder.englishScoreMessage(_:liveLoad:)",
+   "hash": "655fac2369f368b0",
+   "does": "Returns the breakdown's English advice message worded with TrainingAdviceGate's load level, using the live load only for a session from today (frozen trainingSnapshot or analysisResult.trainingContext otherwise); nil without a breakdown.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.Load.preferring(live:frozen:)",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.level(_:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:loadLevel:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "session.scoreBreakdown non-nil",
+     "effect": "false: nil; true: continue"
+    },
+    {
+     "at": "+2",
+     "cond": "session.endDate ?? session.startDate",
+     "effect": "no endDate: test startDate for today"
+    },
+    {
+     "at": "+4",
+     "cond": "isToday",
+     "effect": "true: pass liveLoad to preferring; false: pass nil so frozen is used"
+    },
+    {
+     "at": "+5",
+     "cond": "session.trainingSnapshot ?? session.analysisResult?.trainingContext",
+     "effect": "no frozen snapshot: fall back to the analysis result's training context, else nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:loadLevel:)": "fcd09acf3383cea3",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.Load.preferring(live:frozen:)": "e3f09218ae297d05",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.level(_:)": "e3f2ea3fa0b21c3c",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)": "35f7ec6a1e50e9a0",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.scoreBreakdown(result:session:inputs:training:useBaselineHRV:)": "245c2d41dcd0a692"
+   }
+  },
+  {
+   "key": "func ContextBuilder.coreSleepMinutes(_:)",
+   "hash": "567636d209bd3a48",
+   "does": "Returns core-sleep minutes: the sum of per-segment coreSleepMinutes when positive, else total - deep - REM clamped at 0, else nil when any of those is missing.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.effectiveSegments",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "snapshot non-nil",
+     "effect": "true: sum segment core minutes; false: skip to guard (returns nil)"
+    },
+    {
+     "at": "+3",
+     "cond": "summed > 0",
+     "effect": "true: return summed; false: fall back to subtraction"
+    },
+    {
+     "at": "+5",
+     "cond": "total, deep and REM all non-nil",
+     "effect": "false: nil; true: max(0,total-deep-rem)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Same core-sleep derivation (segment sum, else total-deep-REM clamped at 0) as SessionArchiveEntry.SleepMirror.coreMinutes.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Context/ContextBuilder.swift:527",
+      "Emuqu/Sources/Storage/Archive+IndexIO.swift:325"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.effectiveSegments": "b7408c3ce326d05f",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29"
+   }
+  },
+  {
+   "key": "func ContextBuilder.buildBaselineSnapshot(baseline:stats:)",
+   "hash": "bbbd99e3a705dbb8",
+   "does": "Builds a BaselineSnapshot from recovery baseline stats (ln RMSSD mean/SD/CV, HR baseline/SD, days in window, last date) and legacy baseline values (RMSSD, SDNN, DFA a1, stress); nil when both inputs nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "baseline != nil || stats != nil",
+     "effect": "false: nil; true: build"
+    },
+    {
+     "at": "+11",
+     "cond": "stats?.daysInWindow ?? 0",
+     "effect": "no stats: daysInWindow 0"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb"
+   }
+  },
+  {
+   "key": "func ContextBuilder.buildTrendSnapshot(summary:periodLabel:)",
+   "hash": "322c935c936c8f20",
+   "does": "Builds a TrendSnapshot for the period label from RMSSD/SDNN/HR stats plus optional LF/HF, DFA a1, stress and readiness stats, with data-point count, overall trend and insights.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.mapStat(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "lfHfStats non-nil",
+     "effect": "append; else omitted"
+    },
+    {
+     "at": "+10",
+     "cond": "dfaAlpha1Stats non-nil",
+     "effect": "append; else omitted"
+    },
+    {
+     "at": "+11",
+     "cond": "stressStats non-nil",
+     "effect": "append; else omitted"
+    },
+    {
+     "at": "+12",
+     "cond": "readinessStats non-nil",
+     "effect": "append; else omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.mapStat(_:)": "165412b1563c0fd1"
+   }
+  },
+  {
+   "key": "func ContextBuilder.mapStat(_:)",
+   "hash": "fa615612f6d853da",
+   "does": "Copies a TrendStatistics into a MetricTrend (metric, count, mean, SD, min, max, trend string, slope, CV, baseline, deviation).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.coefficientOfVariation(_:)": "9686a279442b4e4a"
+   }
+  },
+  {
+   "key": "func ContextBuilder.impactString(_:)",
+   "hash": "0758f70171f34808",
+   "does": "Maps a ScoreFactor.Impact to \"positive\"/\"neutral\"/\"negative\".",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .positive",
+     "effect": "\"positive\""
+    },
+    {
+     "at": "+3",
+     "cond": "case .neutral",
+     "effect": "\"neutral\""
+    },
+    {
+     "at": "+4",
+     "cond": "case .negative",
+     "effect": "\"negative\""
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ContextBuilder.vitalsSnapshot(for:)",
+   "hash": "7edda44c54db3cb1",
+   "does": "Maps the session's RecoveryVitals to a VitalsSnapshot (resp rate and baseline, SpO2 mean/min, wrist temperature deviation from personal baseline, resting HR); nil without vitals.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.wristTemperatureDeviation"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.wristTemperatureDeviation": "34436198eb68624e"
+   }
+  },
+  {
+   "key": "func ContextBuilder.overnightHRSnapshot(session:result:)",
+   "hash": "ade7e0075e3e3b27",
+   "does": "Builds an OvernightHRSnapshot from the analysis result's whole-recording nadir/min/max/mean HR, with nadir wall-clock time from rrSeries mapping when loaded, else startDate + offset; nil if any of the four values is missing.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.wallClockTime(forTMs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "result and all of nadir/min/max/mean HR non-nil",
+     "effect": "false: nil; true: build"
+    },
+    {
+     "at": "+9",
+     "cond": "overnightNadirTimeMs non-nil",
+     "effect": "false: nadirAt nil; true: compute time"
+    },
+    {
+     "at": "+10",
+     "cond": "session.rrSeries loaded",
+     "effect": "true: gap-aware wallClockTime; false: startDate + offset (always this path for the lightweight sessions AssistantContextSource loads)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.wallClockTime(forTMs:)": "8f9579b405dd05f1"
+   }
+  },
+  {
+   "key": "func ContextBuilder.sleepSnapshot(for:)",
+   "hash": "8d97afe9945bddfd",
+   "does": "Maps the session's SleepData to a SleepSnapshot: total, in bed, deep, REM, awake minutes, measured efficiency converted from percent to fraction (nil when wake unmeasured), short-sleep flag (0 < total < sleepShortMinutes) and fragmented flag (awake > threshold); nil without sleep.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepData.measuredSleepEfficiency"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "5814b8c071cb8591",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepData.measuredSleepEfficiency": "ec0ed6304aee409d",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29"
+   }
+  }
+ ],
+ "deps": {}
+}

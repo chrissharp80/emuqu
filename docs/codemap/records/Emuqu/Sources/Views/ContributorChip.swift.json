@@ -1,0 +1,887 @@
+{
+ "file": "Emuqu/Sources/Views/ContributorChip.swift",
+ "hash": "e784e0db9e8dcff5",
+ "role": "Reusable dashboard metric chip (HRV / Sleep / Vitals / Load) with five display states; a Button wrapping label, value and subline with a combined accessibility label.",
+ "types": [
+  "ContributorChip: struct (View) — the chip",
+  "ContributorChip.Variant: enum — hrv/sleep/vitals/load payloads",
+  "ContributorChip.Trend: enum — up/flat/down with SF symbol",
+  "ContributorChip.VitalsStatus: enum — normal/watch/elevated word/color/glyph",
+  "ContributorChip.DisplayState: enum — default/loading/buildingBaseline/noData/locked"
+ ],
+ "state": [],
+ "toplevel": "Stored properties: variant, state (default .default), compact (default true), recordedAgo (optional age caption, default nil), onTap (default no-op). No globals.",
+ "flags": [
+  {
+   "kind": "dead",
+   "sev": "low",
+   "text": "In production the only constructor is DashboardV2View+Chips (hrvChip/sleepChip/vitalsChip/loadChip): HRV trend is always nil, sleep efficiency always nil, and states .loading and .locked are never passed. Trend glyph/subline/phrase, sleep \"Eff\" subline, the loading placeholder and the whole locked/blur/lock-overlay path are reached only from EmuquTests/DashboardChipSnapshotTests.swift.",
+   "evidence": [
+    "Emuqu/Sources/Views/DashboardV2View+Chips.swift:71",
+    "Emuqu/Sources/Views/DashboardV2View+Chips.swift:76",
+    "Emuqu/Sources/Views/DashboardV2View+Chips.swift:107",
+    "Emuqu/Sources/Views/DashboardV2View+Chips.swift:274",
+    "EmuquTests/DashboardChipSnapshotTests.swift:100",
+    "EmuquTests/DashboardChipSnapshotTests.swift:124"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "var ContributorChip.Trend.glyph",
+   "hash": "2c268959ed3b24b3",
+   "does": "Maps a Trend to its SF Symbol name.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "trend == .up",
+     "effect": "\"arrow.up.right\""
+    },
+    {
+     "at": "+3",
+     "cond": "trend == .flat",
+     "effect": "\"arrow.right\""
+    },
+    {
+     "at": "+4",
+     "cond": "trend == .down",
+     "effect": "\"arrow.down.right\""
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var ContributorChip.VitalsStatus.word",
+   "hash": "63be9c6845e974e6",
+   "does": "Maps VitalsStatus to a localized word (Normal / Watch / Elevated).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".normal",
+     "effect": "\"Normal\""
+    },
+    {
+     "at": "+3",
+     "cond": ".watch",
+     "effect": "\"Watch\""
+    },
+    {
+     "at": "+4",
+     "cond": ".elevated",
+     "effect": "\"Elevated\""
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var ContributorChip.VitalsStatus.color",
+   "hash": "fa4ea7624abc15da",
+   "does": "Maps VitalsStatus to an AppTheme Wong colour.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".normal",
+     "effect": "AppTheme.wongOptimal"
+    },
+    {
+     "at": "+3",
+     "cond": ".watch",
+     "effect": "AppTheme.wongCaution"
+    },
+    {
+     "at": "+4",
+     "cond": ".elevated",
+     "effect": "AppTheme.wongAttention"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var ContributorChip.VitalsStatus.glyph",
+   "hash": "ced0f04d11f8eb94",
+   "does": "Maps VitalsStatus to an SF Symbol.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".normal",
+     "effect": "checkmark.circle.fill"
+    },
+    {
+     "at": "+3",
+     "cond": ".watch",
+     "effect": "exclamationmark.circle.fill"
+    },
+    {
+     "at": "+4",
+     "cond": ".elevated",
+     "effect": "exclamationmark.triangle.fill"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var ContributorChip.body",
+   "hash": "638440eb1dec643d",
+   "does": "Renders the chip as a plain Button running onTap, with children combined into one accessibility element labelled by accessibilityLabel.",
+   "entry": "SwiftUI body; button tap invokes onTap",
+   "calls": [
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.content",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accessibilityLabel",
+    "closure:onTap — set by DashboardV2View+Chips chip builders (records telemetry and sets navTarget)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accessibilityLabel": "746a7a8b6eeb3a60",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.content": "1ca9f847d5f22724"
+   }
+  },
+  {
+   "key": "var ContributorChip.content",
+   "hash": "57f8dad8ae9a4d9a",
+   "does": "Stacks labelRow, valueRow and sublineText; pads, sizes to 72pt (compact) or 86pt tall with flexible width, draws chipBackground and lockOverlay, dims to 0.85 opacity when locked.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.labelRow",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.valueRow",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.sublineText",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.chipBackground",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.lockOverlay"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "compact",
+     "effect": "spacing 4, else 6"
+    },
+    {
+     "at": "+9",
+     "cond": "compact",
+     "effect": "idealWidth 88 / minHeight 72, else 104 / 86"
+    },
+    {
+     "at": "+10",
+     "cond": "compact",
+     "effect": "maxHeight 72, else 86"
+    },
+    {
+     "at": "+14",
+     "cond": "state == .locked",
+     "effect": "opacity 0.85, else 1.0"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "unreachable-branch",
+     "sev": "low",
+     "text": "compact is never false anywhere: default is true and every construction (4 production builders, snapshot tests) passes compact: true or omits it, so the non-compact sizes (spacing 6, idealWidth 104, height 86) are never used.",
+     "evidence": [
+      "Emuqu/Sources/Views/ContributorChip.swift:71",
+      "Emuqu/Sources/Views/DashboardV2View+Chips.swift:20",
+      "Emuqu/Sources/Views/DashboardV2View+Chips.swift:27",
+      "Emuqu/Sources/Views/DashboardV2View+Chips.swift:34",
+      "Emuqu/Sources/Views/DashboardV2View+Chips.swift:50",
+      "EmuquTests/DashboardChipSnapshotTests.swift:131"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.chipBackground": "82683c104eee7289",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.labelRow": "f99f7e2cadebfcb5",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.lockOverlay": "3c0d01f40075e992",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.sublineText": "c8e72fe9bfbf511f",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.valueRow": "9df776d0b94f60b5"
+   }
+  },
+  {
+   "key": "var ContributorChip.labelRow",
+   "hash": "19007711797a95ce",
+   "does": "HStack of the localized label text (13pt tertiary) and the optional trend glyph.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.label",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.trendGlyphImage",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.label": "1ce9670b90229e04",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.trendGlyphImage": "c226b828d1e48261",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var ContributorChip.trendGlyphImage",
+   "hash": "ca7e636444b8a47d",
+   "does": "Shows the trend SF Symbol when trendGlyph is non-nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.trendGlyph",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "trendGlyph != nil (HRV variant with a trend)",
+     "effect": "renders 11pt image; else nothing (always nothing in production since trend is nil)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.trendGlyph": "f00e1e1bdf2d5cf0",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var ContributorChip.sublineText",
+   "hash": "eebe84be58c13a50",
+   "does": "Shows the subline (11pt, one line, shrink to 0.75) when non-nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.subline",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "subline != nil",
+     "effect": "renders text; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.subline": "05931e2386c6ccfa",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var ContributorChip.chipBackground",
+   "hash": "d2e446ed76dbd20d",
+   "does": "Rounded-rect card background with a 1pt stroke in accentColor at 18% opacity.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accentColor"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accentColor": "1bf17e24334cbbf7",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var ContributorChip.valueRow",
+   "hash": "ea3e211a6624c598",
+   "does": "HStack wrapper around valueContent.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.valueContent"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.valueContent": "a9c51f36657cfa4a"
+   }
+  },
+  {
+   "key": "var ContributorChip.valueContent",
+   "hash": "867897a80f5fa910",
+   "does": "Chooses the value view by display state.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.defaultValue",
+    "Emuqu/Sources/Views/ContributorChip.swift::func ContributorChip.placeholderValue(size:)",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.lockedValue"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "state .default",
+     "effect": "defaultValue"
+    },
+    {
+     "at": "+4",
+     "cond": ".loading or .buildingBaseline",
+     "effect": "28pt \"—\" placeholder"
+    },
+    {
+     "at": "+5",
+     "cond": ".noData",
+     "effect": "22pt \"—\" placeholder"
+    },
+    {
+     "at": "+6",
+     "cond": ".locked",
+     "effect": "blurred lockedValue"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ContributorChip.swift::func ContributorChip.placeholderValue(size:)": "2f2e7ed46e7dd219",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.defaultValue": "5deffe391df9bd50",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.lockedValue": "134adae5288487de"
+   }
+  },
+  {
+   "key": "var ContributorChip.defaultValue",
+   "hash": "6e0daccf3936d093",
+   "does": "Default value: vitals variant shows glyph+word, load variant shows the trajectory verdict chip label, others show the large numeric value.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ContributorChip.swift::func ContributorChip.vitalsValue(_:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::var TrajectoryVerdict.localizedChipLabel",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.numericValue",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "variant is .vitals",
+     "effect": "vitalsValue(status)"
+    },
+    {
+     "at": "+4",
+     "cond": "variant is .load",
+     "effect": "verdict.localizedChipLabel 14pt; else numericValue"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::var TrajectoryVerdict.localizedChipLabel": "ea430bb87835689d",
+    "Emuqu/Sources/Views/ContributorChip.swift::func ContributorChip.vitalsValue(_:)": "60924962a44f8f62",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.numericValue": "362633a48849524c",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+   }
+  },
+  {
+   "key": "func ContributorChip.vitalsValue(_:)",
+   "hash": "641aa515e63a015d",
+   "does": "Status glyph in status colour plus the status word at 18pt, shrinking to 0.5.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.VitalsStatus.glyph",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.VitalsStatus.color",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.VitalsStatus.word",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.VitalsStatus.color": "07aeebb2ee1ae3d2",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.VitalsStatus.glyph": "7d0097be35038930",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.VitalsStatus.word": "779d1f5994357440",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+   }
+  },
+  {
+   "key": "var ContributorChip.numericValue",
+   "hash": "cea8acdcaf209339",
+   "does": "primaryValue at 28pt rounded monospaced digits, shrink to 0.55.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.primaryValue",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.primaryValue": "7218ff0796ce60c9",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+   }
+  },
+  {
+   "key": "func ContributorChip.placeholderValue(size:)",
+   "hash": "d10b0b2ac6fa7b39",
+   "does": "An em-dash placeholder at the given size in tertiary colour.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var ContributorChip.lockedValue",
+   "hash": "a01f3f5c259b08a1",
+   "does": "primaryValue at 22pt blurred radius 6 (paywall look).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.primaryValue",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.primaryValue": "7218ff0796ce60c9",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+   }
+  },
+  {
+   "key": "var ContributorChip.lockOverlay",
+   "hash": "62b3b1375dee2065",
+   "does": "Lock icon in a circle offset to the top-right when locked.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "state == .locked",
+     "effect": "renders lock overlay; else nothing (never in production)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardElevated": "d8e990dc733dd00d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var ContributorChip.label",
+   "hash": "d6b7a0b3dea110dd",
+   "does": "Localized chip label per variant.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".hrv",
+     "effect": "\"HRV\""
+    },
+    {
+     "at": "+3",
+     "cond": ".sleep",
+     "effect": "\"Sleep\""
+    },
+    {
+     "at": "+4",
+     "cond": ".vitals",
+     "effect": "\"Vitals\""
+    },
+    {
+     "at": "+5",
+     "cond": ".load",
+     "effect": "\"Load\""
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var ContributorChip.primaryValue",
+   "hash": "b820695e801b9eed",
+   "does": "Primary value string per variant.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.VitalsStatus.word",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::var TrajectoryVerdict.localizedChipLabel"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".hrv",
+     "effect": "value string"
+    },
+    {
+     "at": "+3",
+     "cond": ".sleep",
+     "effect": "duration string"
+    },
+    {
+     "at": "+4",
+     "cond": ".vitals",
+     "effect": "status.word"
+    },
+    {
+     "at": "+5",
+     "cond": ".load",
+     "effect": "verdict.localizedChipLabel"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::var TrajectoryVerdict.localizedChipLabel": "ea430bb87835689d",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.VitalsStatus.word": "779d1f5994357440"
+   }
+  },
+  {
+   "key": "var ContributorChip.subline",
+   "hash": "b9ee5d955caa0049",
+   "does": "Subline by state: calibrating / tap to set up / none / recordedAgo else variantSubline (default) / variantSubline (locked).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.variantSubline"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".buildingBaseline",
+     "effect": "\"calibrating\""
+    },
+    {
+     "at": "+3",
+     "cond": ".noData",
+     "effect": "\"tap to set up\""
+    },
+    {
+     "at": "+4",
+     "cond": ".loading",
+     "effect": "nil"
+    },
+    {
+     "at": "+5",
+     "cond": ".default",
+     "effect": "recordedAgo when set, else variantSubline"
+    },
+    {
+     "at": "+6",
+     "cond": ".locked",
+     "effect": "variantSubline"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.variantSubline": "44a0fb6e9cf013f3"
+   }
+  },
+  {
+   "key": "var ContributorChip.variantSubline",
+   "hash": "0c352668fd11fb46",
+   "does": "Variant-specific subline.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ContributorChip.swift::func ContributorChip.trendSubline(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".hrv",
+     "effect": "trendSubline(trend) or nil when trend nil (always nil in production)"
+    },
+    {
+     "at": "+3",
+     "cond": ".sleep",
+     "effect": "\"Eff <x>\" or nil when efficiency nil (always nil in production)"
+    },
+    {
+     "at": "+4",
+     "cond": ".vitals",
+     "effect": "lead vital text or nil"
+    },
+    {
+     "at": "+5",
+     "cond": ".load",
+     "effect": "the provided subline"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ContributorChip.swift::func ContributorChip.trendSubline(_:)": "71eba849617c34e6"
+   }
+  },
+  {
+   "key": "func ContributorChip.trendSubline(_:)",
+   "hash": "4928ea86c55418ce",
+   "does": "Localized subline for an HRV trend.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".up",
+     "effect": "\"Above baseline\""
+    },
+    {
+     "at": "+3",
+     "cond": ".flat",
+     "effect": "\"At baseline\""
+    },
+    {
+     "at": "+4",
+     "cond": ".down",
+     "effect": "\"Below baseline\""
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var ContributorChip.trendGlyph",
+   "hash": "f57c8d32b0c49d08",
+   "does": "Trend glyph for HRV variant with trend, else nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.Trend.glyph"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "variant is .hrv with non-nil trend",
+     "effect": "returns trend.glyph; else nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.Trend.glyph": "17de22385cbc81f6"
+   }
+  },
+  {
+   "key": "var ContributorChip.accentColor",
+   "hash": "91ca57097ac49f9e",
+   "does": "Stroke accent colour per variant; load is always neutral textSecondary.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.VitalsStatus.color"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".hrv",
+     "effect": "AppTheme.primary"
+    },
+    {
+     "at": "+3",
+     "cond": ".sleep",
+     "effect": "AppTheme.primaryLight"
+    },
+    {
+     "at": "+4",
+     "cond": ".vitals",
+     "effect": "status.color (green .normal also used for the dashboard \"No data\" vitals chip)"
+    },
+    {
+     "at": "+5",
+     "cond": ".load",
+     "effect": "AppTheme.textSecondary"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.VitalsStatus.color": "07aeebb2ee1ae3d2",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryLight": "834bd116ec7451d0",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var ContributorChip.accessibilityLabel",
+   "hash": "6d3584348699386e",
+   "does": "VoiceOver label following display state (default state appends recordedAgo when set); locked never reads the value.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.variantAccessibilityLabel",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.label",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": ".default",
+     "effect": "variantAccessibilityLabel, plus recordedAgo when set"
+    },
+    {
+     "at": "+4",
+     "cond": ".loading",
+     "effect": "\"<label>, Loading...\""
+    },
+    {
+     "at": "+5",
+     "cond": ".buildingBaseline",
+     "effect": "\"<label>, calibrating\""
+    },
+    {
+     "at": "+6",
+     "cond": ".noData",
+     "effect": "\"<label>, No data, tap to set up\""
+    },
+    {
+     "at": "+9",
+     "cond": ".locked",
+     "effect": "\"<label>, Locked\""
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.label": "1ce9670b90229e04",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.variantAccessibilityLabel": "857797167dfcd302"
+   }
+  },
+  {
+   "key": "var ContributorChip.variantAccessibilityLabel",
+   "hash": "58fa4c543ec0e510",
+   "does": "Comma-joined VoiceOver label from variant fields.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.label",
+    "Emuqu/Sources/Views/ContributorChip.swift::func ContributorChip.trendPhrase(_:)",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.VitalsStatus.word",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::var TrajectoryVerdict.localizedAccessibilityLabel",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".hrv",
+     "effect": "label, value, optional trend phrase"
+    },
+    {
+     "at": "+4",
+     "cond": ".sleep",
+     "effect": "label, duration, optional \"efficiency x\""
+    },
+    {
+     "at": "+7",
+     "cond": ".vitals",
+     "effect": "label, status word, optional lead vital"
+    },
+    {
+     "at": "+9",
+     "cond": ".load",
+     "effect": "label, verdict accessibility label, subline"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::var TrajectoryVerdict.localizedAccessibilityLabel": "93152eabbe94cb38",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ContributorChip.swift::func ContributorChip.trendPhrase(_:)": "653b7dd7af28c124",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.VitalsStatus.word": "779d1f5994357440",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.label": "1ce9670b90229e04"
+   }
+  },
+  {
+   "key": "func ContributorChip.trendPhrase(_:)",
+   "hash": "7e55d38dc6c6b08e",
+   "does": "Lower-case localized trend phrase for VoiceOver.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".up",
+     "effect": "\"above baseline\""
+    },
+    {
+     "at": "+3",
+     "cond": ".flat",
+     "effect": "\"at baseline\""
+    },
+    {
+     "at": "+4",
+     "cond": ".down",
+     "effect": "\"below baseline\""
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  }
+ ],
+ "deps": {}
+}

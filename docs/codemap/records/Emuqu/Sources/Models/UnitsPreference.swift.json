@@ -1,0 +1,354 @@
+{
+ "file": "Emuqu/Sources/Models/UnitsPreference.swift",
+ "hash": "55f5583c569d04b3",
+ "role": "Defines UnitsPreference (auto/metric/imperial) with locale-aware distance/elevation/pace formatters, UnitsPreferenceStore (the preference persisted in App Group UserDefaults with legacy migration) and SharedUserDefaults (App Group suite accessor).",
+ "types": [
+  "UnitsPreference: enum — units choice + formatting helpers",
+  "UnitsPreferenceStore: enum — static get/set of the stored preference",
+  "SharedUserDefaults: enum — App Group UserDefaults accessor"
+ ],
+ "state": [
+  "ud:fitness.unitsPreference (App Group suite AppConfig.appGroupIdentifier; legacy copy in standard)"
+ ],
+ "toplevel": "UnitsPreferenceStore.key = \"fitness.unitsPreference\" (private static let).",
+ "flags": [],
+ "units": [
+  {
+   "key": "var UnitsPreference.id",
+   "hash": "f53728ec3a21f88e",
+   "does": "Identifiable id = rawValue.",
+   "entry": "Identifiable witness used by SwiftUI ForEach(UnitsPreference.allCases) in SettingsView+Pages.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var UnitsPreference.displayName",
+   "hash": "b343eef57e89dd42",
+   "does": "Localized picker label: Automatic / Metric / Imperial.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .auto",
+     "effect": "'Automatic'"
+    },
+    {
+     "at": "+3",
+     "cond": "case .metric",
+     "effect": "'Metric'"
+    },
+    {
+     "at": "+4",
+     "cond": "case .imperial",
+     "effect": "'Imperial'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var UnitsPreference.resolved",
+   "hash": "c6418a7ee0f982d5",
+   "does": "Resolves .auto to .imperial when Locale.current.measurementSystem is .us, else .metric; explicit choices returned unchanged.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "self != .auto",
+     "effect": "return self"
+    },
+    {
+     "at": "+2",
+     "cond": "?: device locale measurementSystem == .us",
+     "effect": "imperial; otherwise metric (UK resolves to metric)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func UnitsPreference.formatDistance(meters:)",
+   "hash": "b1d678dfe8df75f5",
+   "does": "Formats meters as miles (÷1609.344) or kilometres (÷1000) with 2 decimals in the app locale.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved",
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.measurement(_:_:fractionDigits:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "resolved == .imperial",
+     "effect": "miles"
+    },
+    {
+     "at": "+4",
+     "cond": "case .metric, .auto",
+     "effect": "kilometres (.auto cannot occur after resolve)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.measurement(_:_:fractionDigits:)": "c654e7b72a71ff30",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e"
+   }
+  },
+  {
+   "key": "func UnitsPreference.formatElevation(meters:)",
+   "hash": "89ec63ac94323923",
+   "does": "Formats meters as rounded feet (×feetPerMeter) or rounded metres with 0 decimals.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved",
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.measurement(_:_:fractionDigits:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "resolved == .imperial",
+     "effect": "feet"
+    },
+    {
+     "at": "+4",
+     "cond": "case .metric, .auto",
+     "effect": "metres"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.measurement(_:_:fractionDigits:)": "c654e7b72a71ff30",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e"
+   }
+  },
+  {
+   "key": "func UnitsPreference.formatPace(secondsPerMeter:)",
+   "hash": "14b7feaec9a107f9",
+   "does": "Formats seconds-per-meter as 'm:ss /mi' or 'm:ss /km'; nil for nil/non-finite/<=0 input.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved",
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.minutesSeconds(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "input nil, non-finite or <= 0",
+     "effect": "return nil"
+    },
+    {
+     "at": "+3",
+     "cond": "resolved == .imperial",
+     "effect": "pace per mile"
+    },
+    {
+     "at": "+6",
+     "cond": "case .metric, .auto",
+     "effect": "pace per km"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.minutesSeconds(_:)": "e02b91a37dff413a",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func UnitsPreference.minutesSeconds(_:)",
+   "hash": "3d81c03d47eb9d7e",
+   "does": "Formats seconds as 'm:ss' (truncated to whole seconds, capped at Int.max/2).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func UnitsPreference.measurement(_:_:fractionDigits:)",
+   "hash": "8dcd9f161395f5ca",
+   "does": "Builds a MeasurementFormatter in the app locale (provided unit, medium style, fixed fraction digits) and formats value in the given UnitLength.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "func UnitsPreference.formatPace(elapsedSec:distanceMeters:)",
+   "hash": "a27214484cfa19ad",
+   "does": "Pace from elapsed seconds and distance: nil when distance <= 50 m or elapsed <= 10 s, else formatPace(secondsPerMeter:).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(secondsPerMeter:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "distance <= 50 m or elapsed <= 10 s",
+     "effect": "return nil; else format"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(secondsPerMeter:)": "2df0cb439cc6c8c6"
+   }
+  },
+  {
+   "key": "func UnitsPreference.paceDisplayMinutes(from:)",
+   "hash": "fabbb7207135bd38",
+   "does": "Converts sec/km to minutes per mile (×1.609344/60) or minutes per km (/60) for chart axes.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "resolved == .imperial",
+     "effect": "min/mi"
+    },
+    {
+     "at": "+4",
+     "cond": "case .metric, .auto",
+     "effect": "min/km"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e"
+   }
+  },
+  {
+   "key": "var UnitsPreference.paceSuffix",
+   "hash": "599b7bb59c69ac1f",
+   "does": "Localized pace axis label 'min/mi' or 'min/km'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "resolved == .imperial",
+     "effect": "'min/mi'"
+    },
+    {
+     "at": "+3",
+     "cond": "case .metric, .auto",
+     "effect": "'min/km'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var UnitsPreferenceStore.suite",
+   "hash": "6a3779fc51d4f3af",
+   "does": "Returns the App Group UserDefaults suite.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UnitsPreference.swift::var SharedUserDefaults.appGroup"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UnitsPreference.swift::var SharedUserDefaults.appGroup": "d4cc3511c4681e6c"
+   }
+  },
+  {
+   "key": "var UnitsPreferenceStore.current",
+   "hash": "e9fd38b5dbf7de96",
+   "does": "Getter: returns the App Group value for fitness.unitsPreference if it parses; else copies a parseable legacy standard-suite value into the App Group and returns it; else .auto. Setter writes rawValue to the App Group suite.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.suite"
+   ],
+   "reads": [
+    "ud:fitness.unitsPreference (App Group)",
+    "ud:fitness.unitsPreference (standard, legacy)"
+   ],
+   "writes": [
+    "ud:fitness.unitsPreference (App Group)"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "App Group value exists and parses",
+     "effect": "return it"
+    },
+    {
+     "at": "+8",
+     "cond": "legacy standard value exists and parses",
+     "effect": "copy into App Group, return it; otherwise return .auto"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.suite": "14ad4fe5986c4e95"
+   }
+  },
+  {
+   "key": "var SharedUserDefaults.appGroup",
+   "hash": "0b722ae35c51d538",
+   "does": "Returns UserDefaults(suiteName: AppConfig.appGroupIdentifier), or .standard when the suite cannot be created.",
+   "entry": null,
+   "calls": [
+    "ext:UserDefaults(suiteName:)",
+    "ext:AppConfig.appGroupIdentifier"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "suite init returned non-nil",
+     "effect": "return the App Group suite; else silently fall back to UserDefaults.standard"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

@@ -16,6 +16,9 @@ struct ExportDataView: View {
     @Environment(RRCollector.self) var collector
     @State private var isExporting = false
     @State private var exportURL: URL?
+    /// The running export, cancelled when the screen closes so its file is
+    /// deleted on arrival instead of left in tmp (`finishExport`).
+    @State private var exportTask: Task<Void, Never>?
     /// Set on export failure so the user sees a reason instead of the
     /// spinner just quietly disappearing.
     @State private var exportError: String?
@@ -36,7 +39,7 @@ struct ExportDataView: View {
         .navigationTitle(String(localized: "Export Data", bundle: LanguageManager.appBundle))
         .accessibilityIdentifier("export.root")
         .overlay { exportingOverlay }
-        .onDisappear { removeExportFile() }
+        .onDisappear { closeScreen() }
         .alert(
             String(localized: "Export failed", bundle: LanguageManager.appBundle),
             isPresented: Binding(get: { exportError != nil }, set: { if !$0 { exportError = nil } })
@@ -189,7 +192,7 @@ struct ExportDataView: View {
     /// RRSeries go out of scope between iterations via `autoreleasepool`.
     private func exportRRData() {
         beginExport()
-        Task { await runRRCSVExport() }
+        exportTask = Task { await runRRCSVExport() }
     }
 
     /// Clears the previous export's file and shortfall note so a warning
@@ -199,6 +202,13 @@ struct ExportDataView: View {
         isExporting = true
         removeExportFile()
         exportShortfall = nil
+    }
+
+    /// The screen is going away: cancel a running export (its file is then
+    /// deleted when it arrives) and delete the finished one.
+    private func closeScreen() {
+        exportTask?.cancel()
+        removeExportFile()
     }
 
     /// Deletes the finished export from tmp once it is replaced or the screen
@@ -219,10 +229,13 @@ struct ExportDataView: View {
         let archive = collector.archive
         let tempURL = FileManager.default.temporaryDirectory
             .appendingPathComponent(Self.timestampedName(prefix: "Emuqu_RR", ext: "csv"))
-        let total = archive.entries.count
+        // One snapshot for both the walk and the total, so a session archived
+        // or deleted meanwhile cannot skew the shortfall note.
+        let entries = archive.entries
+        let total = entries.count
         do {
             let unreadable = try await Task.detached(priority: .userInitiated) {
-                try Self.streamRRCSV(to: tempURL, archive: archive)
+                try Self.streamRRCSV(to: tempURL, archive: archive, entries: entries)
             }.value
             await MainActor.run {
                 exportShortfall = Self.shortfallNote(written: total - unreadable, total: total)
@@ -251,7 +264,7 @@ struct ExportDataView: View {
 
     /// Returns how many sessions could not be read or written, so the screen
     /// can say the file is partial.
-    nonisolated private static func streamRRCSV(to tempURL: URL, archive: SessionArchive) throws -> Int {
+    nonisolated private static func streamRRCSV(to tempURL: URL, archive: SessionArchive, entries: [SessionArchiveEntry]) throws -> Int {
         FileManager.default.createFile(atPath: tempURL.path, contents: nil)
         let handle = try FileHandle(forWritingTo: tempURL)
         defer { attempt("export.rrCSV.close") { try handle.close() } }
@@ -259,7 +272,7 @@ struct ExportDataView: View {
         let dateFormatter = machineDateFormatter("yyyy-MM-dd_HHmm")
         var unreadable = 0
         var pointCount = 0
-        for entry in archive.entries {
+        for entry in entries {
             let beats = autoreleasepool {
                 writeRRRows(for: entry, archive: archive, dateFormatter: dateFormatter, handle: handle)
             }
@@ -305,7 +318,7 @@ struct ExportDataView: View {
 
     private func exportCSV() {
         beginExport()
-        Task { await runSummaryCSVExport() }
+        exportTask = Task { await runSummaryCSVExport() }
     }
 
     private func runSummaryCSVExport() async {
@@ -343,7 +356,15 @@ struct ExportDataView: View {
         let tags = entry.tags.map(\.name).joined(separator: ";")
         let notes = (entry.notes ?? "").replacingOccurrences(of: "\n", with: " ")
         let quoted = [dateStr, sessionType].map(csvQuoted).joined(separator: ",")
-        return "\(quoted),\(recoveryScore),\(rmssd),\(csvQuoted(tags)),\(csvQuoted(notes))\n"
+        return "\(quoted),\(recoveryScore),\(rmssd),\(csvQuoted(formulaSafe(tags))),\(csvQuoted(formulaSafe(notes)))\n"
+    }
+
+    /// User-typed text that a spreadsheet would run as a formula (leading
+    /// `=`, `+`, `-`, `@`, tab or carriage return) gets a leading apostrophe,
+    /// the OWASP CSV-injection guard, so Excel / Numbers show it as text.
+    nonisolated private static func formulaSafe(_ field: String) -> String {
+        guard let first = field.first, "=+-@\t\r".contains(first) else { return field }
+        return "'" + field
     }
 
     /// RFC 4180 field: wrapped in quotes, with embedded quotes doubled.
@@ -360,7 +381,7 @@ struct ExportDataView: View {
     /// autoreleasepool so peak memory never exceeds one session's footprint.
     private func exportAllData() {
         beginExport()
-        Task { await runFullExport() }
+        exportTask = Task { await runFullExport() }
     }
 
     private func runFullExport() async {
@@ -386,8 +407,14 @@ struct ExportDataView: View {
 
     @MainActor
     private func finishExport(url: URL) {
-        exportURL = url
         isExporting = false
+        // The screen closed while this export ran (its task was cancelled on
+        // disappear): delete the plaintext health-data file, nobody can share it.
+        guard !Task.isCancelled else {
+            _ = attempt("ExportDataView.finishExport.discard") { try FileManager.default.removeItem(at: url) }
+            return
+        }
+        exportURL = url
     }
 
     @MainActor
@@ -496,6 +523,10 @@ struct ArchiveDiagnosticsView: View {
     /// the archive, in the backup safety net, both, or neither.
     @State private var rrAuditReport: SessionStorageDiagnostic.Report?
     @State private var rrAuditRunning = false
+    /// MetricKit history and memory trace, read from disk once per appear
+    /// (`loadDiagnosticFiles`), not on every evaluation of the section.
+    @State private var metricKitHistory: [[String: Any]] = []
+    @State private var memoryTrace: [[String: Any]] = []
 
     @ViewBuilder
     var body: some View {
@@ -575,7 +606,10 @@ struct ArchiveDiagnosticsView: View {
             repairArchiveButton
                 .disabled(isRepairing)
 
+            // Not while a repair is rebuilding and saving the index: the
+            // wipe takes no archive lock and would delete it underneath.
             clearAllArchiveDataButton
+                .disabled(isRepairing)
         }
     }
 
@@ -657,13 +691,13 @@ struct ArchiveDiagnosticsView: View {
     /// every button tap. Off-loaded to a userInitiated detached task; result
     /// assigned back on MainActor.
     private func scanFileSystem() async {
-        let archiveEntryCount = collector.archive.entries.count
+        let indexedFileNames = Set(collector.archive.entries.map { URL(fileURLWithPath: $0.filePath).lastPathComponent })
         diagnosticInfo = await Task.detached(priority: .userInitiated) {
-            Self.fileSystemReport(archiveEntryCount: archiveEntryCount)
+            Self.fileSystemReport(indexedFileNames: indexedFileNames)
         }.value
     }
 
-    nonisolated private static func fileSystemReport(archiveEntryCount: Int) -> String {
+    nonisolated private static func fileSystemReport(indexedFileNames: Set<String>) -> String {
         let fm = FileManager.default
         guard let containerURL = fm.containerURL(forSecurityApplicationGroupIdentifier: AppConfig.appGroupIdentifier) else {
             return containerUnavailableMessage
@@ -672,7 +706,7 @@ struct ArchiveDiagnosticsView: View {
         var info = String(localized: "Archive directory:", bundle: LanguageManager.appBundle) + "\n\(archiveDir.path)\n\n"
         do {
             let files = try fm.contentsOfDirectory(at: archiveDir, includingPropertiesForKeys: [.fileSizeKey, .creationDateKey])
-            info += fileCensus(files, archiveEntryCount: archiveEntryCount)
+            info += fileCensus(files, indexedFileNames: indexedFileNames)
         } catch {
             info += String(localized: "Error scanning: \(error.localizedDescription)", bundle: LanguageManager.appBundle)
         }
@@ -683,8 +717,17 @@ struct ArchiveDiagnosticsView: View {
         String(localized: "Error: the app's storage container can't be opened.", bundle: LanguageManager.appBundle)
     }
 
-    nonisolated private static func fileCensus(_ files: [URL], archiveEntryCount: Int) -> String {
-        let jsonFiles = files.filter { $0.pathExtension == "json" && !$0.lastPathComponent.contains("index") && !$0.lastPathComponent.contains("deleted") }
+    /// Files in the archive directory that are not sessions: the index, the
+    /// deleted list and every CloudKitSyncState sidecar (the same set
+    /// `SessionArchive.reservedFileNames` keeps out of orphan adoption).
+    nonisolated private static let nonSessionFileNames: Set<String> = [
+        "index.json", "deleted.json", "sync_state.json", "pending_uploads.json",
+        "quarantined_uploads.json", "local_only_sessions.json"
+    ]
+
+    nonisolated private static func fileCensus(_ files: [URL], indexedFileNames: Set<String>) -> String {
+        let jsonFiles = files.filter { $0.pathExtension == "json" && !nonSessionFileNames.contains($0.lastPathComponent) }
+        let notIndexed = jsonFiles.filter { !indexedFileNames.contains($0.lastPathComponent) }.count
         let encryptedFiles = files.filter { $0.pathExtension == "encrypted" }
         let indexFile = files.first { $0.lastPathComponent == "index.json" }
         let bundle = LanguageManager.appBundle
@@ -695,8 +738,8 @@ struct ArchiveDiagnosticsView: View {
             ? String(localized: "Index file: present", bundle: bundle)
             : String(localized: "Index file: missing", bundle: bundle)))
         var info = lines.joined(separator: "\n") + "\n\n" + encryptedFileReport(encryptedFiles)
-        info += "\n" + String(localized: "Index entries: \(archiveEntryCount)", bundle: bundle) + "\n"
-        info += String(localized: "Files not in the index: \(abs(jsonFiles.count - archiveEntryCount))", bundle: bundle) + "\n"
+        info += "\n" + String(localized: "Index entries: \(indexedFileNames.count)", bundle: bundle) + "\n"
+        info += String(localized: "Files not in the index: \(notIndexed)", bundle: bundle) + "\n"
         return info
     }
 
@@ -719,10 +762,15 @@ struct ArchiveDiagnosticsView: View {
     private func performRepair() {
         isRepairing = true
         let archive = collector.archive
+        let indexedBefore = archive.entries.count
         Task {
             let count = await Task.detached(priority: .userInitiated) { archive.repairArchive() }.value
             isRepairing = false
-            repairResult = String(localized: "Repair complete. \(count) sessions recovered.", bundle: LanguageManager.appBundle)
+            // Screens keyed on the archive signal reload the rebuilt index.
+            collector.notifyArchiveChanged()
+            // repairArchive returns the rebuilt index's size; recovered is what it added.
+            let recovered = max(0, count - indexedBefore)
+            repairResult = String(localized: "Repair complete. \(recovered) sessions recovered.", bundle: LanguageManager.appBundle)
             showingResult = true
             await refreshDiagnostics()
         }
@@ -740,6 +788,10 @@ struct ArchiveDiagnosticsView: View {
             let outcome = await Task.detached(priority: .userInitiated) { Self.wipeArchiveDirectory() }.value
             if outcome.cleared {
                 archive.resetInMemoryStateAfterPurge()
+                // The wipe also removed CloudKit's sync sidecars from the
+                // archive directory; reset the manager's in-memory copy so its
+                // next save cannot write the old uploaded / pending sets back.
+                collector.cloudSyncManager.resetLocalSyncState()
                 collector.notifyArchiveChanged()
             }
             repairResult = outcome.message
@@ -883,13 +935,18 @@ struct ArchiveDiagnosticsView: View {
 
             diagnosticsLinks
         }
+        .task { loadDiagnosticFiles() }
+    }
+
+    private func loadDiagnosticFiles() {
+        metricKitHistory = dependencies.app.systemDiagnosticsManager.readMetricKitHistory()
+        memoryTrace = dependencies.app.systemDiagnosticsManager.readRecentMemoryTrace(limit: 1000)
     }
 
     @ViewBuilder
     private var diagnosticsLinks: some View {
-        let history = dependencies.app.systemDiagnosticsManager.readMetricKitHistory()
-        let trace = dependencies.app.systemDiagnosticsManager.readRecentMemoryTrace(limit: 1000)
-
+        let history = metricKitHistory
+        let trace = memoryTrace
         if history.isEmpty && trace.isEmpty {
             Text("No diagnostic data yet. Record a session — memory/thermal samples capture every 5 s. After a SIGKILL, MetricKit delivers the categorized exit reason on the NEXT app launch (typically once per day).", bundle: LanguageManager.appBundle)
                 .font(.caption2)

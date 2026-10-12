@@ -7,11 +7,11 @@ import SwiftUI
 /// score numbers shifting from one launch to the next; it links to the
 /// methodology page for the full rationale.
 ///
-/// Triggered by `UserSettings.hasAcknowledgedScoreArchitectureChange`.
-/// Default `false` for upgrading users — modal fires once, dismissal
-/// flips the flag to `true`. New installs encode `true` directly so the
-/// modal is silently skipped (their first score is already under the new
-/// algorithm).
+/// Triggered by `UserSettings.hasAcknowledgedScoreArchitectureChange`,
+/// which defaults to `false` (and decodes `false` when absent) — modal
+/// fires once, dismissal flips the flag to `true`. New installs skip it
+/// because completing onboarding sets the flag to `true` (their first
+/// score is already under the new algorithm).
 ///
 /// **What it intentionally does NOT do**: it does not auto-recompute
 /// historical sessions. Older session scores stay as they were when the

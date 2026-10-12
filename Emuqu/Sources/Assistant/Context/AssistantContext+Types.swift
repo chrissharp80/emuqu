@@ -71,6 +71,8 @@ extension AssistantContext {
     struct WorkoutHistoryEntry: Codable {
         let date: Date
         let sport: String           // Sport.rawValue, e.g. "run", "walk"
+        /// Active (un-paused) seconds, as the workout card shows; pace and
+        /// calories are computed over the same time.
         let durationSec: Int?
         let distanceMeters: Double?
         let elevationGainMeters: Double?
@@ -115,7 +117,10 @@ extension AssistantContext {
         let startDate: Date
         let endDate: Date?
         let sessionType: String // SessionType.rawValue
-        let recoveryScore: Double? // 0-10 composite
+        /// The stored 0–10 composite, NOT the 0–100 score the user sees and
+        /// the knowledge base describes: render it with
+        /// `RecoveryScoreCalculator.displayScore(score * 10)`.
+        let recoveryScore: Double?
         let scoreTier: Int? // 1, 2, or 3
         let scoreFactors: [ScoreFactorSnapshot]
         let scorePenalties: [String]
@@ -157,6 +162,7 @@ extension AssistantContext {
     struct SessionSnapshotLite: Codable {
         let date: Date
         let sessionType: String
+        /// 0–10, like `SessionSnapshot.recoveryScore`; ×10 for display.
         let recoveryScore: Double?
         let rmssd: Double?
         let meanHR: Double?
@@ -328,6 +334,11 @@ extension AssistantContext {
     /// knows "this was captured seven seconds ago" not "some time in the
     /// last session." Wall-clock fields also let the AI distinguish "we're
     /// truly live right now" from "we have stale snapshot state."
+    ///
+    /// The non-optional fields with default values (`= false`, `= 0`, `= []`,
+    /// `= [:]`) are defaulted so the memberwise initializer can leave them
+    /// out. The synthesized decoder still requires their keys; nothing decodes
+    /// these snapshots today, so a stored copy missing them would not load.
     struct LiveWorkoutSnapshot: Codable {
         let sport: String
         /// Wall-clock timestamp of THIS snapshot (not the session start).
@@ -527,8 +538,8 @@ extension AssistantContext {
         var recoveryHoursNeeded: Double?
 
         /// Live time-in-zone breakdown (5 zones by percent of max HR,
-        /// seconds in each). Defaulted to 0 so back-compat sessions look like
-        /// "no zone data yet" naturally.
+        /// seconds in each). Defaulted to 0, which reads as "no zone data
+        /// yet", for snapshots built without zone data.
         var zone1Sec: Int = 0
         var zone2Sec: Int = 0
         var zone3Sec: Int = 0
@@ -553,8 +564,8 @@ extension AssistantContext {
             let metersToPeak: Double
             /// Upcoming direction changes derived from the
             /// route polyline. See `WorkoutAIContext.UpcomingTurn`.
-            /// Defaulted for back-compat with sessions persisted before
-            /// the field existed.
+            /// Defaulted to empty for snapshots built without turn data
+            /// (see the note on `LiveWorkoutSnapshot` about decoding).
             var turnsAhead: [TurnSnapshot] = []
 
         }

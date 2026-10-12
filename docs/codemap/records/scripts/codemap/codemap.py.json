@@ -1,0 +1,726 @@
+{
+ "file": "scripts/codemap/codemap.py",
+ "hash": "9b98889a4eacd130",
+ "role": "Command-line front end of the code map: check (the CI gate, including the dependency re-check and the open-findings ratchet), status, sync, stamp, impact, callers and report. Run by scripts/check_codemap.sh, the codemap-* Makefile targets and the gates.yml impact step.",
+ "types": [],
+ "state": [
+  "ROOT: repository root (two levels above this file)",
+  "RECORDS: docs/codemap/records"
+ ],
+ "toplevel": "Module docstring (the usage text main prints), imports (collections, hashlib, json, os, subprocess, sys, Path), ROOT and RECORDS, and sys.path insertion of scripts/codemap so inventory, graph and report import. `if __name__ == \"__main__\": sys.exit(main(argv))`.",
+ "flags": [],
+ "units": [
+  {
+   "key": "def record_path",
+   "hash": "4ead1ee5c9de95c8",
+   "does": "Path of the record for a source path: RECORDS/<path>.json.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def load",
+   "hash": "a9314f2b7af9decf",
+   "does": "Reads and parses the record for a path; None when the file does not exist.",
+   "entry": null,
+   "calls": [
+    "scripts/codemap/codemap.py::def record_path"
+   ],
+   "reads": [
+    "file:docs/codemap/records/<path>.json"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "no record file",
+     "effect": "None"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "scripts/codemap/codemap.py::def record_path": "d147781355935458"
+   }
+  },
+  {
+   "key": "def save",
+   "hash": "ad1ce0450c24c87f",
+   "does": "Writes a record as indented UTF-8 JSON with a trailing newline, creating directories as needed.",
+   "entry": null,
+   "calls": [
+    "scripts/codemap/codemap.py::def record_path"
+   ],
+   "reads": [],
+   "writes": [
+    "file:docs/codemap/records/<path>.json"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/codemap/codemap.py::def record_path": "d147781355935458"
+   }
+  },
+  {
+   "key": "def all_records",
+   "hash": "c0739eae343cd2a4",
+   "does": "Walks RECORDS with os.walk (so hidden directories such as .github are included) and returns {source path: record} for every .json file, keyed by the record's own `file` field.",
+   "entry": null,
+   "calls": [
+    "ext:os.walk"
+   ],
+   "reads": [
+    "file:docs/codemap/records/**"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "JSON file",
+     "effect": "loaded; other files ignored"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def problems",
+   "hash": "e9f53c3db845915b",
+   "does": "Compares the inventory with the records and returns (path, key, message) for: a file with no record; a stale file hash; an empty role; a unit with no record; a unit record with empty `does`; a stale unit hash; a call to a `path::key` that is not a current unit (ext:/dyn:/closure: entries are not checked); a record for a unit no longer in the file; a record file for a path no longer in scope.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "file has no record",
+     "effect": "one problem; its units are not checked"
+    },
+    {
+     "at": "+9",
+     "cond": "file-level code changed since stamping",
+     "effect": "stale file record"
+    },
+    {
+     "at": "+11",
+     "cond": "empty role",
+     "effect": "problem"
+    },
+    {
+     "at": "+16",
+     "cond": "unit has no record",
+     "effect": "problem; nothing else checked for it"
+    },
+    {
+     "at": "+19",
+     "cond": "empty description",
+     "effect": "problem"
+    },
+    {
+     "at": "+21",
+     "cond": "unit code changed since stamping",
+     "effect": "stale unit record"
+    },
+    {
+     "at": "+24",
+     "cond": "call names a repo unit that is not in the current inventory",
+     "effect": "dangling call"
+    },
+    {
+     "at": "+26",
+     "cond": "record keys with no matching unit",
+     "effect": "orphaned unit record"
+    },
+    {
+     "at": "+28",
+     "cond": "record files for paths not in scope",
+     "effect": "orphaned file record"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def described",
+   "hash": "334a3a7f6024b4b1",
+   "does": "Hash (16 hex) of what a record says a unit does, the part callers rely on: for a unit its does, entry, reads, writes, and each branch's condition and effect; for a file record (file_level) its role, toplevel and state; in both cases the kind, severity and text of its flags. Calls, hashes and evidence are left out, so changing only how a unit is implemented, or a branch's line offset, does not alter it. None gives ''.",
+   "entry": null,
+   "calls": [
+    "ext:hashlib.sha256",
+    "ext:json.dumps"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "no record",
+     "effect": "''"
+    },
+    {
+     "at": "+5",
+     "cond": "file-level record",
+     "effect": "role, toplevel, state; otherwise the unit fields"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def descriptions",
+   "hash": "f8e74214f7969db3",
+   "does": "described() for every file record (node `path::`) and every unit record (`path::key`).",
+   "entry": null,
+   "calls": [
+    "scripts/codemap/codemap.py::def described"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/codemap/codemap.py::def described": "01b6fb9e5dbc3393"
+   }
+  },
+  {
+   "key": "def record_of",
+   "hash": "f0522ec78fcaee01",
+   "does": "The record for a node: the file record for `path::`, otherwise the unit record with that key; None when either is missing.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "file has no record, or the node is a file node",
+     "effect": "that file record (or None)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def current_deps",
+   "hash": "c87573fe943421ef",
+   "does": "For a node, {callee: described hash} over its certain graph edges, sorted; a callee without a record maps to ''. This is what stamp stores as `deps` and what the re-check compares against.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "edge is certain",
+     "effect": "included; possible edges are left out"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def dependency_problems",
+   "hash": "0dd6e28479aa54b5",
+   "does": "For every file record and unit record whose code hash is current, compares its stored `deps` with current_deps: a certain callee missing from deps gives 're-check: now resolves a call to X, which it was not checked against'; a callee whose described hash differs gives 're-check: X changed what it does since this record was checked'. Stale records are skipped (the stale line already sends them back). Records with deps entries for callees no longer called are not reported.",
+   "entry": null,
+   "calls": [
+    "scripts/codemap/codemap.py::def descriptions",
+    "scripts/codemap/codemap.py::def current_deps"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "file has no record",
+     "effect": "skipped (reported by problems)"
+    },
+    {
+     "at": "+14",
+     "cond": "unit has a record",
+     "effect": "checked"
+    },
+    {
+     "at": "+17",
+     "cond": "record is stale",
+     "effect": "skipped"
+    },
+    {
+     "at": "+21",
+     "cond": "certain callee not checked before",
+     "effect": "re-check: new callee"
+    },
+    {
+     "at": "+23",
+     "cond": "callee record changed",
+     "effect": "re-check: callee changed"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "scripts/codemap/codemap.py::def current_deps": "2fd53c54b819f999",
+    "scripts/codemap/codemap.py::def descriptions": "a6c75c039d485881"
+   }
+  },
+  {
+   "key": "def open_findings",
+   "hash": "b9c335b6068bbc66",
+   "does": "Counts findings by severity (high/med/low) across every file-level and unit-level flag in all records. Flags with any other severity are not counted.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "severity is high, med or low",
+     "effect": "counted"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def budget_problems",
+   "hash": "1e217c92f7f297e4",
+   "does": "For high and med: reads .ci/codemap_open_<sev>.txt as an integer and reports a problem (path .ci/codemap_open_<sev>.txt, key \"open-findings ratchet\") when the open count exceeds it (a change added findings) or is below it (a fix landed without lowering the budget). A missing or non-integer budget file is itself a problem, so the ratchet fails closed. Raising a budget is caught separately by check_budget_monotonicity.sh, which ratchets every .ci/*.txt ceiling.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "file:.ci/codemap_open_high.txt",
+    "file:.ci/codemap_open_med.txt"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+13",
+     "cond": "budget file unreadable or not an integer",
+     "effect": "problem; that severity not compared"
+    },
+    {
+     "at": "+16",
+     "cond": "more open findings than the budget",
+     "effect": "problem: a change added findings"
+    },
+    {
+     "at": "+19",
+     "cond": "fewer open findings than the budget",
+     "effect": "problem: lower the budget to the new count"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def cmd_check",
+   "hash": "9960e329acd2d42a",
+   "does": "Loads all records, builds the inventory and the call graph. Failing problems: problems() except 'calls a unit that no longer exists', plus the open-findings ratchet (budget_problems over open_findings). Advisory (reported, never failing; a TODO(codemap-recheck) comment says to make them fail again once the backlog is worked off): those stale-call lines plus dependency_problems() re-check lines. Prints the advisory count, and for `status` lists them grouped by file. No failing problems: prints success with the open high/medium/low counts and returns 0. Otherwise prints the failing problems grouped by file with how to fix each kind, and returns 1 for `check` (strict) or 0 for `status`.",
+   "entry": null,
+   "calls": [
+    "scripts/codemap/inventory.py::def inventory",
+    "scripts/codemap/codemap.py::def all_records",
+    "scripts/codemap/codemap.py::def problems",
+    "scripts/codemap/codemap.py::def dependency_problems",
+    "scripts/codemap/graph.py::def build",
+    "scripts/codemap/codemap.py::def budget_problems",
+    "scripts/codemap/codemap.py::def open_findings",
+    "scripts/codemap/codemap.py::def _print_grouped"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+16",
+     "cond": "records to re-check",
+     "effect": "count printed"
+    },
+    {
+     "at": "+18",
+     "cond": "status",
+     "effect": "re-check lines listed"
+    },
+    {
+     "at": "+20",
+     "cond": "no failing problems",
+     "effect": "success message with counts, 0"
+    },
+    {
+     "at": "+33",
+     "cond": "failing problems",
+     "effect": "1 when strict (check), 0 for status"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "scripts/codemap/codemap.py::def _print_grouped": "2cf63dbe114b17f6",
+    "scripts/codemap/codemap.py::def all_records": "1cb2c0b4ef92a436",
+    "scripts/codemap/codemap.py::def budget_problems": "edde7e6d4fc73ffb",
+    "scripts/codemap/codemap.py::def dependency_problems": "f13419fde0ca3d91",
+    "scripts/codemap/codemap.py::def open_findings": "54c6db2516fb7901",
+    "scripts/codemap/codemap.py::def problems": "8f12001d06ce503e",
+    "scripts/codemap/graph.py::def build": "4f1c5f170901e1fb",
+    "scripts/codemap/inventory.py::def inventory": "34fef8bbe2bcc698"
+   }
+  },
+  {
+   "key": "def _print_grouped",
+   "hash": "9049a6880a42636a",
+   "does": "Prints (path, key, message) items grouped by path: the path, then each key (or '(file record)') with its message, indented.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def cmd_sync",
+   "hash": "efb27a9e6b7e648d",
+   "does": "For each given path: if it is not in scope or untracked, deletes its record if one exists (or says to git add it); otherwise loads or creates the file record, keeps unit records whose key still exists in code order, adds empty records (hash null) for new units, drops records for units no longer in the code, and saves. Never stamps a hash, so the new records fail check until written and stamped.",
+   "entry": null,
+   "calls": [
+    "scripts/codemap/inventory.py::def inventory",
+    "scripts/codemap/codemap.py::def load",
+    "scripts/codemap/codemap.py::def record_path",
+    "scripts/codemap/codemap.py::def save"
+   ],
+   "reads": [
+    "file:docs/codemap/records/<path>.json"
+   ],
+   "writes": [
+    "file:docs/codemap/records/<path>.json"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "path not tracked or out of scope",
+     "effect": "removes an existing record, or prints a hint"
+    },
+    {
+     "at": "+16",
+     "cond": "unit already has a record",
+     "effect": "kept as is"
+    },
+    {
+     "at": "+22",
+     "cond": "record for a unit no longer present",
+     "effect": "dropped and reported"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "scripts/codemap/codemap.py::def load": "3816199a3b85d9a0",
+    "scripts/codemap/codemap.py::def record_path": "d147781355935458",
+    "scripts/codemap/codemap.py::def save": "bf7dd7510552c558",
+    "scripts/codemap/inventory.py::def inventory": "34fef8bbe2bcc698"
+   }
+  },
+  {
+   "key": "def cmd_stamp",
+   "hash": "3792d3006df75e19",
+   "does": "Marks records as written against the current code. Builds the full inventory; refuses (2) when the path is out of scope or has no record. With no keys: refuses (1) if the file record's role is empty, else stores the current file hash and, as `deps`, current_deps of the file node from a freshly built graph. With keys: refuses (2) on an unknown key and (1) on a unit with an empty `does`; otherwise stores each unit's current code hash and its current_deps. Saves the record. It reads nothing for correctness; it trusts that the record was rewritten.",
+   "entry": null,
+   "calls": [
+    "scripts/codemap/inventory.py::def inventory",
+    "scripts/codemap/codemap.py::def load",
+    "scripts/codemap/codemap.py::def all_records",
+    "scripts/codemap/graph.py::def build",
+    "scripts/codemap/codemap.py::def descriptions",
+    "scripts/codemap/codemap.py::def current_deps",
+    "scripts/codemap/codemap.py::def save"
+   ],
+   "reads": [],
+   "writes": [
+    "file:docs/codemap/records/<path>.json"
+   ],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "out of scope or no record",
+     "effect": "error, 2"
+    },
+    {
+     "at": "+9",
+     "cond": "no keys",
+     "effect": "file record stamped"
+    },
+    {
+     "at": "+10",
+     "cond": "file record has no role",
+     "effect": "error, 1"
+    },
+    {
+     "at": "+25",
+     "cond": "unknown key",
+     "effect": "error, 2"
+    },
+    {
+     "at": "+28",
+     "cond": "unit has no description",
+     "effect": "error, 1"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "scripts/codemap/codemap.py::def all_records": "1cb2c0b4ef92a436",
+    "scripts/codemap/codemap.py::def current_deps": "2fd53c54b819f999",
+    "scripts/codemap/codemap.py::def descriptions": "a6c75c039d485881",
+    "scripts/codemap/codemap.py::def load": "3816199a3b85d9a0",
+    "scripts/codemap/codemap.py::def save": "bf7dd7510552c558",
+    "scripts/codemap/graph.py::def build": "4f1c5f170901e1fb",
+    "scripts/codemap/inventory.py::def inventory": "34fef8bbe2bcc698"
+   }
+  },
+  {
+   "key": "def changed_since",
+   "hash": "6c80989cee67ea39",
+   "does": "Lists (node, 'new'|'changed'|'deleted') for every mapped unit or file-level code whose content differs from `base`. Takes the paths `git diff --name-only <base>` reports (working tree against base), and for each reads the record as it was at base (`git show base:docs/codemap/records/<path>.json`); since the gate passed at base, that record's hashes are base's code hashes. A path out of scope now: if it had a record at base, its file node and units are 'deleted'. Otherwise the file node is 'new' or 'changed' when its hash differs, and each unit is 'new', 'changed' or 'deleted' by key and hash. Exits with a message when the diff fails (unknown ref).",
+   "entry": null,
+   "calls": [
+    "ext:git diff --name-only",
+    "ext:git show"
+   ],
+   "reads": [
+    "file:git history at base"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "git diff failed",
+     "effect": "SystemExit with git's message"
+    },
+    {
+     "at": "+10",
+     "cond": "record existed at base",
+     "effect": "parsed; otherwise treated as empty (everything new)"
+    },
+    {
+     "at": "+11",
+     "cond": "path not in scope now (deleted, untracked or excluded)",
+     "effect": "reported only if base had a record"
+    },
+    {
+     "at": "+12",
+     "cond": "base had a record",
+     "effect": "file node and its units reported deleted"
+    },
+    {
+     "at": "+17",
+     "cond": "file-level code differs",
+     "effect": "file node new (no base hash) or changed"
+    },
+    {
+     "at": "+20",
+     "cond": "unit absent at base",
+     "effect": "new"
+    },
+    {
+     "at": "+22",
+     "cond": "unit hash differs",
+     "effect": "changed"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def cmd_impact",
+   "hash": "d4239d70bf193402",
+   "does": "Prints, as Markdown, what a change can affect. Targets: the named `path::key` nodes, or changed_since(base) (base from `--base REF`, default origin/main). An unknown named node prints up to 15 nodes containing its short name and returns 2. For each target: what its record says it does; direct callers, certain listed in full and possible up to 40; a walk up certain callers that stops at tests and doc sections (collected) and collects every caller with an `entry` as a trigger (up to 80 listed); for unit targets, each store it reads or writes (prefix up to ' (') with how many other units read and write it and up to 12 of them; and the open flags on the target and its certain direct callers. The same text is appended to $GITHUB_STEP_SUMMARY (up to 900,000 characters) when that is set. Returns 0.",
+   "entry": null,
+   "calls": [
+    "scripts/codemap/codemap.py::def all_records",
+    "scripts/codemap/inventory.py::def inventory",
+    "scripts/codemap/graph.py::def build",
+    "scripts/codemap/graph.py::def callers",
+    "scripts/codemap/codemap.py::def changed_since",
+    "scripts/codemap/codemap.py::def record_of"
+   ],
+   "reads": [
+    "env:GITHUB_STEP_SUMMARY"
+   ],
+   "writes": [
+    "file:$GITHUB_STEP_SUMMARY (append)"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "--base given",
+     "effect": "base taken from the next argument"
+    },
+    {
+     "at": "+5",
+     "cond": "--base without a value",
+     "effect": "error, 2"
+    },
+    {
+     "at": "+16",
+     "cond": "a named node is not in the graph",
+     "effect": "near matches printed, 2"
+    },
+    {
+     "at": "+33",
+     "cond": "nothing mapped changed",
+     "effect": "'No mapped code changed.'"
+    },
+    {
+     "at": "+38",
+     "cond": "target has a record and still exists",
+     "effect": "its description printed"
+    },
+    {
+     "at": "+51",
+     "cond": "possible edge or already visited",
+     "effect": "not walked"
+    },
+    {
+     "at": "+54",
+     "cond": "caller is test code",
+     "effect": "collected as a test, not walked further"
+    },
+    {
+     "at": "+57",
+     "cond": "caller is a doc section",
+     "effect": "collected as a doc, not walked further"
+    },
+    {
+     "at": "+61",
+     "cond": "caller has an outside trigger",
+     "effect": "listed as a trigger; walk continues past it"
+    },
+    {
+     "at": "+70",
+     "cond": "unit target with a record",
+     "effect": "shared-state section"
+    },
+    {
+     "at": "+77",
+     "cond": "store used by other units",
+     "effect": "listed with their counts"
+    },
+    {
+     "at": "+94",
+     "cond": "running in GitHub Actions",
+     "effect": "text appended to the job summary"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "scripts/codemap/codemap.py::def all_records": "1cb2c0b4ef92a436",
+    "scripts/codemap/codemap.py::def changed_since": "724735c954362d70",
+    "scripts/codemap/codemap.py::def main": "6b5922b4852cf300",
+    "scripts/codemap/codemap.py::def record_of": "10002e813b5abeb9",
+    "scripts/codemap/graph.py::def build": "4f1c5f170901e1fb",
+    "scripts/codemap/graph.py::def callers": "6bd0e2d71c7f44cf",
+    "scripts/codemap/inventory.py::def inventory": "34fef8bbe2bcc698"
+   }
+  },
+  {
+   "key": "def cmd_callers",
+   "hash": "7b4f8ff06d08f12c",
+   "does": "Prints each direct caller of one node with its edge kind (certain first, then possible, each sorted), or a hint about the key format when there are none. Returns 0.",
+   "entry": null,
+   "calls": [
+    "scripts/codemap/codemap.py::def all_records",
+    "scripts/codemap/inventory.py::def inventory",
+    "scripts/codemap/graph.py::def build",
+    "scripts/codemap/graph.py::def callers"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "no callers",
+     "effect": "hint printed"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "scripts/codemap/codemap.py::def all_records": "1cb2c0b4ef92a436",
+    "scripts/codemap/graph.py::def build": "4f1c5f170901e1fb",
+    "scripts/codemap/graph.py::def callers": "6bd0e2d71c7f44cf",
+    "scripts/codemap/inventory.py::def inventory": "34fef8bbe2bcc698"
+   }
+  },
+  {
+   "key": "def main",
+   "hash": "0e49f628e665d7f4",
+   "does": "Dispatches argv: no args or -h/--help prints the usage and returns 0; check -> strict check; status -> non-strict; sync PATH...; stamp PATH [KEY...]; impact [--base REF] [NODE...]; callers NODE; report OUTDIR -> report.build over all records. Anything else prints the usage to stderr and returns 2.",
+   "entry": "python3 scripts/codemap/codemap.py <command> (check_codemap.sh, the codemap-* Makefile targets, the gates.yml impact step, by hand)",
+   "calls": [
+    "scripts/codemap/codemap.py::def cmd_check",
+    "scripts/codemap/codemap.py::def cmd_sync",
+    "scripts/codemap/codemap.py::def cmd_stamp",
+    "scripts/codemap/codemap.py::def cmd_impact",
+    "scripts/codemap/codemap.py::def cmd_callers",
+    "scripts/codemap/report.py::def build",
+    "scripts/codemap/codemap.py::def all_records"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no command or help",
+     "effect": "usage, 0"
+    },
+    {
+     "at": "+5",
+     "cond": "check",
+     "effect": "strict check"
+    },
+    {
+     "at": "+7",
+     "cond": "status",
+     "effect": "non-strict check"
+    },
+    {
+     "at": "+9",
+     "cond": "sync with paths",
+     "effect": "cmd_sync"
+    },
+    {
+     "at": "+11",
+     "cond": "stamp with a path",
+     "effect": "cmd_stamp"
+    },
+    {
+     "at": "+13",
+     "cond": "impact",
+     "effect": "cmd_impact"
+    },
+    {
+     "at": "+15",
+     "cond": "callers with one node",
+     "effect": "cmd_callers"
+    },
+    {
+     "at": "+17",
+     "cond": "report with an output dir",
+     "effect": "report.build; otherwise usage to stderr, 2"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "scripts/codemap/codemap.py::def all_records": "1cb2c0b4ef92a436",
+    "scripts/codemap/codemap.py::def cmd_callers": "33ec6756939f0b9b",
+    "scripts/codemap/codemap.py::def cmd_check": "df4d0d74f79a78da",
+    "scripts/codemap/codemap.py::def cmd_impact": "c2b034f3fdf0ef75",
+    "scripts/codemap/codemap.py::def cmd_stamp": "7132e97c28406a90",
+    "scripts/codemap/codemap.py::def cmd_sync": "74a108b4c1742e10",
+    "scripts/codemap/report.py::def build": "93fb17bdef8846da"
+   }
+  }
+ ],
+ "deps": {
+  "scripts/codemap/codemap.py::def main": "6b5922b4852cf300",
+  "scripts/codemap/report.py::def build": "93fb17bdef8846da"
+ }
+}

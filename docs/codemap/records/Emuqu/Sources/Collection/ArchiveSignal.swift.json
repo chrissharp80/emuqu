@@ -1,0 +1,98 @@
+{
+ "file": "Emuqu/Sources/Collection/ArchiveSignal.swift",
+ "hash": "a21147610982adcf",
+ "role": "Observable signal whose `version` Int bumps (coalesced over 80 ms) whenever `.flowRecoveryArchiveChanged` is posted, so SwiftUI views refresh on archive mutations without observing the whole RRCollector.",
+ "types": [
+  "ArchiveSignal: class (@MainActor @Observable) — coalesced archive-change version counter"
+ ],
+ "state": [
+  "mem:ArchiveSignal.version (private(set), observed by MainTabView, HistoryView, TrendsV2View, MorningResultsView, FitnessPostSummaryView, CoachHomeV2View, LoadTrajectoryLoader, SettingsPages+Data, FitnessTabView+Strap)",
+  "static ArchiveSignal.coalesceWindow = 0.08 s",
+  "coalesceTask: Task (ObservationIgnored)",
+  "observers: NotificationTokens",
+  "center: NotificationCenter (default .default)",
+  "notif:.flowRecoveryArchiveChanged (observed and posted; name declared elsewhere)"
+ ],
+ "toplevel": "Stored-property initializer only (version=0).",
+ "flags": [],
+ "units": [
+  {
+   "key": "init ArchiveSignal(center:)",
+   "hash": "7b8940c9a5309289",
+   "does": "Stores the notification center and registers a queue:nil observer for `.flowRecoveryArchiveChanged` (any object) whose block hops to the main actor and calls scheduleCoalescedBump().",
+   "entry": "Constructed only by RRCollector.init when no signal is injected (RRCollector.swift:701, `archiveSignal ?? ArchiveSignal()`) and by snapshot tests (e.g. EmuquTests/TabScreenSnapshotTests.swift:43); there is no separate dependency-container construction. The observer block is invoked by NotificationCenter on the posting thread (SessionArchive.archive, notifyChanged, other posters).",
+   "calls": [
+    "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.add(_:)",
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.scheduleCoalescedBump()",
+    "ext:NotificationCenter.addObserver"
+   ],
+   "reads": [
+    "notif:.flowRecoveryArchiveChanged"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.scheduleCoalescedBump()": "aa5a664edce79667",
+    "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.add(_:)": "e97498d0288a8c95"
+   }
+  },
+  {
+   "key": "deinit ArchiveSignal",
+   "hash": "c6406ff1b32da773",
+   "does": "Cancels any pending coalesce task and removes the notification observer from the injected center.",
+   "entry": "Swift deinit when the signal is released.",
+   "calls": [
+    "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.removeAll(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.removeAll(from:)": "0ec1945b222f6025"
+   }
+  },
+  {
+   "key": "func ArchiveSignal.scheduleCoalescedBump()",
+   "hash": "352d0a0f7c6c04d7",
+   "does": "Cancels the previous coalesce task and starts a new main-actor task that sleeps 80 ms and, if not cancelled and the object still exists, increments version (wrapping add). Trailing debounce: a stream of posts closer than 80 ms apart cancels each pending task, so only the last one bumps, 80 ms after the last post.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:ArchiveSignal.version"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "task cancelled after sleep, or self deallocated",
+     "effect": "returns without bumping (the newer task, if any, bumps); otherwise bumps version"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "c0fa5e77e7dfe851"
+   }
+  },
+  {
+   "key": "func ArchiveSignal.notifyChanged()",
+   "hash": "10c11b0d29f623ae",
+   "does": "Posts `.flowRecoveryArchiveChanged` (object nil) on the injected center; the bump itself happens via the observer registered in init, and every other raw observer of that name (TrainingMetricsCache, HeatAcclimationCache, BeatConsistencyPriorsCache) also fires.",
+   "entry": null,
+   "calls": [
+    "ext:NotificationCenter.post"
+   ],
+   "reads": [],
+   "writes": [
+    "notif:.flowRecoveryArchiveChanged"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

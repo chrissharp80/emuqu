@@ -14,6 +14,12 @@ struct OnboardingSensorPage: View {
     /// buttons "did nothing".
     @State private var btAuthorization = CBCentralManager.authorization
 
+    /// Set when the user starts a scan or a connect from this page, so a
+    /// failure it ends in (`PolarManager.lastError`, cleared at the start of
+    /// each attempt) is explained here instead of the pair buttons just
+    /// coming back.
+    @State private var pairingAttempted = false
+
     private var bluetoothAccessDenied: Bool {
         btAuthorization == .denied || btAuthorization == .restricted
     }
@@ -65,10 +71,7 @@ struct OnboardingSensorPage: View {
     }
 
     private var openIOSSettingsButton: some View {
-        Button {
-            guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
-            UIApplication.shared.open(url)
-        } label: {
+        Button(action: openAppSettings) {
             Label(String(localized: "Open Settings", bundle: LanguageManager.appBundle), systemImage: "gear")
         }
         .buttonStyle(.bordered)
@@ -116,13 +119,53 @@ struct OnboardingSensorPage: View {
         }
     }
 
+    /// The pairing controls are disabled while Bluetooth access is off:
+    /// scanning and connecting return silently then, and the banner above
+    /// says what to do instead.
     private var disconnectedContent: some View {
         VStack(spacing: 16) {
-            knownDevicesList
-            pairPolarH10Button
-            pairPolarVeritySenseButton
-            illDoThisLaterButton
+            pairingFailureNotice
+            Group {
+                knownDevicesList
+                pairPolarH10Button
+                pairPolarVeritySenseButton
+            }
+            .disabled(bluetoothAccessDenied)
         }
+    }
+
+    /// Why the last scan or connect started here ended back at disconnected.
+    @ViewBuilder
+    private var pairingFailureNotice: some View {
+        if pairingAttempted, let error = polar.lastError {
+            VStack(alignment: .leading, spacing: 4) {
+                Label(String(localized: "Connection failed", bundle: LanguageManager.appBundle), systemImage: "exclamationmark.triangle.fill")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(AppTheme.wongCaution)
+                Text(error.localizedDescription)
+                    .font(.caption)
+                    .foregroundColor(AppTheme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(AppTheme.wongCaution.opacity(0.1))
+            .cornerRadius(AppTheme.smallCornerRadius)
+        }
+    }
+
+    /// Clears the previous failure so the notice only ever shows this
+    /// attempt's, then scans.
+    private func startPairingScan() {
+        polar.lastError = nil
+        pairingAttempted = true
+        polar.startScanning()
+    }
+
+    private func startConnect(_ deviceId: String) {
+        polar.lastError = nil
+        pairingAttempted = true
+        polar.connect(deviceId: deviceId)
     }
 
     @ViewBuilder
@@ -145,7 +188,7 @@ struct OnboardingSensorPage: View {
 
     private func knownDeviceButton(_ device: PolarManager.KnownDevice) -> some View {
         Button {
-            polar.connect(deviceId: device.id)
+            startConnect(device.id)
         } label: {
             knownDeviceLabel(device)
         }
@@ -181,7 +224,7 @@ struct OnboardingSensorPage: View {
     /// to know "we're looking for any nearby Polar."
     private var pairPolarH10Button: some View {
         Button {
-            polar.startScanning()
+            startPairingScan()
         } label: {
             Label(String(localized: "Pair Polar H10", bundle: LanguageManager.appBundle), systemImage: "heart.fill")
                 .frame(maxWidth: .infinity)
@@ -224,18 +267,27 @@ struct OnboardingSensorPage: View {
 
     private func discoveredDeviceButton(_ device: PolarManager.DiscoveredDevice) -> some View {
         Button {
-            polar.connect(deviceId: device.id)
+            startConnect(device.id)
         } label: {
             discoveredDeviceLabel(device)
         }
+        .disabled(bluetoothAccessDenied)
     }
 
+    /// A strap that never answers would otherwise hold the page on
+    /// Connecting; Cancel ends the attempt (`PolarManager.cancelConnection`).
+    /// Leaving the page does not cancel: a connect the user started may
+    /// finish while they move on.
     private var connectingContent: some View {
         VStack(spacing: 12) {
             ProgressView()
             Text(String(localized: "Connecting...", bundle: LanguageManager.appBundle))
                 .font(.subheadline)
                 .foregroundColor(AppTheme.textSecondary)
+            Button(String(localized: "Cancel", bundle: LanguageManager.appBundle)) {
+                polar.cancelConnection()
+            }
+            .buttonStyle(.zenSecondary)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 24)
@@ -294,11 +346,20 @@ struct OnboardingSensorPage: View {
         }
     }
 
+    /// One way on: Skip until a sensor is connected, then Next. Both only
+    /// advance, so showing them together offered the same action twice.
+    @ViewBuilder
     private var navigationButtons: some View {
-        HStack {
-            skipButton
-            Spacer()
-            nextButton
+        if polar.connectionState == .connected {
+            HStack {
+                Spacer()
+                nextButton
+            }
+        } else {
+            HStack {
+                skipButton
+                Spacer()
+            }
         }
     }
 
@@ -328,7 +389,7 @@ struct OnboardingSensorPage: View {
 
     private var pairPolarVeritySenseButton: some View {
         Button {
-            polar.startScanning()
+            startPairingScan()
         } label: {
             Label(String(localized: "Pair Polar Verity Sense", bundle: LanguageManager.appBundle), systemImage: "waveform.path")
                 .frame(maxWidth: .infinity)
@@ -336,24 +397,6 @@ struct OnboardingSensorPage: View {
         }
         .buttonStyle(.zen(AppTheme.mist))
         .accessibilityHint(String(localized: "Search for a Polar Verity Sense armband", bundle: LanguageManager.appBundle))
-    }
-
-    private var illDoThisLaterButton: some View {
-        // "I'll do this later" tertiary link: advances past pairing, like
-        // Skip, but sits next to the pair button and is less prominent.
-        Button {
-            advance()
-        } label: {
-            Text(String(localized: "I'll do this later", bundle: LanguageManager.appBundle))
-                .font(.subheadline)
-                .foregroundColor(AppTheme.textSecondary)
-                .padding(.vertical, 8)
-                .frame(minHeight: 44)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityHint(String(localized: "Skip pairing for now; you can do this later from Record.", bundle: LanguageManager.appBundle))
-        .accessibilityIdentifier("onboarding.pairLater")
     }
 
     // MARK: - Scanning

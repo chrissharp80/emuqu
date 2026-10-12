@@ -1,0 +1,257 @@
+{
+ "file": "EmuquTests/WorkoutRRMergeTests.swift",
+ "hash": "1aeb8e3c1e3f7aff",
+ "role": "XCTest suite for WorkoutRRMerge.merged: which buffers a source may read, t_ms ordering when both contribute, as-is return without watch points, no-loss and duplicate retention, wall-clock interleave with t_ms rebuild, and empty cases.",
+ "types": [
+  "WorkoutRRMergeTests: class — XCTestCase for strap/Watch RR merge"
+ ],
+ "state": [],
+ "toplevel": "Typealias Source = WorkoutRecorder.HRSource.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func WorkoutRRMergeTests.points(_:)",
+   "hash": "f60c765ebb55c9c4",
+   "does": "Fixture: RRPoints at the given t_ms with rr 900 ms and no wall clock.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a"
+   }
+  },
+  {
+   "key": "func WorkoutRRMergeTests.testAStrapWorkoutTakesTheStreamingBuffer()",
+   "hash": "cd8cc3db1e68bed4",
+   "does": "Asserts a strap workout returns the streaming buffer when there are no watch points.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRRMerge.swift::func WorkoutRRMerge.merged(source:streaming:watchRouted:)",
+    "EmuquTests/WorkoutRRMergeTests.swift::func WorkoutRRMergeTests.points(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRRMerge.swift::func WorkoutRRMerge.merged(source:streaming:watchRouted:)": "7e1894cd589db307",
+    "EmuquTests/WorkoutRRMergeTests.swift::func WorkoutRRMergeTests.points(_:)": "c275ddb86778fcf0"
+   }
+  },
+  {
+   "key": "func WorkoutRRMergeTests.testANonStrapWorkoutIgnoresTheStreamingBuffer()",
+   "hash": "964f5f018fd65926",
+   "does": "Asserts .watch and .none sources ignore a non-empty streaming buffer (result empty).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRRMerge.swift::func WorkoutRRMerge.merged(source:streaming:watchRouted:)",
+    "EmuquTests/WorkoutRRMergeTests.swift::func WorkoutRRMergeTests.points(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for source in [.watch, .none]",
+     "effect": "each asserted empty"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRRMerge.swift::func WorkoutRRMerge.merged(source:streaming:watchRouted:)": "7e1894cd589db307",
+    "EmuquTests/WorkoutRRMergeTests.swift::func WorkoutRRMergeTests.points(_:)": "c275ddb86778fcf0"
+   }
+  },
+  {
+   "key": "func WorkoutRRMergeTests.testWatchRoutedPointsAreTakenWhateverTheSource()",
+   "hash": "da4d392c5a10ad6a",
+   "does": "Asserts watch-routed points are returned for .strap, .watch and .none sources.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRRMerge.swift::func WorkoutRRMerge.merged(source:streaming:watchRouted:)",
+    "EmuquTests/WorkoutRRMergeTests.swift::func WorkoutRRMergeTests.points(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each source",
+     "effect": "each asserted to keep [100, 1000]"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRRMerge.swift::func WorkoutRRMerge.merged(source:streaming:watchRouted:)": "7e1894cd589db307",
+    "EmuquTests/WorkoutRRMergeTests.swift::func WorkoutRRMergeTests.points(_:)": "c275ddb86778fcf0"
+   }
+  },
+  {
+   "key": "func WorkoutRRMergeTests.testInterleavedSourcesComeBackInTimeOrder()",
+   "hash": "3d985a579c0ea0fa",
+   "does": "Asserts interleaved streaming and watch points without wall clock come back sorted by t_ms.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRRMerge.swift::func WorkoutRRMerge.merged(source:streaming:watchRouted:)",
+    "EmuquTests/WorkoutRRMergeTests.swift::func WorkoutRRMergeTests.points(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRRMerge.swift::func WorkoutRRMerge.merged(source:streaming:watchRouted:)": "7e1894cd589db307",
+    "EmuquTests/WorkoutRRMergeTests.swift::func WorkoutRRMergeTests.points(_:)": "c275ddb86778fcf0"
+   }
+  },
+  {
+   "key": "func WorkoutRRMergeTests.testTheMergedSeriesIsAlwaysNonDecreasingWhenBothSourcesContribute()",
+   "hash": "211b43902647f13f",
+   "does": "Asserts the merged series with both sources is non-decreasing in t_ms even when inputs are unordered.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRRMerge.swift::func WorkoutRRMerge.merged(source:streaming:watchRouted:)",
+    "EmuquTests/WorkoutRRMergeTests.swift::func WorkoutRRMergeTests.points(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRRMerge.swift::func WorkoutRRMerge.merged(source:streaming:watchRouted:)": "7e1894cd589db307",
+    "EmuquTests/WorkoutRRMergeTests.swift::func WorkoutRRMergeTests.points(_:)": "c275ddb86778fcf0"
+   }
+  },
+  {
+   "key": "func WorkoutRRMergeTests.testWithNoWatchPointsTheStreamingBufferIsReturnedAsIs()",
+   "hash": "ef0cd72762114619",
+   "does": "Asserts an unordered streaming buffer with no watch points is returned unsorted as-is.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRRMerge.swift::func WorkoutRRMerge.merged(source:streaming:watchRouted:)",
+    "EmuquTests/WorkoutRRMergeTests.swift::func WorkoutRRMergeTests.points(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRRMerge.swift::func WorkoutRRMerge.merged(source:streaming:watchRouted:)": "7e1894cd589db307",
+    "EmuquTests/WorkoutRRMergeTests.swift::func WorkoutRRMergeTests.points(_:)": "c275ddb86778fcf0"
+   }
+  },
+  {
+   "key": "func WorkoutRRMergeTests.testNoIntervalIsLost()",
+   "hash": "e3c1d98ee03e5840",
+   "does": "Asserts merged count equals streaming + watch counts.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRRMerge.swift::func WorkoutRRMerge.merged(source:streaming:watchRouted:)",
+    "EmuquTests/WorkoutRRMergeTests.swift::func WorkoutRRMergeTests.points(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRRMerge.swift::func WorkoutRRMerge.merged(source:streaming:watchRouted:)": "7e1894cd589db307",
+    "EmuquTests/WorkoutRRMergeTests.swift::func WorkoutRRMergeTests.points(_:)": "c275ddb86778fcf0"
+   }
+  },
+  {
+   "key": "func WorkoutRRMergeTests.testDuplicateTimestampsAreKeptForTheArtifactDetectorToJudge()",
+   "hash": "66d0bed03377c605",
+   "does": "Asserts a duplicate t_ms (900) from both sources is kept (3 points).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRRMerge.swift::func WorkoutRRMerge.merged(source:streaming:watchRouted:)",
+    "EmuquTests/WorkoutRRMergeTests.swift::func WorkoutRRMergeTests.points(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRRMerge.swift::func WorkoutRRMerge.merged(source:streaming:watchRouted:)": "7e1894cd589db307",
+    "EmuquTests/WorkoutRRMergeTests.swift::func WorkoutRRMergeTests.points(_:)": "c275ddb86778fcf0"
+   }
+  },
+  {
+   "key": "func WorkoutRRMergeTests.testABeatCarriedByTheWatchThroughAPhoneGapIsOrderedByWallClock()",
+   "hash": "bc7330e6d60645c3",
+   "does": "Asserts that with wall clocks on all points, watch beats fill the phone's 2 s gap by wall clock and t_ms is rebuilt as 0..4000.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRRMerge.swift::func WorkoutRRMerge.merged(source:streaming:watchRouted:)",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)": "5950e566f77c54d0",
+    "Emuqu/Sources/Collection/WorkoutRRMerge.swift::func WorkoutRRMerge.merged(source:streaming:watchRouted:)": "7e1894cd589db307",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "1ad44fdc2c485550"
+   }
+  },
+  {
+   "key": "func WorkoutRRMergeTests.testABatchSharingOneWallClockTimeKeepsItsOrder()",
+   "hash": "4a9a7fe0ccaee9bc",
+   "does": "Asserts phone beats sharing one wall-clock time keep their order and t_ms is rebuilt as the running RR sum [0,700,1500,2400].",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRRMerge.swift::func WorkoutRRMerge.merged(source:streaming:watchRouted:)",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRRMerge.swift::func WorkoutRRMerge.merged(source:streaming:watchRouted:)": "7e1894cd589db307",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "1ad44fdc2c485550"
+   }
+  },
+  {
+   "key": "func WorkoutRRMergeTests.testAWorkoutWithNoRRAtAllYieldsAnEmptySeries()",
+   "hash": "aa159c293ec3bf4d",
+   "does": "Asserts no RR from either buffer yields empty for .strap and .none.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRRMerge.swift::func WorkoutRRMerge.merged(source:streaming:watchRouted:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRRMerge.swift::func WorkoutRRMerge.merged(source:streaming:watchRouted:)": "7e1894cd589db307"
+   }
+  },
+  {
+   "key": "func WorkoutRRMergeTests.testAWatchWorkoutWithNoRoutedPointsFinalizesEmpty()",
+   "hash": "9e6e662bfe43b876",
+   "does": "Asserts a .watch workout with only streaming points and no watch points yields empty.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRRMerge.swift::func WorkoutRRMerge.merged(source:streaming:watchRouted:)",
+    "EmuquTests/WorkoutRRMergeTests.swift::func WorkoutRRMergeTests.points(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRRMerge.swift::func WorkoutRRMerge.merged(source:streaming:watchRouted:)": "7e1894cd589db307",
+    "EmuquTests/WorkoutRRMergeTests.swift::func WorkoutRRMergeTests.points(_:)": "c275ddb86778fcf0"
+   }
+  }
+ ],
+ "deps": {}
+}

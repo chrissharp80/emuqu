@@ -87,13 +87,14 @@ extension WorkoutTicker {
     ///      than "stopped" so we don't pause during a GPS warm-up at the
     ///      start of a run.
     ///   2. Indoor-sport + cadence == 0 (treadmill stop, stationary
-    ///      bike coast). Cadence is pedometer-derived indoors, which
-    ///      goes to zero within a few seconds of the user actually
-    ///      stopping. nil cadence (too early to read) is NOT stopped —
-    ///      avoids a spurious auto-pause in the first few seconds.
+    ///      bike coast), read through `indoorCadence`: the pedometer keeps
+    ///      its last cadence when CoreMotion stops sending one, so a
+    ///      pedometer cadence whose step count has stopped moving reads as
+    ///      0. nil cadence (too early to read) is NOT stopped — avoids a
+    ///      spurious auto-pause in the first few seconds.
     private func isStopped(sport: Sport) -> Bool {
         guard sport.usesGPS else {
-            guard let cadence = recorder.cadenceStepsPerMin else { return false }
+            guard let cadence = indoorCadence(sport: sport) else { return false }
             return cadence <= 1
         }
         let speed = recorder.location.currentLocation?.speed ?? -1
@@ -106,10 +107,36 @@ extension WorkoutTicker {
     ///   - GPS speed ≥ 0.8 m/s (slow walk), or cadence ≥ 60 spm indoors.
     private func isMovingAgain(sport: Sport) -> Bool {
         guard sport.usesGPS else {
-            guard let cadence = recorder.cadenceStepsPerMin else { return false }
+            guard let cadence = indoorCadence(sport: sport) else { return false }
             return cadence >= 60
         }
         return (recorder.location.currentLocation?.speed ?? -1) >= 0.8
+    }
+
+    /// Seconds without a new pedometer step after which the pedometer's
+    /// cadence is taken as stale. CoreMotion sends updates every few seconds
+    /// while steps accrue.
+    private static let pedometerCadenceStaleSeconds: TimeInterval = 6
+
+    /// The live cadence for the indoor auto-pause rules. `WorkoutPedometer`
+    /// only overwrites its cadence when CoreMotion supplies one, so after a
+    /// treadmill stop the last walking cadence stays in place. For a
+    /// pedometer sport whose cadence is the pedometer's (no foot pod), a step
+    /// count unchanged for `pedometerCadenceStaleSeconds` reads as cadence 0.
+    /// Records the step count each tick to tell when it last moved.
+    private func indoorCadence(sport: Sport) -> Double? {
+        let steps = recorder.pedometer.stepCount
+        let now = Date()
+        if steps != recorder.lastPedometerStepAdvance.count {
+            recorder.lastPedometerStepAdvance = (steps, now)
+        }
+        guard let cadence = recorder.cadenceStepsPerMin else { return nil }
+        guard WorkoutSessionLifecycle.pedometerSports.contains(sport),
+              recorder.footPod.cadenceStepsPerMin == nil,
+              let advancedAt = recorder.lastPedometerStepAdvance.at,
+              now.timeIntervalSince(advancedAt) > Self.pedometerCadenceStaleSeconds
+        else { return cadence }
+        return 0
     }
 
     private func accrueStationaryAndMaybeAutoPause(sport: Sport) {
@@ -180,8 +207,14 @@ extension WorkoutTicker {
         if let sport = recorder.currentSession?.sport {
             runSportScopedTickWork(sport: sport)
         }
-        // Advance the interval plan (if any). Transitions fire via the
-        // controller's onStepChange hook wired in start().
+        advanceIntervalPlanUnlessPaused()
+    }
+
+    /// Advance the interval plan (if any). Transitions fire via the
+    /// controller's onStepChange hook wired in start(). Not while paused:
+    /// a step must not advance or be announced during a rest stop.
+    private func advanceIntervalPlanUnlessPaused() {
+        guard !recorder.lifecycle.isPaused else { return }
         _ = recorder.intervalController.tick(totalDistanceMeters: recorder.distanceMeters)
     }
 
@@ -251,6 +284,10 @@ extension WorkoutTicker {
     /// array every tick (`.map` materializes a new array of the
     /// SAME size, not the delta) is wasted CPU + memory.
     ///
+    /// While recording, a sample row lands every unpaused second, so the
+    /// watermark skips mostly while paused; the track and barometer rows are
+    /// therefore extended incrementally rather than re-mapped each tick.
+    ///
     /// The samples mark is the newest row's `offsetSec`, not the row count:
     /// past 12 h `capWorkoutSampleMemory` drops a row for each one added, so
     /// the count stops changing while new rows still need backing up.
@@ -266,14 +303,15 @@ extension WorkoutTicker {
     /// Conversion to value types is done on the MainActor so the
     /// detached task only sees `Sendable` payloads — `CLLocation`
     /// is non-Sendable in Swift 6 and would otherwise warn on
-    /// capture.
+    /// capture. The rows are kept on the recorder and extended by what
+    /// arrived since the last snapshot (`TrackBackupRows`), not re-mapped
+    /// whole each tick.
     private func appendTrackSnapshot(session: HRVSession, sessionId: UUID) {
         let sport = session.sport ?? .run
         let startDate = recorder.sessionStartDate ?? session.startDate
-        let fixSnapshot = recorder.location.track.map(WorkoutTrackBackup.PersistedFix.init)
-        let baroSnapshot = recorder.location.barometricSamples.map {
-            WorkoutTrackBackup.PersistedBaro(timestamp: $0.timestamp, altitudeMeters: $0.altitudeMeters)
-        }
+        recorder.trackBackupRows.sync(sessionId: sessionId, track: recorder.location.track, baro: recorder.location.barometricSamples)
+        let fixSnapshot = recorder.trackBackupRows.fixes
+        let baroSnapshot = recorder.trackBackupRows.baro
         let samplesSnapshot = recorder.workoutSamples
         let wristOffsetsSnapshot = recorder.wristHROffsets
         let trackBackup = AppDependencies.current.storage.workoutTrackBackup
@@ -344,7 +382,6 @@ extension WorkoutTicker {
         else { return }
         let drainedWatchRR = WatchPayloadBounds.plausibleRRMillis(recorder.watchBridge.drainPendingWatchStrapRR())
         guard !drainedWatchRR.isEmpty, !phoneStrapIsLive else { return }
-        recorder.lastConsumedWatchStrapAt = watchStrapAt
         let newPoints = synthesizeWatchRoutedPoints(drainedWatchRR, arrivedAt: watchStrapAt)
         guard !newPoints.isEmpty else { return }
         recorder.watchRoutedRRBuffer.append(contentsOf: newPoints)
@@ -486,12 +523,14 @@ extension WorkoutTicker {
     ///   1. Foot pod (direct stride measurement)
     ///   2. Pedometer (iPhone motion coprocessor estimate)
     ///
-    /// Rower sport: PM5 owns distance, cadence (stroke rate), and power
-    /// outright — GPS / pedometer / foot-pod values are all noise here.
-    /// The precedence chain is overridden when the sport is `.row` so the
-    /// rower's odometer / SPM / watts win over irrelevant sources. Stroke
-    /// rate surfaces in the same field used by the live UI — the cadence
-    /// label flips to "spm" on the row sport in the recording view.
+    /// Rower sport: the PM5's distance, cadence (stroke rate) and power win
+    /// over the other sources whenever it reports them. Power comes only
+    /// from the PM5 on `.row`. Distance and cadence do not: while the PM5
+    /// reports no distance (not linked yet, or dropped) the usual
+    /// max-of-sources distance stands in, and while it reports no stroke
+    /// rate the foot-pod / pedometer cadence does. Stroke rate surfaces in
+    /// the same field used by the live UI — the cadence label flips to
+    /// "spm" on the row sport in the recording view.
     private func mirrorMotionAndPowerSensors() {
         recorder.motion.footPodActive = recorder.footPod.connectionState == .connected
         let isRow = recorder.currentSession?.sport == .row
@@ -519,12 +558,17 @@ extension WorkoutTicker {
     /// finalize from the full sample series, not here. Rower power
     /// comes from the PM5; foot-pod power covers run / walk / hike;
     /// FTMS bike trainers route through the foot-pod manager too.
+    ///
+    /// While paused the live reading is still shown but not tallied, the
+    /// same rule as the per-second samples, so an idle 0 W during a rest
+    /// stop does not dilute the stored average power.
     private func tallyPower(_ liveWatts: Int?) {
         guard let w = liveWatts else {
             recorder.motion.powerWatts = nil
             return
         }
         recorder.motion.powerWatts = w
+        guard !recorder.lifecycle.isPaused else { return }
         recorder.powerSampleSum += w
         recorder.powerSampleCount += 1
         if w > recorder.maxPowerObserved { recorder.maxPowerObserved = w }
@@ -786,10 +830,10 @@ extension WorkoutTicker {
         // Auto-detect a familiar route once we've covered enough
         // ground for shape comparison to mean something. Only fires
         // when the user didn't already pick a route — a manual GPX
-        // pick always wins. The detector is one-shot per session;
-        // setting `recorder.routeDetectionAttempted = true` regardless of
-        // outcome stops us from re-scanning every tick.
-        if recorder.plannedRoute == nil, !recorder.routeDetectionAttempted, sport.usesGPS {
+        // pick always wins — and stops once one is bound. Between
+        // attempts `attemptAutoRouteDetection` returns at once until the
+        // track reaches `recorder.nextRouteDetectionAtMeters`.
+        if recorder.plannedRoute == nil, sport.usesGPS {
             recorder.attemptAutoRouteDetection(sport: sport)
         }
     }
@@ -969,4 +1013,28 @@ extension WorkoutTicker {
         }
     }
 
+}
+
+/// The track and barometer rows the crash backup is handed each tick, kept
+/// between ticks and extended by the fixes and samples that arrived since:
+/// mapping the whole growing arrays every second copied them every second.
+/// Rebuilt for a new session, or when either source shrank (reset).
+struct TrackBackupRows {
+    private(set) var sessionId: UUID?
+    private(set) var fixes: [WorkoutTrackBackup.PersistedFix] = []
+    private(set) var baro: [WorkoutTrackBackup.PersistedBaro] = []
+
+    init(sessionId: UUID? = nil) {
+        self.sessionId = sessionId
+    }
+
+    mutating func sync(sessionId: UUID, track: [CLLocation], baro samples: [(timestamp: Date, altitudeMeters: Double)]) {
+        if self.sessionId != sessionId || fixes.count > track.count || baro.count > samples.count {
+            self = TrackBackupRows(sessionId: sessionId)
+        }
+        fixes.append(contentsOf: track[fixes.count...].map(WorkoutTrackBackup.PersistedFix.init))
+        baro.append(contentsOf: samples[baro.count...].map {
+            WorkoutTrackBackup.PersistedBaro(timestamp: $0.timestamp, altitudeMeters: $0.altitudeMeters)
+        })
+    }
 }

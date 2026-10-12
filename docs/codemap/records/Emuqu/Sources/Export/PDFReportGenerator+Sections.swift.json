@@ -1,0 +1,498 @@
+{
+ "file": "Emuqu/Sources/Export/PDFReportGenerator+Sections.swift",
+ "hash": "6a58d92ad7130c87",
+ "role": "Page-1 stat sections of the recovery PDF: Sleep Analysis (summary row + stage row), Training Load (CTL/ATL/TSB/ACWR), Recovery Vitals (resp. rate, SpO2, wrist temp deviation, resting HR) and the shared compact stat-box row drawer.",
+ "types": [
+  "PDFReportGenerator: extension — sleep/training/vitals sections"
+ ],
+ "state": [],
+ "toplevel": "File-scope private helpers sleepStageBoxes, stageShare, lightSleepFormatted, respiratoryRateBox, oxygenSaturationBox, restingHeartRateBox.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func PDFReportGenerator.drawSleepAnalysisSection(sleep:yPosition:in:pageRect:)",
+   "hash": "300bfb58f05daf4b",
+   "does": "Draws 'Sleep Analysis' heading and a grey card with the summary row (total, efficiency, awake, in bed) and, when deep or REM minutes exist, a stage row; returns y below the card.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReportGenerator.drawSectionHeading(_:yPosition:pageRect:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Sections.swift::func PDFReportGenerator.drawStatBoxRow(_:y:boxWidth:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Sections.swift::func PDFReportGenerator.sleepSummaryBoxes(_:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Sections.swift::func sleepStageBoxes(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "hasStages (deep or REM non-nil)",
+     "effect": "card height 100 when true, 56 when false"
+    },
+    {
+     "at": "+12",
+     "cond": "hasStages",
+     "effect": "true: draws the stage row at y+52; false: skipped"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReportGenerator.drawSectionHeading(_:yPosition:pageRect:)": "10e96263462269ee",
+    "Emuqu/Sources/Export/PDFReportGenerator+Sections.swift::func PDFReportGenerator.drawStatBoxRow(_:y:boxWidth:)": "02b779f0a46ec47c",
+    "Emuqu/Sources/Export/PDFReportGenerator+Sections.swift::func PDFReportGenerator.sleepSummaryBoxes(_:)": "a010b27ab934962f",
+    "Emuqu/Sources/Export/PDFReportGenerator+Sections.swift::func sleepStageBoxes(_:)": "8a4adae82a36ea38",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func PDFReportGenerator.sleepSummaryBoxes(_:)",
+   "hash": "90c8b2829532e242",
+   "does": "Builds the 4 summary boxes: total sleep, efficiency (rounded %, 'Not measured' when nil), awake (formatted, '0m' included, when the night's wake was measured — efficiency known or awake > 0 — else '—'), in bed.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::var PDFReportGenerator.SleepData.totalSleepFormatted",
+    "Emuqu/Sources/Export/PDFReportGenerator+Sections.swift::func PDFReportGenerator.efficiencyColor(_:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func reportHoursMinutes(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "sleepEfficiency nil",
+     "effect": "efficiency text 'Not measured'; else rounded percent"
+    },
+    {
+     "at": "+7",
+     "cond": "wake measured (sleepEfficiency non-nil or awakeMinutes > 0)",
+     "effect": "true: formatted awake minutes (0 prints as 0m); false: '—'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "5814b8c071cb8591",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func reportHoursMinutes(_:)": "1540d443b9ef0dc7",
+    "Emuqu/Sources/Export/PDFReportGenerator+Sections.swift::func PDFReportGenerator.efficiencyColor(_:)": "fe4f82f13c12f6da",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::var PDFReportGenerator.SleepData.totalSleepFormatted": "ff982209d1b68851",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func PDFReportGenerator.efficiencyColor(_:)",
+   "hash": "ca2551c9bc03f047",
+   "does": "Efficiency colour: dark grey when nil, green when >=85, amber otherwise.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "efficiency nil",
+     "effect": "returns darkGray"
+    },
+    {
+     "at": "+2",
+     "cond": "efficiency >= 85",
+     "effect": "green; else amber"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func PDFReportGenerator.drawStatBoxRow(_:y:boxWidth:)",
+   "hash": "174a7e25b6d8f680",
+   "does": "Draws one row of 36pt compact stat boxes at boxWidth spacing through the shared ReportSectionRenderer.drawStatBoxRow, skipping items with empty titles (spacers).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::var PDFReportGenerator.sections",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawStatBoxRow(_:y:boxWidth:boxHeight:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::var PDFReportGenerator.sections": "ec5286f15186db1c",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawStatBoxRow(_:y:boxWidth:boxHeight:)": "7103664dc82eeac5"
+   }
+  },
+  {
+   "key": "func PDFReportGenerator.drawTrainingLoadSection(training:yPosition:in:pageRect:)",
+   "hash": "dcc9911afbb47248",
+   "does": "Draws 'Training Load' heading and a 56pt card with the CTL/ATL/TSB/ACWR row; returns y below.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReportGenerator.drawSectionHeading(_:yPosition:pageRect:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Sections.swift::func PDFReportGenerator.drawStatBoxRow(_:y:boxWidth:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Sections.swift::func PDFReportGenerator.trainingLoadBoxes(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReportGenerator.drawSectionHeading(_:yPosition:pageRect:)": "10e96263462269ee",
+    "Emuqu/Sources/Export/PDFReportGenerator+Sections.swift::func PDFReportGenerator.drawStatBoxRow(_:y:boxWidth:)": "02b779f0a46ec47c",
+    "Emuqu/Sources/Export/PDFReportGenerator+Sections.swift::func PDFReportGenerator.trainingLoadBoxes(_:)": "2bdfabe4c8dc2815",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func PDFReportGenerator.trainingLoadBoxes(_:)",
+   "hash": "dd3c144c3bc4ef57",
+   "does": "Builds training boxes: CTL, ATL, TSB (green >10, grey >-10, amber otherwise), ACWR %.2f or '—'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "tsb > 10",
+     "effect": "green"
+    },
+    {
+     "at": "+3",
+     "cond": "tsb > -10",
+     "effect": "darkGray; else amber"
+    },
+    {
+     "at": "+8",
+     "cond": "acuteChronicRatio nil",
+     "effect": "'—'; else %.2f"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+   }
+  },
+  {
+   "key": "func PDFReportGenerator.drawVitalsSection(vitals:yPosition:in:pageRect:)",
+   "hash": "2b5a36ef81840533",
+   "does": "Draws 'Recovery Vitals' heading and a card with the vitals boxes spread evenly (boxWidth = contentWidth / max(1, count)); returns y below. The only caller draws it when vitals.hasAnyData, and each of those readings yields a box.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReportGenerator.drawSectionHeading(_:yPosition:pageRect:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Sections.swift::func PDFReportGenerator.vitalsBoxes(_:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Sections.swift::func PDFReportGenerator.drawStatBoxRow(_:y:boxWidth:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReportGenerator.drawSectionHeading(_:yPosition:pageRect:)": "10e96263462269ee",
+    "Emuqu/Sources/Export/PDFReportGenerator+Sections.swift::func PDFReportGenerator.drawStatBoxRow(_:y:boxWidth:)": "02b779f0a46ec47c",
+    "Emuqu/Sources/Export/PDFReportGenerator+Sections.swift::func PDFReportGenerator.vitalsBoxes(_:)": "42a64dff0810a333",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func PDFReportGenerator.vitalsBoxes(_:)",
+   "hash": "d9662b037a3eb710",
+   "does": "Collects the respiratory rate, SpO2, wrist temperature and resting HR boxes that exist.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Sections.swift::func respiratoryRateBox(_:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Sections.swift::func oxygenSaturationBox(_:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Sections.swift::func PDFReportGenerator.wristTemperatureBox(_:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Sections.swift::func restingHeartRateBox(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "resp rate box exists",
+     "effect": "appended"
+    },
+    {
+     "at": "+3",
+     "cond": "SpO2 box exists",
+     "effect": "appended"
+    },
+    {
+     "at": "+4",
+     "cond": "wrist temp box exists",
+     "effect": "appended"
+    },
+    {
+     "at": "+5",
+     "cond": "resting HR box exists",
+     "effect": "appended"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Sections.swift::func PDFReportGenerator.wristTemperatureBox(_:)": "e2b68eaee0706ac3",
+    "Emuqu/Sources/Export/PDFReportGenerator+Sections.swift::func oxygenSaturationBox(_:)": "1e7e0587b6c36438",
+    "Emuqu/Sources/Export/PDFReportGenerator+Sections.swift::func respiratoryRateBox(_:)": "35e5937ed4d072bc",
+    "Emuqu/Sources/Export/PDFReportGenerator+Sections.swift::func restingHeartRateBox(_:)": "472fd78b34ac677d"
+   }
+  },
+  {
+   "key": "func PDFReportGenerator.wristTemperatureDeviationLabel(_:fractionDigits:)",
+   "hash": "0a8fe1422364d150",
+   "does": "Formats a wrist-temperature delta (°C input) as signed text in the user's unit: ×9/5 with no offset for °F.",
+   "entry": null,
+   "calls": [
+    "closure:PDFReportGenerator.settingsProvider (stored init param, default { AppDependencies.current.app.settingsManager.settingsSnapshot }, PDFReportGenerator.swift:186)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [
+    "mem:UserSettings.temperatureUnit (via settingsProvider)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "temperatureUnit == .fahrenheit",
+     "effect": "value ×9/5; else °C value"
+    },
+    {
+     "at": "+3",
+     "cond": "fahrenheit",
+     "effect": "suffix °F else °C"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift::var ScoreBreakdownCard.temperatureUnit": "063a6053cf5ccc9d"
+   }
+  },
+  {
+   "key": "func PDFReportGenerator.wristTemperatureBox(_:)",
+   "hash": "908bdf43f801fcb1",
+   "does": "Wrist temp box: '—' when the baseline is missing, nil when no reading, else signed deviation label, amber when |°C delta| > 0.5.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Export/PDFReportGenerator+Sections.swift::func PDFReportGenerator.wristTemperatureDeviationLabel(_:fractionDigits:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "wristTemperatureLacksBaseline",
+     "effect": "returns ('Wrist Temp','—',grey)"
+    },
+    {
+     "at": "+3",
+     "cond": "wristTemperature nil",
+     "effect": "returns nil (box omitted)"
+    },
+    {
+     "at": "+10",
+     "cond": "abs(temp) > 0.5",
+     "effect": "amber; else darkGray"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Sections.swift::func PDFReportGenerator.wristTemperatureDeviationLabel(_:fractionDigits:)": "389c04c0930b114f",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func sleepStageBoxes(_:)",
+   "hash": "379608258a177d1b",
+   "does": "Builds the stage row: Deep (with % share), REM (with % share), Light (total − deep − REM, '—' unless both deep and REM were measured), and an empty spacer.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::var PDFReportGenerator.SleepData.deepSleepFormatted",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func reportHoursMinutes(_:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Sections.swift::func stageShare(_:of:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Sections.swift::func lightSleepFormatted(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "deepSleepFormatted ?? reportMissingValue",
+     "effect": "'—' when no deep sleep"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func reportHoursMinutes(_:)": "1540d443b9ef0dc7",
+    "Emuqu/Sources/Export/PDFReportGenerator+Sections.swift::func lightSleepFormatted(_:)": "aa917d12ef3bfb46",
+    "Emuqu/Sources/Export/PDFReportGenerator+Sections.swift::func stageShare(_:of:)": "455070b179980142",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::var PDFReportGenerator.SleepData.deepSleepFormatted": "5232932b73a9171c",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.totalSleepMinutes(in:)": "89a73025d946f183",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func stageShare(_:of:)",
+   "hash": "854fe1d1c7722533",
+   "does": "Returns ' (NN%)' share of total for a stage, or '' when stage nil or total <= 0.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "stageMinutes non-nil and total > 0",
+     "effect": "false: returns ''"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "func lightSleepFormatted(_:)",
+   "hash": "be4280bee202e228",
+   "does": "Light = total − deep − REM, formatted; '—' when total <= 0, when deep or REM was not measured (a missing stage is not folded into Light), or the remainder is <= 0.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func reportHoursMinutes(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "totalSleepMinutes > 0 and deep and REM both measured",
+     "effect": "false: '—'"
+    },
+    {
+     "at": "+3",
+     "cond": "core > 0",
+     "effect": "false: '—'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func reportHoursMinutes(_:)": "1540d443b9ef0dc7",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.totalSleepMinutes(in:)": "89a73025d946f183"
+   }
+  },
+  {
+   "key": "func respiratoryRateBox(_:)",
+   "hash": "bbc589044634b782",
+   "does": "Resp. rate box: '%.1f br/min', plus signed diff when |rr - baseline| > 0.5; amber when rr > baseline + 2; nil without a reading.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func reportBreathsPerMinute(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "respiratoryRate nil",
+     "effect": "returns nil"
+    },
+    {
+     "at": "+3",
+     "cond": "baseline exists",
+     "effect": "computes diff"
+    },
+    {
+     "at": "+5",
+     "cond": "|diff| > 0.5",
+     "effect": "appends ' (+x.x)'"
+    },
+    {
+     "at": "+10",
+     "cond": "baseline nil",
+     "effect": "colour darkGray"
+    },
+    {
+     "at": "+11",
+     "cond": "rr > baseline + 2",
+     "effect": "amber; else darkGray"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func reportBreathsPerMinute(_:)": "d02107676f421479",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "func oxygenSaturationBox(_:)",
+   "hash": "804e1c910b31b45a",
+   "does": "SpO2 box: '%.0f%%' plus ' (min NN%)' when a minimum exists; red when < RecoveryVitals.concerningSpO2Below (95); nil without a reading.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:RecoveryVitals.concerningSpO2Below"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "oxygenSaturation nil",
+     "effect": "returns nil"
+    },
+    {
+     "at": "+3",
+     "cond": "oxygenSaturationMin exists",
+     "effect": "appends min"
+    },
+    {
+     "at": "+6",
+     "cond": "spo2 < RecoveryVitals.concerningSpO2Below (95)",
+     "effect": "red; else darkGray"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "func restingHeartRateBox(_:)",
+   "hash": "0ce8ba0effba11ef",
+   "does": "Resting HR box '%.0f bpm' in grey; nil without a value.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "restingHeartRate nil",
+     "effect": "returns nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  }
+ ],
+ "deps": {}
+}

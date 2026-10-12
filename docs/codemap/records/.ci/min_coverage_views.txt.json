@@ -1,0 +1,13 @@
+{
+ "file": ".ci/min_coverage_views.txt",
+ "hash": "457a963a813c0963",
+ "role": "Committed CI floor file (43.5, non-integer so check_budget_monotonicity.sh skips it) read by scripts/check_coverage.sh:43. Unlike the other two coverage floors it is enforced on TEST_SCOPE=unit runs too (check_coverage.sh:134-139).",
+ "types": [],
+ "state": [
+  "file:.ci/min_coverage_views.txt = 43.5"
+ ],
+ "toplevel": "Single line `43.5`. Read by scripts/check_coverage.sh (MIN_VIEWS_COVERAGE_FILE) as the Views-only coverage floor, enforced on unit and full test scopes. scripts/check_budget_monotonicity.sh compares it against the baseline commit as a decimal floor (read_number accepts whole or decimal values; min_* floors may only rise unless a `budget-raise-ok: .ci/min_coverage_views.txt` commit trailer is present in the compared range; deleting it or making it non-numeric also counts as loosening). Changes are owned by @chrissharp80 per CODEOWNERS.",
+ "flags": [],
+ "units": [],
+ "deps": {}
+}

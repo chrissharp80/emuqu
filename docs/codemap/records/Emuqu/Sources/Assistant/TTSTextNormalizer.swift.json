@@ -1,0 +1,338 @@
+{
+ "file": "Emuqu/Sources/Assistant/TTSTextNormalizer.swift",
+ "hash": "4b3812e88c392f23",
+ "role": "Spoken-text normalisation for AVSpeech: English-only pre-passes (domain abbreviations, pace strings, years) then PhoneticOverrides for ZIPs/homographs/IPA; returns the NSAttributedString VoiceConversationController.speak hands to AVSpeechUtterance.",
+ "types": [
+  "TTSTextNormalizer: enum — static normalisation pipeline"
+ ],
+ "state": [
+  "mem:TTSTextNormalizer.domainAbbreviations (static let, 22 regex→spoken pairs, lines 75-116)",
+  "mem:TTSTextNormalizer.pacePatterns (static let, 3 regexes, line 152)",
+  "mem:TTSTextNormalizer.notFollowedByUnit (static let lookahead regex, line 243)"
+ ],
+ "toplevel": "Static tables: abbreviation expansions (VO2, VO2max, HRV, RHR, BPM/bpm, /min, RPE, PR, TSB/ATL/CTL, α1/α-1/alpha-1, DFA, Z1-Z5), three pace regexes, and the unit lookahead that keeps '1205 steps' from being read as a year.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func TTSTextNormalizer.normalize(_:english:)",
+   "hash": "d20c676806d0e5a9",
+   "does": "If english, applies expandDomainAbbreviations, expandPaceStrings, expandYears in that order; then returns PhoneticOverrides.speechAttributedString(working, english:), which skips its English-only ZIP and 'live' passes when english is false.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandDomainAbbreviations(_:)",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandPaceStrings(_:)",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandYears(_:)",
+    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.speechAttributedString(_:english:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "english flag true (voice language starts with 'en' or no voice)",
+     "effect": "true: three English pre-passes run and PhoneticOverrides runs its English passes; false: only AI markup is applied"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.speechAttributedString(_:english:)": "250478156c42fdea",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandDomainAbbreviations(_:)": "7727ef5d1e310593",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandPaceStrings(_:)": "2f666bc746f61c13",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandYears(_:)": "0af40a877b83c6f9"
+   }
+  },
+  {
+   "key": "func TTSTextNormalizer.stripForDisplay(_:)",
+   "hash": "e74cfedb33b7f3c9",
+   "does": "Wrapper returning PhoneticOverrides.stripForDisplay(input).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.stripForDisplay(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "No production caller: grep finds only TTSTextNormalizerTests.swift:230; ChatBubble calls PhoneticOverrides.stripForDisplay directly. Tests are the only callers.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/TTSTextNormalizer.swift:62",
+      "EmuquTests/TTSTextNormalizerTests.swift:230",
+      "Emuqu/Sources/Assistant/Views/ChatBubble.swift:344"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Pure pass-through of PhoneticOverrides.stripForDisplay.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/TTSTextNormalizer.swift:62",
+      "Emuqu/Sources/Assistant/PhoneticOverrides.swift:118"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.stripForDisplay(_:)": "119339496bdd7dc0"
+   }
+  },
+  {
+   "key": "func TTSTextNormalizer.expandDomainAbbreviations(_:)",
+   "hash": "b7f89fa4cecadc0b",
+   "does": "Applies every domainAbbreviations regex replacement in order (e.g. HRV->'H R V', BPM->'B P M', /min->' per minute', Z2->'zone two').",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each abbreviation pair",
+     "effect": "each regex replaced across the whole string"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TTSTextNormalizer.expandPaceStrings(_:)",
+   "hash": "81e752692e1ce285",
+   "does": "Runs expandPaces for each of the three pace patterns ('m:ss/unit', 'm:ss min/unit', 'm:ss per unit').",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandPaces(in:pattern:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each pace pattern",
+     "effect": "sequential rewrites"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandPaces(in:pattern:)": "3862ff24ff77b225"
+   }
+  },
+  {
+   "key": "func TTSTextNormalizer.expandPaces(in:pattern:)",
+   "hash": "3d01bbdc5eb1e6f2",
+   "does": "Rewrites each match of one pace regex, right-to-left, to '<minutes words> <seconds words> per <mile|kilometer>'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.numberAsWords(_:)",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.secsAsWords(_:)",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.unitWordFor(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "regex compiles",
+     "effect": "false: text unchanged"
+    },
+    {
+     "at": "+4",
+     "cond": "for each match reversed",
+     "effect": "right-to-left replacement"
+    },
+    {
+     "at": "+5",
+     "cond": "4 ranges and minutes/seconds parse as Int",
+     "effect": "false: continue (match left unchanged)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func RRWindowSweep.range(start:end:)": "1f1571698d506b97",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.numberAsWords(_:)": "9b21c8d6b15c0595",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.secsAsWords(_:)": "6620e74665c1f428",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.unitWordFor(_:)": "09bafd21dd3b0d3b"
+   }
+  },
+  {
+   "key": "func TTSTextNormalizer.unitWordFor(_:)",
+   "hash": "ed5e7c769377b540",
+   "does": "Maps 'mi'/'mile' -> 'mile', 'km'/'kilometer' -> 'kilometer', anything else returned unchanged.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "raw is mi or mile",
+     "effect": "'mile'"
+    },
+    {
+     "at": "+3",
+     "cond": "raw is km or kilometer",
+     "effect": "'kilometer'"
+    },
+    {
+     "at": "+4",
+     "cond": "default",
+     "effect": "raw unchanged (unreachable: pace regexes only capture those four)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TTSTextNormalizer.numberAsWords(_:)",
+   "hash": "a109860a3de08813",
+   "does": "Spells an Int as en_US words with a fresh NumberFormatter(.spellOut); falls back to the digits.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "formatter returns nil",
+     "effect": "fallback \"\\(n)\" digits"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TTSTextNormalizer.secsAsWords(_:)",
+   "hash": "7de567e50efb99a3",
+   "does": "Seconds as spoken: outside 0...59 -> digits, 0 -> 'flat', 1-9 -> 'oh <word>', else spelled number.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.numberAsWords(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "secs outside 0...59",
+     "effect": "digits returned"
+    },
+    {
+     "at": "+2",
+     "cond": "secs == 0",
+     "effect": "'flat'"
+    },
+    {
+     "at": "+3",
+     "cond": "secs < 10",
+     "effect": "'oh <word>'; else spelled number"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.numberAsWords(_:)": "9b21c8d6b15c0595"
+   }
+  },
+  {
+   "key": "func TTSTextNormalizer.expandYears(_:)",
+   "hash": "d7e3ff92e1b546ce",
+   "does": "Finds 4-digit numbers 1100-2099 not adjacent to digits/./,/:/$, not the suffix of a ZIP+4 ('62704-1234', left for PhoneticOverrides), and not followed by a unit word, and replaces each (right-to-left) with spokenYear().",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.spokenYear(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "regex compiles",
+     "effect": "false: input unchanged"
+    },
+    {
+     "at": "+14",
+     "cond": "for each match reversed",
+     "effect": "right-to-left replacement"
+    },
+    {
+     "at": "+16",
+     "cond": "match parses as Int",
+     "effect": "false: continue"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func RRWindowSweep.range(start:end:)": "1f1571698d506b97",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.spokenYear(_:)": "46c6bdebb33c2be9"
+   }
+  },
+  {
+   "key": "func TTSTextNormalizer.spokenYear(_:)",
+   "hash": "90bc3ef88800da51",
+   "does": "Year reading: 2000 'two thousand', 2001-2009 'two thousand <n>', 2010-2099 'twenty <n>', 1100-1999 splitCenturyYear, else plain spelled number (expandYears only passes 1100-2099).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.numberAsWords(_:)",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.splitCenturyYear(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "2000",
+     "effect": "'two thousand'"
+    },
+    {
+     "at": "+2",
+     "cond": "2001...2009",
+     "effect": "'two thousand ' + words(year-2000)"
+    },
+    {
+     "at": "+3",
+     "cond": "2010...2099",
+     "effect": "'twenty ' + words(year-2000)"
+    },
+    {
+     "at": "+4",
+     "cond": "outside 1100...1999",
+     "effect": "plain spelled number (unreachable from expandYears); else splitCenturyYear"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.numberAsWords(_:)": "9b21c8d6b15c0595",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.splitCenturyYear(_:)": "6b1aa816642a9172"
+   }
+  },
+  {
+   "key": "func TTSTextNormalizer.splitCenturyYear(_:)",
+   "hash": "f2fd534da3b25221",
+   "does": "1100-1999 as '<first two digits words> hundred' when xx00, '<first> oh <n>' when 01-09, else '<first> <last two words>'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.numberAsWords(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "second half == 0",
+     "effect": "'<first> hundred'"
+    },
+    {
+     "at": "+4",
+     "cond": "second half < 10",
+     "effect": "'<first> oh <n>'; else '<first> <second>'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.numberAsWords(_:)": "9b21c8d6b15c0595"
+   }
+  }
+ ],
+ "deps": {}
+}

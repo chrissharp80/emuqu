@@ -122,9 +122,10 @@ final class ConversationStore: @unchecked Sendable {
     /// writer that flips this false before the deadline is `clear()`, so
     /// skipping is exactly right.
     ///
-    /// A save held because the history can't be read, or a write that fails
-    /// (the phone locked under complete file protection), sets `writePending`;
-    /// `retryHeldSave()` tries again once protected data is available.
+    /// A save held because the history can't be read, or a save that fails
+    /// to encode or write (the phone locked under complete file protection),
+    /// sets `writePending`; `retryHeldSave()` tries again once protected data
+    /// is available or the app becomes active.
     private func writeCoalescedSnapshot() {
         guard saveScheduled else { return }
         saveScheduled = false
@@ -132,15 +133,23 @@ final class ConversationStore: @unchecked Sendable {
             writePending = true
             return
         }
+        writePending = !write(snapshot)
+    }
+
+    /// Encodes and writes the turns; false when either step failed. The
+    /// directory is created first: Delete All My Data removes it under a
+    /// running store, and only init created it.
+    private func write(_ turns: [ChatTurn]) -> Bool {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
-        guard let data = attempt("conversationStore.encode", { try encoder.encode(snapshot) }) else { return }
+        guard let data = attempt("conversationStore.encode", { try encoder.encode(turns) }) else { return false }
         do {
+            try FileManager.default.createDirectory(at: fileURL.deletingLastPathComponent(), withIntermediateDirectories: true)
             try data.write(to: fileURL, options: [.atomic, .completeFileProtection])
-            writePending = false
+            return true
         } catch {
-            writePending = true
-            debugLog("[ConversationStore] save: write failed, retrying when the phone is unlocked: \(error)", level: .error)
+            debugLog("[ConversationStore] save: write failed, retrying on unlock or when the app becomes active: \(error)", level: .error)
+            return false
         }
     }
 
@@ -195,7 +204,18 @@ final class ConversationStore: @unchecked Sendable {
     /// A save that merges on the queue leaves it set, because the view model's
     /// in-memory history still lacks those turns and its next save would
     /// otherwise write over them again.
+    ///
+    /// One merge runs at a time: the adoption runs on the main actor and a
+    /// save's merge on `queue`, and two concurrent reads of an undecodable
+    /// file would both try to set it aside, failing (and holding) the second.
     func mergedWithDisk(_ current: [ChatTurn], acknowledging: Bool = false) -> [ChatTurn]? {
+        diskMerge.withLock { mergeWithDiskLocked(current, acknowledging: acknowledging) }
+    }
+
+    private let diskMerge = OSAllocatedUnfairLock()
+
+    /// `mergedWithDisk`'s work; runs only while `diskMerge` is held.
+    private func mergeWithDiskLocked(_ current: [ChatTurn], acknowledging: Bool) -> [ChatTurn]? {
         guard unreadableOnDisk.withLock({ $0 }) else { return current }
         guard FileManager.default.fileExists(atPath: fileURL.path) else {
             unreadableOnDisk.withLock { $0 = false }

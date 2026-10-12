@@ -168,21 +168,14 @@ extension EmuquApp {
     /// expression stays simple enough for the type-checker (SwiftUI body
     /// expressions get expensive to type-check fast as they grow).
     ///
-    /// Owns the safety timeout that force-flips the splash off if
-    /// `isLoading` is still true 8 seconds from now (some background init
-    /// hung, the disclaimer modal failed to present, the `.task` closure body
-    /// never ran past an await point, etc.) so the user can at least see the
-    /// disclaimer and try the app (a real report: a phone hung on splash
-    /// forever on a fresh install).
+    /// Both paths reach `isLoading = false` synchronously after the one await
+    /// (the UI-test seed), and the root view never shows a splash (see
+    /// `EmuquApp.rootTabView`), so there is no launch-hang timeout to arm.
     func runLaunchTask() async {
         await seedArchiveForUITests()
         let acceptedDisclaimer = settingsManager.hasAcceptedDisclaimer
         NSLog("[App][launch] root .task fired (hasAcceptedDisclaimer=\(acceptedDisclaimer))")
         debugLog("[App][launch] root .task fired, isLoading=\(isLoading), hasAcceptedDisclaimer=\(acceptedDisclaimer)", level: .info)
-        Task { @MainActor in
-            await sleepQuietly(8_000_000_000, context: "runLaunchTask")
-            await runLaunchSafetyCheck()
-        }
         guard acceptedDisclaimer else {
             // Show disclaimer immediately — no data loading until accepted.
             NSLog("[App][launch] new install path — flipping isLoading=false, presenting disclaimer")
@@ -194,27 +187,6 @@ extension EmuquApp {
         NSLog("[App][launch] returning user — calling loadDataAndContinue()")
         debugLog("[App][launch] returning user — calling loadDataAndContinue()", level: .info)
         loadDataAndContinue()
-    }
-
-    /// Force-flip the splash off and present a fallback modal if the
-    /// launch hung. Logs the full state vector so the post-mortem has
-    /// data even when persistent logging is off.
-    @MainActor
-    func runLaunchSafetyCheck() async {
-        guard isLoading else { return }
-        let modalDesc = String(describing: activeModal)
-        let accepted = settingsManager.hasAcceptedDisclaimer
-        let completed = settingsManager.settings.hasCompletedOnboarding
-        NSLog("[App][launch] SAFETY TIMEOUT — splash up after 8s, force-flipping isLoading=false")
-        debugLog("[App][launch] SAFETY TIMEOUT: splash still up after 8s — force-flipping isLoading=false. activeModal=\(modalDesc), dataLoaded=\(dataLoaded), hasAcceptedDisclaimer=\(accepted), hasCompletedOnboarding=\(completed)", level: .error)
-        isLoading = false
-        if activeModal == nil {
-            if !accepted {
-                activeModal = .disclaimer
-            } else if !completed {
-                activeModal = .onboarding
-            }
-        }
     }
 
     /// Refresh purchase entitlements without blocking launch.
@@ -394,7 +366,11 @@ extension EmuquApp {
     }
 
     /// Launch housekeeping is ordered by LaunchCoordinator (phase-gated,
-    /// QoS-correct, bounded) instead of hand-tuned sleep delays.
+    /// QoS-correct, bounded) instead of hand-tuned sleep delays. In Low Power
+    /// Mode the two prewarms wait `launchDelayMultiplier` times longer and the
+    /// workout-load backfill and temp-asymmetry rescore are skipped; the
+    /// migrations and the iCloud sync still run. `shouldSkipPeriodicRefresh`
+    /// is only logged here.
     private func scheduleLaunchHousekeeping() {
         AppDependencies.current.analysis.trainingMetricsCache.configure(healthKit: collector.healthKit)
         let powerMultiplier = AppDependencies.current.services.powerStatePolicy.launchDelayMultiplier
@@ -404,11 +380,10 @@ extension EmuquApp {
         }
         let lowPower = powerMultiplier > 1.0
         AppDependencies.current.app.launchCoordinator.begin()
-        scheduleMigrationJobs(powerMultiplier: powerMultiplier, lowPower: lowPower)
+        scheduleMigrationJobs(lowPower: lowPower)
         prewarmRoadContext(powerMultiplier: powerMultiplier)
         prewarmWorkoutStartHaptics(powerMultiplier: powerMultiplier)
-        scheduleTrainingJobs(powerMultiplier: powerMultiplier, lowPower: lowPower)
-        scheduleSyncJob(powerMultiplier: powerMultiplier, lowPower: lowPower)
+        scheduleSyncThenTrainingJobs(lowPower: lowPower)
         Task { await AppDependencies.current.services.morningNotificationScheduler.rescheduleIfNeeded() }
     }
 
@@ -419,8 +394,10 @@ extension EmuquApp {
     /// file-protection walk leads them for the same reason. Always runs (not
     /// periodic — they self-terminate via UserDefaults flag). The one-shot
     /// session-data repairs that follow are each gated by a UserDefaults flag
-    /// after a successful run.
-    private func scheduleMigrationJobs(powerMultiplier: Double, lowPower: Bool) {
+    /// after a successful run. The archive job also applies the 90-day Trash
+    /// retention: each expired deleted session is permanently deleted (the
+    /// trashed file, the raw backup here and in iCloud, the deletion mark).
+    private func scheduleMigrationJobs(lowPower: Bool) {
         // Sendable locals for the detached launch jobs (avoid capturing the
         // non-Sendable App `self`).
         let archiveRef = collector.archive
@@ -430,7 +407,9 @@ extension EmuquApp {
             NSLog("[App][bg] archive migrations — start")
             archiveRef.upgradeExistingFileProtection()
             archiveRef.runDeferredMigrations()
-            archiveRef.expireTrash()
+            for id in archiveRef.expiredDeletionIds() {
+                await collectorJob.permanentlyDelete(id)
+            }
             NSLog("[App][bg] archive migrations — done")
         }
         coord.run(phase: .housekeeping, priority: .background, skipInLowPower: false, lowPower: lowPower) {
@@ -465,8 +444,29 @@ extension EmuquApp {
         }
     }
 
-    /// Retroactive route-history TRIMP backfill, LPM-gated: on an
-    /// iPhone 11 in Low Power Mode the archive scan + FTP estimate
+    /// The iCloud sync, then the workout-load backfill, then the
+    /// temp-asymmetry rescore, as ONE housekeeping job holding one of the
+    /// launch coordinator's two concurrency slots (the archive migrations
+    /// take the other). As separate jobs, the rescore (minutes of CPU) and
+    /// the backfill (which awaits the 400-day historical series) could take
+    /// both slots first and hold back for minutes the sync that has to run at
+    /// launch to heal a broken zone. In Low Power Mode only the sync runs.
+    private func scheduleSyncThenTrainingJobs(lowPower: Bool) {
+        let sync = launchSyncWork()
+        let backfill = workoutLoadBackfillWork()
+        let rescore = tempAsymmetryRescoreWork()
+        AppDependencies.current.app.launchCoordinator.run(
+            phase: .housekeeping, priority: .background, skipInLowPower: false, lowPower: lowPower
+        ) {
+            await sync?()
+            guard !lowPower else { return }
+            await backfill()
+            await rescore?()
+        }
+    }
+
+    /// Retroactive route-history TRIMP backfill, LPM-gated by its caller: on
+    /// an iPhone 11 in Low Power Mode the archive scan + FTP estimate
     /// contributed to a multi-second launch stall on older
     /// hardware. Both are one-shot, self-throttled tasks — they
     /// can wait for a launch when the user isn't actively
@@ -476,11 +476,9 @@ extension EmuquApp {
     /// written its loads, so that refresh is likewise SKIPPED in Low Power
     /// Mode — the dashboard shows stale-but-valid cached metrics and the user
     /// can pull-to-refresh for fresh ones.
-    private func scheduleWorkoutLoadBackfill(powerMultiplier: Double, lowPower: Bool) {
+    private func workoutLoadBackfillWork() -> @Sendable () async -> Void {
         let archiveForBackfill = collector.archive
-        AppDependencies.current.app.launchCoordinator.run(
-            phase: .housekeeping, priority: .background, skipInLowPower: true, lowPower: lowPower
-        ) {
+        return {
             NSLog("[App][bg] workout load backfill — start")
             await WorkoutLoadBackfill.runIfNeeded(
                 archive: archiveForBackfill,
@@ -497,17 +495,10 @@ extension EmuquApp {
         }
     }
 
-    /// The training-metrics cache refresh runs inside the backfill job, after
-    /// the loads it reads are written, so it is not scheduled twice.
-    private func scheduleTrainingJobs(powerMultiplier: Double, lowPower: Bool) {
-        scheduleWorkoutLoadBackfill(powerMultiplier: powerMultiplier, lowPower: lowPower)
-        scheduleTempAsymmetryRescore(powerMultiplier: powerMultiplier, lowPower: lowPower)
-    }
-
-    /// Temp-asymmetry score-rescore migration. Two design points, both
-    /// from an iPhone-11/LPM field log:
-    ///   1. LPM gate. Reanalyzing every session at launch is the
-    ///      single biggest perf hit on older hardware; skip it
+    /// Temp-asymmetry score-rescore migration; nil once it has completed.
+    /// Two design points, both from an iPhone-11/LPM field log:
+    ///   1. LPM gate (applied by the caller). Reanalyzing every session at
+    ///      launch is the single biggest perf hit on older hardware; skip it
     ///      entirely when the user is conserving battery.
     ///   2. Cursor. On a 36-session archive × ~29 K beats each the
     ///      migration is 2–4 minutes of heavy CPU, and the app is
@@ -517,12 +508,10 @@ extension EmuquApp {
     ///      processed UUIDs after each session, and flip the done
     ///      flag only when every session in the current archive is
     ///      covered. Crash-safe across launches.
-    private func scheduleTempAsymmetryRescore(powerMultiplier: Double, lowPower: Bool) {
-        guard !settingsManager.settings.hasFixedTempAsymmetry else { return }
+    private func tempAsymmetryRescoreWork() -> (@Sendable () async -> Void)? {
+        guard !settingsManager.settings.hasFixedTempAsymmetry else { return nil }
         let collectorJob = collector
-        AppDependencies.current.app.launchCoordinator.run(
-            phase: .housekeeping, priority: .background, skipInLowPower: true, lowPower: lowPower
-        ) {
+        return {
             NSLog("[App][bg] temp-asymmetry rescore — start")
             let result = await Self.runTempAsymmetryRescoreChunk(collector: collectorJob)
             NSLog("[App][bg] temp-asymmetry rescore — processed=\(result.processed) totalDone=\(result.totalDone)/\(result.total) complete=\(result.complete)")
@@ -533,31 +522,30 @@ extension EmuquApp {
         }
     }
 
-    /// iCloud sync — delay 8s (32s in LPM). NEVER skipped, even in
-    /// LPM. Reason: a beta tester had a
+    /// The launch iCloud sync; nil before onboarding is finished. NEVER
+    /// skipped in Low Power Mode, and it has no delay of its own: it waits
+    /// only on the coordinator's housekeeping gate (dashboard ready, or 6 s).
+    /// Reason: a beta tester had a
     /// CloudKit zone-not-found death spiral going — every sync
     /// cycle was failing with "Zone does not exist" for 20 pending
     /// sessions, hammering CPU + battery. The zone-recreate fix
     /// (CloudKitSyncManager.recreateZoneAfterNotFound) needs to
     /// actually RUN to heal that state. If we skip sync entirely
     /// in LPM, the zone stays broken forever and the app stays
-    /// slow forever. So: run sync once at launch even in LPM, just
-    /// delay it longer so the UI is responsive first. After the
-    /// heal, future syncs are cheap (no errors to retry).
+    /// slow forever. After the heal, future syncs are cheap (no
+    /// errors to retry).
     ///
     /// Not before onboarding is finished: the Backup page is where the user
     /// says whether to sync, and a reinstall pulled its old sessions down
     /// before they reached it. Finishing onboarding runs the sync instead.
-    private func scheduleSyncJob(powerMultiplier: Double, lowPower: Bool) {
+    private func launchSyncWork() -> (@Sendable () async -> Void)? {
         let syncManagerJob = syncManager
         guard settingsManager.settings.hasCompletedOnboarding else {
             NSLog("[App][bg] iCloud sync — waits for onboarding")
-            return
+            return nil
         }
-        AppDependencies.current.app.launchCoordinator.run(
-            phase: .housekeeping, priority: .background, skipInLowPower: false, lowPower: lowPower
-        ) {
-            NSLog("[App][bg] iCloud sync — start (LPM=\(lowPower))")
+        return {
+            NSLog("[App][bg] iCloud sync — start")
             await syncManagerJob.performFullSyncIfNeeded(minInterval: 30 * 60)
             NSLog("[App][bg] iCloud sync — done")
         }
@@ -579,13 +567,13 @@ extension EmuquApp {
     /// fired simultaneously and the app was unresponsive for many seconds
     /// (a field report).
     ///
-    /// Low Power Mode awareness: in LPM all delays are
-    /// multiplied by 4× (so 4s → 16s) AND the periodic refreshes are skipped
-    /// entirely (training-metrics refresh, iCloud sync). User report: the app
-    /// was draining the battery whenever foreground, even with no session
-    /// active — these housekeeping tasks were the culprit. So LPM gets a
-    /// truly idle app: housekeeping only runs when explicitly asked
-    /// (pull-to-refresh, session start, tab navigation).
+    /// Low Power Mode awareness: in LPM the prewarm delays are multiplied by
+    /// `launchDelayMultiplier`, and the workout-load backfill (with its
+    /// training-metrics refresh) and the temp-asymmetry rescore are skipped.
+    /// User report: the app was draining the battery whenever foreground,
+    /// even with no session active — these housekeeping tasks were the
+    /// culprit. The archive migrations and the iCloud sync still run once
+    /// (see `launchSyncWork`).
     func loadDataAndContinue() {
         NSLog("[App][launch] loadDataAndContinue() entered (dataLoaded=\(dataLoaded))")
         debugLog("[App][launch] loadDataAndContinue() entered, dataLoaded=\(dataLoaded)", level: .info)
@@ -620,10 +608,12 @@ extension EmuquApp {
     /// `runDeferredBoot()` → `storeKitManager.boot()`, which is the SECOND. A
     /// beta tester who has reinstalled, or restored onto a new phone, carries
     /// their status only in the synchronizable keychain at this point — so
-    /// without this the gate would read an empty UserDefaults cache and show
-    /// them a paywall before boot ever ran. `resolvedForGate` is free when the
-    /// anchor is already populated. The legacy TestFlight flag is
-    /// carried across for the same reason.
+    /// without the promotion the gate would read an empty UserDefaults cache
+    /// and show them a paywall before boot ever ran. The history check below
+    /// does it: `grandfatherExistingUserIfNeeded` → `recordHistoryCheck`
+    /// resolves every tier on each non-Debug launch, and a Debug build is a
+    /// developer install with access regardless. The legacy TestFlight flag
+    /// is carried across for the same reason.
     ///
     /// The trial is not started here. Guideline 3.1.1 wants the user told the
     /// trial's length, what locks when it ends, and the price before it
@@ -632,9 +622,10 @@ extension EmuquApp {
     /// at launch, which is a paywall they can walk straight through.
     private func prepareEntitlementGate() {
         let gateNow = Date()
-        EntitlementAnchor.resolvedForGate(wallClock: gateNow)
         storeKitManager.migrateLegacyTestFlightFlag(now: gateNow)
-        storeKitManager.grandfatherExistingUserIfNeeded(hasHistory: !collector.archive.index.isEmpty, now: gateNow)
+        let archive = collector.archive
+        let hasHistory: Bool? = archive.hasCompleteIndex ? !archive.entries.isEmpty : nil
+        storeKitManager.grandfatherExistingUserIfNeeded(hasHistory: hasHistory, now: gateNow)
         NSLog("[App][launch] access check: paywallEnabled=\(StoreKitManager.paywallEnabled) isPurchased=\(storeKitManager.isPurchased) trialDaysRemaining=\(settingsManager.trialDaysRemaining)")
     }
 
@@ -784,6 +775,15 @@ extension EmuquApp {
     /// time and progress is preserved.
     private static let tempAsymmetryCursorKey = "FlowRecovery.tempAsymmetryRescore.processedIds"
 
+    /// UserDefaults key for how many launches each session has failed the
+    /// rescore on (read or reanalysis failure), as `[uuidString: count]`.
+    private static let tempAsymmetryFailuresKey = "FlowRecovery.tempAsymmetryRescore.failedAttempts"
+
+    /// Launches a session may fail the rescore on before it is given up on
+    /// and left for Archive Diagnostics. A transient failure (a background
+    /// launch while protected data is unavailable) clears on a later launch.
+    private static let tempAsymmetryMaxAttempts = 3
+
     /// One chunk's worth of rescore progress. `complete` is true once every
     /// archived session has been visited, which retires the cursor.
     struct RescoreChunk {
@@ -827,7 +827,8 @@ extension EmuquApp {
         var processedThisRun = 0
         for entry in unprocessed {
             if Task.isCancelled { break }
-            await rescoreForTempAsymmetry(entry.sessionId, collector: collector)
+            let settled = await rescoreForTempAsymmetry(entry.sessionId, collector: collector)
+            guard settled || recordFailedAttempt(entry.sessionId) >= tempAsymmetryMaxAttempts else { continue }
             processed.insert(entry.sessionId)
             processedThisRun += 1
             Self.saveTempAsymmetryCursor(processed)
@@ -838,24 +839,41 @@ extension EmuquApp {
         return processedThisRun
     }
 
-    /// Rescore one session, or skip it. A session that can't be retrieved is
-    /// skipped rather than retried indefinitely — the user can repair it via
-    /// Archive Diagnostics. A manual window is preserved (the same gate
-    /// `reanalyzeAllSessions` uses internally), and a session with no rrSeries
-    /// has nothing to reanalyse.
+    /// Rescore one session, or skip it. Returns true when the session is
+    /// settled — rescored, gone from the archive, or deliberately skipped (a
+    /// manual window is preserved, the same gate `reanalyzeAllSessions` uses
+    /// internally, and a session with no rrSeries has nothing to reanalyse) —
+    /// and false when it could not be read or reanalysed, so the caller
+    /// retries it on a later launch (up to `tempAsymmetryMaxAttempts`, then
+    /// leaves it for Archive Diagnostics).
     ///
     /// The read is a full decrypt and decode — the whole beat series — and
     /// this runs once per session while the user is already using the app, so
     /// it runs detached rather than on the main thread. The archive serializes
     /// its own access.
-    private static func rescoreForTempAsymmetry(_ sessionId: UUID, collector: RRCollector) async {
+    private static func rescoreForTempAsymmetry(_ sessionId: UUID, collector: RRCollector) async -> Bool {
         let archive = collector.archive
         let read = Task.detached(priority: .background) { try archive.retrieve(sessionId) }
-        guard let session = try? await read.value,
-              session.windowUserAdjusted != true,
+        let stored: HRVSession?
+        do {
+            stored = try await read.value
+        } catch {
+            debugLog("[App][bg] temp-asymmetry rescore — session \(sessionId.uuidString.prefix(8)) unreadable, retried next launch: \(error)", level: .warning)
+            return false
+        }
+        guard let session = stored, session.windowUserAdjusted != true,
               let rr = session.rrSeries, !rr.points.isEmpty
-        else { return }
-        _ = await collector.reanalysisService.reanalyzeSession(session, preserveManualWindows: true)
+        else { return true }
+        return await collector.reanalyzeSession(session) != nil
+    }
+
+    /// Count one more failed launch for `sessionId` and return the total.
+    private static func recordFailedAttempt(_ sessionId: UUID) -> Int {
+        var counts = UserDefaults.standard.dictionary(forKey: tempAsymmetryFailuresKey) as? [String: Int] ?? [:]
+        let total = (counts[sessionId.uuidString] ?? 0) + 1
+        counts[sessionId.uuidString] = total
+        UserDefaults.standard.set(counts, forKey: tempAsymmetryFailuresKey)
+        return total
     }
 
     private static func loadTempAsymmetryCursor() -> Set<UUID> {

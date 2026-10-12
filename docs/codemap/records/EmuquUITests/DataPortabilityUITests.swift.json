@@ -1,0 +1,204 @@
+{
+ "file": "EmuquUITests/DataPortabilityUITests.swift",
+ "hash": "6c421756a5e1bb68",
+ "role": "XCUITest that Settings → Data → Export and Import screens are reachable, Export offers RR-interval export, Import offers a file picker and survives leaving/returning. Does not tap Export or the file importer.",
+ "types": [
+  "DataPortabilityUITests: class — XCTestCase"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Passes the bare '-UITests' launch argument, which no production code reads (only -UITests-FreshInstall at AppLaunchRecovery.swift:185 and -UITests-ForcePaywall/-UITests-SeedArchive at UITestLaunchArguments.swift:18,23 are checked); it is inert",
+   "evidence": [
+    "EmuquUITests/DataPortabilityUITests.swift:28",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift:185",
+    "Emuqu/Sources/Services/UITestLaunchArguments.swift:18"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func DataPortabilityUITests.setUp()",
+   "hash": "5afd054df2a6b2da",
+   "does": "Sets continueAfterFailure=false, creates XCUIApplication, appends launch arguments -UITests, -UITests-FreshInstall and English locale (UITestLanguage.english), launches the app (the app wipes onboarding/disclaimer/paywall flags, settings files and the session archive via AppLaunchRecovery.resetUITestStateIfRequested) and walks every first-run gate with UITestLaunch.toMainUI, ignoring its Bool result.",
+   "entry": "XCTest runner: setUp before each test in the class",
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)",
+    "ext:XCUIApplication.launch",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resetUITestStateIfRequested()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resetUITestStateIfRequested()": "6ce77cca4f0ebae6",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)": "35f7ec6a1e50e9a0",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)": "747ec38364b540cd"
+   }
+  },
+  {
+   "key": "func DataPortabilityUITests.tearDown()",
+   "hash": "c6f9bd9c44559741",
+   "does": "Releases the XCUIApplication (app = nil); does not terminate the app.",
+   "entry": "XCTest runner: tearDown after each test in the class",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func DataPortabilityUITests.openDataSettings()",
+   "hash": "12c8ce7e0a0ad286",
+   "does": "Asserts Settings opens via More, scrolls to settings.data, asserts it exists and taps it via tapSafely (asserting the tap was sent).",
+   "entry": null,
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.openSettings(_:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.scrollTo(_:identifier:label:attempts:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.tapSafely(_:in:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.tapSafely(_:in:)": "5ba2bf71286c792e",
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.openSettings(_:)": "db4b4ddcef0ceb5a",
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.scrollTo(_:identifier:label:attempts:)": "57e7d029f2eefe07"
+   }
+  },
+  {
+   "key": "func DataPortabilityUITests.openPortabilityRow(_:label:)",
+   "hash": "6d8010c07b90350c",
+   "does": "Opens Settings → Data, scrolls to the given row, asserts it exists and taps it.",
+   "entry": null,
+   "calls": [
+    "EmuquUITests/DataPortabilityUITests.swift::func DataPortabilityUITests.openDataSettings()",
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.scrollTo(_:identifier:label:attempts:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.tapSafely(_:in:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/DataPortabilityUITests.swift::func DataPortabilityUITests.openDataSettings()": "45e9bfc175e0a0e7",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.tapSafely(_:in:)": "5ba2bf71286c792e",
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.scrollTo(_:identifier:label:attempts:)": "57e7d029f2eefe07"
+   }
+  },
+  {
+   "key": "func DataPortabilityUITests.testExportScreenIsReachableFromSettings()",
+   "hash": "98fc6d260bf6fa69",
+   "does": "Opens Export and asserts export.root appears within 20s.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/DataPortabilityUITests.swift::func DataPortabilityUITests.openPortabilityRow(_:label:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "EmuquUITests/DataPortabilityUITests.swift::func DataPortabilityUITests.openPortabilityRow(_:label:)": "91ef7c3e1fb6afa7",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+   }
+  },
+  {
+   "key": "func DataPortabilityUITests.testExportScreenOffersTheRawIntervalExport()",
+   "hash": "792c63eb95729c88",
+   "does": "Opens Export and asserts the export.rrIntervals row appears.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/DataPortabilityUITests.swift::func DataPortabilityUITests.openPortabilityRow(_:label:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.row(in:identifier:label:timeout:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/DataPortabilityUITests.swift::func DataPortabilityUITests.openPortabilityRow(_:label:)": "91ef7c3e1fb6afa7",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.row(in:identifier:label:timeout:)": "3baa26cf27145a90",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+   }
+  },
+  {
+   "key": "func DataPortabilityUITests.testImportScreenIsReachableFromSettings()",
+   "hash": "25f45031dc113044",
+   "does": "Opens Import and asserts import.selectFile appears.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/DataPortabilityUITests.swift::func DataPortabilityUITests.openPortabilityRow(_:label:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.row(in:identifier:label:timeout:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/DataPortabilityUITests.swift::func DataPortabilityUITests.openPortabilityRow(_:label:)": "91ef7c3e1fb6afa7",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.row(in:identifier:label:timeout:)": "3baa26cf27145a90",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+   }
+  },
+  {
+   "key": "func DataPortabilityUITests.testImportScreenSurvivesLeavingAndReturning()",
+   "hash": "8a8b234c546fa0d8",
+   "does": "Opens Import, waits (unasserted) for import.selectFile, switches to Dashboard, re-opens Settings → Data → Import and asserts import.selectFile appears.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/DataPortabilityUITests.swift::func DataPortabilityUITests.openPortabilityRow(_:label:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.selectTab(_:identifier:title:attempts:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.row(in:identifier:label:timeout:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Returning to More after the Dashboard switch shows More's pushed Import stack, so openFromMore's first attempt cannot find more.settings; it succeeds only because the retry re-taps the selected More tab, which pops to root. The test passes via the retry path, not the user path its doc describes (leaving after cancelling a file importer)",
+     "evidence": [
+      "EmuquUITests/DataPortabilityUITests.swift:97",
+      "EmuquUITests/EmuquUITests.swift:521",
+      "EmuquUITests/DataPortabilityUITests.swift:90"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "EmuquUITests/DataPortabilityUITests.swift::func DataPortabilityUITests.openPortabilityRow(_:label:)": "91ef7c3e1fb6afa7",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.row(in:identifier:label:timeout:)": "3baa26cf27145a90",
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.selectTab(_:identifier:title:attempts:)": "22e67274e9187b00",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+   }
+  }
+ ],
+ "deps": {}
+}

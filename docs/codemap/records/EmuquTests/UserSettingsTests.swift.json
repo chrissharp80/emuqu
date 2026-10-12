@@ -1,0 +1,403 @@
+{
+ "file": "EmuquTests/UserSettingsTests.swift",
+ "hash": "bfbdc5e93110511c",
+ "role": "XCTest suite for UserSettings defaults and Codable, TemperatureUnit conversions, SleepSchedule wake time and overnight window, FitnessLevel names, and HRVSession windowUserAdjusted/sleepUserAdjusted round trip.",
+ "types": [
+  "UserSettingsTests: class (XCTestCase) — model value tests"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func UserSettingsTests.testDefaultSettings()",
+   "hash": "24aa74ab426d62a2",
+   "does": "Asserts UserSettings() has nil fitnessLevel, temperatureUnit == .regionDefault, onboarding false, nil trialStartDate.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()",
+    "Emuqu/Sources/Models/UserSettings.swift::var TemperatureUnit.regionDefault"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "fc9f14bb70664847",
+    "Emuqu/Sources/Models/UserSettings.swift::var TemperatureUnit.regionDefault": "272159fdd69b8c7f",
+    "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift::var ScoreBreakdownCard.temperatureUnit": "063a6053cf5ccc9d"
+   }
+  },
+  {
+   "key": "func UserSettingsTests.testCodableRoundtrip()",
+   "hash": "7b23efbd1e8e6134",
+   "does": "Asserts fitnessLevel .athlete, celsius and onboarding true survive an ISO-8601 encode/decode.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encode(to:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeProfile(into:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeFitnessMarkers(into:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeEmailDefaults(into:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeTrainingState(into:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeNotifications(into:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeAppearance(into:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeExportAndPerformance(into:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeCoachAutomation(into:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::init UserSettings(from:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decoded(_:_:from:default:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.optional(_:_:from:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeProfile(from:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeFitnessMarkers(from:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeEmailDefaults(from:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeTrainingState(from:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeNotifications(from:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeAppearance(from:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeRoutingMode(from:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeOnboarding(from:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeCoachAutomation(from:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeExportAndPerformance(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Round trip of fitnessLevel/temperatureUnit/hasCompletedOnboarding is a strict subset of UserSettingsDecodeContractTests.testPopulatedSettingsSurviveARoundTrip, which sets the same three fields (plus seven more) and asserts every Mirror field.",
+     "evidence": [
+      "EmuquTests/UserSettingsTests.swift:17",
+      "EmuquTests/UserSettingsDecodeContractTests.swift:32"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeAppearance(from:)": "48f3de365de0d7b6",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeCoachAutomation(from:)": "c554894787ecc263",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeEmailDefaults(from:)": "f93d37e6c5e74441",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeExportAndPerformance(from:)": "a7512e1a4d8d1eb1",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeFitnessMarkers(from:)": "2c94de5a0a46e5da",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeNotifications(from:)": "98315627512ab75e",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeOnboarding(from:)": "a17b0a95de086413",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeProfile(from:)": "fdc6778072b09c5a",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeRoutingMode(from:)": "73525eb31d31f472",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeTrainingState(from:)": "d2c25da760eb3e7e",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decoded(_:_:from:default:)": "9db47be773dc5fe1",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encode(to:)": "d099425585df23ef",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeAppearance(into:)": "eb7f4e94a4f0733e",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeCoachAutomation(into:)": "bd94abf695f537ca",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeEmailDefaults(into:)": "f9c80d634f7bc9a8",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeExportAndPerformance(into:)": "b2c0c38b52bd25bd",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeFitnessMarkers(into:)": "ed0b137ca5428edc",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeNotifications(into:)": "0bf128a4064ae7e9",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeProfile(into:)": "3a60be114fde7c27",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeTrainingState(into:)": "dbfbaf35b6b02d5a",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.optional(_:_:from:)": "f7f50a33c30ccf82",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::init UserSettings(from:)": "be16736fa176d425",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "fc9f14bb70664847",
+    "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift::var ScoreBreakdownCard.temperatureUnit": "063a6053cf5ccc9d"
+   }
+  },
+  {
+   "key": "func UserSettingsTests.testLegacyDecodingMissingFields()",
+   "hash": "7597221168603c6f",
+   "does": "Asserts decoding '{}' gives nil fitnessLevel, regionDefault temperature unit, nil trialStartDate.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::init UserSettings(from:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decoded(_:_:from:default:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.optional(_:_:from:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeProfile(from:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeFitnessMarkers(from:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeEmailDefaults(from:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeTrainingState(from:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeNotifications(from:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeAppearance(from:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeRoutingMode(from:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeOnboarding(from:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeCoachAutomation(from:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeExportAndPerformance(from:)",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()",
+    "Emuqu/Sources/Models/UserSettings.swift::var TemperatureUnit.regionDefault"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Decoding '{}' and checking three defaults is subsumed by UserSettingsDecodeContractTests.testEmptyPayloadDecodesToTheDesignatedDefaults, which compares every field of the '{}' decode against UserSettings().",
+     "evidence": [
+      "EmuquTests/UserSettingsTests.swift:36",
+      "EmuquTests/UserSettingsDecodeContractTests.swift:18"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeAppearance(from:)": "48f3de365de0d7b6",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeCoachAutomation(from:)": "c554894787ecc263",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeEmailDefaults(from:)": "f93d37e6c5e74441",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeExportAndPerformance(from:)": "a7512e1a4d8d1eb1",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeFitnessMarkers(from:)": "2c94de5a0a46e5da",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeNotifications(from:)": "98315627512ab75e",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeOnboarding(from:)": "a17b0a95de086413",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeProfile(from:)": "fdc6778072b09c5a",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeRoutingMode(from:)": "73525eb31d31f472",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeTrainingState(from:)": "d2c25da760eb3e7e",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decoded(_:_:from:default:)": "9db47be773dc5fe1",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.optional(_:_:from:)": "f7f50a33c30ccf82",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::init UserSettings(from:)": "be16736fa176d425",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "fc9f14bb70664847",
+    "Emuqu/Sources/Models/UserSettings.swift::var TemperatureUnit.regionDefault": "272159fdd69b8c7f",
+    "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift::var ScoreBreakdownCard.temperatureUnit": "063a6053cf5ccc9d"
+   }
+  },
+  {
+   "key": "func UserSettingsTests.testTrialStartDateRoundtrip()",
+   "hash": "1af5e51b1f0bcff6",
+   "does": "Asserts trialStartDate=Date() round-trips within 1 s.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encode(to:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeProfile(into:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeFitnessMarkers(into:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeEmailDefaults(into:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeTrainingState(into:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeNotifications(into:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeAppearance(into:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeExportAndPerformance(into:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeCoachAutomation(into:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::init UserSettings(from:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decoded(_:_:from:default:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.optional(_:_:from:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeProfile(from:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeFitnessMarkers(from:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeEmailDefaults(from:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeTrainingState(from:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeNotifications(from:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeAppearance(from:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeRoutingMode(from:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeOnboarding(from:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeCoachAutomation(from:)",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeExportAndPerformance(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeAppearance(from:)": "48f3de365de0d7b6",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeCoachAutomation(from:)": "c554894787ecc263",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeEmailDefaults(from:)": "f93d37e6c5e74441",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeExportAndPerformance(from:)": "a7512e1a4d8d1eb1",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeFitnessMarkers(from:)": "2c94de5a0a46e5da",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeNotifications(from:)": "98315627512ab75e",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeOnboarding(from:)": "a17b0a95de086413",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeProfile(from:)": "fdc6778072b09c5a",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeRoutingMode(from:)": "73525eb31d31f472",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeTrainingState(from:)": "d2c25da760eb3e7e",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decoded(_:_:from:default:)": "9db47be773dc5fe1",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encode(to:)": "d099425585df23ef",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeAppearance(into:)": "eb7f4e94a4f0733e",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeCoachAutomation(into:)": "bd94abf695f537ca",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeEmailDefaults(into:)": "f9c80d634f7bc9a8",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeExportAndPerformance(into:)": "b2c0c38b52bd25bd",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeFitnessMarkers(into:)": "ed0b137ca5428edc",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeNotifications(into:)": "0bf128a4064ae7e9",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeProfile(into:)": "3a60be114fde7c27",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeTrainingState(into:)": "dbfbaf35b6b02d5a",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.optional(_:_:from:)": "f7f50a33c30ccf82",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::init UserSettings(from:)": "be16736fa176d425",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "fc9f14bb70664847"
+   }
+  },
+  {
+   "key": "func UserSettingsTests.testTemperatureUnitConvert()",
+   "hash": "9e70ad193711aa6d",
+   "does": "Asserts TemperatureUnit.convert: celsius 0.5→0.5, fahrenheit 0.5→0.9 (deviation ×9/5).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings.swift::func TemperatureUnit.convert(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings.swift::func TemperatureUnit.convert(_:)": "cf804bfa462304ab"
+   }
+  },
+  {
+   "key": "func UserSettingsTests.testTemperatureUnitAbsoluteFromDeviation()",
+   "hash": "a38bfeff300be949",
+   "does": "Asserts absoluteFromDeviation(0): celsius 36.5, fahrenheit 97.7 (±0.1).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings.swift::func TemperatureUnit.absoluteFromDeviation(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings.swift::func TemperatureUnit.absoluteFromDeviation(_:)": "8582e137e144a95d"
+   }
+  },
+  {
+   "key": "func UserSettingsTests.testTemperatureUnitSymbol()",
+   "hash": "8b9d7b8885b8f23c",
+   "does": "Asserts symbols '°C' and '°F'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings.swift::var TemperatureUnit.symbol"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings.swift::var TemperatureUnit.symbol": "5d22b75e79a08e75"
+   }
+  },
+  {
+   "key": "func UserSettingsTests.testTemperatureUnitAllCases()",
+   "hash": "e42b7d913d06366b",
+   "does": "Asserts TemperatureUnit.allCases.count == 2.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func UserSettingsTests.testSleepScheduleWakeTimeIsBedtimePlusSleepHours()",
+   "hash": "a2b0ab0778ac72e2",
+   "does": "Asserts SleepSchedule(22:00, 8h) has wakeHour 6, wakeMinute 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SleepSchedule.swift::var SleepSchedule.wakeHour",
+    "Emuqu/Sources/Models/SleepSchedule.swift::var SleepSchedule.wakeMinute"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepSchedule.swift::var SleepSchedule.wakeHour": "fcf48d2661d7f43f",
+    "Emuqu/Sources/Models/SleepSchedule.swift::var SleepSchedule.wakeMinute": "75750dd31915a210"
+   }
+  },
+  {
+   "key": "func UserSettingsTests.testSleepScheduleIsInOvernightWindow()",
+   "hash": "76ca12304915f09e",
+   "does": "Asserts for a 22:00/8h schedule on today's date in Calendar.current: 02:00 is inside the overnight window, 11:00 and 17:00 are outside (window ends wake+4.5h=10:30, next starts 20:00).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.isInOvernightWindow(_:)",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowEnd(relativeTo:)",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.firstWake(after:)",
+    "Emuqu/Sources/Models/SleepSchedule.swift::var SleepSchedule.wakeHour",
+    "Emuqu/Sources/Models/SleepSchedule.swift::var SleepSchedule.wakeMinute"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.firstWake(after:)": "ea72b5c90b6465f3",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.isInOvernightWindow(_:)": "406094ec833a9c2a",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowEnd(relativeTo:)": "6fcc761d41125b66",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "248d2d6037a937bb",
+    "Emuqu/Sources/Models/SleepSchedule.swift::var SleepSchedule.wakeHour": "fcf48d2661d7f43f",
+    "Emuqu/Sources/Models/SleepSchedule.swift::var SleepSchedule.wakeMinute": "75750dd31915a210"
+   }
+  },
+  {
+   "key": "func UserSettingsTests.testFitnessLevelAllCases()",
+   "hash": "bbb47ec7e57fc537",
+   "does": "Asserts FitnessLevel.allCases is non-empty and every localizedName is non-empty.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings.swift::var FitnessLevel.localizedName"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each FitnessLevel",
+     "effect": "assert its localizedName is non-empty"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings.swift::var FitnessLevel.localizedName": "ff99af675d5cf7aa"
+   }
+  },
+  {
+   "key": "func UserSettingsTests.testWindowUserAdjustedRoundtrip()",
+   "hash": "0b30cf1138eb585f",
+   "does": "Asserts HRVSession windowUserAdjusted/sleepUserAdjusted = true survive an ISO-8601 encode/decode.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.makeMinimalSession()",
+    "Emuqu/Sources/Models/SessionMetadata.swift::func HRVSession.encode(to:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::func HRVSession.encode(to:)": "c637ecabe636a4db",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)": "8d048c0e4ae285fc",
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.makeMinimalSession()": "d1a3c8030e11392e"
+   }
+  },
+  {
+   "key": "func UserSettingsTests.testWindowUserAdjustedDefaultsToNil()",
+   "hash": "e57bd0ac3b0c172c",
+   "does": "Asserts a fresh HRVSession round-trips with nil windowUserAdjusted and sleepUserAdjusted.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.makeMinimalSession()",
+    "Emuqu/Sources/Models/SessionMetadata.swift::func HRVSession.encode(to:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::func HRVSession.encode(to:)": "c637ecabe636a4db",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)": "8d048c0e4ae285fc",
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.makeMinimalSession()": "d1a3c8030e11392e"
+   }
+  },
+  {
+   "key": "func UserSettingsTests.makeMinimalSession()",
+   "hash": "5e3f56e105ef5f72",
+   "does": "Fixture: HRVSession(startDate: Date(), sessionType: .overnight).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5"
+   }
+  }
+ ],
+ "deps": {}
+}

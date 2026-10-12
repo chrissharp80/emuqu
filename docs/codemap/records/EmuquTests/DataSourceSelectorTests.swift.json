@@ -1,0 +1,952 @@
+{
+ "file": "EmuquTests/DataSourceSelectorTests.swift",
+ "hash": "dbbfd0a8468d793f",
+ "role": "XCTest suite for DataSourceSelector (H10 internal-recording vs BLE streaming choice): 120-beat minimum, 5% composite threshold, internal preferred when similar, composite / streaming fallback, source descriptions, and the mergePoints / mergeAddingOnlyUncoveredBeats wall-clock merge with 50 ms duplicate collapsing.",
+ "types": [
+  "DataSourceSelectorTests: class (XCTestCase)"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func DataSourceSelectorTests.testScienceContract_DataSourceThresholdsMatchArchitecture()",
+   "hash": "cd8254b20f7f7459",
+   "does": "Asserts minimumValidBeats == 120 and compositeThresholdPercent == 5.0.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func DataSourceSelectorTests.createRRPoints(count:startMs:intervalMs:)",
+   "hash": "21733c36148ad485",
+   "does": "Returns count RRPoints at a fixed interval (default 800 ms) starting at startMs; t_ms only, no wallClockMs.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each of count",
+     "effect": "appends a point and advances by intervalMs"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a"
+   }
+  },
+  {
+   "key": "func DataSourceSelectorTests.createRRPointsWithGap(beforeGap:afterGap:gapDurationMs:intervalMs:)",
+   "hash": "8543db1fa13e5c7c",
+   "does": "Returns beforeGap points, skips gapDurationMs, then afterGap points, all at intervalMs spacing.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "for each pre-gap beat",
+     "effect": "appends and advances"
+    },
+    {
+     "at": "+19",
+     "cond": "for each post-gap beat",
+     "effect": "appends and advances"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a"
+   }
+  },
+  {
+   "key": "func DataSourceSelectorTests.testSelectsStreamingWhenInternalFails()",
+   "hash": "0f98ddfbeeddee04",
+   "does": "500 streaming, nil internal: asserts 500 points, description contains 'streaming', not composite.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DataSourceSelectorTests.swift::func DataSourceSelectorTests.createRRPoints(count:startMs:intervalMs:)",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.logBothSourcesFailed(streamingPoints:internalPoints:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectWithInternalAvailable(internalData:streamingPoints:hasValidStreaming:sessionId:sessionStart:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.compareDataSources(internalCount:streamingCount:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+13",
+     "cond": "result?.sourceDescription.contains ?? false",
+     "effect": "nil result: false → assertion fails"
+    },
+    {
+     "at": "+14",
+     "cond": "result?.isComposite ?? true",
+     "effect": "nil result: true → assertion fails"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.compareDataSources(internalCount:streamingCount:)": "eb89e558649d984d",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.logBothSourcesFailed(streamingPoints:internalPoints:)": "0e1c47ef64822a72",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)": "aa75532f95478352",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectWithInternalAvailable(internalData:streamingPoints:hasValidStreaming:sessionId:sessionStart:)": "f489012f0455925e",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
+    "EmuquTests/DataSourceSelectorTests.swift::func DataSourceSelectorTests.createRRPoints(count:startMs:intervalMs:)": "e9616b6b178347e1"
+   }
+  },
+  {
+   "key": "func DataSourceSelectorTests.testSelectsInternalWhenStreamingFails()",
+   "hash": "b92be288ebf7cb53",
+   "does": "50 streaming, 500 internal: asserts 500 points, description contains 'internal', not composite.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DataSourceSelectorTests.swift::func DataSourceSelectorTests.createRRPoints(count:startMs:intervalMs:)",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.logBothSourcesFailed(streamingPoints:internalPoints:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectWithInternalAvailable(internalData:streamingPoints:hasValidStreaming:sessionId:sessionStart:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.compareDataSources(internalCount:streamingCount:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+13",
+     "cond": "contains('internal') ?? false",
+     "effect": "nil result fails the assertion"
+    },
+    {
+     "at": "+14",
+     "cond": "isComposite ?? true",
+     "effect": "nil result fails the assertion"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.compareDataSources(internalCount:streamingCount:)": "eb89e558649d984d",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.logBothSourcesFailed(streamingPoints:internalPoints:)": "0e1c47ef64822a72",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)": "aa75532f95478352",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectWithInternalAvailable(internalData:streamingPoints:hasValidStreaming:sessionId:sessionStart:)": "f489012f0455925e",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
+    "EmuquTests/DataSourceSelectorTests.swift::func DataSourceSelectorTests.createRRPoints(count:startMs:intervalMs:)": "e9616b6b178347e1"
+   }
+  },
+  {
+   "key": "func DataSourceSelectorTests.testReturnsNilWhenBothFail()",
+   "hash": "43e43c1bedc7b0a3",
+   "does": "50 and 50 beats: asserts nil.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DataSourceSelectorTests.swift::func DataSourceSelectorTests.createRRPoints(count:startMs:intervalMs:)",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.logBothSourcesFailed(streamingPoints:internalPoints:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectWithInternalAvailable(internalData:streamingPoints:hasValidStreaming:sessionId:sessionStart:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.compareDataSources(internalCount:streamingCount:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.compareDataSources(internalCount:streamingCount:)": "eb89e558649d984d",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.logBothSourcesFailed(streamingPoints:internalPoints:)": "0e1c47ef64822a72",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)": "aa75532f95478352",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectWithInternalAvailable(internalData:streamingPoints:hasValidStreaming:sessionId:sessionStart:)": "f489012f0455925e",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
+    "EmuquTests/DataSourceSelectorTests.swift::func DataSourceSelectorTests.createRRPoints(count:startMs:intervalMs:)": "e9616b6b178347e1"
+   }
+  },
+  {
+   "key": "func DataSourceSelectorTests.testSelectsInternalWhenBothValidAndSimilar()",
+   "hash": "98d8aac5270cff59",
+   "does": "500 streaming vs 505 internal: asserts description 'internal' and not composite (internal ≥ streaming never composites).",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DataSourceSelectorTests.swift::func DataSourceSelectorTests.createRRPoints(count:startMs:intervalMs:)",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.logBothSourcesFailed(streamingPoints:internalPoints:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectWithInternalAvailable(internalData:streamingPoints:hasValidStreaming:sessionId:sessionStart:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.compareDataSources(internalCount:streamingCount:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+13",
+     "cond": "isComposite ?? true",
+     "effect": "nil result fails"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.compareDataSources(internalCount:streamingCount:)": "eb89e558649d984d",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.logBothSourcesFailed(streamingPoints:internalPoints:)": "0e1c47ef64822a72",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)": "aa75532f95478352",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectWithInternalAvailable(internalData:streamingPoints:hasValidStreaming:sessionId:sessionStart:)": "f489012f0455925e",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
+    "EmuquTests/DataSourceSelectorTests.swift::func DataSourceSelectorTests.createRRPoints(count:startMs:intervalMs:)": "e9616b6b178347e1"
+   }
+  },
+  {
+   "key": "func DataSourceSelectorTests.testMinimumBeatsThreshold()",
+   "hash": "ff0d9b752a2938a5",
+   "does": "Streaming-only with exactly 120 beats: non-nil; with 119: nil.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DataSourceSelectorTests.swift::func DataSourceSelectorTests.createRRPoints(count:startMs:intervalMs:)",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.logBothSourcesFailed(streamingPoints:internalPoints:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectWithInternalAvailable(internalData:streamingPoints:hasValidStreaming:sessionId:sessionStart:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.compareDataSources(internalCount:streamingCount:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.compareDataSources(internalCount:streamingCount:)": "eb89e558649d984d",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.logBothSourcesFailed(streamingPoints:internalPoints:)": "0e1c47ef64822a72",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)": "aa75532f95478352",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectWithInternalAvailable(internalData:streamingPoints:hasValidStreaming:sessionId:sessionStart:)": "f489012f0455925e",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
+    "EmuquTests/DataSourceSelectorTests.swift::func DataSourceSelectorTests.createRRPoints(count:startMs:intervalMs:)": "e9616b6b178347e1"
+   }
+  },
+  {
+   "key": "func DataSourceSelectorTests.testCreatesCompositeWhenInternalHasGaps()",
+   "hash": "1aec513e4359f48d",
+   "does": "Internal 400 beats with a 10 s hole vs 500 continuous streaming (20% more): asserts non-nil and, only if composite, that the description contains 'composite'.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DataSourceSelectorTests.swift::func DataSourceSelectorTests.createRRPointsWithGap(beforeGap:afterGap:gapDurationMs:intervalMs:)",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)",
+    "EmuquTests/DataSourceSelectorTests.swift::func DataSourceSelectorTests.createRRPoints(count:startMs:intervalMs:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.logBothSourcesFailed(streamingPoints:internalPoints:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectWithInternalAvailable(internalData:streamingPoints:hasValidStreaming:sessionId:sessionStart:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.compareDataSources(internalCount:streamingCount:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.compositeOrStreaming(internalData:streamingPoints:sessionId:sessionStart:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.createComposite(internalSeries:streamingSeries:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.findGaps(in:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.fillableGapSummary(gaps:streamingPoints:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.countFillableBeats(gaps:streamingPoints:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.uncoveredBeats(_:internal:gaps:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.mergePoints(internal:streaming:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.takeEarlier(_:_:_:_:into:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.streamTime(_:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.rebased(_:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.skipStreamingDuplicates(of:in:from:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.skipInternalDuplicates(of:in:from:)",
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+21",
+     "cond": "result?.isComposite == true",
+     "effect": "true: asserts 'composite' in description; false: no further assertion"
+    },
+    {
+     "at": "+22",
+     "cond": "contains('composite') ?? false",
+     "effect": "nil result fails"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "The composite assertion is conditional on the result already being composite, so a regression that stopped building composites (or returned plain internal) still passes; with these inputs the gap 160000–170000 ms is found and filled, so the test could assert isComposite unconditionally.",
+     "evidence": [
+      "EmuquTests/DataSourceSelectorTests.swift:164",
+      "Emuqu/Sources/Collection/DataSourceSelector.swift:213"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.compareDataSources(internalCount:streamingCount:)": "eb89e558649d984d",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.compositeOrStreaming(internalData:streamingPoints:sessionId:sessionStart:)": "5ca3df1bbcf5a16d",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.countFillableBeats(gaps:streamingPoints:)": "f8a8aec34cd64667",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.createComposite(internalSeries:streamingSeries:)": "35e33e42bf8d43d7",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.fillableGapSummary(gaps:streamingPoints:)": "fcd55efaf0b5f3f6",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.findGaps(in:)": "da584f5e541a4983",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.logBothSourcesFailed(streamingPoints:internalPoints:)": "0e1c47ef64822a72",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.mergePoints(internal:streaming:)": "08bc9799bbccea43",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.rebased(_:)": "cf0796f4780a74b4",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)": "aa75532f95478352",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectWithInternalAvailable(internalData:streamingPoints:hasValidStreaming:sessionId:sessionStart:)": "f489012f0455925e",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.skipInternalDuplicates(of:in:from:)": "a305d9e82f18a1dd",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.skipStreamingDuplicates(of:in:from:)": "500dc772858520f9",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.streamTime(_:)": "2aaf25af51ae12f9",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.takeEarlier(_:_:_:_:into:)": "228bec9eaf9ea163",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.uncoveredBeats(_:internal:gaps:)": "d3b6adba7a1d11a3",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b",
+    "EmuquTests/DataSourceSelectorTests.swift::func DataSourceSelectorTests.createRRPoints(count:startMs:intervalMs:)": "e9616b6b178347e1",
+    "EmuquTests/DataSourceSelectorTests.swift::func DataSourceSelectorTests.createRRPointsWithGap(beforeGap:afterGap:gapDurationMs:intervalMs:)": "744213d9d4640be9"
+   }
+  },
+  {
+   "key": "func DataSourceSelectorTests.testDoesNotCreateCompositeWhenDifferenceSmall()",
+   "hash": "5ef43a34c06166bb",
+   "does": "500 streaming vs 490 internal (2%): asserts not composite and description 'internal'.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DataSourceSelectorTests.swift::func DataSourceSelectorTests.createRRPoints(count:startMs:intervalMs:)",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.logBothSourcesFailed(streamingPoints:internalPoints:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectWithInternalAvailable(internalData:streamingPoints:hasValidStreaming:sessionId:sessionStart:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.compareDataSources(internalCount:streamingCount:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+12",
+     "cond": "isComposite ?? true",
+     "effect": "nil result fails"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.compareDataSources(internalCount:streamingCount:)": "eb89e558649d984d",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.logBothSourcesFailed(streamingPoints:internalPoints:)": "0e1c47ef64822a72",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)": "aa75532f95478352",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectWithInternalAvailable(internalData:streamingPoints:hasValidStreaming:sessionId:sessionStart:)": "f489012f0455925e",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
+    "EmuquTests/DataSourceSelectorTests.swift::func DataSourceSelectorTests.createRRPoints(count:startMs:intervalMs:)": "e9616b6b178347e1"
+   }
+  },
+  {
+   "key": "func DataSourceSelectorTests.testCompositeThresholdIsRespected()",
+   "hash": "b0e633c6ebb632ac",
+   "does": "1000 streaming vs 950 internal (exactly 5%): asserts not composite (threshold is strict >).",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DataSourceSelectorTests.swift::func DataSourceSelectorTests.createRRPoints(count:startMs:intervalMs:)",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.logBothSourcesFailed(streamingPoints:internalPoints:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectWithInternalAvailable(internalData:streamingPoints:hasValidStreaming:sessionId:sessionStart:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.compareDataSources(internalCount:streamingCount:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+14",
+     "cond": "isComposite ?? true",
+     "effect": "nil result fails"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.compareDataSources(internalCount:streamingCount:)": "eb89e558649d984d",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.logBothSourcesFailed(streamingPoints:internalPoints:)": "0e1c47ef64822a72",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)": "aa75532f95478352",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectWithInternalAvailable(internalData:streamingPoints:hasValidStreaming:sessionId:sessionStart:)": "f489012f0455925e",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
+    "EmuquTests/DataSourceSelectorTests.swift::func DataSourceSelectorTests.createRRPoints(count:startMs:intervalMs:)": "e9616b6b178347e1"
+   }
+  },
+  {
+   "key": "func DataSourceSelectorTests.testSourceDescriptionForStreamingOnly()",
+   "hash": "cbe296d447d35f66",
+   "does": "Streaming-only 500: asserts description contains 'streaming' and 'internal failed'.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DataSourceSelectorTests.swift::func DataSourceSelectorTests.createRRPoints(count:startMs:intervalMs:)",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.logBothSourcesFailed(streamingPoints:internalPoints:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectWithInternalAvailable(internalData:streamingPoints:hasValidStreaming:sessionId:sessionStart:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.compareDataSources(internalCount:streamingCount:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "contains('streaming') ?? false",
+     "effect": "nil result fails"
+    },
+    {
+     "at": "+11",
+     "cond": "contains('internal failed') ?? false",
+     "effect": "nil result fails"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.compareDataSources(internalCount:streamingCount:)": "eb89e558649d984d",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.logBothSourcesFailed(streamingPoints:internalPoints:)": "0e1c47ef64822a72",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)": "aa75532f95478352",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectWithInternalAvailable(internalData:streamingPoints:hasValidStreaming:sessionId:sessionStart:)": "f489012f0455925e",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
+    "EmuquTests/DataSourceSelectorTests.swift::func DataSourceSelectorTests.createRRPoints(count:startMs:intervalMs:)": "e9616b6b178347e1"
+   }
+  },
+  {
+   "key": "func DataSourceSelectorTests.testSourceDescriptionForInternalOnly()",
+   "hash": "c6b0e35391e4cd17",
+   "does": "50 streaming / 500 internal: asserts description == 'internal'.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DataSourceSelectorTests.swift::func DataSourceSelectorTests.createRRPoints(count:startMs:intervalMs:)",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.logBothSourcesFailed(streamingPoints:internalPoints:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectWithInternalAvailable(internalData:streamingPoints:hasValidStreaming:sessionId:sessionStart:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.compareDataSources(internalCount:streamingCount:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.compareDataSources(internalCount:streamingCount:)": "eb89e558649d984d",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.logBothSourcesFailed(streamingPoints:internalPoints:)": "0e1c47ef64822a72",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)": "aa75532f95478352",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectWithInternalAvailable(internalData:streamingPoints:hasValidStreaming:sessionId:sessionStart:)": "f489012f0455925e",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
+    "EmuquTests/DataSourceSelectorTests.swift::func DataSourceSelectorTests.createRRPoints(count:startMs:intervalMs:)": "e9616b6b178347e1"
+   }
+  },
+  {
+   "key": "func DataSourceSelectorTests.testSourceDescriptionForPreferredInternal()",
+   "hash": "e955c097c8cb493c",
+   "does": "500/500: asserts description == 'internal'.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DataSourceSelectorTests.swift::func DataSourceSelectorTests.createRRPoints(count:startMs:intervalMs:)",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.logBothSourcesFailed(streamingPoints:internalPoints:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectWithInternalAvailable(internalData:streamingPoints:hasValidStreaming:sessionId:sessionStart:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.compareDataSources(internalCount:streamingCount:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.compareDataSources(internalCount:streamingCount:)": "eb89e558649d984d",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.logBothSourcesFailed(streamingPoints:internalPoints:)": "0e1c47ef64822a72",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)": "aa75532f95478352",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectWithInternalAvailable(internalData:streamingPoints:hasValidStreaming:sessionId:sessionStart:)": "f489012f0455925e",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
+    "EmuquTests/DataSourceSelectorTests.swift::func DataSourceSelectorTests.createRRPoints(count:startMs:intervalMs:)": "e9616b6b178347e1"
+   }
+  },
+  {
+   "key": "func DataSourceSelectorTests.testEmptyStreamingPoints()",
+   "hash": "29d5b4b6319f20a1",
+   "does": "Empty streaming, 500 internal: asserts 500 points.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DataSourceSelectorTests.swift::func DataSourceSelectorTests.createRRPoints(count:startMs:intervalMs:)",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.logBothSourcesFailed(streamingPoints:internalPoints:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectWithInternalAvailable(internalData:streamingPoints:hasValidStreaming:sessionId:sessionStart:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.compareDataSources(internalCount:streamingCount:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.compareDataSources(internalCount:streamingCount:)": "eb89e558649d984d",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.logBothSourcesFailed(streamingPoints:internalPoints:)": "0e1c47ef64822a72",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)": "aa75532f95478352",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectWithInternalAvailable(internalData:streamingPoints:hasValidStreaming:sessionId:sessionStart:)": "f489012f0455925e",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
+    "EmuquTests/DataSourceSelectorTests.swift::func DataSourceSelectorTests.createRRPoints(count:startMs:intervalMs:)": "e9616b6b178347e1"
+   }
+  },
+  {
+   "key": "func DataSourceSelectorTests.testBothEmpty()",
+   "hash": "de37ae40a08b530a",
+   "does": "Both empty: asserts nil.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.logBothSourcesFailed(streamingPoints:internalPoints:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectWithInternalAvailable(internalData:streamingPoints:hasValidStreaming:sessionId:sessionStart:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.compareDataSources(internalCount:streamingCount:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.compareDataSources(internalCount:streamingCount:)": "eb89e558649d984d",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.logBothSourcesFailed(streamingPoints:internalPoints:)": "0e1c47ef64822a72",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)": "aa75532f95478352",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectWithInternalAvailable(internalData:streamingPoints:hasValidStreaming:sessionId:sessionStart:)": "f489012f0455925e"
+   }
+  },
+  {
+   "key": "func DataSourceSelectorTests.testNilInternalPoints()",
+   "hash": "cb4f3efe8c1460db",
+   "does": "500 streaming, nil internal: asserts 500 points.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DataSourceSelectorTests.swift::func DataSourceSelectorTests.createRRPoints(count:startMs:intervalMs:)",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.logBothSourcesFailed(streamingPoints:internalPoints:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectWithInternalAvailable(internalData:streamingPoints:hasValidStreaming:sessionId:sessionStart:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.compareDataSources(internalCount:streamingCount:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Same inputs and assertions as testSelectsStreamingWhenInternalFails (500 streaming, nil internal, 500 points).",
+     "evidence": [
+      "EmuquTests/DataSourceSelectorTests.swift:53",
+      "EmuquTests/DataSourceSelectorTests.swift:277"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.compareDataSources(internalCount:streamingCount:)": "eb89e558649d984d",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.logBothSourcesFailed(streamingPoints:internalPoints:)": "0e1c47ef64822a72",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)": "aa75532f95478352",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectWithInternalAvailable(internalData:streamingPoints:hasValidStreaming:sessionId:sessionStart:)": "f489012f0455925e",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
+    "EmuquTests/DataSourceSelectorTests.swift::func DataSourceSelectorTests.createRRPoints(count:startMs:intervalMs:)": "e9616b6b178347e1"
+   }
+  },
+  {
+   "key": "func DataSourceSelectorTests.testSessionIdIsPreserved()",
+   "hash": "464eec7697ee2741",
+   "does": "Passes a specific sessionId and asserts only that the result is non-nil.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DataSourceSelectorTests.swift::func DataSourceSelectorTests.createRRPoints(count:startMs:intervalMs:)",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.logBothSourcesFailed(streamingPoints:internalPoints:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectWithInternalAvailable(internalData:streamingPoints:hasValidStreaming:sessionId:sessionStart:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.compareDataSources(internalCount:streamingCount:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Named 'session id is preserved' but asserts nothing about the id (its own comment says it only verifies the parameter is accepted); selectBestSource uses sessionId only to build RRSeries on the composite path, which this streaming-only input never reaches.",
+     "evidence": [
+      "EmuquTests/DataSourceSelectorTests.swift:305",
+      "Emuqu/Sources/Collection/DataSourceSelector.swift:110"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.compareDataSources(internalCount:streamingCount:)": "eb89e558649d984d",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.logBothSourcesFailed(streamingPoints:internalPoints:)": "0e1c47ef64822a72",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)": "aa75532f95478352",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectWithInternalAvailable(internalData:streamingPoints:hasValidStreaming:sessionId:sessionStart:)": "f489012f0455925e",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
+    "EmuquTests/DataSourceSelectorTests.swift::func DataSourceSelectorTests.createRRPoints(count:startMs:intervalMs:)": "e9616b6b178347e1"
+   }
+  },
+  {
+   "key": "func DataSourceSelectorTests.testLargeDatasetSelection()",
+   "hash": "7ff2300bc2971014",
+   "does": "28000 streaming vs 28500 internal: asserts non-nil and not composite.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DataSourceSelectorTests.swift::func DataSourceSelectorTests.createRRPoints(count:startMs:intervalMs:)",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.logBothSourcesFailed(streamingPoints:internalPoints:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectWithInternalAvailable(internalData:streamingPoints:hasValidStreaming:sessionId:sessionStart:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.compareDataSources(internalCount:streamingCount:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+14",
+     "cond": "isComposite ?? true",
+     "effect": "nil result fails"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.compareDataSources(internalCount:streamingCount:)": "eb89e558649d984d",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.logBothSourcesFailed(streamingPoints:internalPoints:)": "0e1c47ef64822a72",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)": "aa75532f95478352",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectWithInternalAvailable(internalData:streamingPoints:hasValidStreaming:sessionId:sessionStart:)": "f489012f0455925e",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
+    "EmuquTests/DataSourceSelectorTests.swift::func DataSourceSelectorTests.createRRPoints(count:startMs:intervalMs:)": "e9616b6b178347e1"
+   }
+  },
+  {
+   "key": "func DataSourceSelectorTests.testPercentageDifferenceCalculation()",
+   "hash": "781f07df0b85d5eb",
+   "does": "1000 streaming vs 900 internal (10%), no gaps: asserts only non-nil.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DataSourceSelectorTests.swift::func DataSourceSelectorTests.createRRPoints(count:startMs:intervalMs:)",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.logBothSourcesFailed(streamingPoints:internalPoints:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectWithInternalAvailable(internalData:streamingPoints:hasValidStreaming:sessionId:sessionStart:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.compareDataSources(internalCount:streamingCount:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.compositeOrStreaming(internalData:streamingPoints:sessionId:sessionStart:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.createComposite(internalSeries:streamingSeries:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.findGaps(in:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.fillableGapSummary(gaps:streamingPoints:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.countFillableBeats(gaps:streamingPoints:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.uncoveredBeats(_:internal:gaps:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.mergePoints(internal:streaming:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.takeEarlier(_:_:_:_:into:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.streamTime(_:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.rebased(_:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.skipStreamingDuplicates(of:in:from:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.skipInternalDuplicates(of:in:from:)",
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "No assertion about the outcome of the 10% case (composite vs streaming); testCompositeFallsBackToStreamingWhenCreationFails covers the behaviour, so this test checks nothing beyond non-nil.",
+     "evidence": [
+      "EmuquTests/DataSourceSelectorTests.swift:342",
+      "EmuquTests/DataSourceSelectorTests.swift:347"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.compareDataSources(internalCount:streamingCount:)": "eb89e558649d984d",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.compositeOrStreaming(internalData:streamingPoints:sessionId:sessionStart:)": "5ca3df1bbcf5a16d",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.countFillableBeats(gaps:streamingPoints:)": "f8a8aec34cd64667",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.createComposite(internalSeries:streamingSeries:)": "35e33e42bf8d43d7",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.fillableGapSummary(gaps:streamingPoints:)": "fcd55efaf0b5f3f6",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.findGaps(in:)": "da584f5e541a4983",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.logBothSourcesFailed(streamingPoints:internalPoints:)": "0e1c47ef64822a72",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.mergePoints(internal:streaming:)": "08bc9799bbccea43",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.rebased(_:)": "cf0796f4780a74b4",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)": "aa75532f95478352",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectWithInternalAvailable(internalData:streamingPoints:hasValidStreaming:sessionId:sessionStart:)": "f489012f0455925e",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.skipInternalDuplicates(of:in:from:)": "a305d9e82f18a1dd",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.skipStreamingDuplicates(of:in:from:)": "500dc772858520f9",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.streamTime(_:)": "2aaf25af51ae12f9",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.takeEarlier(_:_:_:_:into:)": "228bec9eaf9ea163",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.uncoveredBeats(_:internal:gaps:)": "d3b6adba7a1d11a3",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b",
+    "EmuquTests/DataSourceSelectorTests.swift::func DataSourceSelectorTests.createRRPoints(count:startMs:intervalMs:)": "e9616b6b178347e1"
+   }
+  },
+  {
+   "key": "func DataSourceSelectorTests.testCompositeFallsBackToStreamingWhenCreationFails()",
+   "hash": "183bf301bb477ece",
+   "does": "20000 streaming vs 18000 internal, no gaps: asserts 20000 points, description contains 'streaming', not composite (composite failed → streaming).",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DataSourceSelectorTests.swift::func DataSourceSelectorTests.createRRPoints(count:startMs:intervalMs:)",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.logBothSourcesFailed(streamingPoints:internalPoints:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectWithInternalAvailable(internalData:streamingPoints:hasValidStreaming:sessionId:sessionStart:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.compareDataSources(internalCount:streamingCount:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.compositeOrStreaming(internalData:streamingPoints:sessionId:sessionStart:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.createComposite(internalSeries:streamingSeries:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.findGaps(in:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.fillableGapSummary(gaps:streamingPoints:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.countFillableBeats(gaps:streamingPoints:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.uncoveredBeats(_:internal:gaps:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.mergePoints(internal:streaming:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.takeEarlier(_:_:_:_:into:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.streamTime(_:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.rebased(_:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.skipStreamingDuplicates(of:in:from:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.skipInternalDuplicates(of:in:from:)",
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+15",
+     "cond": "contains('streaming') ?? false",
+     "effect": "nil result fails"
+    },
+    {
+     "at": "+16",
+     "cond": "isComposite ?? true",
+     "effect": "nil result fails"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.compareDataSources(internalCount:streamingCount:)": "eb89e558649d984d",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.compositeOrStreaming(internalData:streamingPoints:sessionId:sessionStart:)": "5ca3df1bbcf5a16d",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.countFillableBeats(gaps:streamingPoints:)": "f8a8aec34cd64667",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.createComposite(internalSeries:streamingSeries:)": "35e33e42bf8d43d7",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.fillableGapSummary(gaps:streamingPoints:)": "fcd55efaf0b5f3f6",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.findGaps(in:)": "da584f5e541a4983",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.logBothSourcesFailed(streamingPoints:internalPoints:)": "0e1c47ef64822a72",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.mergePoints(internal:streaming:)": "08bc9799bbccea43",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.rebased(_:)": "cf0796f4780a74b4",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)": "aa75532f95478352",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectWithInternalAvailable(internalData:streamingPoints:hasValidStreaming:sessionId:sessionStart:)": "f489012f0455925e",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.skipInternalDuplicates(of:in:from:)": "a305d9e82f18a1dd",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.skipStreamingDuplicates(of:in:from:)": "500dc772858520f9",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.streamTime(_:)": "2aaf25af51ae12f9",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.takeEarlier(_:_:_:_:into:)": "228bec9eaf9ea163",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.uncoveredBeats(_:internal:gaps:)": "d3b6adba7a1d11a3",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b",
+    "EmuquTests/DataSourceSelectorTests.swift::func DataSourceSelectorTests.createRRPoints(count:startMs:intervalMs:)": "e9616b6b178347e1"
+   }
+  },
+  {
+   "key": "func DataSourceSelectorTests.testMergePoints_EmptyInputs_ReturnsEmpty()",
+   "hash": "346955318b27a9cc",
+   "does": "Asserts mergePoints of two empty arrays is empty.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.mergePoints(internal:streaming:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.takeEarlier(_:_:_:_:into:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.streamTime(_:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.rebased(_:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.skipStreamingDuplicates(of:in:from:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.skipInternalDuplicates(of:in:from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.mergePoints(internal:streaming:)": "08bc9799bbccea43",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.rebased(_:)": "cf0796f4780a74b4",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.skipInternalDuplicates(of:in:from:)": "a305d9e82f18a1dd",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.skipStreamingDuplicates(of:in:from:)": "500dc772858520f9",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.streamTime(_:)": "2aaf25af51ae12f9",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.takeEarlier(_:_:_:_:into:)": "228bec9eaf9ea163"
+   }
+  },
+  {
+   "key": "func DataSourceSelectorTests.testMergePoints_OnlyInternal_PassesThroughUnchanged()",
+   "hash": "7ad3809bdaab3382",
+   "does": "Asserts mergePoints with only internal points returns them unchanged.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DataSourceSelectorTests.swift::func DataSourceSelectorTests.createRRPoints(count:startMs:intervalMs:)",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.mergePoints(internal:streaming:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.takeEarlier(_:_:_:_:into:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.streamTime(_:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.rebased(_:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.skipStreamingDuplicates(of:in:from:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.skipInternalDuplicates(of:in:from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.mergePoints(internal:streaming:)": "08bc9799bbccea43",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.rebased(_:)": "cf0796f4780a74b4",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.skipInternalDuplicates(of:in:from:)": "a305d9e82f18a1dd",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.skipStreamingDuplicates(of:in:from:)": "500dc772858520f9",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.streamTime(_:)": "2aaf25af51ae12f9",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.takeEarlier(_:_:_:_:into:)": "228bec9eaf9ea163",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
+    "EmuquTests/DataSourceSelectorTests.swift::func DataSourceSelectorTests.createRRPoints(count:startMs:intervalMs:)": "e9616b6b178347e1"
+   }
+  },
+  {
+   "key": "func DataSourceSelectorTests.testMergePoints_OnlyStreaming_RebasesTimeToWallClock()",
+   "hash": "04036acd67cd65cc",
+   "does": "Streaming-only points with t_ms 100/900 and wallClockMs 10000/10800: asserts merged t_ms rebased to [10000, 10800] and rr kept.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.mergePoints(internal:streaming:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.takeEarlier(_:_:_:_:into:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.streamTime(_:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.rebased(_:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.skipStreamingDuplicates(of:in:from:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.skipInternalDuplicates(of:in:from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.mergePoints(internal:streaming:)": "08bc9799bbccea43",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.rebased(_:)": "cf0796f4780a74b4",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.skipInternalDuplicates(of:in:from:)": "a305d9e82f18a1dd",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.skipStreamingDuplicates(of:in:from:)": "500dc772858520f9",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.streamTime(_:)": "2aaf25af51ae12f9",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.takeEarlier(_:_:_:_:into:)": "228bec9eaf9ea163",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "1ad44fdc2c485550"
+   }
+  },
+  {
+   "key": "func DataSourceSelectorTests.testMergePoints_DuplicateWithinTolerance_KeepsInternalDropsStreaming()",
+   "hash": "177d78eabe082ddf",
+   "does": "Internal beat at 10000 and streaming at 10030: asserts one merged beat, the internal (rr 800).",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.mergePoints(internal:streaming:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.takeEarlier(_:_:_:_:into:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.streamTime(_:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.rebased(_:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.skipStreamingDuplicates(of:in:from:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.skipInternalDuplicates(of:in:from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.mergePoints(internal:streaming:)": "08bc9799bbccea43",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.rebased(_:)": "cf0796f4780a74b4",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.skipInternalDuplicates(of:in:from:)": "a305d9e82f18a1dd",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.skipStreamingDuplicates(of:in:from:)": "500dc772858520f9",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.streamTime(_:)": "2aaf25af51ae12f9",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.takeEarlier(_:_:_:_:into:)": "228bec9eaf9ea163",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "1ad44fdc2c485550"
+   }
+  },
+  {
+   "key": "func DataSourceSelectorTests.testMergePoints_ClusteredStreamingDuplicates_AllSkipped()",
+   "hash": "5f9867de938e8e83",
+   "does": "Internal at 10000/10800 and streaming at 10010/10020/10030: asserts all three streaming duplicates collapse (2 beats).",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.mergePoints(internal:streaming:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.takeEarlier(_:_:_:_:into:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.streamTime(_:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.rebased(_:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.skipStreamingDuplicates(of:in:from:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.skipInternalDuplicates(of:in:from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.mergePoints(internal:streaming:)": "08bc9799bbccea43",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.rebased(_:)": "cf0796f4780a74b4",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.skipInternalDuplicates(of:in:from:)": "a305d9e82f18a1dd",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.skipStreamingDuplicates(of:in:from:)": "500dc772858520f9",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.streamTime(_:)": "2aaf25af51ae12f9",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.takeEarlier(_:_:_:_:into:)": "228bec9eaf9ea163",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "1ad44fdc2c485550"
+   }
+  },
+  {
+   "key": "func DataSourceSelectorTests.testMergePoints_StreamingGapFill_InsertedAndRebased()",
+   "hash": "9e759ecd40a47185",
+   "does": "Internal at 10000/20000 and streaming wallClock 15000: asserts merged t_ms [10000, 15000, 20000] and rr [800, 850, 800].",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.mergePoints(internal:streaming:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.takeEarlier(_:_:_:_:into:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.streamTime(_:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.rebased(_:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.skipStreamingDuplicates(of:in:from:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.skipInternalDuplicates(of:in:from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.mergePoints(internal:streaming:)": "08bc9799bbccea43",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.rebased(_:)": "cf0796f4780a74b4",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.skipInternalDuplicates(of:in:from:)": "a305d9e82f18a1dd",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.skipStreamingDuplicates(of:in:from:)": "500dc772858520f9",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.streamTime(_:)": "2aaf25af51ae12f9",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.takeEarlier(_:_:_:_:into:)": "228bec9eaf9ea163",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "1ad44fdc2c485550"
+   }
+  },
+  {
+   "key": "func DataSourceSelectorTests.testMergeAddingOnlyUncoveredBeats_DropsOverlapKeepsGapsAndTails()",
+   "hash": "cb26c7761698b432",
+   "does": "Internal 10000/10800/11600/20000 and streaming wallClock 10400/15000/22000: asserts mergeAddingOnlyUncoveredBeats yields [10000, 10800, 11600, 15000, 20000, 22000] (overlap dropped, gap and tail kept).",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)",
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.mergeAddingOnlyUncoveredBeats(internal:streaming:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.findGaps(in:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.streamTime(_:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.mergePoints(internal:streaming:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.takeEarlier(_:_:_:_:into:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.rebased(_:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.skipStreamingDuplicates(of:in:from:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.skipInternalDuplicates(of:in:from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.findGaps(in:)": "da584f5e541a4983",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.mergeAddingOnlyUncoveredBeats(internal:streaming:)": "49093decb9c879fc",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.mergePoints(internal:streaming:)": "08bc9799bbccea43",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.rebased(_:)": "cf0796f4780a74b4",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.skipInternalDuplicates(of:in:from:)": "a305d9e82f18a1dd",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.skipStreamingDuplicates(of:in:from:)": "500dc772858520f9",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.streamTime(_:)": "2aaf25af51ae12f9",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.takeEarlier(_:_:_:_:into:)": "228bec9eaf9ea163",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "1ad44fdc2c485550",
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b"
+   }
+  }
+ ],
+ "deps": {}
+}

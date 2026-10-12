@@ -1,0 +1,293 @@
+{
+ "file": "Emuqu/Sources/Collection/StrapRecordingPolicy.swift",
+ "hash": "e33b7cf31b184b7a",
+ "role": "Pure decision functions and constants guarding the strap's on-device recording: start preconditions, status interpretation, unattended-fetch decision, end-of-session stop, transfer budgets, retry schedule, recording-to-session matching, saved/unrecovered checks, start-refusal classification and low-battery warnings.",
+ "types": [
+  "StrapRecordingPolicy: enum (namespace) — recording policy decisions",
+  "StrapRecordingPolicy.StartDecision: enum — notConnected/alreadyRecording/startVeritySense/startH10",
+  "StrapRecordingPolicy.StatusOutcome: struct — isRecordingOnDevice + optional new RecordingState",
+  "StrapRecordingPolicy.QuickFetchDecision: enum — notConnected/fetchH10/fetchVeritySense/skipVeritySenseNotRecording",
+  "StrapRecordingPolicy.TransferBudget: struct — per-phase deadlines (stopSeconds, downloadSeconds) + showsProgress; statics unattended (45/120 s) and attended (45/300 s)",
+  "StrapRecordingPolicy.DownloadFailure: enum — deterministic/nothingListed/transient",
+  "StrapRecordingPolicy.RetryStep: enum — giveUp/pause(ms)/resetLink",
+  "StrapRecordingPolicy.StartRefusal: enum — batteryTooLow/undownloadedRecordingOnStrap/retryable"
+ ],
+ "state": [
+  "mem:StrapRecordingPolicy.morningReconnectWindowSeconds = 60",
+  "mem:StrapRecordingPolicy.featureReadyWindowSeconds = 60",
+  "mem:StrapRecordingPolicy.linkDropWaitSeconds = 5",
+  "mem:StrapRecordingPolicy.TransferBudget.unattended (45 s stop, 120 s download, no progress)",
+  "mem:StrapRecordingPolicy.TransferBudget.attended (45 s stop, 300 s download, progress)",
+  "mem:StrapRecordingPolicy.reconnectWindowSeconds = morningReconnectWindowSeconds (60)",
+  "mem:StrapRecordingPolicy.maxDownloadAttempts = 9",
+  "mem:StrapRecordingPolicy.sessionSpanLimitSeconds = 86400",
+  "mem:StrapRecordingPolicy.armingRetryIntervalSeconds = 180",
+  "mem:StrapRecordingPolicy.lowBatteryWarningPercent = 20"
+ ],
+ "toplevel": "Static constants listed in state; no other top-level behaviour.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func StrapRecordingPolicy.startDecision(hasAPI:hasDeviceId:connectionState:recordingState:isRecordingOnDevice:deviceType:)",
+   "hash": "ac173926cd87aa9b",
+   "does": "Start preconditions: notConnected unless API, device id and .connected; alreadyRecording if app state is not .idle or the strap reports recording; else startVeritySense or startH10 by device type.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "missing API/device id or not connected",
+     "effect": "returns .notConnected"
+    },
+    {
+     "at": "+9",
+     "cond": "recordingState != .idle or isRecordingOnDevice",
+     "effect": "returns .alreadyRecording"
+    },
+    {
+     "at": "+10",
+     "cond": "deviceType == .veritySense",
+     "effect": ".startVeritySense; else (H10 or nil type) .startH10"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func StrapRecordingPolicy.statusOutcome(ongoing:current:)",
+   "hash": "c9875ecf186b1fd6",
+   "does": "Maps a strap status reading to app state: ongoing → (onDevice true, .recording); not ongoing → (onDevice false, .idle only if current was .recording, else nil = leave transitional states alone).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "ongoing is true",
+     "effect": "returns isRecordingOnDevice true, recordingState .recording"
+    },
+    {
+     "at": "+2",
+     "cond": "current == .recording (when not ongoing)",
+     "effect": "recordingState .idle; otherwise nil (no change)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.recording(startedAt:belongsToSessionStartedAt:)": "560f6c23efe28ae7"
+   }
+  },
+  {
+   "key": "func StrapRecordingPolicy.quickFetchDecision(hasAPI:hasDeviceId:isRecordingOnDevice:deviceType:)",
+   "hash": "ec830d0a01d22426",
+   "does": "Unattended fetch decision: notConnected without API/device id; H10 (or unknown type) always fetchH10; Verity Sense fetches only while its offline recording runs.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "missing API or device id",
+     "effect": ".notConnected"
+    },
+    {
+     "at": "+7",
+     "cond": "deviceType != .veritySense",
+     "effect": ".fetchH10"
+    },
+    {
+     "at": "+8",
+     "cond": "isRecordingOnDevice (VS)",
+     "effect": ".fetchVeritySense; else .skipVeritySenseNotRecording"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func StrapRecordingPolicy.shouldStopDeviceRecording(deviceType:hasAPI:hasDeviceId:isRecordingOnDevice:)",
+   "hash": "5b1eb2502ce8bfb9",
+   "does": "Whether the session end must send the H10 stop: false for Verity Sense; else API && device id && recording on device.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "deviceType == .veritySense",
+     "effect": "returns false; else the conjunction"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func StrapRecordingPolicy.retryStep(after:attempt:justStopped:)",
+   "hash": "c1cac77632d229a8",
+   "does": "Retry schedule: give up at attempt ≥ 9 or on deterministic failures, or on nothingListed when not just stopped; attempts 1-3 pause 500 ms, 4-6 pause 1000 ms, 7-8 reset the link.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "attempt >= maxDownloadAttempts (9) or failure == .deterministic",
+     "effect": ".giveUp"
+    },
+    {
+     "at": "+2",
+     "cond": "failure == .nothingListed and not justStopped",
+     "effect": ".giveUp"
+    },
+    {
+     "at": "+3",
+     "cond": "attempt <= 3",
+     "effect": ".pause(500 ms)"
+    },
+    {
+     "at": "+4",
+     "cond": "attempt <= 6",
+     "effect": ".pause(1000 ms); otherwise .resetLink"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+   }
+  },
+  {
+   "key": "func StrapRecordingPolicy.recording(startedAt:belongsToSessionStartedAt:)",
+   "hash": "db1f46fe667d5d3f",
+   "does": "True when a recording started no earlier than sessionStart − 2 s (idStampToleranceSeconds) and less than 24 h after sessionStart.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func StrapRecordingPolicy.holdsUnrecoveredRecording(hasStoredRecording:storedRecordingStart:alreadyDownloaded:predatesDownloadRecord:archiveHasSessionNearStart:)",
+   "hash": "3154f42e600d697b",
+   "does": "Whether the strap holds a dated recording the app has not saved: false without a stored recording or start date, else !recordingIsSaved(...).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.recordingIsSaved(alreadyDownloaded:predatesDownloadRecord:archiveHasSessionNearStart:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "no stored recording or no start date",
+     "effect": "returns false"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "No production caller: RRCollector.hasUnrecoveredData (RRCollector.swift:353) re-implements the same check inline via isStrapRecordingSaved and only cites this function in a comment; only StrapRecordingPolicyTests call it.",
+     "evidence": [
+      "Emuqu/Sources/Collection/StrapRecordingPolicy.swift:213",
+      "Emuqu/Sources/Collection/RRCollector.swift:353",
+      "EmuquTests/StrapRecordingPolicyTests.swift:298"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.recordingIsSaved(alreadyDownloaded:predatesDownloadRecord:archiveHasSessionNearStart:)": "04da97b766e0278d"
+   }
+  },
+  {
+   "key": "func StrapRecordingPolicy.recordingIsSaved(alreadyDownloaded:predatesDownloadRecord:archiveHasSessionNearStart:)",
+   "hash": "3ebba2d2d5deb108",
+   "does": "A strap recording is saved if it was downloaded, or it predates the download ledger and the archive has a session near its start.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func StrapRecordingPolicy.startRefusal(for:)",
+   "hash": "ac9fda2c21a2901e",
+   "does": "Classifies an arming error: strapBatteryTooLow → .batteryTooLow, strapHoldsUndownloadedRecording → .undownloadedRecordingOnStrap, anything else → .retryable.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "PolarError.strapBatteryTooLow",
+     "effect": ".batteryTooLow"
+    },
+    {
+     "at": "+3",
+     "cond": "PolarError.strapHoldsUndownloadedRecording",
+     "effect": ".undownloadedRecordingOnStrap"
+    },
+    {
+     "at": "+4",
+     "cond": "default",
+     "effect": ".retryable"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func StrapRecordingPolicy.mayRetryArming(afterBatteryRefusalAt:batteryNow:)",
+   "hash": "ec68d67aca1b4d4a",
+   "does": "After a battery refusal, allow re-arming only when a current battery reading exceeds the level at refusal (or 20% when none was recorded).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no current battery reading",
+     "effect": "returns false"
+    },
+    {
+     "at": "+2",
+     "cond": "refusedAt nil (??)",
+     "effect": "compares against lowBatteryWarningPercent (20); else against refusedAt"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func StrapRecordingPolicy.strapMayRefuseToRecord(batteryLevel:deviceType:)",
+   "hash": "697d5dcb9229cc95",
+   "does": "Warn before an armed night when a non-Verity strap reports battery ≤ 20%.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "Verity Sense or no battery reading",
+     "effect": "returns false; else batteryLevel <= 20"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

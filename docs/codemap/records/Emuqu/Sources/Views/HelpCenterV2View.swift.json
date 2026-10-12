@@ -1,0 +1,171 @@
+{
+ "file": "Emuqu/Sources/Views/HelpCenterV2View.swift",
+ "hash": "e43a03218de5ef69",
+ "role": "Defines HelpCenterV2View as a typealias for HelpCenterView<HelpMethodologyHeader> and the header view: a featured 'How Emuqu scores recovery' card that opens RecoveryMethodologyView in a sheet, plus an 'Articles' label.",
+ "types": [
+  "HelpCenterV2View: typealias = HelpCenterView<HelpMethodologyHeader>",
+  "HelpMethodologyHeader: struct (View) — featured methodology card + sheet"
+ ],
+ "state": [
+  "@State showingMethodology"
+ ],
+ "toplevel": "Typealias used by MoreMenuView.swift:109; test HelpContentAccuracyTests.swift:132 asserts HelpCenterView() has this type.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var HelpMethodologyHeader.body",
+   "hash": "79ad23f6603f354b",
+   "does": "VStack of the featured card and an uppercase 'Articles' label; presents the methodology sheet when showingMethodology.",
+   "entry": "SwiftUI body; .sheet(isPresented:)",
+   "calls": [
+    "Emuqu/Sources/Views/HelpCenterV2View.swift::var HelpMethodologyHeader.methodologyFeaturedCard",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)",
+    "Emuqu/Sources/Views/HelpCenterV2View.swift::var HelpMethodologyHeader.methodologySheet"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/HelpCenterV2View.swift::var HelpMethodologyHeader.methodologyFeaturedCard": "d0e2ac96bf87f9c8",
+    "Emuqu/Sources/Views/HelpCenterV2View.swift::var HelpMethodologyHeader.methodologySheet": "b0aa42a3d51c4dc9",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var HelpMethodologyHeader.methodologySheet",
+   "hash": "ee3f80112ee2918e",
+   "does": "NavigationStack with RecoveryMethodologyView and a Done toolbar.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::var RecoveryMethodologyView.body",
+    "Emuqu/Sources/Views/HelpCenterV2View.swift::var HelpMethodologyHeader.methodologyDoneToolbar"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HelpCenterV2View.swift::var HelpMethodologyHeader.methodologyDoneToolbar": "c8f6e5eefa308141",
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::var RecoveryMethodologyView.body": "9d902bfc2800dd9d"
+   }
+  },
+  {
+   "key": "var HelpMethodologyHeader.methodologyDoneToolbar",
+   "hash": "00c2ae3bedb43dfe",
+   "does": "Top-trailing Done button that sets showingMethodology = false.",
+   "entry": "Toolbar button tap",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var HelpMethodologyHeader.methodologyFeaturedCard",
+   "hash": "e7814dbcf172dadc",
+   "does": "Plain button that sets showingMethodology = true, labelled with the featured card.",
+   "entry": "Button tap",
+   "calls": [
+    "Emuqu/Sources/Views/HelpCenterV2View.swift::var HelpMethodologyHeader.methodologyFeaturedCardLabel"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HelpCenterV2View.swift::var HelpMethodologyHeader.methodologyFeaturedCardLabel": "698f035ae5091061"
+   }
+  },
+  {
+   "key": "var HelpMethodologyHeader.featuredBadge",
+   "hash": "4f1fa455f0e2a31d",
+   "does": "'Featured' badge row with magnifying-glass icon.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+   }
+  },
+  {
+   "key": "var HelpMethodologyHeader.featuredChevron",
+   "hash": "910ea500889302f2",
+   "does": "Trailing arrow icon row.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+   }
+  },
+  {
+   "key": "var HelpMethodologyHeader.methodologyFeaturedCardLabel",
+   "hash": "b068b3206fc547af",
+   "does": "Card label: badge, 'How Emuqu scores recovery' title, a hard-coded description stating HRV/sleep/vitals weighted 60/25/15 and that training load and ACWR are not in the score, and the chevron.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HelpCenterV2View.swift::var HelpMethodologyHeader.featuredBadge",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)",
+    "Emuqu/Sources/Views/HelpCenterV2View.swift::var HelpMethodologyHeader.featuredChevron",
+    "Emuqu/Sources/Views/HelpCenterV2View.swift::var HelpMethodologyHeader.featuredCardBackground"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "The 60/25/15 component weights are hard-coded in this card copy (and again in HelpContent+Articles.swift:671) rather than read from the scoring code, so a weight change would leave the featured card stating the old weights.",
+     "evidence": [
+      "Emuqu/Sources/Views/HelpCenterV2View.swift:76",
+      "Emuqu/Sources/Views/HelpContent+Articles.swift:671"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/HelpCenterV2View.swift::var HelpMethodologyHeader.featuredBadge": "080d0a9bbd677f45",
+    "Emuqu/Sources/Views/HelpCenterV2View.swift::var HelpMethodologyHeader.featuredCardBackground": "9dc135414189f20a",
+    "Emuqu/Sources/Views/HelpCenterV2View.swift::var HelpMethodologyHeader.featuredChevron": "07eb7157c8bf1846",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var HelpMethodologyHeader.featuredCardBackground",
+   "hash": "3bded0adeaf7075b",
+   "does": "Rounded card background with primary-tinted border.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  }
+ ],
+ "deps": {}
+}

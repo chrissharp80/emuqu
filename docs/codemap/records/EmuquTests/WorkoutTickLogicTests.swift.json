@@ -1,0 +1,494 @@
+{
+ "file": "EmuquTests/WorkoutTickLogicTests.swift",
+ "hash": "1614c45b23eea6bd",
+ "role": "@MainActor XCTest suite for WorkoutTicker.HRArbitration.decide (table-driven wrist fallback / display clear / strap notice), WorkoutRecorder.deviceFetchDecision (H10 fetch density gate), and a PausedMotionLedger suite.",
+ "types": [
+  "WorkoutTickLogicTests: class — HR arbitration and device-fetch decision",
+  "WorkoutTickLogicTests.Case: struct (private) — name/inputs/expected row",
+  "PausedMotionLedgerTests: class — paused distance exclusion"
+ ],
+ "state": [],
+ "toplevel": "Typealias Arbitration = WorkoutRecorder.HRArbitration (itself a typealias for WorkoutTicker.HRArbitration).",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Class doc places deviceFetchDecision/mergeWorkoutRRWithDeviceFetch in WorkoutRecorder.swift; both are in WorkoutRecorder+DeviceBackup.swift.",
+   "evidence": [
+    "EmuquTests/WorkoutTickLogicTests.swift:11",
+    "Emuqu/Sources/Collection/WorkoutRecorder+DeviceBackup.swift:137"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func WorkoutTickLogicTests.inputs(sourceMode:recordingElapsedSeconds:strapSilentFor:watchRoutedSilentFor:latestWatchHR:strapFeed:)",
+   "hash": "8b0b8144558832a1",
+   "does": "Fixture: builds Arbitration.Inputs with defaults strap mode, 3600 s elapsed, strap silent 0 s, watch-routed silent .infinity, no watch HR, strap feed .live.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutTickLogicTests.noEffects()",
+   "hash": "1dc2b3b3365e90b7",
+   "does": "Fixture: Decision with no display update and no notice.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutTickLogicTests.displayOnly(_:)",
+   "hash": "4231a7c4fae74410",
+   "does": "Fixture: Decision updating display to hr with no notice.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutTickLogicTests.cleared(_:)",
+   "hash": "e1f7496675caccc5",
+   "does": "Fixture: Decision with no update, optional notice and clearDisplayHR true.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutTickLogicTests.testArbitrationThresholdsMatchAuditedValues()",
+   "hash": "95dffa08ea3483ec",
+   "does": "Asserts wristFallbackSilenceSec 10, strapNoticeGraceSec 15, wristHRMaxAgeSec 30.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutTickLogicTests.testArbitrationCascadeTable()",
+   "hash": "5a0dc914412cb803",
+   "does": "Runs every row from cascadeCases through HRArbitration.decide and asserts the expected Decision.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.HRArbitration.decide(_:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.HRArbitration.allSourcesSilent(_:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.HRArbitration.displayHRUpdate(_:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.HRArbitration.strapNotice(_:)",
+    "EmuquTests/WorkoutTickLogicTests.swift::func WorkoutTickLogicTests.cascadeCases()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each case",
+     "effect": "asserts decide(inputs) == expected with the case name as message"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.HRArbitration.allSourcesSilent(_:)": "ae58d48b0c2617b8",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.HRArbitration.decide(_:)": "7c9684eb141bcb05",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.HRArbitration.displayHRUpdate(_:)": "37b2130bf9aca330",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.HRArbitration.strapNotice(_:)": "dbd2024ba681c56a",
+    "EmuquTests/WorkoutTickLogicTests.swift::func WorkoutTickLogicTests.cascadeCases()": "92a9eef5ddadd143"
+   }
+  },
+  {
+   "key": "func WorkoutTickLogicTests.cascadeCases()",
+   "hash": "b672a17b6f64d5fe",
+   "does": "Fixture: concatenates strap-channel, source-mode and notice case tables.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/WorkoutTickLogicTests.swift::func WorkoutTickLogicTests.strapChannelCases()",
+    "EmuquTests/WorkoutTickLogicTests.swift::func WorkoutTickLogicTests.sourceModeCases()",
+    "EmuquTests/WorkoutTickLogicTests.swift::func WorkoutTickLogicTests.noticeCases()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/WorkoutTickLogicTests.swift::func WorkoutTickLogicTests.noticeCases()": "2454bf322d914582",
+    "EmuquTests/WorkoutTickLogicTests.swift::func WorkoutTickLogicTests.sourceModeCases()": "d8be04ad8acbdea8",
+    "EmuquTests/WorkoutTickLogicTests.swift::func WorkoutTickLogicTests.strapChannelCases()": "1d4148d5fb81575f"
+   }
+  },
+  {
+   "key": "func WorkoutTickLogicTests.strapChannelCases()",
+   "hash": "cf7dffec22741a57",
+   "does": "Fixture: 5 strap-mode rows — healthy strap, exactly 10 s silent (no fallback), >10 s with wrist HR (fallback), >10 s without wrist HR (cleared), Polar stalled but Watch-routed fresh (no effects).",
+   "entry": null,
+   "calls": [
+    "EmuquTests/WorkoutTickLogicTests.swift::func WorkoutTickLogicTests.inputs(sourceMode:recordingElapsedSeconds:strapSilentFor:watchRoutedSilentFor:latestWatchHR:strapFeed:)",
+    "EmuquTests/WorkoutTickLogicTests.swift::func WorkoutTickLogicTests.noEffects()",
+    "EmuquTests/WorkoutTickLogicTests.swift::func WorkoutTickLogicTests.displayOnly(_:)",
+    "EmuquTests/WorkoutTickLogicTests.swift::func WorkoutTickLogicTests.cleared(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/WorkoutTickLogicTests.swift::func WorkoutTickLogicTests.cleared(_:)": "405b128d24c6a5b0",
+    "EmuquTests/WorkoutTickLogicTests.swift::func WorkoutTickLogicTests.displayOnly(_:)": "b4270ed019a560ee",
+    "EmuquTests/WorkoutTickLogicTests.swift::func WorkoutTickLogicTests.inputs(sourceMode:recordingElapsedSeconds:strapSilentFor:watchRoutedSilentFor:latestWatchHR:strapFeed:)": "aa614a1c18cda124",
+    "EmuquTests/WorkoutTickLogicTests.swift::func WorkoutTickLogicTests.noEffects()": "df19fba074d31ef5"
+   }
+  },
+  {
+   "key": "func WorkoutTickLogicTests.sourceModeCases()",
+   "hash": "2e4c32a78843e2ad",
+   "does": "Fixture: 4 rows for .watch mode (wrist always wins; no strap notice; nil wrist → cleared) and .none mode (no effects).",
+   "entry": null,
+   "calls": [
+    "EmuquTests/WorkoutTickLogicTests.swift::func WorkoutTickLogicTests.inputs(sourceMode:recordingElapsedSeconds:strapSilentFor:watchRoutedSilentFor:latestWatchHR:strapFeed:)",
+    "EmuquTests/WorkoutTickLogicTests.swift::func WorkoutTickLogicTests.noEffects()",
+    "EmuquTests/WorkoutTickLogicTests.swift::func WorkoutTickLogicTests.displayOnly(_:)",
+    "EmuquTests/WorkoutTickLogicTests.swift::func WorkoutTickLogicTests.cleared(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/WorkoutTickLogicTests.swift::func WorkoutTickLogicTests.cleared(_:)": "405b128d24c6a5b0",
+    "EmuquTests/WorkoutTickLogicTests.swift::func WorkoutTickLogicTests.displayOnly(_:)": "b4270ed019a560ee",
+    "EmuquTests/WorkoutTickLogicTests.swift::func WorkoutTickLogicTests.inputs(sourceMode:recordingElapsedSeconds:strapSilentFor:watchRoutedSilentFor:latestWatchHR:strapFeed:)": "aa614a1c18cda124",
+    "EmuquTests/WorkoutTickLogicTests.swift::func WorkoutTickLogicTests.noEffects()": "df19fba074d31ef5"
+   }
+  },
+  {
+   "key": "func WorkoutTickLogicTests.noticeCases()",
+   "hash": "157a311e88687f44",
+   "does": "Fixture: 8 notice rows — strapNotConnected past grace with wrist fallback, strapSilent when stalled, no notice while settingUp, at 1 s, at exactly 15 s; notConnected at 16 s; fresh beats beat a stale feed status; Watch-routed fresh suppresses the notice.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/WorkoutTickLogicTests.swift::func WorkoutTickLogicTests.inputs(sourceMode:recordingElapsedSeconds:strapSilentFor:watchRoutedSilentFor:latestWatchHR:strapFeed:)",
+    "EmuquTests/WorkoutTickLogicTests.swift::func WorkoutTickLogicTests.noEffects()",
+    "EmuquTests/WorkoutTickLogicTests.swift::func WorkoutTickLogicTests.cleared(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/WorkoutTickLogicTests.swift::func WorkoutTickLogicTests.cleared(_:)": "405b128d24c6a5b0",
+    "EmuquTests/WorkoutTickLogicTests.swift::func WorkoutTickLogicTests.inputs(sourceMode:recordingElapsedSeconds:strapSilentFor:watchRoutedSilentFor:latestWatchHR:strapFeed:)": "aa614a1c18cda124",
+    "EmuquTests/WorkoutTickLogicTests.swift::func WorkoutTickLogicTests.noEffects()": "df19fba074d31ef5"
+   }
+  },
+  {
+   "key": "func WorkoutTickLogicTests.testInfiniteSilenceIsHandledWithoutTrapping()",
+   "hash": "b2dd89ecdd267b72",
+   "does": "Asserts infinite silence on both channels with no wrist HR and waitingForStrap yields cleared(.strapNotConnected) without trapping.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.HRArbitration.decide(_:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.HRArbitration.allSourcesSilent(_:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.HRArbitration.displayHRUpdate(_:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.HRArbitration.strapNotice(_:)",
+    "EmuquTests/WorkoutTickLogicTests.swift::func WorkoutTickLogicTests.inputs(sourceMode:recordingElapsedSeconds:strapSilentFor:watchRoutedSilentFor:latestWatchHR:strapFeed:)",
+    "EmuquTests/WorkoutTickLogicTests.swift::func WorkoutTickLogicTests.cleared(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.HRArbitration.allSourcesSilent(_:)": "ae58d48b0c2617b8",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.HRArbitration.decide(_:)": "7c9684eb141bcb05",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.HRArbitration.displayHRUpdate(_:)": "37b2130bf9aca330",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.HRArbitration.strapNotice(_:)": "dbd2024ba681c56a",
+    "EmuquTests/WorkoutTickLogicTests.swift::func WorkoutTickLogicTests.cleared(_:)": "405b128d24c6a5b0",
+    "EmuquTests/WorkoutTickLogicTests.swift::func WorkoutTickLogicTests.inputs(sourceMode:recordingElapsedSeconds:strapSilentFor:watchRoutedSilentFor:latestWatchHR:strapFeed:)": "aa614a1c18cda124"
+   }
+  },
+  {
+   "key": "func WorkoutTickLogicTests.testNothingIsSaidDuringTheStartGrace()",
+   "hash": "a2cb54047d72e2e3",
+   "does": "For feeds waitingForStrap/settingUp/stalled and elapsed 0...15 s, asserts no strap notice.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.HRArbitration.decide(_:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.HRArbitration.allSourcesSilent(_:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.HRArbitration.displayHRUpdate(_:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.HRArbitration.strapNotice(_:)",
+    "EmuquTests/WorkoutTickLogicTests.swift::func WorkoutTickLogicTests.inputs(sourceMode:recordingElapsedSeconds:strapSilentFor:watchRoutedSilentFor:latestWatchHR:strapFeed:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each feed",
+     "effect": "outer loop"
+    },
+    {
+     "at": "+2",
+     "cond": "for elapsed 0...15",
+     "effect": "asserts nil notice per second"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.HRArbitration.allSourcesSilent(_:)": "ae58d48b0c2617b8",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.HRArbitration.decide(_:)": "7c9684eb141bcb05",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.HRArbitration.displayHRUpdate(_:)": "37b2130bf9aca330",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.HRArbitration.strapNotice(_:)": "dbd2024ba681c56a",
+    "EmuquTests/WorkoutTickLogicTests.swift::func WorkoutTickLogicTests.inputs(sourceMode:recordingElapsedSeconds:strapSilentFor:watchRoutedSilentFor:latestWatchHR:strapFeed:)": "aa614a1c18cda124"
+   }
+  },
+  {
+   "key": "func WorkoutTickLogicTests.testDeviceFetchConstantsMatchAuditedValues()",
+   "hash": "22a7466db096921b",
+   "does": "Asserts DeviceFetchDecision constants: density 0.95, min avg RR 300, min elapsed 60 s, window tolerance 60,000 ms.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutTickLogicTests.testHighDensitySkipsFetch()",
+   "hash": "8e3bb8cd01343ec2",
+   "does": "Asserts 600 beats over 600 s at 1000 ms avg RR skips fetch with density 1.0 and 600 expected beats.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder+DeviceBackup.swift::func WorkoutRecorder.deviceFetchDecision(streamingPointCount:elapsedSec:summedRRMs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "decision is .skipFetch",
+     "effect": "true: binds density/expected and asserts them; false: XCTFail and return"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+DeviceBackup.swift::func WorkoutRecorder.deviceFetchDecision(streamingPointCount:elapsedSec:summedRRMs:)": "9c3751db0034bba6"
+   }
+  },
+  {
+   "key": "func WorkoutTickLogicTests.testDensityExactlyAtThresholdSkips()",
+   "hash": "17a8304f0d513787",
+   "does": "Asserts density exactly 0.95 skips fetch (>=).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder+DeviceBackup.swift::func WorkoutRecorder.deviceFetchDecision(streamingPointCount:elapsedSec:summedRRMs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "decision is .skipFetch",
+     "effect": "false: XCTFail and return"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+DeviceBackup.swift::func WorkoutRecorder.deviceFetchDecision(streamingPointCount:elapsedSec:summedRRMs:)": "9c3751db0034bba6"
+   }
+  },
+  {
+   "key": "func WorkoutTickLogicTests.testLowDensityFetchesAndReportsDensity()",
+   "hash": "da183053cdee068e",
+   "does": "Asserts density 0.5 fetches and reports 0.5.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder+DeviceBackup.swift::func WorkoutRecorder.deviceFetchDecision(streamingPointCount:elapsedSec:summedRRMs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "decision is .fetch",
+     "effect": "true: asserts density 0.5; false: XCTFail and return"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+DeviceBackup.swift::func WorkoutRecorder.deviceFetchDecision(streamingPointCount:elapsedSec:summedRRMs:)": "9c3751db0034bba6"
+   }
+  },
+  {
+   "key": "func WorkoutTickLogicTests.testShortElapsedEdgeAlwaysFetchesWithoutDensityLog()",
+   "hash": "7743ead5d14818d8",
+   "does": "Asserts elapsed 60 s and 30 s fetch with nil density (gate is > 60).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder+DeviceBackup.swift::func WorkoutRecorder.deviceFetchDecision(streamingPointCount:elapsedSec:summedRRMs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+DeviceBackup.swift::func WorkoutRecorder.deviceFetchDecision(streamingPointCount:elapsedSec:summedRRMs:)": "9c3751db0034bba6"
+   }
+  },
+  {
+   "key": "func WorkoutTickLogicTests.testZeroPointsFetchesWithoutDensityLog()",
+   "hash": "2dd90b8918ecebe4",
+   "does": "Asserts zero streaming points fetches with nil density.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder+DeviceBackup.swift::func WorkoutRecorder.deviceFetchDecision(streamingPointCount:elapsedSec:summedRRMs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+DeviceBackup.swift::func WorkoutRecorder.deviceFetchDecision(streamingPointCount:elapsedSec:summedRRMs:)": "9c3751db0034bba6"
+   }
+  },
+  {
+   "key": "func WorkoutTickLogicTests.testImplausibleAvgRRFetchesWithoutDensityLog()",
+   "hash": "a5f810639967d5ac",
+   "does": "Asserts integer mean RR exactly 300 ms fetches with nil density.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder+DeviceBackup.swift::func WorkoutRecorder.deviceFetchDecision(streamingPointCount:elapsedSec:summedRRMs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+DeviceBackup.swift::func WorkoutRecorder.deviceFetchDecision(streamingPointCount:elapsedSec:summedRRMs:)": "9c3751db0034bba6"
+   }
+  },
+  {
+   "key": "func WorkoutTickLogicTests.testAvgRRUsesIntegerDivisionLikeTheOriginal()",
+   "hash": "5ba3bc80807880b5",
+   "does": "Asserts summed RR 30,099 over 100 (int mean 300) fetches with nil density, while 30,100 (mean 301) fetches with a non-nil density.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder+DeviceBackup.swift::func WorkoutRecorder.deviceFetchDecision(streamingPointCount:elapsedSec:summedRRMs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+14",
+     "cond": "justPastGate is .fetch",
+     "effect": "true: asserts density non-nil; false: XCTFail and return"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+DeviceBackup.swift::func WorkoutRecorder.deviceFetchDecision(streamingPointCount:elapsedSec:summedRRMs:)": "9c3751db0034bba6"
+   }
+  },
+  {
+   "key": "func PausedMotionLedgerTests.testPausedStretchIsLeftOutAfterResume()",
+   "hash": "009152ec46df43e9",
+   "does": "Asserts pausing at pedometer 1000/footPod 900 and resuming at 1400/1300 subtracts 400 from each (2000→1600, 1800→1400).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PausedMotionLedger.pause(pedometer:footPod:)",
+    "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PausedMotionLedger.resume(pedometer:footPod:)",
+    "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PausedMotionLedger.pedometerDistance(_:)",
+    "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PausedMotionLedger.footPodDistance(_:)",
+    "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PausedMotionLedger.moved(since:now:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PausedMotionLedger.footPodDistance(_:)": "9f9286e3ca1b1ddf",
+    "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PausedMotionLedger.moved(since:now:)": "4f42cb84dc5ce2ed",
+    "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PausedMotionLedger.pause(pedometer:footPod:)": "ff6482f10dce54ed",
+    "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PausedMotionLedger.pedometerDistance(_:)": "90b0600253a3d5e4",
+    "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PausedMotionLedger.resume(pedometer:footPod:)": "e7d369c5a5e634c7"
+   }
+  },
+  {
+   "key": "func PausedMotionLedgerTests.testStretchStillPausedAtStopIsLeftOut()",
+   "hash": "9f2595b2d8b659b7",
+   "does": "Asserts a pause still open at stop subtracts the open stretch (1250→1000).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PausedMotionLedger.pause(pedometer:footPod:)",
+    "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PausedMotionLedger.pedometerDistance(_:)",
+    "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PausedMotionLedger.moved(since:now:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PausedMotionLedger.moved(since:now:)": "4f42cb84dc5ce2ed",
+    "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PausedMotionLedger.pause(pedometer:footPod:)": "ff6482f10dce54ed",
+    "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PausedMotionLedger.pedometerDistance(_:)": "90b0600253a3d5e4"
+   }
+  },
+  {
+   "key": "func PausedMotionLedgerTests.testSeveralPausesAddUp()",
+   "hash": "51d113669b656252",
+   "does": "Asserts two pauses (50 and 80 m) add up: 500→370.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PausedMotionLedger.pause(pedometer:footPod:)",
+    "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PausedMotionLedger.resume(pedometer:footPod:)",
+    "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PausedMotionLedger.pedometerDistance(_:)",
+    "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PausedMotionLedger.moved(since:now:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PausedMotionLedger.moved(since:now:)": "4f42cb84dc5ce2ed",
+    "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PausedMotionLedger.pause(pedometer:footPod:)": "ff6482f10dce54ed",
+    "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PausedMotionLedger.pedometerDistance(_:)": "90b0600253a3d5e4",
+    "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PausedMotionLedger.resume(pedometer:footPod:)": "e7d369c5a5e634c7"
+   }
+  },
+  {
+   "key": "func PausedMotionLedgerTests.testNoPauseLeavesDistanceAlone()",
+   "hash": "d572ad9c79b39e04",
+   "does": "Asserts with no pause the pedometer distance is unchanged.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PausedMotionLedger.pedometerDistance(_:)",
+    "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PausedMotionLedger.moved(since:now:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PausedMotionLedger.moved(since:now:)": "4f42cb84dc5ce2ed",
+    "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PausedMotionLedger.pedometerDistance(_:)": "90b0600253a3d5e4"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -1,0 +1,426 @@
+{
+ "file": "EmuquTests/EncryptionManagerTests.swift",
+ "hash": "33eae49d23122cc4",
+ "role": "XCTest suite for EncryptionManager (AES-GCM at-rest encryption of sessions/backups): round trips (text, ~50 KB, empty, 4 KB binary), wire format ('FR' magic + version byte), ciphertext growth, random nonce, isAvailable, reEncryptIfNeeded at current version, error descriptions.",
+ "types": [
+  "EncryptionManagerTests: class (XCTestCase)"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "test-defect",
+   "sev": "low",
+   "text": "Every test uses EncryptionManager.shared, which reads (and on first use creates) the app host's real v1 key in the Keychain under 'session-encryption-key'; the suite shares that key with the app on the simulator. None of the legacy wire formats (version-prefixed, bare) or decrypt's bare-legacy retry are exercised, nor reEncryptIfNeeded with an older version.",
+   "evidence": [
+    "EmuquTests/EncryptionManagerTests.swift:8",
+    "Emuqu/Sources/Storage/EncryptionManager.swift:59",
+    "Emuqu/Sources/Storage/EncryptionManager.swift:98",
+    "Emuqu/Sources/Storage/EncryptionManager.swift:171"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func EncryptionManagerTests.testEncryptDecryptRoundtrip()",
+   "hash": "70ef0630f105c55e",
+   "does": "Encrypts and decrypts a short string with the shared manager; asserts equality.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.getOrCreateKey(version:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.loadOrCreateKey(version:cache:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.keychainAccount(for:)",
+    "ext:AES.GCM.seal",
+    "ext:SecItemCopyMatching",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.decrypt(_:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.extractVersion(from:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.magicPrefixed(_:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.legacyVersionPrefixed(_:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.openSealed(_:version:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.loadKey(version:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.retrieveKeyFromKeychain(account:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.makeKeyMigratable(account:)",
+    "ext:AES.GCM.open"
+   ],
+   "reads": [
+    "kc:session-encryption-key (AppConfig.keychainService, app host keychain)"
+   ],
+   "writes": [
+    "kc:session-encryption-key (AppConfig.keychainService, app host keychain)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.decrypt(_:)": "f5111c347369a719",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)": "6236f6fa0100fadb",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.extractVersion(from:)": "a845a5d28c932fe3",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.getOrCreateKey(version:)": "4022d046812dddbc",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.keychainAccount(for:)": "196540555ada322e",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.legacyVersionPrefixed(_:)": "57781d7bd5072573",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.loadKey(version:)": "ca33f444b6f02684",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.loadOrCreateKey(version:cache:)": "c39b463856e33c47",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.magicPrefixed(_:)": "612228b56ca30f77",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.makeKeyMigratable(account:)": "d4f3a003d85390a6",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.openSealed(_:version:)": "131eba2f36eca16a",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.retrieveKeyFromKeychain(account:)": "5358dff5ae6f19a8"
+   }
+  },
+  {
+   "key": "func EncryptionManagerTests.testEncryptDecryptLargeData()",
+   "hash": "2ce8a7453942fb4c",
+   "does": "Round-trips ~54 KB of repeated JSON.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.getOrCreateKey(version:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.loadOrCreateKey(version:cache:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.keychainAccount(for:)",
+    "ext:AES.GCM.seal",
+    "ext:SecItemCopyMatching",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.decrypt(_:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.extractVersion(from:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.magicPrefixed(_:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.legacyVersionPrefixed(_:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.openSealed(_:version:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.loadKey(version:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.retrieveKeyFromKeychain(account:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.makeKeyMigratable(account:)",
+    "ext:AES.GCM.open"
+   ],
+   "reads": [
+    "kc:session-encryption-key (AppConfig.keychainService, app host keychain)"
+   ],
+   "writes": [
+    "kc:session-encryption-key (AppConfig.keychainService, app host keychain)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.decrypt(_:)": "f5111c347369a719",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)": "6236f6fa0100fadb",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.extractVersion(from:)": "a845a5d28c932fe3",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.getOrCreateKey(version:)": "4022d046812dddbc",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.keychainAccount(for:)": "196540555ada322e",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.legacyVersionPrefixed(_:)": "57781d7bd5072573",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.loadKey(version:)": "ca33f444b6f02684",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.loadOrCreateKey(version:cache:)": "c39b463856e33c47",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.magicPrefixed(_:)": "612228b56ca30f77",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.makeKeyMigratable(account:)": "d4f3a003d85390a6",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.openSealed(_:version:)": "131eba2f36eca16a",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.retrieveKeyFromKeychain(account:)": "5358dff5ae6f19a8"
+   }
+  },
+  {
+   "key": "func EncryptionManagerTests.testEncryptDecryptEmptyData()",
+   "hash": "0d7b9c9348941b2b",
+   "does": "Round-trips empty Data (31-byte output passes the magic-prefix size check).",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.getOrCreateKey(version:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.loadOrCreateKey(version:cache:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.keychainAccount(for:)",
+    "ext:AES.GCM.seal",
+    "ext:SecItemCopyMatching",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.decrypt(_:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.extractVersion(from:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.magicPrefixed(_:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.legacyVersionPrefixed(_:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.openSealed(_:version:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.loadKey(version:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.retrieveKeyFromKeychain(account:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.makeKeyMigratable(account:)",
+    "ext:AES.GCM.open"
+   ],
+   "reads": [
+    "kc:session-encryption-key (AppConfig.keychainService, app host keychain)"
+   ],
+   "writes": [
+    "kc:session-encryption-key (AppConfig.keychainService, app host keychain)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.decrypt(_:)": "f5111c347369a719",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)": "6236f6fa0100fadb",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.extractVersion(from:)": "a845a5d28c932fe3",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.getOrCreateKey(version:)": "4022d046812dddbc",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.keychainAccount(for:)": "196540555ada322e",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.legacyVersionPrefixed(_:)": "57781d7bd5072573",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.loadKey(version:)": "ca33f444b6f02684",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.loadOrCreateKey(version:cache:)": "c39b463856e33c47",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.magicPrefixed(_:)": "612228b56ca30f77",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.makeKeyMigratable(account:)": "d4f3a003d85390a6",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.openSealed(_:version:)": "131eba2f36eca16a",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.retrieveKeyFromKeychain(account:)": "5358dff5ae6f19a8"
+   }
+  },
+  {
+   "key": "func EncryptionManagerTests.testEncryptedDataHasMagicPrefix()",
+   "hash": "6528a0cd8389ca23",
+   "does": "Asserts encrypted bytes start 0x46 0x52 ('FR') and are at least 3 long.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.getOrCreateKey(version:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.loadOrCreateKey(version:cache:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.keychainAccount(for:)",
+    "ext:AES.GCM.seal",
+    "ext:SecItemCopyMatching"
+   ],
+   "reads": [
+    "kc:session-encryption-key (AppConfig.keychainService, app host keychain)"
+   ],
+   "writes": [
+    "kc:session-encryption-key (AppConfig.keychainService, app host keychain)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)": "6236f6fa0100fadb",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.getOrCreateKey(version:)": "4022d046812dddbc",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.keychainAccount(for:)": "196540555ada322e",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.loadOrCreateKey(version:cache:)": "c39b463856e33c47"
+   }
+  },
+  {
+   "key": "func EncryptionManagerTests.testEncryptedDataHasVersionByte()",
+   "hash": "deae44fab702e4da",
+   "does": "Asserts byte 2 equals EncryptionManager.currentKeyVersion (1).",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.getOrCreateKey(version:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.loadOrCreateKey(version:cache:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.keychainAccount(for:)",
+    "ext:AES.GCM.seal",
+    "ext:SecItemCopyMatching"
+   ],
+   "reads": [
+    "kc:session-encryption-key (AppConfig.keychainService, app host keychain)"
+   ],
+   "writes": [
+    "kc:session-encryption-key (AppConfig.keychainService, app host keychain)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)": "6236f6fa0100fadb",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.getOrCreateKey(version:)": "4022d046812dddbc",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.keychainAccount(for:)": "196540555ada322e",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.loadOrCreateKey(version:cache:)": "c39b463856e33c47"
+   }
+  },
+  {
+   "key": "func EncryptionManagerTests.testEncryptedDataLargerThanOriginal()",
+   "hash": "8972dad7c4dfe8af",
+   "does": "Asserts ciphertext is longer than the 5-byte plaintext.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.getOrCreateKey(version:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.loadOrCreateKey(version:cache:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.keychainAccount(for:)",
+    "ext:AES.GCM.seal",
+    "ext:SecItemCopyMatching"
+   ],
+   "reads": [
+    "kc:session-encryption-key (AppConfig.keychainService, app host keychain)"
+   ],
+   "writes": [
+    "kc:session-encryption-key (AppConfig.keychainService, app host keychain)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)": "6236f6fa0100fadb",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.getOrCreateKey(version:)": "4022d046812dddbc",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.keychainAccount(for:)": "196540555ada322e",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.loadOrCreateKey(version:cache:)": "c39b463856e33c47"
+   }
+  },
+  {
+   "key": "func EncryptionManagerTests.testEncryptProducesDifferentCiphertexts()",
+   "hash": "11be3c84f64d4e13",
+   "does": "Encrypts the same plaintext twice: asserts the ciphertexts differ and both decrypt to the same value.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.getOrCreateKey(version:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.loadOrCreateKey(version:cache:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.keychainAccount(for:)",
+    "ext:AES.GCM.seal",
+    "ext:SecItemCopyMatching",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.decrypt(_:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.extractVersion(from:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.magicPrefixed(_:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.legacyVersionPrefixed(_:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.openSealed(_:version:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.loadKey(version:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.retrieveKeyFromKeychain(account:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.makeKeyMigratable(account:)",
+    "ext:AES.GCM.open"
+   ],
+   "reads": [
+    "kc:session-encryption-key (AppConfig.keychainService, app host keychain)"
+   ],
+   "writes": [
+    "kc:session-encryption-key (AppConfig.keychainService, app host keychain)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.decrypt(_:)": "f5111c347369a719",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)": "6236f6fa0100fadb",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.extractVersion(from:)": "a845a5d28c932fe3",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.getOrCreateKey(version:)": "4022d046812dddbc",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.keychainAccount(for:)": "196540555ada322e",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.legacyVersionPrefixed(_:)": "57781d7bd5072573",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.loadKey(version:)": "ca33f444b6f02684",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.loadOrCreateKey(version:cache:)": "c39b463856e33c47",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.magicPrefixed(_:)": "612228b56ca30f77",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.makeKeyMigratable(account:)": "d4f3a003d85390a6",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.openSealed(_:version:)": "131eba2f36eca16a",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.retrieveKeyFromKeychain(account:)": "5358dff5ae6f19a8"
+   }
+  },
+  {
+   "key": "func EncryptionManagerTests.testIsAvailable()",
+   "hash": "3446caa924e065d5",
+   "does": "Asserts isAvailable is true (key loads or is created).",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Storage/EncryptionManager.swift::var EncryptionManager.isAvailable",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.getOrCreateKey(version:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.loadOrCreateKey(version:cache:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.keychainAccount(for:)",
+    "ext:AES.GCM.seal",
+    "ext:SecItemCopyMatching"
+   ],
+   "reads": [
+    "kc:session-encryption-key (AppConfig.keychainService, app host keychain)"
+   ],
+   "writes": [
+    "kc:session-encryption-key (AppConfig.keychainService, app host keychain)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.getOrCreateKey(version:)": "4022d046812dddbc",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.keychainAccount(for:)": "196540555ada322e",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.loadOrCreateKey(version:cache:)": "c39b463856e33c47",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::var EncryptionManager.isAvailable": "660c20ec52781b17"
+   }
+  },
+  {
+   "key": "func EncryptionManagerTests.testReEncryptIfNeededReturnNilForCurrentVersion()",
+   "hash": "42b32123074a5925",
+   "does": "Asserts reEncryptIfNeeded returns nil for freshly encrypted (current-version) data.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.getOrCreateKey(version:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.loadOrCreateKey(version:cache:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.keychainAccount(for:)",
+    "ext:AES.GCM.seal",
+    "ext:SecItemCopyMatching",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.reEncryptIfNeeded(_:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.extractVersion(from:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.magicPrefixed(_:)"
+   ],
+   "reads": [
+    "kc:session-encryption-key (AppConfig.keychainService, app host keychain)"
+   ],
+   "writes": [
+    "kc:session-encryption-key (AppConfig.keychainService, app host keychain)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)": "6236f6fa0100fadb",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.extractVersion(from:)": "a845a5d28c932fe3",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.getOrCreateKey(version:)": "4022d046812dddbc",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.keychainAccount(for:)": "196540555ada322e",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.loadOrCreateKey(version:cache:)": "c39b463856e33c47",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.magicPrefixed(_:)": "612228b56ca30f77",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.reEncryptIfNeeded(_:)": "ac34117d2665ab21"
+   }
+  },
+  {
+   "key": "func EncryptionManagerTests.testEncryptionErrorDescriptions()",
+   "hash": "d91ce12fd278dc54",
+   "does": "Asserts every EncryptionError case (encryptionFailed, decryptionFailed, keyNotFound, keychainError(-25300)) has a non-empty description.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Storage/EncryptionManager.swift::var EncryptionManager.EncryptionError.errorDescription"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "for each error",
+     "effect": "asserts description non-nil and non-empty"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/EncryptionManager.swift::var EncryptionManager.EncryptionError.errorDescription": "2ef8e50e5de70342"
+   }
+  },
+  {
+   "key": "func EncryptionManagerTests.testEncryptDecryptBinaryData()",
+   "hash": "e1aeeca513b2fc4f",
+   "does": "Round-trips 4096 bytes of (7i+13) mod 256.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.getOrCreateKey(version:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.loadOrCreateKey(version:cache:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.keychainAccount(for:)",
+    "ext:AES.GCM.seal",
+    "ext:SecItemCopyMatching",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.decrypt(_:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.extractVersion(from:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.magicPrefixed(_:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.legacyVersionPrefixed(_:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.openSealed(_:version:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.loadKey(version:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.retrieveKeyFromKeychain(account:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.makeKeyMigratable(account:)",
+    "ext:AES.GCM.open"
+   ],
+   "reads": [
+    "kc:session-encryption-key (AppConfig.keychainService, app host keychain)"
+   ],
+   "writes": [
+    "kc:session-encryption-key (AppConfig.keychainService, app host keychain)"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "for i in 0..<4096",
+     "effect": "fills each byte"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.decrypt(_:)": "f5111c347369a719",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)": "6236f6fa0100fadb",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.extractVersion(from:)": "a845a5d28c932fe3",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.getOrCreateKey(version:)": "4022d046812dddbc",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.keychainAccount(for:)": "196540555ada322e",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.legacyVersionPrefixed(_:)": "57781d7bd5072573",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.loadKey(version:)": "ca33f444b6f02684",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.loadOrCreateKey(version:cache:)": "c39b463856e33c47",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.magicPrefixed(_:)": "612228b56ca30f77",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.makeKeyMigratable(account:)": "d4f3a003d85390a6",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.openSealed(_:version:)": "131eba2f36eca16a",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.retrieveKeyFromKeychain(account:)": "5358dff5ae6f19a8"
+   }
+  }
+ ],
+ "deps": {}
+}

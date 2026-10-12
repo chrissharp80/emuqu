@@ -69,8 +69,10 @@ struct BiometricsSettingsPage: View {
     static let restingHRRange = 30 ... 110
     static let lthrRange = 80 ... 220
     static let ftpRange = 50 ... 600
-    /// Body weight in kg. The field's own ceiling is in `bodyWeightDisplayBinding`.
+    /// Body weight in kg: the minimum applied when editing ends, and the
+    /// ceiling `bodyWeightDisplayBinding` clamps each keystroke to.
     static let minimumBodyWeightKg = 30.0
+    static let maximumBodyWeightKg = 250.0
 
     /// Clear every value below its field's minimum — a typo such as "4.5" for
     /// a VO2max of 45, or "5" W of FTP — instead of feeding it to the stress
@@ -158,9 +160,12 @@ struct BiometricsSettingsPage: View {
         ].compactMap { $0 }
     }
 
-    /// Only if the user hasn't entered one.
+    /// Only if the user hasn't entered one, and only a weight the field itself
+    /// would keep (30–250 kg): one outside it would be cleared when the page
+    /// closes, or stored past the ceiling, after being reported as filled.
     private static func fillBodyWeight(_ settings: inout UserSettings, from profile: HealthKitManager.BiometricProfile) -> String? {
-        guard let kg = profile.bodyWeightKg, settings.bodyWeightKg == nil else { return nil }
+        guard let kg = profile.bodyWeightKg, settings.bodyWeightKg == nil,
+              (minimumBodyWeightKg ... maximumBodyWeightKg).contains(kg) else { return nil }
         settings.bodyWeightKg = kg
         settings.profileFieldsFromHealth.insert(.bodyWeight)
         let display = UnitsPreferenceStore.current.resolved == .imperial
@@ -232,7 +237,7 @@ struct BiometricsSettingsPage: View {
                 // Int helpers: clamp the upper sanity ceiling so a typo
                 // can't poison calorie math, but never the lower bound
                 // (which would rewrite the user's input mid-typing).
-                settingsManager.settings.bodyWeightKg = min(kg, 250.0)
+                settingsManager.settings.bodyWeightKg = min(kg, Self.maximumBodyWeightKg)
             }
         )
     }

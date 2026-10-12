@@ -62,7 +62,9 @@ extension AssistantMemoryNamespace {
         guard Self.latestUserMessageContains(args["user_quote"]) else {
             return Self.userRequestRequired("add a contact")
         }
-        let contact = addContact(name: name, email: email, notes: args["notes"])
+        guard let contact = addContact(name: name, email: email, notes: args["notes"]) else {
+            return Self.contactsUnreadable()
+        }
         return .record([
             "status": .string("added"),
             "id": .string(contact.id.uuidString),
@@ -81,17 +83,24 @@ extension AssistantMemoryNamespace {
         return nil
     }
 
-    private func addContact(name: String, email: String, notes rawNotes: String?) -> EmailContact {
+    /// The answer when the address book cannot be read (and so not saved).
+    private static func contactsUnreadable() -> FactValue {
+        .missing(
+            reason: .notRecorded,
+            detail: "the address book couldn't be read (phone not unlocked since a restart?) so nothing was changed — ask the user to unlock and try again"
+        )
+    }
+
+    /// The contact as saved, or nil when the address book could not be read.
+    private func addContact(name: String, email: String, notes rawNotes: String?) -> EmailContact? {
         let notes = rawNotes?.trimmingCharacters(in: .whitespacesAndNewlines)
         let contact = EmailContact(
             name: name,
             email: email,
             notes: (notes?.isEmpty ?? true) ? nil : notes
         )
-        MainActor.assumeIsolated {
-            AppDependencies.current.app.emailContactStore.add(contact)
-        }
-        return contact
+        let added = MainActor.assumeIsolated { AppDependencies.current.app.emailContactStore.add(contact) }
+        return added ? contact : nil
     }
 
     private static let assistantContactsAddDescription = """
@@ -129,9 +138,8 @@ extension AssistantMemoryNamespace {
         guard matches.count == 1, let target = matches.first else {
             return ambiguousContact(name: name, matches: matches.count)
         }
-        MainActor.assumeIsolated {
-            AppDependencies.current.app.emailContactStore.remove(id: target.id)
-        }
+        let removed = MainActor.assumeIsolated { AppDependencies.current.app.emailContactStore.remove(id: target.id) }
+        guard removed else { return Self.contactsUnreadable() }
         return .record([
             "status": .string("removed"),
             "name": .string(target.name),
@@ -222,9 +230,15 @@ extension AssistantMemoryNamespace {
             ? settings.defaultRecoveryEmailRecipient
             : settings.defaultTrainingEmailRecipient)?
             .trimmingCharacters(in: .whitespaces) ?? ""
-        let categoryCC = (category == "recovery"
+        // Parsed before the emptiness check, as the view-side mailers do, so
+        // a whitespace-only or comma-only CC counts as not configured.
+        let categoryCC = ((category == "recovery"
             ? settings.defaultRecoveryEmailCC
-            : settings.defaultTrainingEmailCC) ?? ""
+            : settings.defaultTrainingEmailCC) ?? "")
+            .split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .joined(separator: ",")
         return (
             to: primary.isEmpty ? (settings.resolvedDefaultEmailRecipient ?? "") : primary,
             cc: categoryCC.isEmpty ? settings.resolvedDefaultEmailCC.joined(separator: ",") : categoryCC
@@ -313,7 +327,7 @@ extension AssistantMemoryNamespace {
     }
 
     private static let assistantEmailComposeDescription = """
-    [ACTION] Stage an email draft and present the user's mail composer. Use this when the user says 'email that' / 'email me this' / 'send this to my coach'. The draft is staged as a notification the chat UI catches; iOS presents \
+    [ACTION] Stage an email draft and present the user's mail composer. Use this when the user says 'email that' / 'email me this' / 'send this to my coach'. The draft is staged on the email bridge, which the app's root view observes; iOS presents \
     Apple's MFMailComposeViewController so the user can review, edit recipients, and tap Send (or Cancel). Emuqu never sends mail directly. Body must be plain text: the composer shows it exactly as written, so Markdown symbols appear literally. The user \
     configures TWO sets of default recipients in Settings → Profile — one for RECOVERY emails (morning report, HRV/sleep) and one for TRAINING emails (workouts, sessions). Pass the `category` argument \
     to pick which defaults to use. ADDRESS BOOK: the user can save contacts (`assistant.contacts.list`); pass NAMES (e.g. 'chris, coach') in to/cc and the resolver will look them up. Mix names + explicit addresses freely. If \

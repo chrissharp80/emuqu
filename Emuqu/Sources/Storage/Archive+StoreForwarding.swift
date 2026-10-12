@@ -11,12 +11,21 @@ extension SessionArchive {
     func _retrieve(_ id: UUID) throws -> HRVSession? { try store._retrieve(id) }
     func archiveBatch(_ sessions: [HRVSession]) throws -> Int { try store.archiveBatch(sessions) }
     func delete(_ id: UUID) throws { try store.delete(id) }
-    func entryById(_ id: UUID) -> SessionArchiveEntry? { store.entryById(id) }
+    /// Takes `archiveLock` around the lookup, which reads `index` and fills
+    /// `sessionIdLookup`. Code already holding the lock calls
+    /// `store.entryById` directly: `NSLock` is not re-entrant.
+    func entryById(_ id: UUID) -> SessionArchiveEntry? {
+        archiveLock.lock()
+        defer { archiveLock.unlock() }
+        return store.entryById(id)
+    }
     func exists(_ id: UUID) -> Bool { store.exists(id) }
-    func forgetDeletedSession(_ id: UUID) throws { try store.forgetDeletedSession(id) }
+    /// Permanently forget a deleted session: the same removal from the
+    /// deleted list as `unmarkAsDeleted`.
+    func forgetDeletedSession(_ id: UUID) throws { try store.unmarkAsDeleted(id) }
     func trashedSession(_ id: UUID) -> HRVSession? { store.trashedSession(id) }
     func discardTrashed(_ id: UUID) { store.discardTrashed(id) }
-    func expireTrash(keepDays: Int = 90) { store.expireTrash(keepDays: keepDays) }
+    func expiredDeletionIds(keepDays: Int = 90) -> [UUID] { store.expiredDeletionIds(keepDays: keepDays) }
     var trashedIds: Set<UUID> { store.trashedIds }
     func markAsDeleted(_ id: UUID) throws { try store.markAsDeleted(id) }
     func unmarkAsDeleted(_ id: UUID) throws { try store.unmarkAsDeleted(id) }

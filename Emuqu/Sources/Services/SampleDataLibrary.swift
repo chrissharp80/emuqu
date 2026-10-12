@@ -75,9 +75,22 @@ struct SampleDataLibrary {
             collector.notifyArchiveChanged()
             return ids.count
         } catch {
-            await rebuildBaseline()
+            await undoFailedSeed()
             throw error
         }
+    }
+
+    /// A seed that failed after `finalize` ran has already let sample nights
+    /// into the baseline, and the tracker may have pushed their values into
+    /// the settings baseline. Nothing of the seed is left to remove later, so
+    /// rebuild the tracker, put back the settings baseline as `remove()`
+    /// does, and drop a ledger that recorded no nights so the next load
+    /// records the prior baseline afresh.
+    private func undoFailedSeed() async {
+        await rebuildBaseline()
+        restoreSettingsBaselineIfNeeded()
+        guard loadLedger().sessionIds.isEmpty else { return }
+        defaults.removeObject(forKey: Self.ledgerKey)
     }
 
     /// The app's own analysis: window selection within the estimated sleep,

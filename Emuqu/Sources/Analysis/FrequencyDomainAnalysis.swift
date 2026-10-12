@@ -65,7 +65,8 @@ enum FrequencyDomainAnalyzer {
     ///    destroying it while `vDSP_DFT_ExecuteD` is running causes use-after-free.
     /// 2. The number of distinct FFT sizes is bounded in practice (3–5 powers
     ///    of 2), so unbounded caching uses negligible memory.
-    /// 3. `teardownDFTCache()` provides explicit cleanup on memory warning or termination.
+    /// 3. Nothing frees them: `teardownDFTCache()` is a deliberate no-op (see
+    ///    its doc), so the few setups live for the app's lifetime.
     static func getDFTSetup(size: Int) -> OpaquePointer? {
         dftSetupCache.withLockUnchecked { cache in
             if let existing = cache[size] { return existing }
@@ -110,8 +111,11 @@ enum FrequencyDomainAnalyzer {
     private static let lfRange = HRVConstants.FrequencyBands.lfLow ..< HRVConstants.FrequencyBands.lfHigh
     private static let hfRange = HRVConstants.FrequencyBands.hfLow ... HRVConstants.FrequencyBands.hfHigh
 
-    /// Minimum window duration for VLF analysis (minutes)
-    private static let vlfMinDuration: Double = HRVConstants.FrequencyBands.minimumVLFWindowMinutes * 2
+    /// Minimum window duration (minutes) before VLF is reported: 10 minutes,
+    /// enough for the VLF pass's 256-s segments to overlap at least twice.
+    /// This is the gate applied; it is its own constant rather than a
+    /// multiple of another.
+    private static let vlfMinDuration: Double = 10.0
 
     // MARK: - Welch Configuration
 
@@ -153,7 +157,7 @@ enum FrequencyDomainAnalyzer {
         var t: [Double] = []
         var rr: [Double] = []
         for i in 0 ..< windowPoints.count where !windowFlags[i].isArtifact {
-            t.append(windowPoints[i].midpointMs / 1_000.0)
+            t.append((Double(windowPoints[i].t_ms) + Double(windowPoints[i].rr_ms) / 2.0) / 1_000.0)
             rr.append(Double(windowPoints[i].rr_ms))
         }
         guard t.count >= 60 else { return nil }

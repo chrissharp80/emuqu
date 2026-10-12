@@ -1,0 +1,331 @@
+{
+ "file": "Emuqu/Sources/Analysis/NonlinearAnalysis.swift",
+ "hash": "b21dbe9e780ba22e",
+ "role": "Nonlinear HRV metrics over the clean part of an analysis window: Poincaré SD1/SD2, sample entropy, approximate entropy and DFA alpha1/alpha2 (via DFAAnalyzer).",
+ "types": [
+  "NonlinearAnalyzer: enum — static nonlinear metric computation"
+ ],
+ "state": [],
+ "toplevel": "imports Accelerate for vDSP_meanvD; no globals.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func NonlinearAnalyzer.computeNonlinear(_:flags:windowStart:windowEnd:)",
+   "hash": "52b2b4abb7e8f3f4",
+   "does": "Validates window bounds against series and flags, collects non-artifact RR in the window, and returns NonlinearMetrics or nil when fewer than 10 clean beats. Called by HRVAnalysisPipeline+Metrics.swift:61 and ImportDataView+Actions.swift:223/472.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.metrics(forCleanRR:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "bounds invalid (start<0, start>end, end beyond points or flags)",
+     "effect": "return nil"
+    },
+    {
+     "at": "+13",
+     "cond": "for each index in window where flag not artifact",
+     "effect": "append RR"
+    },
+    {
+     "at": "+16",
+     "cond": "cleanRR.count < 10",
+     "effect": "return nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.metrics(forCleanRR:)": "1d6cc8f3ef15d6c8",
+    "EmuquTests/WorkoutRRMergeTests.swift::func WorkoutRRMergeTests.points(_:)": "c275ddb86778fcf0"
+   }
+  },
+  {
+   "key": "func NonlinearAnalyzer.metrics(forCleanRR:)",
+   "hash": "4294fe1cd59c7577",
+   "does": "Computes SD1/SD2, DFA (alpha1, alpha2, alpha1 R2), SD1/SD2 ratio, sample and approximate entropy (m=2, r=0.2) into NonlinearMetrics.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.computePoincareMetrics(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)",
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.computeSampleEntropy(_:m:r:)",
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.computeApproxEntropy(_:m:r:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "sd2 > 0",
+     "effect": "ratio sd1/sd2; else 0"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "3401262883b38a4b",
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.computeApproxEntropy(_:m:r:)": "860ec59b6f358221",
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.computePoincareMetrics(_:)": "1d8f6a93f23a8f8e",
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.computeSampleEntropy(_:m:r:)": "d4690332e5fc5195"
+   }
+  },
+  {
+   "key": "func NonlinearAnalyzer.computeApproxEntropy(_:m:r:)",
+   "hash": "bd97351fe6f7eb02",
+   "does": "Approximate entropy: tolerance 0.2*sample SD of full series, phi(m)-phi(m+1) on up-to-1000-point subsample; nil if too short or phi nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.sampleStandardDeviation(_:)",
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.entropySubsample(_:)",
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.computePhi(_:templateLength:tolerance:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "rr.count < m+2",
+     "effect": "nil"
+    },
+    {
+     "at": "+4",
+     "cond": "either phi nil",
+     "effect": "nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.computePhi(_:templateLength:tolerance:)": "4c73785b9d6b324a",
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.entropySubsample(_:)": "d38b174421ccd092",
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.sampleStandardDeviation(_:)": "8a931451a298edee"
+   }
+  },
+  {
+   "key": "func NonlinearAnalyzer.computePhi(_:templateLength:tolerance:)",
+   "hash": "5e9e89db71b8495c",
+   "does": "Pincus phi: mean log of per-template match fraction (self-match included) over n-m+1 templates.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.templatesMatch(_:_:_:templateLength:tolerance:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "n <= templateLength",
+     "effect": "nil"
+    },
+    {
+     "at": "+5",
+     "cond": "for each template i",
+     "effect": "count matches over all j"
+    },
+    {
+     "at": "+11",
+     "cond": "ci > 0",
+     "effect": "add log(ci); always true because of self-match"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.templatesMatch(_:_:_:templateLength:tolerance:)": "1b6395258b3c2a03"
+   }
+  },
+  {
+   "key": "func NonlinearAnalyzer.templatesMatch(_:_:_:templateLength:tolerance:)",
+   "hash": "efe0b01bcd8bda98",
+   "does": "Chebyshev template match: false if any element pair differs by more than tolerance.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "element difference > tolerance",
+     "effect": "return false; loop completes → true"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func NonlinearAnalyzer.computePoincareMetrics(_:)",
+   "hash": "5c66606162578f57",
+   "does": "SD1 = sqrt(var(successive diffs)/2), SD2 = sqrt(max(0, 2*var(RR) - SD1^2)) using population variance (Brennan 2001).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.successiveDifferenceVariance(_:)",
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.populationVariance(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "rr.count < 2",
+     "effect": "(0,0)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "SD1/SD2 are computed a second time for the HRV detail chart's Poincaré ellipse, by rotating centred (RRn, RRn+1) pairs. The ellipse drawn can differ from the SD1/SD2 numbers this unit stores (different centring and pairs).",
+     "evidence": [
+      "Emuqu/Sources/Analysis/NonlinearAnalysis.swift:111",
+      "Emuqu/Sources/Views/HRVDetailV2View+Charts.swift:193",
+      "Emuqu/Sources/Views/HRVDetailV2View+Charts.swift:207"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.populationVariance(_:)": "9557738a591c4f20",
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.successiveDifferenceVariance(_:)": "5ae2c4a8d547b16b"
+   }
+  },
+  {
+   "key": "func NonlinearAnalyzer.successiveDifferenceVariance(_:)",
+   "hash": "9c46da6bba13faf0",
+   "does": "Population variance of successive RR differences.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "rr.count < 2",
+     "effect": "0"
+    },
+    {
+     "at": "+6",
+     "cond": "for each adjacent pair",
+     "effect": "accumulate diff sum and square sum"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func NonlinearAnalyzer.populationVariance(_:)",
+   "hash": "477a877f8f7c46cd",
+   "does": "Population variance (divisor N) using vDSP mean.",
+   "entry": null,
+   "calls": [
+    "ext:Accelerate.vDSP_meanvD"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "for each value",
+     "effect": "accumulate squared deviation"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func NonlinearAnalyzer.sampleStandardDeviation(_:)",
+   "hash": "6d699b0f9c97dd1d",
+   "does": "Sample SD (divisor N-1) using vDSP mean.",
+   "entry": null,
+   "calls": [
+    "ext:Accelerate.vDSP_meanvD"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "for each value",
+     "effect": "accumulate squared deviation"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func NonlinearAnalyzer.entropySubsample(_:)",
+   "hash": "c5ac9d1552010225",
+   "does": "Evenly-strided subsample to 1000 points when longer.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "rr.count <= 1000",
+     "effect": "return unchanged"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func NonlinearAnalyzer.computeSampleEntropy(_:m:r:)",
+   "hash": "4ce9b859f7dd33f8",
+   "does": "Sample entropy -ln(A/B) with m=2, tolerance 0.2*SD of full series, on subsample; B and A are both counted over the same N − m templates (Richman & Moorman); nil when either count is 0.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.sampleStandardDeviation(_:)",
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.entropySubsample(_:)",
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.countTemplateMatches(_:templateLength:templateCount:tolerance:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "rr.count < m+2",
+     "effect": "nil"
+    },
+    {
+     "at": "+9",
+     "cond": "countM == 0 or countM1 == 0",
+     "effect": "nil (undefined entropy surfaced as missing)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.countTemplateMatches(_:templateLength:templateCount:tolerance:)": "7b59465cbff290f6",
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.entropySubsample(_:)": "d38b174421ccd092",
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.sampleStandardDeviation(_:)": "8a931451a298edee"
+   }
+  },
+  {
+   "key": "func NonlinearAnalyzer.countTemplateMatches(_:templateLength:templateCount:tolerance:)",
+   "hash": "76fa37c87fd55c99",
+   "does": "Counts template pairs (i<j, self-matches excluded) within tolerance among the first templateCount templates of templateLength; 0 when templateCount <= 0 or the templates would run past the data.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.templatesMatch(_:_:_:templateLength:tolerance:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no templates or templates past the data",
+     "effect": "0"
+    },
+    {
+     "at": "+3",
+     "cond": "for each i",
+     "effect": "count matches for j>i"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.templatesMatch(_:_:_:templateLength:tolerance:)": "1b6395258b3c2a03"
+   }
+  }
+ ],
+ "deps": {}
+}

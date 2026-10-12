@@ -1,0 +1,102 @@
+{
+ "file": "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift",
+ "hash": "9a16a4b9f547bebb",
+ "role": "Forwarders from AssistantViewModel to its on-demand AssistantTurnRouter value (router): dispatch, live-turn lookup, CoachVoiceGuard interception logging and the user-facts snapshot.",
+ "types": [
+  "AssistantViewModel: extension — router accessor and forwarders"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "var AssistantViewModel.router",
+   "hash": "cf6203b8d2ed2cbe",
+   "does": "Returns a new AssistantTurnRouter(owner: self) on every access.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AssistantViewModel.dispatch()",
+   "hash": "5818f676cefe4c18",
+   "does": "Forwards to router.dispatch().",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::var AssistantViewModel.router",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.dispatch()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.dispatch()": "30b075c2f2967258",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::var AssistantViewModel.router": "b9f0cdebbf83d111"
+   }
+  },
+  {
+   "key": "func AssistantViewModel.liveTurnIndex(for:)",
+   "hash": "823c344f174a47f4",
+   "does": "Forwards to router.liveTurnIndex(for:).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::var AssistantViewModel.router",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.liveTurnIndex(for:)"
+   ],
+   "reads": [
+    "mem:AssistantViewModel.turns"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.liveTurnIndex(for:)": "5a54c90b632f3664",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::var AssistantViewModel.router": "b9f0cdebbf83d111"
+   }
+  },
+  {
+   "key": "func AssistantViewModel.recordCoachVoiceInterception(reason:)",
+   "hash": "11c4330b2ebc5fce",
+   "does": "Forwards to router.recordCoachVoiceInterception(reason:).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::var AssistantViewModel.router",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.recordCoachVoiceInterception(reason:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.recordCoachVoiceInterception(reason:)": "f5cbc2a9a94e0820",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::var AssistantViewModel.router": "b9f0cdebbf83d111"
+   }
+  },
+  {
+   "key": "func AssistantViewModel.snapshotUserFacts()",
+   "hash": "86201e4be2265b3e",
+   "does": "Forwards to router.snapshotUserFacts().",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::var AssistantViewModel.router",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.snapshotUserFacts()"
+   ],
+   "reads": [
+    "file:user_facts.json"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.snapshotUserFacts()": "aca20d7821514c25",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::var AssistantViewModel.router": "b9f0cdebbf83d111"
+   }
+  }
+ ],
+ "deps": {}
+}

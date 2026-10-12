@@ -1,0 +1,195 @@
+{
+ "file": "EmuquTests/HRVChartSnapshotTests.swift",
+ "hash": "7a8647315bff7e6b",
+ "role": "@MainActor snapshot suite rendering TachogramView, PoincarePlotView, HeartRateChartView (from a frozen 600-beat overnight session and fixed HRVAnalysisResult) and AcknowledgementsView against committed raw references in EmuquTests/__Snapshots__.",
+ "types": [
+  "HRVChartSnapshotTests: class — @MainActor XCTestCase snapshot suite"
+ ],
+ "state": [
+  "mem:HRVChartSnapshotTests.anchor (Date 1_622_534_400)",
+  "mem:HRVChartSnapshotTests.fixedSessionId (UUID …C0DE)",
+  "file:EmuquTests/__Snapshots__/chart-tachogram.raw, chart-poincare.raw, chart-heart-rate.raw, screen-acknowledgements.raw"
+ ],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "test-defect",
+   "sev": "low",
+   "text": "Header says the same picture is produced 'on every machine and every day', but the tachogram and HR chart draw wall-clock x-axis labels via windowTimeLabels → LocalizedDateFormat 'jmm' in the host time zone/region (12 vs 24 h), and assertSnapshot pins only the language, not the time zone; references recorded in one zone differ from renders in another, absorbed only if within drawnFractionTolerance.",
+   "evidence": [
+    "EmuquTests/HRVChartSnapshotTests.swift:12",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift:519",
+    "EmuquTests/SnapshotTesting.swift:192"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func HRVChartSnapshotTests.makeSeries(beats:)",
+   "hash": "eacdaeb58fea64ca",
+   "does": "Test helper: builds a deterministic RRSeries of `beats` RR points (950 ms + linear 60 ms drift + 45 ms sine sway), with beats 200 and 401 shortened to 55% as ectopics, at the fixed session id and anchor date.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each beat index",
+     "effect": "computes RR and appends point (RRPoint init)"
+    },
+    {
+     "at": "+7",
+     "cond": "i == 200 || i == 401",
+     "effect": "multiplies RR by 0.55 (ectopic); otherwise unchanged"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a"
+   }
+  },
+  {
+   "key": "func HRVChartSnapshotTests.makeResult()",
+   "hash": "9487ca87f2bba39c",
+   "does": "Test helper: builds a fixed HRVAnalysisResult (window 100–400, RMSSD 45, SDNN 54, LF/HF 1.2, SD1/SD2 32/48, ANS metrics, 3% artifacts, analysisDate = anchor) marked consolidated/organized with HR stability 0.04.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.isOrganizedRecovery": "4179ba1b72db50c1",
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)": "501c2b4e36fffb8e",
+    "EmuquTests/RecoveryBlockClassificationTests.swift::func RecoveryBlockClassificationTests.isConsolidated(_:)": "8f7224c0359ecb0f"
+   }
+  },
+  {
+   "key": "func HRVChartSnapshotTests.makeSession()",
+   "hash": "926cfcecc97cbeb7",
+   "does": "Test helper: builds a complete 8-hour overnight HRVSession at anchor with the fixed series and result.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)",
+    "EmuquTests/HRVChartSnapshotTests.swift::func HRVChartSnapshotTests.makeSeries(beats:)",
+    "EmuquTests/HRVChartSnapshotTests.swift::func HRVChartSnapshotTests.makeResult()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5",
+    "EmuquTests/HRVChartSnapshotTests.swift::func HRVChartSnapshotTests.makeResult()": "4907b7436ba92c52",
+    "EmuquTests/HRVChartSnapshotTests.swift::func HRVChartSnapshotTests.makeSeries(beats:)": "8e2ff336f270a64f"
+   }
+  },
+  {
+   "key": "func HRVChartSnapshotTests.testTachogramRenders()",
+   "hash": "a10da34e4b4d8605",
+   "does": "Snapshot-asserts TachogramView(session, result) against 'chart-tachogram'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HRVChartSnapshotTests.swift::func HRVChartSnapshotTests.makeSession()",
+    "EmuquTests/HRVChartSnapshotTests.swift::func HRVChartSnapshotTests.makeResult()",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::var TachogramView.body"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/chart-tachogram.raw"
+   ],
+   "writes": [
+    "file:EmuquTests/__Snapshots__/chart-tachogram.raw (only when the reference is missing or SNAPSHOT_RECORD=1; the run then XCTFails, SnapshotTesting.swift:224-248)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::var TachogramView.body": "d15036584dd60036",
+    "EmuquTests/HRVChartSnapshotTests.swift::func HRVChartSnapshotTests.makeResult()": "4907b7436ba92c52",
+    "EmuquTests/HRVChartSnapshotTests.swift::func HRVChartSnapshotTests.makeSession()": "9e16513b1f8c98c4",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  },
+  {
+   "key": "func HRVChartSnapshotTests.testPoincarePlotRenders()",
+   "hash": "3bb0246e97f015e9",
+   "does": "Snapshot-asserts PoincarePlotView against 'chart-poincare'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HRVChartSnapshotTests.swift::func HRVChartSnapshotTests.makeSession()",
+    "EmuquTests/HRVChartSnapshotTests.swift::func HRVChartSnapshotTests.makeResult()",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::var PoincarePlotView.body"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/chart-poincare.raw"
+   ],
+   "writes": [
+    "file:EmuquTests/__Snapshots__/chart-poincare.raw (only when the reference is missing or SNAPSHOT_RECORD=1; the run then XCTFails, SnapshotTesting.swift:224-248)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::var PoincarePlotView.body": "7035e01003cf159a",
+    "EmuquTests/HRVChartSnapshotTests.swift::func HRVChartSnapshotTests.makeResult()": "4907b7436ba92c52",
+    "EmuquTests/HRVChartSnapshotTests.swift::func HRVChartSnapshotTests.makeSession()": "9e16513b1f8c98c4",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  },
+  {
+   "key": "func HRVChartSnapshotTests.testHeartRateChartRenders()",
+   "hash": "3aa6edb77151d99e",
+   "does": "Snapshot-asserts HeartRateChartView against 'chart-heart-rate'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HRVChartSnapshotTests.swift::func HRVChartSnapshotTests.makeSession()",
+    "EmuquTests/HRVChartSnapshotTests.swift::func HRVChartSnapshotTests.makeResult()",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::var HeartRateChartView.body"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/chart-heart-rate.raw"
+   ],
+   "writes": [
+    "file:EmuquTests/__Snapshots__/chart-heart-rate.raw (only when the reference is missing or SNAPSHOT_RECORD=1; the run then XCTFails, SnapshotTesting.swift:224-248)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::var HeartRateChartView.body": "39443bbdcc96a1f7",
+    "EmuquTests/HRVChartSnapshotTests.swift::func HRVChartSnapshotTests.makeResult()": "4907b7436ba92c52",
+    "EmuquTests/HRVChartSnapshotTests.swift::func HRVChartSnapshotTests.makeSession()": "9e16513b1f8c98c4",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  },
+  {
+   "key": "func HRVChartSnapshotTests.testAcknowledgementsRenders()",
+   "hash": "72fe53c54c1830d4",
+   "does": "Snapshot-asserts AcknowledgementsView against 'screen-acknowledgements'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/PrivacyPolicyView.swift::var AcknowledgementsView.body"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/screen-acknowledgements.raw"
+   ],
+   "writes": [
+    "file:EmuquTests/__Snapshots__/screen-acknowledgements.raw (only when the reference is missing or SNAPSHOT_RECORD=1; the run then XCTFails, SnapshotTesting.swift:224-248)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/PrivacyPolicyView.swift::var AcknowledgementsView.body": "81f718095cd5fa32",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  }
+ ],
+ "deps": {}
+}

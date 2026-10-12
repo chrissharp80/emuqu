@@ -178,7 +178,9 @@ final class CapabilityClassifier {
     private func embeddingClassify(_ text: String) -> [Axis: Double]? {
         guard let q = embed(text) else { return nil }
         let centroids = prototypeCentroids
-        guard !centroids.isEmpty else { return nil }
+        // A query and centroids from different embedders cannot be compared
+        // (cosine would read 0 on every axis); the keyword result stands.
+        guard !centroids.isEmpty, centroids.values.allSatisfy({ $0.count == q.count }) else { return nil }
         var scores: [Axis: Double] = [:]
         for (axis, centroid) in centroids {
             scores[axis] = cosineSimilarity(q, centroid)
@@ -191,22 +193,44 @@ final class CapabilityClassifier {
     // Used when the embedder isn't available (asset still downloading
     // on first launch, older device). Conservative — false-negative bias.
     // The thresholds for the embedder are stricter; here we only trip
-    // when the marker is unambiguous.
+    // when the marker is unambiguous. Markers match whole words only, so
+    // "wind" is not found in "window" nor "stock" in "stockings".
 
     private func keywordHeuristic(_ text: String) -> Requirement {
         Requirement(
-            needsTools: Self.toolMarkers.contains { text.contains($0) } || Self.asksToEmail(text),
-            needsWeb: Self.webMarkers.contains { text.contains($0) },
-            needsHistoricalDepth: Self.depthMarkers.contains { text.contains($0) },
-            needsSpeculation: Self.speculationMarkers.contains { text.contains($0) }
+            needsTools: Self.toolMarkers.contains { Self.contains(text, phrase: $0) } || Self.asksToEmail(text),
+            needsWeb: Self.webMarkers.contains { Self.contains(text, phrase: $0) },
+            needsHistoricalDepth: Self.depthMarkers.contains { Self.contains(text, phrase: $0) },
+            needsSpeculation: Self.speculationMarkers.contains { Self.contains(text, phrase: $0) }
         )
+    }
+
+    /// Whether `phrase` occurs in `text` as whole words: a letter or digit
+    /// at the phrase's edge must not run on into a neighbouring one.
+    static func contains(_ text: String, phrase: String) -> Bool {
+        var searchStart = text.startIndex
+        while let found = text.range(of: phrase, range: searchStart ..< text.endIndex) {
+            let before = found.lowerBound > text.startIndex ? text[text.index(before: found.lowerBound)] : nil
+            let after = found.upperBound < text.endIndex ? text[found.upperBound] : nil
+            if isBoundary(before, edge: phrase.first), isBoundary(after, edge: phrase.last) { return true }
+            searchStart = text.index(after: found.lowerBound)
+        }
+        return false
+    }
+
+    /// True when `neighbour` cannot extend the word `edge` ends: no
+    /// neighbour, an edge that is not itself a letter or digit, or a
+    /// neighbour that is neither.
+    private static func isBoundary(_ neighbour: Character?, edge: Character?) -> Bool {
+        guard let neighbour, let edge, edge.isLetter || edge.isNumber else { return true }
+        return !(neighbour.isLetter || neighbour.isNumber)
     }
 
     /// "Email" is a request only in the imperative or as a noun being
     /// asked for ("email today's report", "can you email it", "send an
     /// email"); a statement like "i did email yesterday" asks for nothing.
     private static func asksToEmail(_ text: String) -> Bool {
-        text.hasPrefix("email ") || emailRequestMarkers.contains { text.contains($0) }
+        text.hasPrefix("email ") || emailRequestMarkers.contains { contains(text, phrase: $0) }
     }
 
     private static let emailRequestMarkers: [String] = [
@@ -228,7 +252,8 @@ final class CapabilityClassifier {
         // "News" only as something asked about: "the news is good" is
         // conversation, "what does the news say" is a lookup.
         "the news say", "in the news", "news about", "news on", "news today",
-        "any news", "latest", "what's new",
+        // "Latest" alone is a data lookup ("what's my latest HRV").
+        "any news", "latest news", "latest research", "what's new",
         "commercially licensable", "license", "buy", "purchase",
         "is open", "open now", "open today",
         "currency", "exchange rate", "stock", "price of"
@@ -245,7 +270,9 @@ final class CapabilityClassifier {
     private static let speculationMarkers: [String] = [
         "predict", "best guess", "guess", "speculate",
         "how long will", "how long am i", "how long do i have",
-        "what if i", "would i", "could i", "will i ever",
+        // Bare "would i" / "could i" also open ordinary requests
+        // ("could i see my HRV"); these forms ask about an outcome.
+        "what if i", "would i improve", "would i get", "would i be", "could i ever", "will i ever",
         "if i kept", "if i continue", "if i keep"
     ]
 

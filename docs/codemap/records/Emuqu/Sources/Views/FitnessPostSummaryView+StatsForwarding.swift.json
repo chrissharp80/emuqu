@@ -1,0 +1,193 @@
+{
+ "file": "Emuqu/Sources/Views/FitnessPostSummaryView+StatsForwarding.swift",
+ "hash": "911d1ecb6ba1fdf6",
+ "role": "Forwarders from FitnessPostSummaryView to WorkoutStatsCards (charts, elevation, HRR banner/card) built per access from the current session, settings and track, plus the best-split headline computed from the resolved splits.",
+ "types": [
+  "FitnessPostSummaryView: extension — WorkoutStatsCards forwarders"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "var FitnessPostSummaryView.stats",
+   "hash": "0bb79da16ddfa2c0",
+   "does": "Constructs WorkoutStatsCards(session:settingsManager:track:) on every access.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.session",
+    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.track"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.session": "cc1e3419b78fc3c4",
+    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.track": "c1dc8df0f9c68727"
+   }
+  },
+  {
+   "key": "var FitnessPostSummaryView.bestSplitDisplay",
+   "hash": "d5b07fabd37e5fbe",
+   "does": "Fastest full split of cachedSplits (the unit-resolved splits the splits card shows): needs ≥2 splits; splits under 90% of the bucket (1 609.344 m or 1 000 m) or without a positive pace are skipped; pace formatted in the user's units and captioned '<mi|km> <index>' (unit from the resolved series) plus ' · N bpm'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::var FitnessPostSummaryView.units",
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(secondsPerMeter:)",
+    "Emuqu/Sources/Views/WorkoutStatsCards.swift::func LocalizedUnit.symbol(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:FitnessPostSummaryView.cachedSplits"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no resolved splits or fewer than 2",
+     "effect": "nil"
+    },
+    {
+     "at": "+6",
+     "cond": "no full split with a pace, or pace not formattable",
+     "effect": "nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(secondsPerMeter:)": "2df0cb439cc6c8c6",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::var FitnessPostSummaryView.units": "88eb8ae49d3ff5bb",
+    "Emuqu/Sources/Views/WorkoutStatsCards.swift::func LocalizedUnit.symbol(_:)": "9122e07d73744f47"
+   }
+  },
+  {
+   "key": "func FitnessPostSummaryView.hrChartCard(samples:)",
+   "hash": "c6cb72a98bc11808",
+   "does": "Forwards hrChartCard(samples:).",
+   "entry": "Rendered from summaryChartCards.",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView+StatsForwarding.swift::var FitnessPostSummaryView.stats",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrChartCard(samples:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessPostSummaryView+StatsForwarding.swift::var FitnessPostSummaryView.stats": "18abec93c15cf4e2",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrChartCard(samples:)": "6b36d64529625f43"
+   }
+  },
+  {
+   "key": "func FitnessPostSummaryView.paceChartCard(samples:)",
+   "hash": "a0b6f90fe4afd3d2",
+   "does": "Forwards paceChartCard(samples:).",
+   "entry": "Rendered from summaryChartCards.",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView+StatsForwarding.swift::var FitnessPostSummaryView.stats",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.paceChartCard(samples:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessPostSummaryView+StatsForwarding.swift::var FitnessPostSummaryView.stats": "18abec93c15cf4e2",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.paceChartCard(samples:)": "41eb0dbe9b128005"
+   }
+  },
+  {
+   "key": "func FitnessPostSummaryView.powerChartCard(samples:)",
+   "hash": "60b20eef03af8313",
+   "does": "Forwards powerChartCard(samples:).",
+   "entry": "Rendered from summaryChartCards.",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView+StatsForwarding.swift::var FitnessPostSummaryView.stats",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.powerChartCard(samples:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessPostSummaryView+StatsForwarding.swift::var FitnessPostSummaryView.stats": "18abec93c15cf4e2",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.powerChartCard(samples:)": "11c354841b7958e8"
+   }
+  },
+  {
+   "key": "func FitnessPostSummaryView.cadenceChartCard(samples:)",
+   "hash": "992e1f68098b24f6",
+   "does": "Forwards cadenceChartCard(samples:).",
+   "entry": "Rendered from summaryChartCards.",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView+StatsForwarding.swift::var FitnessPostSummaryView.stats",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.cadenceChartCard(samples:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessPostSummaryView+StatsForwarding.swift::var FitnessPostSummaryView.stats": "18abec93c15cf4e2",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.cadenceChartCard(samples:)": "48ce4195a33a013a"
+   }
+  },
+  {
+   "key": "var FitnessPostSummaryView.elevationCard",
+   "hash": "a22c1c42a55db228",
+   "does": "Forwards elevationCard.",
+   "entry": "Rendered from summaryChartCards.",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView+StatsForwarding.swift::var FitnessPostSummaryView.stats",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.elevationCard"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessPostSummaryView+StatsForwarding.swift::var FitnessPostSummaryView.stats": "18abec93c15cf4e2",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.elevationCard": "d524a1d5f47a6e8c"
+   }
+  },
+  {
+   "key": "var FitnessPostSummaryView.hrrCaptureBanner",
+   "hash": "b5833ca9090f6502",
+   "does": "Forwards hrrCaptureBanner.",
+   "entry": "Rendered from summaryBanners.",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView+StatsForwarding.swift::var FitnessPostSummaryView.stats",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.hrrCaptureBanner"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessPostSummaryView+StatsForwarding.swift::var FitnessPostSummaryView.stats": "18abec93c15cf4e2",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.hrrCaptureBanner": "98615339edd21e59"
+   }
+  },
+  {
+   "key": "var FitnessPostSummaryView.hrrCard",
+   "hash": "85216376f1860acb",
+   "does": "Forwards hrrCard.",
+   "entry": "Rendered from summaryFeelingAndAlpha1.",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView+StatsForwarding.swift::var FitnessPostSummaryView.stats",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.hrrCard"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessPostSummaryView+StatsForwarding.swift::var FitnessPostSummaryView.stats": "18abec93c15cf4e2",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.hrrCard": "8f98b64544303007"
+   }
+  }
+ ],
+ "deps": {}
+}

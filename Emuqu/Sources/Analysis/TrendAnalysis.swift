@@ -306,31 +306,31 @@ enum TrendAnalyzer {
         let sd = sqrt(values.map { pow($0 - mean, 2) }.reduce(0, +) / Double(n - 1))
         let cv = mean > 0 ? sd / mean * 100 : 0
         let sorted = values.sorted()
-        guard let minVal = sorted.first, let maxVal = sorted.last else {
-            return emptyRangeStatistics(metric: metric, count: n, mean: mean, sd: sd, cv: cv)
-        }
-        let slope = linearRegressionSlope(values: values, dates: dates)
+        // Always bound (n >= 2); the binding only avoids a force-unwrap.
+        guard let minVal = sorted.first, let maxVal = sorted.last else { return insufficientStatistics(metric: metric, values: values) }
+        let latest = baselineDeviation(values: values, dates: dates)
         return TrendStatistics(
             metric: metric, count: n, mean: mean, standardDeviation: sd,
             min: minVal, max: maxVal,
             percentile25: sorted[Swift.min(Int(Double(n) * 0.25), n - 1)],
             percentile75: sorted[Swift.min(Int(Double(n) * 0.75), n - 1)],
             trend: direction(of: TrendVerdict.evaluate(values: values, dates: dates, scale: rule.scale), rule: rule),
-            trendSlope: slope, coefficientOfVariation: cv,
-            baseline: baselineDeviation(values: values, dates: dates, mean: mean).baseline,
-            deviationFromBaseline: baselineDeviation(values: values, dates: dates, mean: mean).deviation
+            trendSlope: linearRegressionSlope(values: values, dates: dates), coefficientOfVariation: cv,
+            baseline: latest.baseline, deviationFromBaseline: latest.deviation
         )
     }
 
-    /// The rolling 7-day baseline and today's percentage distance from it.
-    private static func baselineDeviation(
-        values: [Double],
-        dates: [Date],
-        mean: Double
-    ) -> (baseline: Double?, deviation: Double?) {
-        let baseline = computeRollingBaseline(values: values, dates: dates, windowDays: 7).last
-        let currentValue = values.last ?? mean
-        return (baseline, baseline.map { (currentValue - $0) / $0 * 100 })
+    /// The latest reading's 7-day baseline — the mean of the readings in the
+    /// seven days before it — and its percentage distance from that baseline.
+    /// Both nil when no reading falls in those seven days (or the baseline is
+    /// zero): the latest value is not its own baseline, and a 0% deviation
+    /// from itself would claim the reading sits on a baseline it never had.
+    private static func baselineDeviation(values: [Double], dates: [Date]) -> (baseline: Double?, deviation: Double?) {
+        guard values.count == dates.count, let last = values.indices.last,
+              let baseline = priorWindowMean(values: values, dates: dates, index: last, windowDays: 7),
+              baseline != 0
+        else { return (nil, nil) }
+        return (baseline, (values[last] - baseline) / baseline * 100)
     }
 
     /// Fewer than two readings is not a trend — report the single value with
@@ -348,24 +348,6 @@ enum TrendAnalyzer {
             trend: .insufficient,
             trendSlope: 0,
             coefficientOfVariation: 0,
-            baseline: nil,
-            deviationFromBaseline: nil
-        )
-    }
-
-    private static func emptyRangeStatistics(metric: String, count: Int, mean: Double, sd: Double, cv: Double) -> TrendStatistics {
-        TrendStatistics(
-            metric: metric,
-            count: count,
-            mean: mean,
-            standardDeviation: sd,
-            min: 0,
-            max: 0,
-            percentile25: 0,
-            percentile75: 0,
-            trend: .insufficient,
-            trendSlope: 0,
-            coefficientOfVariation: cv,
             baseline: nil,
             deviationFromBaseline: nil
         )
@@ -409,8 +391,9 @@ enum TrendAnalyzer {
         return denominator > 0 ? numerator / denominator : 0
     }
 
-    /// What the RMSSD trend and its spread say on their own.
-    private static func rmssdInsights(_ rmssd: TrendStatistics) -> [String] {
+    /// What the RMSSD trend and its spread say on their own. `latestReading`
+    /// is the date of the reading `deviationFromBaseline` describes.
+    private static func rmssdInsights(_ rmssd: TrendStatistics, latestReading: Date?) -> [String] {
         var out: [String] = []
         switch rmssd.trend {
         case .improving:
@@ -425,14 +408,20 @@ enum TrendAnalyzer {
         if rmssd.coefficientOfVariation > 25 {
             out.append(String(localized: "Your HRV varies a lot day-to-day. This could mean inconsistent sleep or recovery patterns.", bundle: LanguageManager.appBundle))
         }
-        out += baselineDeviationInsights(rmssd.deviationFromBaseline)
+        out += baselineDeviationInsights(rmssd.deviationFromBaseline, latestReading: latestReading)
         return out
     }
 
     /// A day well off the user's own baseline is worth calling out in either
-    /// direction.
-    private static func baselineDeviationInsights(_ deviation: Double?) -> [String] {
-        guard let deviation else { return [] }
+    /// direction. The deviation is the LATEST reading's in the period, which
+    /// the copy calls today's HRV and may advise a rest day on, so it is only
+    /// called out when that reading is last night's — one dated today or
+    /// yesterday (an overnight is dated by its start). An older latest reading
+    /// (a period that ends before today) says nothing about today.
+    private static func baselineDeviationInsights(_ deviation: Double?, latestReading: Date?) -> [String] {
+        guard let deviation, let latestReading,
+              Calendar.current.isDateInToday(latestReading) || Calendar.current.isDateInYesterday(latestReading)
+        else { return [] }
         if deviation < -15 {
             return [String(localized: "Today's HRV is \(abs(deviation).formatted(.number.precision(.fractionLength(0))))% below your baseline. Consider a rest day.", bundle: LanguageManager.appBundle)]
         }
@@ -495,7 +484,7 @@ enum TrendAnalyzer {
         stress: TrendStatistics?,
         readiness: TrendStatistics?
     ) -> [String] {
-        rmssdInsights(rmssd)
+        rmssdInsights(rmssd, latestReading: dataPoints.last?.date)
             + autonomicInsights(stress: stress, readiness: readiness)
             + heartRateAndQualityInsights(hr: hr, dataPoints: dataPoints)
     }

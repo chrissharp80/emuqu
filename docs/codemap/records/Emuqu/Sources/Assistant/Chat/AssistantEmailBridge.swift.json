@@ -1,0 +1,93 @@
+{
+ "file": "Emuqu/Sources/Assistant/Chat/AssistantEmailBridge.swift",
+ "hash": "b145c785d650b948",
+ "role": "Hand-off between AI/coach-report code that stages an email draft and the app-root sheet that presents MailComposerView.",
+ "types": [
+  "AssistantEmailDraft: struct Equatable Identifiable — subject/body/to/cc/attachment",
+  "AssistantEmailBridge: final class (@Observable @MainActor) — holds pendingDraft"
+ ],
+ "state": [
+  "mem:AssistantEmailBridge.shared",
+  "mem:AssistantEmailBridge.pendingDraft (@Observable, observed by EmuquApp .sheet(item:))"
+ ],
+ "toplevel": "AssistantEmailDraft.id = UUID() per instance (each staged draft is a new sheet item).",
+ "flags": [],
+ "units": [
+  {
+   "key": "init AssistantEmailDraft(subject:body:recipients:ccRecipients:attachmentURL:)",
+   "hash": "5ad75d397ca18c8f",
+   "does": "Memberwise init with recipients array, cc default [], attachment default nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "init AssistantEmailDraft(subject:body:recipient:ccRecipients:attachmentURL:)",
+   "hash": "4578839d1b7c5ec7",
+   "does": "Convenience init taking a single optional recipient, wrapped into an array (empty when nil).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/AssistantEmailBridge.swift::init AssistantEmailDraft(subject:body:recipients:ccRecipients:attachmentURL:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "recipient.map{[$0]} ?? []",
+     "effect": "nil recipient → empty to: list"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/AssistantEmailBridge.swift::init AssistantEmailDraft(subject:body:recipients:ccRecipients:attachmentURL:)": "0196e5ee14e14193",
+    "Emuqu/Sources/Assistant/Chat/AssistantEmailBridge.swift::var AssistantEmailDraft.recipient": "e466ff76fa41f2e0"
+   }
+  },
+  {
+   "key": "init AssistantEmailBridge()",
+   "hash": "4f171088cdf643a5",
+   "does": "Private no-op init.",
+   "entry": "static let shared initializer",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AssistantEmailBridge.stage(_:)",
+   "hash": "21efbb6b20d39b7d",
+   "does": "Sets pendingDraft, which makes EmuquApp present the mail composer sheet.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:AssistantEmailBridge.pendingDraft"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AssistantEmailBridge.clear()",
+   "hash": "d6fde99d7019c157",
+   "does": "Sets pendingDraft to nil after the composer closes.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:AssistantEmailBridge.pendingDraft"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

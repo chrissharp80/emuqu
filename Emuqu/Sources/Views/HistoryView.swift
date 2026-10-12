@@ -7,6 +7,10 @@ struct HistoryView: View {
     @Environment(RRCollector.self) private var collector
     @Environment(ArchiveSignal.self) private var archiveSignal
 
+    /// No longer called: History deletes and saves tags itself
+    /// (`SessionTrash.move`, `saveTags`) so it can tell the user when either
+    /// fails, which a `Void` closure cannot report. Kept until its call
+    /// sites stop passing them.
     let onDelete: (HRVSession) -> Void
     let onUpdateTags: (HRVSession, [ReadingTag], String?) -> Void
     var onReanalyze: ((HRVSession, WindowSelectionMethod) async -> HRVSession?)?
@@ -16,6 +20,9 @@ struct HistoryView: View {
 
     @State private var deleteSessionId: UUID?
     @State private var showingDeleteAlert = false
+    /// What went wrong with the user's last action (delete, tag save, sleep
+    /// edit, opening a reading), shown over whichever surface is on top.
+    @State private var failureMessage: String?
     @State private var selectedSession: HRVSession?
     @State private var selectedLinkedSegments: [LinkedSegmentInfo]?
     /// The overnight sessions before the selected one, loaded with it.
@@ -41,9 +48,20 @@ struct HistoryView: View {
 
     private static let monthYearStyle: Date.FormatStyle = .dateTime.month(.wide).year()
 
+    /// Sections in reading order. Each carries its newest entry's date (the
+    /// first one placed in it, as `filteredEntries` is newest first), which
+    /// orders the month sections.
     private var groupedEntries: [(String, [SessionArchiveEntry])] {
-        Dictionary(grouping: visibleEntries) { Self.sectionKey(for: $0.displayDate) }
-            .sorted(by: Self.sectionsInReadingOrder)
+        let sections = visibleEntries.reduce(into: [String: HistorySection]()) { sections, entry in
+            let key = Self.sectionKey(for: entry.displayDate)
+            sections[key, default: HistorySection(newest: entry.displayDate, entries: [])].entries.append(entry)
+        }
+        return sections.sorted(by: Self.sectionsInReadingOrder).map { ($0.key, $0.value.entries) }
+    }
+
+    private struct HistorySection {
+        let newest: Date
+        var entries: [SessionArchiveEntry]
     }
 
     /// The bucket an entry falls into. Named, not formatted, for the four recent
@@ -62,19 +80,15 @@ struct HistoryView: View {
 
     /// Named buckets first in their fixed order, then months newest-first.
     private static func sectionsInReadingOrder(
-        _ first: (key: String, value: [SessionArchiveEntry]),
-        _ second: (key: String, value: [SessionArchiveEntry])
+        _ first: (key: String, value: HistorySection),
+        _ second: (key: String, value: HistorySection)
     ) -> Bool {
         let order = ["Today", "Yesterday", "This Week", "Last Week"]
         let idx1 = order.firstIndex(of: first.key) ?? Int.max
         let idx2 = order.firstIndex(of: second.key) ?? Int.max
         if idx1 != idx2 { return idx1 < idx2 }
-        // For months, sort by date descending
-        if let date1 = first.value.first?.displayDate,
-           let date2 = second.value.first?.displayDate {
-            return date1 > date2
-        }
-        return first.key < second.key
+        // Months, newest first.
+        return first.value.newest > second.value.newest
     }
 
     /// Maps a grouping key (a stable English identifier also used as the
@@ -227,6 +241,14 @@ struct HistoryView: View {
             .contextMenu { askFloButton(entry) }
     }
 
+    /// Whether a tap on this row opens the morning report, where tags are
+    /// edited — the same routing as `sessionDetailSheet`: not a workout
+    /// (fitness summary), and analysed (the index's RMSSD comes from the
+    /// analysis result, so it is nil exactly when there is none).
+    private static func opensTagEditor(_ entry: SessionArchiveEntry) -> Bool {
+        entry.sessionType != .workout && entry.meanRMSSD != nil
+    }
+
     private func deleteEntryButton(_ entry: SessionArchiveEntry) -> some View {
         Button(role: .destructive) {
             deleteSessionId = entry.sessionId
@@ -236,13 +258,17 @@ struct HistoryView: View {
         }
     }
 
+    /// Offered only on rows whose detail view has the tag editor.
+    @ViewBuilder
     private func editTagsButton(_ entry: SessionArchiveEntry) -> some View {
-        Button {
-            loadAndSelect(entry)
-        } label: {
-            Label(String(localized: "Edit Tags", bundle: LanguageManager.appBundle), systemImage: "tag")
+        if Self.opensTagEditor(entry) {
+            Button {
+                loadAndSelect(entry)
+            } label: {
+                Label(String(localized: "Edit Tags", bundle: LanguageManager.appBundle), systemImage: "tag")
+            }
+            .tint(.blue)
         }
-        .tint(.blue)
     }
 
     /// Hidden when the AI Assistant is off: the Flo tab doesn't exist then.
@@ -297,13 +323,25 @@ struct HistoryView: View {
     /// Delete confirmation, the archive refresh, cancelling the selection load
     /// on the way out, and the session-detail sheet.
     private func withHistoryLifecycle(_ content: some View) -> some View {
-        withDeleteAlert(content)
+        withFailureAlert(withDeleteAlert(content), shown: selectedSession == nil)
             .onAppear { viewModel.refreshIfNeeded(archiveVersion: archiveSignal.version) }
             .onChange(of: archiveSignal.version) { viewModel.refreshIfNeeded(archiveVersion: archiveSignal.version) }
             .onDisappear { cancelInFlightWork() }
             .sheet(item: $selectedSession) { session in
-                sessionDetailSheet(for: session)
+                withFailureAlert(sessionDetailSheet(for: session), shown: true)
             }
+    }
+
+    /// The failure alert, attached both to the list and to the detail sheet:
+    /// an alert on the list cannot show while the sheet covers it, so `shown`
+    /// lets exactly one of the two present it.
+    private func withFailureAlert(_ content: some View, shown: Bool) -> some View {
+        content.alert(
+            failureMessage ?? "",
+            isPresented: Binding(get: { shown && failureMessage != nil }, set: { if !$0 { failureMessage = nil } })
+        ) {
+            Button(String(localized: "OK", bundle: LanguageManager.appBundle), role: .cancel) {}
+        }
     }
 
     private func withDeleteAlert(_ content: some View) -> some View {
@@ -328,13 +366,19 @@ struct HistoryView: View {
     private func confirmDelete() {
         guard let sessionId = deleteSessionId else { return }
         deleteSessionId = nil
+        moveToTrash(sessionId)
+    }
+
+    /// Moves the reading to Trash; tells the user when it could not be moved.
+    @discardableResult
+    private func moveToTrash(_ sessionId: UUID) -> Bool {
         do {
-            try collector.archive.delete(sessionId)
-            collector.notifyArchiveChanged()
-            // Sync the deletion to iCloud so it doesn't reappear on the next pull.
-            Task { await dependencies.storage.cloudKitSyncManager.uploadDeletion(sessionId) }
+            try SessionTrash.move(sessionId, collector: collector, cloudKit: dependencies.storage.cloudKitSyncManager)
+            return true
         } catch {
-            debugLog("[HistoryView] Failed to delete session")
+            debugLog("[HistoryView] Failed to delete session \(sessionId.uuidString.prefix(8)): \(error)")
+            failureMessage = String(localized: "Couldn't delete this reading. Try again.", bundle: LanguageManager.appBundle)
+            return false
         }
     }
 
@@ -372,6 +416,8 @@ struct HistoryView: View {
     /// So it runs off-main via `retrieveFullSessionAsync`, with task
     /// cancellation tied to view lifecycle so navigating away
     /// mid-decode doesn't waste cycles or fight a newer selection.
+    /// A reading that cannot be read says so instead of leaving the tap
+    /// looking ignored.
     private func loadAndSelect(_ entry: SessionArchiveEntry) {
         // Cancel any prior in-flight selection — only the latest tap
         // matters. Without this, a tap-tap-tap on different rows
@@ -380,24 +426,38 @@ struct HistoryView: View {
         selectionTask?.cancel()
         selectionTask = Task {
             guard let session = await collector.retrieveFullSessionAsync(entry.sessionId) else {
-                debugLog("[HistoryView] Failed to load session \(entry.sessionId)")
+                reportLoadFailure(entry.sessionId)
                 return
             }
             await select(session)
         }
     }
 
+    /// Logs the failed read and, unless a newer tap cancelled this one, tells
+    /// the user the reading could not be opened.
+    private func reportLoadFailure(_ sessionId: UUID) {
+        debugLog("[HistoryView] Failed to load session \(sessionId)")
+        if !Task.isCancelled {
+            failureMessage = String(localized: "Couldn't open this reading. Try again.", bundle: LanguageManager.appBundle)
+        }
+    }
+
     /// An old night is judged against the nights before it, not the newest
-    /// ones in the archive, so those load with it.
+    /// ones in the archive, so those load with it. Its linked segments are
+    /// read off the main actor too: `linkedSegments` retrieves (reads,
+    /// decrypts, decodes) every linked session.
     private func select(_ session: HRVSession) async {
         let before = await collector.recentSessionsAsync(
             limit: MorningResultsView.recentSessionsContextLimit, before: session.startDate)
+        if Task.isCancelled { return }
+        let archive = collector.archive
+        let segments = await Task.detached(priority: .userInitiated) { archive.linkedSegments(for: session) }.value
         if Task.isCancelled { return }
         cachedRecentSessions = before.filter { $0.state == .complete }
         // The BFS dedup in filteredEntries already picks the
         // winner from each linked chain, so the tapped entry IS
         // the best session. No need to load the rest of the night.
-        selectedLinkedSegments = collector.archive.linkedSegments(for: session)
+        selectedLinkedSegments = segments
         selectedSession = session
     }
 
@@ -449,23 +509,38 @@ struct HistoryView: View {
             onDiscard: { selectedSession = nil },
             onDelete: { deleteAndDismiss(session) },
             onReanalyze: { s, method in await onReanalyze?(s, method) },
-            onUpdateTags: { tags, notes in onUpdateTags(session, tags, notes) },
+            onUpdateTags: { tags, notes in saveTags(session, tags: tags, notes: notes) },
             onReanalyzeAt: { await collector.reanalyzeAtPosition(session, targetMs: $0) },
             onApplyManualResult: { await collector.applyManualAnalysis(session, result: $0) },
-            onUpdateSleep: { collector.updateSessionSleepBoundaries(sessionId: session.id, sleepData: $0) },
-            onAdjustSleep: { adjustSleep(session, sleepData: $0) },
+            onUpdateSleep: { saveSleep(session, sleepData: $0, isUserAdjustment: false) },
+            onAdjustSleep: { saveSleep(session, sleepData: $0, isUserAdjustment: true) },
             onUnlinkSegment: { collector.unlinkSegment(segmentId: $0, fromSession: session.id) },
             linkedSegments: selectedLinkedSegments
         )
     }
 
+    /// The sheet closes only once the reading has left the archive; when it
+    /// could not be moved, the sheet stays and says so.
     private func deleteAndDismiss(_ session: HRVSession) {
-        onDelete(session)
+        guard moveToTrash(session.id) else { return }
         selectedSession = nil
     }
 
-    private func adjustSleep(_ session: HRVSession, sleepData: SleepData) {
-        _ = collector.updateSessionSleepBoundaries(sessionId: session.id, sleepData: sleepData, isUserAdjustment: true)
+    private func saveTags(_ session: HRVSession, tags: [ReadingTag], notes: String?) {
+        do {
+            try collector.archive.updateTags(session.id, tags: tags, notes: notes)
+            collector.notifyArchiveChanged()
+        } catch {
+            debugLog("[HistoryView] Failed to update tags: \(error)")
+            failureMessage = String(localized: "Couldn't save: \(error.localizedDescription)", bundle: LanguageManager.appBundle)
+        }
+    }
+
+    private func saveSleep(_ session: HRVSession, sleepData: SleepData, isUserAdjustment: Bool) {
+        guard !collector.updateSessionSleepBoundaries(
+            sessionId: session.id, sleepData: sleepData, isUserAdjustment: isUserAdjustment
+        ) else { return }
+        failureMessage = String(localized: "Your timeline change couldn't be stored. Please try again.", bundle: LanguageManager.appBundle)
     }
 
     // MARK: - Session Type Filter Bar
@@ -656,8 +731,8 @@ extension HistoryView {
                 .font(.subheadline)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
-                .background(viewModel.selectedTags.isEmpty ? Color.blue : Color.gray.opacity(0.2))
-                .foregroundColor(viewModel.selectedTags.isEmpty ? .white : .primary)
+                .background(viewModel.selectedTags.isEmpty ? AppTheme.primary : AppTheme.primary.opacity(0.15))
+                .foregroundColor(viewModel.selectedTags.isEmpty ? .white : AppTheme.primary)
                 .cornerRadius(16)
                 .frame(minHeight: 44)
                 .contentShape(Rectangle())
@@ -831,7 +906,8 @@ private struct EntryHistoryRow: View {
     /// Workout rows must not show RMSSD
     /// (mid-effort RR is contaminated and often reads as nonsense, e.g. 3 ms)
     /// or a recovery score, which is an overnight construct workouts do not
-    /// get. Workouts render duration and sport; overnights, naps, quick
+    /// get. Workouts render their duration and a "Workout" caption (the
+    /// index carries no sport); overnights, naps, quick
     /// checks and breathe sessions keep the RMSSD + recovery layout.
     private var rowMetrics: some View {
         VStack(alignment: .trailing, spacing: 4) {
@@ -978,9 +1054,24 @@ private var quickBadge: some View {
     }
 }
 
+/// The one way a screen moves a reading to Trash: out of the archive, every
+/// observer told, and the deletion queued for iCloud so the next pull does
+/// not bring it back. Throws when the archive could not move it, so the
+/// caller can tell the user.
+@MainActor
+enum SessionTrash {
+    static func move(_ sessionId: UUID, collector: RRCollector, cloudKit: CloudKitSyncManager) throws {
+        try collector.archive.delete(sessionId)
+        collector.notifyArchiveChanged()
+        Task { await cloudKit.uploadDeletion(sessionId) }
+    }
+}
+
 /// Readiness (0-10) and the 0-100 composite the row shows. Legacy ms-scale
-/// imports (RMSSD × stability) are scaled and clamped into 0-10.
-private func historyDisplayScore(_ rawScore: Double) -> (readiness: Double, composite: Int) {
+/// imports (RMSSD × stability) are scaled and clamped into 0-10. The one
+/// conversion of a stored score for display in History and its calendar
+/// (`HistoryCalendarView`'s day sheet), so the two show the same number.
+func historyDisplayScore(_ rawScore: Double) -> (readiness: Double, composite: Int) {
     let readiness = rawScore > 10 ? min(10, rawScore / 5.0) : rawScore
     return (readiness, ScoreVerdict.safeDisplayScore(readiness * 10))
 }

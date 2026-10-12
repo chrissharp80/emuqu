@@ -206,10 +206,13 @@ STEP 2: Build initial RRSeries
   series = RRSeries(points, sessionId, baseSession.startDate)
 
 STEP 3: Same-night merge (for SEPARATE sessions, NOT pause/resume)
-  IF sessionType == .overnight:
-    Find all archived .overnight sessions from the same biological night
+  IF sessionType == .overnight AND settings.sessionMergeMode != .off:
+    Find archived .overnight sessions from the same biological night
     (using sleepSchedule.overnightWindowStart)
     SKIP sessions already in linkedSessionIds (already merged via pause/resume)
+    KEEP only segments within the merge gap of the base session's chain
+    (segmentsWithinGap; Default 4.5 h, or the user's Custom gap) —
+    same-night sessions farther apart stay separate
 
     IF found same-night sessions:
       allSegments = [(baseSession.startDate, points)] + archived segments
@@ -566,10 +569,12 @@ START RECORDING
         3. findRecoverableArchivedSession()
            — searches archive for overnight entries started < 24h ago
              with meanRMSSD==nil OR recoveryScore<=1.0
-           — returns the newest candidate
-    └→ Device-internal download uses the recovered session's ID
-       (same UUID, same startDate) — no duplicate session created,
-       placeholder is rewritten in place.
+           — returns the candidate only when exactly one matches;
+             with more than one it logs the ambiguity and returns nil,
+             and the strap file is filed by its own start instead
+    └→ With a single candidate, the device-internal download uses the
+       recovered session's ID (same UUID, same startDate) — no duplicate
+       session created, placeholder is rewritten in place.
 ```
 
 ---
@@ -771,10 +776,11 @@ any. Nothing else reduces the set.
 
 ## 13. Post-Acceptance Mutation Contract
 
-An archived session is **frozen** except for two narrow classes of
-mutation: explicit user actions, and automatic *additive-merge*
-paths that fill in late-arriving HealthKit data without overwriting
-existing real values.
+An archived session is **frozen** except for explicit user actions,
+the one-shot launch migrations below, the automatic sleep refresh of
+today's session (§13.2), and automatic *additive-merge* paths that fill
+in late-arriving HealthKit data without overwriting existing real
+values.
 
 ### 13.1 User-initiated mutations (full-overwrite allowed)
 
@@ -784,8 +790,8 @@ existing real values.
 | `retroApplySleepSettings` | HRV-sleep-augmentation toggle | Yes |
 | `applyManualAnalysis` | Manual window drag | Yes |
 | `updateSessionSleepBoundaries` | Timeline editor Done | Yes |
-| `repairTrainingSnapshots` | Settings → Troubleshooting → Advanced Diagnostics on → Repair Training History… | Yes |
-| `runInsufficientDataMigrationIfNeeded` | First launch only, gated | No, but one-shot |
+| `repairTrainingSnapshots` | Settings → Troubleshooting → Advanced Diagnostics on → Repair Training History…; also once at launch through `runTrimpRepairMigrationIfNeeded` (below) | Yes, except the launch run |
+| Launch one-shot migrations (`SessionDataMigrations.runAllIfNeeded`) | App launch, each flag-gated so it runs once per install | No, but one-shot. InsufficientData rescores reclassified nights; TrainingRecalibration and TrimpRepair (`didRunTrimpRepairMigration_v1`, only with training-load integration on) rewrite the training snapshot and frozen readiness but not the recovery score; WorkoutSleepCleanup strips sleep snapshots from workouts; NapRepair and TimeInBed recompute scores (`recomputeScoreOnly`). |
 | `SessionRecoveryService` recovery fallback | App relaunch detecting an interrupted recording (rare) | No, but only fires when a recording was interrupted mid-flight — recomputes deterministically from the same inputs. |
 | CloudKit merge | Sync import | No (import only) |
 | Session resume | Resume button | Yes |
@@ -800,9 +806,8 @@ when the merge added at least one non-nil field.
 
 | Path | Trigger | Behavior |
 |------|---------|---|
-| Dashboard vitals refresh | HK vitals observer fire | Fills `vitalsSnapshot` nil fields with fresh HK values. Strap-derived RHR (`session.analysisResult.timeDomain.meanHR`) always wins over HK daytime RHR. |
-| `RecoveryScoreDetailView` vitals refresh | View open | Same additive merge as above, scoped to the displayed session. |
-| `HealthKitManager.fetchSleepData` | Dashboard load | If frozen `sleepSnapshot.totalSleepMinutes == 0` or `sleepEnd` is impossibly in the future, refetches HK. Otherwise reads the frozen snapshot. |
+| `RecoveryScoreDetailView` vitals refresh | View open, and each HK vitals observer fire (`MorningCoordination.vitalsDataVersion`) while it is open | Fills `vitalsSnapshot` nil fields with fresh HK values (`RecoveryVitalsBackfill`), scoped to the displayed session. Strap-derived RHR (`session.analysisResult.timeDomain.meanHR`) always wins over HK daytime RHR. This is the only path that writes late vitals to the archive: there is no dashboard refresh, so vitals that arrive after acceptance reach Trends, the Coach context and PDFs only once this screen has been opened for that session. (`VitalsDetailV2View` re-fetches on the same signal for display only and writes nothing.) |
+| Frozen `sleepSnapshot` at scoring | Reanalysis / rescore | Any non-nil frozen snapshot is used unchanged, even an empty one (`MorningProcessingService.scoringHealthData`, `RRCollector+Analysis`); HK is fetched only when there is no snapshot. Nothing heals an empty or corrupt snapshot except `autoRefreshTodaysSleepIfImproved`, and only for today's session. |
 | `autoRefreshTodaysSleepIfImproved` | `HealthKitManager.sleepDataVersion` bump (Apple Watch sleep sync) | Skips entirely when `session.sleepUserAdjusted == true` (2026-06-10 — user timeline edits are the source of truth; this path previously had no guard and resurrected auto boundaries over manual edits on every HK sleep arrival). Otherwise, if the fresh HK data passes the improvement gate it rewrites `session.sleepSnapshot` directly and re-archives; if the delta also crosses the rescore threshold (≥ 20 min or first snapshot) it additionally posts `.flowRecoveryRescoreNeeded` for the rescore listener. |
 | `installRescoreListener` | `.flowRecoveryRescoreNeeded` notification | Reanalyzes the session via the user-initiated path; new score is captured in `PendingScoreChange` for the dashboard banner (§16.4). |
 
@@ -810,11 +815,16 @@ when the merge added at least one non-nil field.
 
 Opening a past session (older than today) produces an identical
 `recoveryScore`, `scoreBreakdown`, `frozenReadiness`, and
-`trainingSnapshot` across any number of loads. Today's session may
-upgrade once when Apple Watch finishes syncing, surfaced via the
-score-changed banner — but never silently drifts on subsequent
-loads after that single upgrade. Verified by
-`SessionImmutabilityTests`.
+`trainingSnapshot` across any number of loads (the launch migrations
+in §13.1 aside). Today's session is different: every HK sleep bump
+that passes `SleepRefreshPolicy.sleepRefreshVerdict` (total moved by
+20 min or more, the onset moved, the source upgraded to Watch, or the
+first snapshot) posts `.flowRecoveryRescoreNeeded`, with no once-only
+guard, so it can be rescored several times while Apple Watch syncs.
+The score-changed banner is written only when the displayed score
+moves by 3 or more (0.3 on the stored 0–10 scale); smaller changes are
+applied without a banner. Merely loading a session never rescores it.
+Verified by `SessionImmutabilityTests`.
 
 ---
 
@@ -899,13 +909,15 @@ AnalysisSummaryGenerator.feelBadAdvice(hrvGood:tags:feeling:)
 ## 16. Archive Status Visibility
 
 ```
+App launch (EmuquApp interruptedSessionAlerts, AppLaunchRecovery)
+  └─ "Session Interrupted" alert (no dashboard banner)
+      Resumable: Resume / Save as Complete / Dismiss.
+      Not resumable: Save to Archive / Dismiss.
+      Dismiss only marks the session dismissed; its raw backup stays
+      on disk and is listed in Settings → iCloud & Data → Recover
+      Lost Sessions (scan, Recover All, or delete backups).
+
 Dashboard
-  ├─ InterruptedSessionBanner (red)
-  │   Shown when RRCollector detects an interrupted session.
-  │   Persistent until the user acts on it.
-  ├─ LostBackupsBanner (gold)
-  │   Shown when RawRRBackup has unarchived RR backups on disk.
-  │   Tapping offers recovery/discard.
   ├─ ScoreChangedBanner (tint = primary if delta ≥ 0, orange if < 0)
   │   Shown when PendingScoreChange.read() returns a non-nil entry.
   │   Written by recordPendingScoreChangeIfMeaningful() in the rescore
@@ -936,7 +948,11 @@ Settings → iCloud & Data
 Settings → Troubleshooting → Advanced Diagnostics (toggle on)
   └─ "Repair Training History…"
       Confirmation ("Repair All Sessions") explains it mutates
-      historical scores. Only manual trigger for repairTrainingSnapshots.
+      historical scores. The manual trigger for repairTrainingSnapshots;
+      it also runs once automatically at launch through
+      SessionDataMigrations.runTrimpRepairMigrationIfNeeded
+      (flag didRunTrimpRepairMigration_v1, only with training-load
+      integration on).
 ```
 
 ### Morning notification scheduling
@@ -1059,7 +1075,9 @@ Per tick (WorkoutRecorder.incrementalBackupTick):
     │         ├─ score forward direction (saved track as-is)
     │         └─ score reverse direction (track reversed + Route rebuilt
     │                from reversed trackpoints so climb queue matches the
-    │                direction the user is actually running)
+    │                direction the user is actually running; reverse
+    │                climbs carry no road names, only saved-direction
+    │                climbs are geocoded)
     │       150 m start-point cheap-reject → mean-nearest-neighbour
     │       distance ≤ 30 m wins → bind plannedRoute + plannedRouteDirection.
     ├─ thresholdBreachSec[UUID: Int] = updateThresholdBreaches(activeThresholds:, …)
@@ -1234,9 +1252,10 @@ FitnessPostSummaryView reads session.workoutMetadata:
   Route by α1 Band     ← samples[].alpha1 ↔ track[i].timestamp correlation
                           → polyline segments coloured per LiveDFAAnalyzer.Band
   α1 LT1 Estimate      ← first downward α1=0.75 crossing's HR value
-                          estimate, a proxy (Rogers & Gronwald 2021)
-                          suggests LTHR update when heuristic-vs-measured
-                          delta ≥ 5 bpm AND user hasn't set an override
+                          estimate, a proxy (Rogers & Gronwald 2021);
+                          shown only — deliberately no LTHR update
+                          suggestion (LT1 is not LTHR, the hrTSS
+                          denominator)
   Threshold Crossings  ← iterate samples[] detecting AT1/AT2 ups/downs
   HR Zone Distribution ← samples[].heartRate vs user.effectiveMaxHR
   Derived Metrics      ← moving %, VAM, grade-adj pace, kcal/h,

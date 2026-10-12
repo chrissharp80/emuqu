@@ -1,0 +1,252 @@
+{
+ "file": "scripts/verify_tests_fail.sh",
+ "hash": "99f50202ebfc3ad6",
+ "role": "Manual mutation-testing harness (not in make ci or any workflow; ci.yml only comments on it) that applies 125 targeted source mutations one at a time, requiring the named XCTest class to go red for each. Every anchor's original text is present in the current tree (check_no_leaked_mutations.sh).",
+ "types": [],
+ "state": [
+  "env:FILTER ($1)",
+  "env:MUTATION_DERIVED_DATA (build/MutationDerivedData)",
+  "file:<lock>",
+  "file:temp backup dir + run.log",
+  "file:production Swift sources (mutated and restored)"
+ ],
+ "toplevel": "set -uo pipefail; cd to repo root; sources preflight. PASS/FAIL/SKIP/INVALID counters. DEST from select_simulator_destination.sh (exit 70 if empty). gate_mktemp_dir (fails on GNU mktemp), then acquire lock and set trap restore_all/rm/release. Runs `mutate` for each of 125 cases (anchors match the current sources; six were re-pointed after the code they named was rewritten: dfa_ectopic_threshold_widened / dfa_cleans_normal_variation replace `let ectopicRatio = HRVThresholds.ectopicThresholdPercent` with 0.50 / 0.05 (LiveDFAAnalyzerTests' 30 % and 8 % cases), normalized_power_not_fourth_power squares in the `windowMeans.reduce` and normalized_power_window_shrunk divides the 30-sample window sum by 10 (NormalizedPowerTests' exact NP values), stored_hr_fabricates_a_sentinel returns statistics(of: [60]) from storedHRStatistics' guard (TimeDomainTests.testAllStoredHRArtifactsFallsBackToTheBeatsNotASentinel), ppi_timeline_does_not_advance stops `beatMs` advancing (StrapPPIFilterTests' [0, 800, 1620] timeline); two named suites (AutoPauseDetectorTests, TrackBackupWatermarkTests) are classes inside WorkoutTickStateTests.swift). import_cadence_divides_by_zero_window removes the `seconds > 0` window check (keeping `sample.value >= 0`), which compiles and is caught by the backwards-window assertion in HealthWorkoutImporterTests.testZeroLengthWindowIsDroppedRatherThanDividedByZero; the zero-length window itself stays covered by the later isFinite guard. Prints totals (caught / survived / did not compile / skipped); exits 1 if any FAIL, INVALID or SKIP (skips and non-compiling mutations explicitly treated as unverified).",
+ "flags": [],
+ "units": [
+  {
+   "key": "fn backup",
+   "hash": "957046922b6add27",
+   "does": "Copies file $1 into the backup dir ('/'->'_' name) and adds it to TOUCHED.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "file:backup dir"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "fn restore_all",
+   "hash": "d737b90302b72d4b",
+   "does": "Copies each TOUCHED file's backup back over it and clears TOUCHED.",
+   "entry": "also called from the EXIT/INT/TERM/HUP trap",
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "file:restored sources"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "empty entry",
+     "effect": "skip; otherwise cp (a missing backup makes cp fail silently, file left as is)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "fn run_suite",
+   "hash": "a5c9b95c4c2defde",
+   "does": "Runs `xcodebuild test -only-testing:<suite> -parallel-testing-enabled NO` into run.log; returns 0 on success, 2 if the log has BUILD/TEST BUILD FAILED or 'error: Building|Failed to' or contains no 'Test Suite'/'Test Case' line, else 1.",
+   "entry": null,
+   "calls": [
+    "ext:xcodebuild test"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<backup>/run.log",
+    "file:build/MutationDerivedData"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "xcodebuild exits 0",
+     "effect": "return 0"
+    },
+    {
+     "at": "+8",
+     "cond": "build-failure marker or no test ran",
+     "effect": "return 2; else return 1"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "fn baseline_green",
+   "hash": "03a3cca0e4b4805e",
+   "does": "Baseline check for one mutation: run_suite on the suite, one retry when the result is 2 (build failed); returns 0 if green, else prints SKIP ('BUILD failed (not a test result)' for 2, '<suite> was already red' for 1), increments SKIP and returns 1.",
+   "entry": null,
+   "calls": [
+    "scripts/verify_tests_fail.sh::fn run_suite"
+   ],
+   "reads": [],
+   "writes": [
+    "var:SKIP",
+    "file:<backup>/run.log (via run_suite)"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "baseline == 2",
+     "effect": "retry run_suite once"
+    },
+    {
+     "at": "+6",
+     "cond": "baseline == 0",
+     "effect": "return 0"
+    },
+    {
+     "at": "+7",
+     "cond": "baseline == 2",
+     "effect": "print SKIP 'BUILD failed'; else print SKIP 'already red'; then SKIP++ and return 1"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "scripts/verify_tests_fail.sh::fn run_suite": "2627647aca12e8c4"
+   }
+  },
+  {
+   "key": "fn mutation_broke_build",
+   "hash": "b74ab8dc40e323a1",
+   "does": "Returns 0 if the last run.log has a compiler diagnostic `<path>:<line>:<col>: error:` whose path ends in `/<file>` (the mutated file, repo-relative), i.e. the mutation itself did not compile; else 1.",
+   "entry": null,
+   "calls": [
+    "ext:grep"
+   ],
+   "reads": [
+    "file:<backup>/run.log"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "fn mutated_result",
+   "hash": "cedc1dfdb87c94f9",
+   "does": "Runs the suite with the mutation applied and echoes the verdict code: 1 = tests failed (caught), 0 = tests passed (survived), 3 = build failed with a compile error in the mutated file, 2 = build/runner failed for another reason on both attempts. A run_suite 2 without an error in the mutated file is retried once. Called in a command substitution, so it echoes rather than sets globals.",
+   "entry": null,
+   "calls": [
+    "scripts/verify_tests_fail.sh::fn run_suite",
+    "scripts/verify_tests_fail.sh::fn mutation_broke_build"
+   ],
+   "reads": [
+    "file:<backup>/run.log"
+   ],
+   "writes": [
+    "file:<backup>/run.log (via run_suite)",
+    "stdout: verdict code"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "code == 2 and the mutated file has no compile error",
+     "effect": "retry run_suite once"
+    },
+    {
+     "at": "+6",
+     "cond": "code == 2 and the mutated file has a compile error",
+     "effect": "code = 3"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "scripts/verify_tests_fail.sh::fn mutation_broke_build": "332e62be28b2e6ad",
+    "scripts/verify_tests_fail.sh::fn run_suite": "2627647aca12e8c4"
+   }
+  },
+  {
+   "key": "fn report_mutation",
+   "hash": "00d9a9c6e158273f",
+   "does": "Prints the result line for one mutation and bumps its counter: 1 -> PASS 'caught it' (PASS++); 0 -> FAIL 'SURVIVED' (FAIL++); 3 -> FAIL 'the mutation does not compile — fix the mutation' (INVALID++); anything else -> SKIP 'BUILD failed after the mutation (not a test result)' (SKIP++).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "var:PASS",
+    "var:FAIL",
+    "var:INVALID",
+    "var:SKIP"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "code 1",
+     "effect": "PASS++"
+    },
+    {
+     "at": "+5",
+     "cond": "code 0",
+     "effect": "FAIL++ (survived)"
+    },
+    {
+     "at": "+7",
+     "cond": "code 3",
+     "effect": "INVALID++ (mutation did not compile; fails the run)"
+    },
+    {
+     "at": "+9",
+     "cond": "other (2)",
+     "effect": "SKIP++ (build failure, not a test result; fails the run)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "fn mutate",
+   "hash": "b2a38f8ad232365a",
+   "does": "Runs one mutation: FILTER check; baseline_green (returns early when the suite is not green, already counted as SKIP); backup the file and apply the python mutation (SKIP on failure); mutated_result for the verdict; restore; report_mutation. Only a test failure (run_suite 1) counts as caught — a build failure after the mutation is INVALID (compile error in the mutated file) or SKIP (other build failure), never PASS.",
+   "entry": null,
+   "calls": [
+    "scripts/verify_tests_fail.sh::fn baseline_green",
+    "scripts/verify_tests_fail.sh::fn backup",
+    "scripts/verify_tests_fail.sh::fn restore_all",
+    "scripts/verify_tests_fail.sh::fn mutated_result",
+    "scripts/verify_tests_fail.sh::fn report_mutation",
+    "ext:python3 -c <mutation>"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<mutated source> (temporarily)",
+    "var:SKIP"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "FILTER set and not in name",
+     "effect": "return"
+    },
+    {
+     "at": "+4",
+     "cond": "baseline_green fails",
+     "effect": "return (SKIP already counted)"
+    },
+    {
+     "at": "+7",
+     "cond": "mutation script fails",
+     "effect": "print SKIP, restore, SKIP++, return"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "scripts/verify_tests_fail.sh::fn backup": "70119fbe023b417f",
+    "scripts/verify_tests_fail.sh::fn baseline_green": "092d0e252171c552",
+    "scripts/verify_tests_fail.sh::fn mutated_result": "589f43a86e668c24",
+    "scripts/verify_tests_fail.sh::fn report_mutation": "266b913ffd6ad19f",
+    "scripts/verify_tests_fail.sh::fn restore_all": "0cdb4c7320082e7d"
+   }
+  }
+ ],
+ "deps": {
+  "scripts/select_simulator_destination.sh::": "bb43a2c585c332e5",
+  "scripts/verify_tests_fail.sh::fn backup": "70119fbe023b417f",
+  "scripts/verify_tests_fail.sh::fn mutate": "d86675934e28c4ce",
+  "scripts/verify_tests_fail.sh::fn restore_all": "0cdb4c7320082e7d"
+ }
+}

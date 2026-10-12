@@ -16,7 +16,12 @@ the response shape changed under us.
 1. **Tell users to switch provider.** The `FeatureFlags` kill switch
    (Settings → Flo) is stored on each device; there is no remote config,
    so it only turns a provider off for the person who flips it. Turning a
-   provider off for everyone means shipping a build. Tell users in the
+   provider off for everyone means shipping a build, and changing the
+   flag's default is not enough: `FeatureFlags.value(for:)` returns the
+   value stored on the device whenever one exists, and the Settings → Flo
+   toggle stores an explicit value on every flip, so anyone who ever
+   toggled that provider keeps it on. The build must also ignore or clear
+   the stored key (or disable the provider in code). Tell users in the
    changelog / App Store notes.
 2. **Wait it out** if the provider's status page promises restoration
    within hours.
@@ -173,13 +178,23 @@ question with details that suggest more data was sent than expected).
    Verify nothing has regressed.
 3. Open `Emuqu/Sources/Assistant/ProviderConsentTracker.swift` and verify
    the consent gate fires before any provider call.
-4. Pull the diagnostic log if the user can share theirs (More →
-   Settings → Troubleshooting → Export Diagnostic Log) — confirm what
-   was actually sent.
+4. Find out what was actually sent. The exported diagnostic log (More →
+   Settings → Troubleshooting → Export Diagnostic Log) cannot show it: its
+   lines are PHI-scrubbed and it never records request payloads. The
+   record of what was sent is `LLMRequestAudit` — the last 10 chat-loop
+   requests (system prompt, messages, tools, response), in memory only and
+   lost when the app quits; summaries, fact extraction and voice
+   interjections are not recorded. Ask the user, before relaunching the
+   app, to open Troubleshooting with Advanced Diagnostics on → AI prompt
+   audit and share the entry from the detail screen. Once the app has
+   quit, confirm from the code paths in steps 2–3 instead.
 5. If a leak is real:
-   - Ship a build with that provider's `FeatureFlags` default off. The
-     switch is per-device with no remote config, so a build is the only
-     way to turn it off for everyone.
+   - Ship a build that turns that provider off. The switch is per-device
+     with no remote config, so a build is the only way to turn it off for
+     everyone — and a default-off flag alone does not do it: a device
+     that ever toggled the provider has an explicit stored value, which
+     `FeatureFlags.value(for:)` returns over the default. The build must
+     ignore or clear the stored key, or disable the provider in code.
    - File a SECURITY.md update describing what happened.
    - Hotfix the leak.
    - Post what happened in the changelog / App Store notes.
@@ -192,9 +207,10 @@ about response time than about whether the leak was real.
 ## G. CVE against a transitive dependency you cannot bump
 
 **Symptom.** An advisory feed or a disclosure names a package in
-`Package.resolved` that Emuqu does not depend on directly — `Zip` arrives
-through `polar-ble-sdk`; `yyjson` and the `swift-*` packages arrive through
-WhisperKit.
+`Package.resolved` that Emuqu does not depend on directly — `Zip` and
+`swift-protobuf` arrive through `polar-ble-sdk` (the BLE sensor path);
+`yyjson` and the other `swift-*` packages arrive through WhisperKit (the
+voice path). `scripts/generate_sbom.py` records the same split.
 
 **Why the obvious move does not work.** SwiftPM resolves the version the
 direct dependency asks for, so a transitive pin moves only when that package

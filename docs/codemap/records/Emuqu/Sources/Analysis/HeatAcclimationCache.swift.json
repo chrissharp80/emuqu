@@ -1,0 +1,627 @@
+{
+ "file": "Emuqu/Sources/Analysis/HeatAcclimationCache.swift",
+ "hash": "c6b72620efdb02b5",
+ "role": "@Observable @MainActor shared cache of the user's heat-acclimatization status, computed from archived outdoor workouts' recorded weather plus HealthKit outdoor workouts, persisted to UserDefaults for cold launch; read by the Heat card, assistant heat facts and post-summary.",
+ "types": [
+  "HeatAcclimationCache: final class @Observable @MainActor — singleton status store",
+  "HeatAcclimationCache.Status: enum — computing/ready/noOutdoorWorkouts/noRecordedWeather",
+  "HeatAcclimationCache.Readout: struct Codable — level, band, stimulus, counts, adaptedWBGT, daysToTarget, hasHeatExposure",
+  "HeatAcclimationCache.WorkoutForHeat: struct — date, minutes, optional weather"
+ ],
+ "state": [
+  "static shared (singleton; AppDependencies.analysis.heatAcclimationCache returns it unless overridden)",
+  "mem:HeatAcclimationCache.status (observed by HeatAcclimationCard)",
+  "mem:HeatAcclimationCache.lastUpdated",
+  "refreshTask, observers (NotificationTokens)",
+  "ud:FlowRecovery.heat.lastReadout (readoutKey, JSON Readout)",
+  "ud:FlowRecovery.heat.representativeLat / representativeLon (legacy, only removed)",
+  "notif:.flowRecoveryArchiveChanged (observed)",
+  "maxAgeSec = 300"
+ ],
+ "toplevel": "status initial value .computing; shared instance created lazily on first access.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var HeatAcclimationCache.current",
+   "hash": "7340c7366c4d0977",
+   "does": "Returns the readout when status is .ready, else nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:HeatAcclimationCache.status"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "status is .ready(r)",
+     "effect": "returns r; else nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var HeatAcclimationCache.trackingEnabled",
+   "hash": "77ba55691dbfd823",
+   "does": "Reads the user's heatTrackingEnabled setting via AppDependencies.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.heatTrackingEnabled"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "320e181d89b608eb"
+   }
+  },
+  {
+   "key": "func HeatAcclimationCache.clearPersistedData()",
+   "hash": "476e698a65dcec2e",
+   "does": "Removes the persisted readout and the two legacy coordinate keys from standard UserDefaults (called on 'Delete All My Data' and when the user turns heat tracking off). Does not reset the in-memory status; an in-flight refresh no longer writes the readout back once tracking is off (cacheIfSettled), and clear() also resets this instance.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "ud:FlowRecovery.heat.lastReadout",
+    "ud:FlowRecovery.heat.representativeLat",
+    "ud:FlowRecovery.heat.representativeLon"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each key",
+     "effect": "removeObject"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "race",
+     "sev": "low",
+     "text": "Only UserDefaults is cleared: an in-flight refresh task finishing afterwards calls cacheIfSettled → persistReadout and writes the readout back after opt-out/purge, and the in-memory status keeps the old readout for the rest of the launch.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/HeatAcclimationCache.swift:72",
+      "Emuqu/Sources/Analysis/HeatAcclimationCache.swift:160",
+      "Emuqu/Sources/Analysis/HeatAcclimationCache.swift:171",
+      "Emuqu/Sources/Views/HeatAcclimationCard.swift:51"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func HeatAcclimationCache.clear()",
+   "hash": "ceb6f06f4985f975",
+   "does": "Instance-wide clear: cancels the refresh task, resets status to .computing and lastUpdated to nil, then clearPersistedData().",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.clearPersistedData()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:HeatAcclimationCache.status",
+    "mem:HeatAcclimationCache.lastUpdated",
+    "ud:FlowRecovery.heat.lastReadout"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.clearPersistedData()": "4a4dfd84e0fa8a6e"
+   }
+  },
+  {
+   "key": "func HeatAcclimationCache.persistReadout(_:)",
+   "hash": "a53441ca5798fe33",
+   "does": "JSON-encodes the readout via attempt() and stores it in UserDefaults; encode failure is logged by attempt and nothing stored.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:FlowRecovery.heat.lastReadout"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "encode succeeded",
+     "effect": "stores data; else nothing written"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+   }
+  },
+  {
+   "key": "func HeatAcclimationCache.loadPersistedReadout()",
+   "hash": "d78f3c646b2f3001",
+   "does": "Loads and decodes the persisted readout, nil if missing or undecodable (decode error swallowed by try?).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "ud:FlowRecovery.heat.lastReadout"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "data stored",
+     "effect": "false: nil; true: try? decode"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var HeatAcclimationCache.Readout.hasHeatExposure",
+   "hash": "77106abf0be1e43f",
+   "does": "True when any day in the window had stimulus > 0.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "init HeatAcclimationCache(archive:)",
+   "hash": "b24176ca76dc2529",
+   "does": "Stores the archive (default the app session archive), seeds status from the persisted readout when tracking is on and one exists, and registers an archive-changed observer that invalidates the cache.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.loadPersistedReadout()",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.makeArchiveObserver(_:)",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.invalidate()",
+    "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.add(_:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.sessionArchive",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::var HeatAcclimationCache.trackingEnabled"
+   ],
+   "reads": [
+    "ud:FlowRecovery.heat.lastReadout",
+    "notif:.flowRecoveryArchiveChanged"
+   ],
+   "writes": [
+    "mem:HeatAcclimationCache.status"
+   ],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "tracking on and a persisted readout exists",
+     "effect": "status = .ready(saved) (lastUpdated stays nil); else status stays .computing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.invalidate()": "4f24385603346fd6",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.loadPersistedReadout()": "48f6b2e298daae55",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.makeArchiveObserver(_:)": "515f98457d5daf23",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::var HeatAcclimationCache.trackingEnabled": "405c8d72e8a5a787",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.sessionArchive": "2c8002649ba22b7f",
+    "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.add(_:)": "e97498d0288a8c95"
+   }
+  },
+  {
+   "key": "func HeatAcclimationCache.makeArchiveObserver(_:)",
+   "hash": "33512ca55e920137",
+   "does": "Registers a NotificationCenter block observer (queue nil) for .flowRecoveryArchiveChanged that hops to the main actor and runs onChange.",
+   "entry": null,
+   "calls": [
+    "ext:NotificationCenter.addObserver"
+   ],
+   "reads": [
+    "notif:.flowRecoveryArchiveChanged"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "deinit HeatAcclimationCache",
+   "hash": "42aa4a7951f99c93",
+   "does": "Removes the notification observers on deinit.",
+   "entry": "Swift deinit (never runs for the shared singleton).",
+   "calls": [
+    "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.removeAll(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.removeAll(from:)": "0ec1945b222f6025"
+   }
+  },
+  {
+   "key": "func HeatAcclimationCache.invalidate()",
+   "hash": "b8237fcb358aad40",
+   "does": "Clears lastUpdated so the next refresh recomputes.",
+   "entry": "Archive-changed notification observer (via makeArchiveObserver).",
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:HeatAcclimationCache.lastUpdated"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HeatAcclimationCache.refresh()",
+   "hash": "42d8f85d365b9131",
+   "does": "If tracking is enabled, the last settled compute is older than 5 min (or none), and no refresh is running, launches a Task that computes the status and, unless cancelled meanwhile, publishes and caches it.",
+   "entry": "HeatAcclimationCard .task.",
+   "calls": [
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::var HeatAcclimationCache.trackingEnabled",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.computeStatus()",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.cacheIfSettled(_:)"
+   ],
+   "reads": [
+    "mem:HeatAcclimationCache.status",
+    "mem:HeatAcclimationCache.lastUpdated"
+   ],
+   "writes": [
+    "mem:HeatAcclimationCache.status"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "trackingEnabled",
+     "effect": "false: returns without computing"
+    },
+    {
+     "at": "+2",
+     "cond": "lastUpdated set and < 300 s old (any settled status)",
+     "effect": "returns (fresh)"
+    },
+    {
+     "at": "+5",
+     "cond": "refreshTask != nil",
+     "effect": "returns (compute already in flight)"
+    },
+    {
+     "at": "+8",
+     "cond": "self still alive in task",
+     "effect": "false: task ends; true: computes"
+    },
+    {
+     "at": "+10",
+     "cond": "task cancelled (clear())",
+     "effect": "result dropped"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.cacheIfSettled(_:)": "ef039a4bac97272d",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.computeStatus()": "607b434724fc305d",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::var HeatAcclimationCache.trackingEnabled": "405c8d72e8a5a787"
+   }
+  },
+  {
+   "key": "func HeatAcclimationCache.cacheIfSettled(_:)",
+   "hash": "0ae81108e75b5e07",
+   "does": "Stamps lastUpdated for every computed (settled) status; persists a ready readout only while tracking is on, so a compute finishing after opt-out does not write it back.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.persistReadout(_:)",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::var HeatAcclimationCache.trackingEnabled"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:HeatAcclimationCache.lastUpdated",
+    "ud:FlowRecovery.heat.lastReadout"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "ready readout and tracking on",
+     "effect": "persist readout"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.persistReadout(_:)": "3193619252c10cbd",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::var HeatAcclimationCache.trackingEnabled": "405c8d72e8a5a787"
+   }
+  },
+  {
+   "key": "func HeatAcclimationCache.currentAwaitingRefresh()",
+   "hash": "75ffb83cb7c7d415",
+   "does": "Assistant path: nil when tracking is off; otherwise calls refresh() (which starts a compute when stale, or leaves the running one) and awaits the shared refreshTask, then returns the ready readout or nil — one compute even when the card refreshes at the same time.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::var HeatAcclimationCache.trackingEnabled",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.refresh()",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::var HeatAcclimationCache.current"
+   ],
+   "reads": [
+    "mem:HeatAcclimationCache.status",
+    "mem:HeatAcclimationCache.lastUpdated"
+   ],
+   "writes": [
+    "mem:HeatAcclimationCache.status"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "trackingEnabled",
+     "effect": "false: nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.refresh()": "108c7be4282d1bc3",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::var HeatAcclimationCache.current": "3e4384fddefe26f1",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::var HeatAcclimationCache.trackingEnabled": "405c8d72e8a5a787"
+   }
+  },
+  {
+   "key": "func HeatAcclimationCache.computeStatus()",
+   "hash": "7c3a2e17dba6de30",
+   "does": "Builds the 180-day window ending today, merges archived outdoor workouts with non-duplicate HealthKit outdoor workouts, returns .noOutdoorWorkouts if none, .noRecordedWeather(count) if none has weather, else the replayed readout.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.archivedWorkouts(since:)",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.mergingHealthKitWorkouts(into:)",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.exposuresByDay(_:calendar:)",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.replayReadout(exposuresByDay:attributedWorkoutCount:from:to:calendar:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries/retrieveLightweight",
+    "hk:HKWorkout (outdoor)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "calendar.date(byAdding:-180 days) ?? today",
+     "effect": "fallback to today (only if Calendar returns nil)"
+    },
+    {
+     "at": "+5",
+     "cond": "workouts non-empty",
+     "effect": "false: .noOutdoorWorkouts"
+    },
+    {
+     "at": "+7",
+     "cond": "exposuresByDay non-empty",
+     "effect": "false: .noRecordedWeather(outdoorWorkouts: count); true: replay readout"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.archivedWorkouts(since:)": "ca7528110acd0fcb",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.exposuresByDay(_:calendar:)": "aae3d691bef4c4d4",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.mergingHealthKitWorkouts(into:)": "d72cdbffb1125081",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.replayReadout(exposuresByDay:attributedWorkoutCount:from:to:calendar:)": "036eac35bbd13475",
+    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
+   }
+  },
+  {
+   "key": "func HeatAcclimationCache.archivedWorkouts(since:)",
+   "hash": "0e933f70209985cf",
+   "does": "Off the main actor, decodes every archived workout dated on/after windowStart whose sport usesGPS and maps each to WorkoutForHeat.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.usesGPS",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.workoutForHeat(_:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries",
+    "archive:retrieveLightweight"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.workoutForHeat(_:)": "09545022d3fdb7da",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.usesGPS": "e1e254fffc25bef1",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "8dd50c9f204fb5d6"
+   }
+  },
+  {
+   "key": "func HeatAcclimationCache.workoutForHeat(_:)",
+   "hash": "6c07ba9911401b64",
+   "does": "Maps a session to (startDate, active minutes from activeMinutes, weatherSnapshot).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.activeMinutes(of:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.activeMinutes(of:)": "746dba75cbf93dbd"
+   }
+  },
+  {
+   "key": "func HeatAcclimationCache.activeMinutes(of:)",
+   "hash": "4b492c9ffe9e0ec7",
+   "does": "Moving minutes of a session: the largest sample offsetSec (the recorder's moving-time counter, pauses excluded) / 60; the start→end span when there are no samples (0 without an end).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "session has samples",
+     "effect": "moving time; else wall-clock span"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HeatAcclimationCache.exposuresByDay(_:calendar:)",
+   "hash": "bfb5b6e7f91f780f",
+   "does": "Groups workouts that carry weather into per-startOfDay exposure lists; weatherless workouts are skipped.",
+   "entry": "Also called directly by HeatAcclimationTests.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "for each workout",
+     "effect": "processes it"
+    },
+    {
+     "at": "+6",
+     "cond": "w.weather non-nil",
+     "effect": "false: skipped; true: appended to that day"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7",
+    "EmuquTests/HeatAcclimationTests.swift::func HeatExposureAttributionTests.weather(tempC:rh:)": "f56a0d3a661c6bb8"
+   }
+  },
+  {
+   "key": "func HeatAcclimationCache.mergingHealthKitWorkouts(into:)",
+   "hash": "1e7c0bea20a36a18",
+   "does": "Fetches HealthKit outdoor workouts for 180 days and appends those not within 30 min of any archived workout as WorkoutForHeat with their HK-metadata weather.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.healthKitManager",
+    "Emuqu/Sources/Collection/HealthKitManager+Heat.swift::func HealthKitManager.fetchOutdoorWorkoutsForHeat(days:)"
+   ],
+   "reads": [
+    "hk:HKWorkout (outdoor)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "for each HK workout",
+     "effect": "checks duplicate"
+    },
+    {
+     "at": "+9",
+     "cond": "start within 1800 s of an archived workout",
+     "effect": "skip; else append"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+Heat.swift::func HealthKitManager.fetchOutdoorWorkoutsForHeat(days:)": "7fe3ab77e85a9920",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "3b77b2139e8273b8",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.healthKitManager": "06772931aba0baf2",
+    "EmuquTests/HeatAcclimationTests.swift::func HeatExposureAttributionTests.weather(tempC:rh:)": "f56a0d3a661c6bb8"
+   }
+  },
+  {
+   "key": "func HeatAcclimationCache.replayReadout(exposuresByDay:attributedWorkoutCount:from:to:calendar:)",
+   "hash": "4679ef79ca60de2a",
+   "does": "Gap-fills days, replays the heat EWMA, and returns .ready(Readout) with last level, band, last stimulus, hot-day count, attributed count, adapted WBGT and days to target.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.gapFilledDays(exposuresByDay:from:to:calendar:)",
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.replay(_:)",
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.band(for:)",
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.adaptedWBGT(for:)",
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.daysToTarget(current:target:assumedDailyStimulus:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+11",
+     "cond": "series.last?.level ?? 0",
+     "effect": "0 when the series is empty"
+    },
+    {
+     "at": "+15",
+     "cond": "series.last?.stimulus ?? 0",
+     "effect": "0 when the series is empty"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.adaptedWBGT(for:)": "628e3425290cf48d",
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.band(for:)": "69a605c9d88fcba3",
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.daysToTarget(current:target:assumedDailyStimulus:)": "9175bdf2ed0ba7c2",
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.replay(_:)": "ff6a468a801cbe6b",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.exposuresByDay(_:calendar:)": "aae3d691bef4c4d4",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.gapFilledDays(exposuresByDay:from:to:calendar:)": "3fe35ddd67c269c8",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.level(_:)": "e3f2ea3fa0b21c3c"
+   }
+  },
+  {
+   "key": "func HeatAcclimationCache.gapFilledDays(exposuresByDay:from:to:calendar:)",
+   "hash": "8fe3f83457c55923",
+   "does": "Walks every day from windowStart to today, computing each day's daily stimulus (0 for absent days) and counting hot days.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.dailyStimulus(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "d <= today",
+     "effect": "loop continues; else ends"
+    },
+    {
+     "at": "+10",
+     "cond": "exposuresByDay[d] ?? []",
+     "effect": "rest day gets []→stimulus 0"
+    },
+    {
+     "at": "+11",
+     "cond": "stimulus > 0",
+     "effect": "hotExposureCount += 1"
+    },
+    {
+     "at": "+13",
+     "cond": "calendar.date(byAdding: 1 day) nil",
+     "effect": "break"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.dailyStimulus(_:)": "f6dd4f2856515bad",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::init HeatAcclimationCache(archive:)": "d7c63d5183bc8a4f"
+   }
+  },
+  {
+   "key": "func HeatAcclimationCache.exposure(from:weather:)",
+   "hash": "7e9523cf5c59cb1b",
+   "does": "Converts a session and its weather snapshot to an Exposure using activeMinutes (used by the workout post-summary heat card).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.activeMinutes(of:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.activeMinutes(of:)": "746dba75cbf93dbd"
+   }
+  }
+ ],
+ "deps": {}
+}

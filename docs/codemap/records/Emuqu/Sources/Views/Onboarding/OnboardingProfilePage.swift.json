@@ -1,0 +1,506 @@
+{
+ "file": "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift",
+ "hash": "676c505160cfe318",
+ "role": "Onboarding page 2: birthday wheel, biological-sex menu and optional body weight, bound directly to SettingsManager.settings; Next requires birthday and sex, Skip always advances.",
+ "types": [
+  "OnboardingProfilePage: struct — quick profile page"
+ ],
+ "state": [
+  "@FocusState isWeightFocused",
+  "@ScaledMetric wheelHeight = 130 (relativeTo .body)",
+  "writes mem:SettingsManager.settings.birthday / biologicalSex / bodyWeightKg"
+ ],
+ "toplevel": "#Preview uses AppDependencies.current settingsManager.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var OnboardingProfilePage.body",
+   "hash": "a72728ba4626e26c",
+   "does": "ScrollView of the stack with pinned navigation inset, flashing indicators and interactive keyboard dismissal.",
+   "entry": "SwiftUI body.",
+   "calls": [
+    "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift::var OnboardingProfilePage.stack",
+    "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift::var OnboardingProfilePage.pinnedNavigationButtons"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift::var OnboardingProfilePage.pinnedNavigationButtons": "f91022c3c8c96fb2",
+    "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift::var OnboardingProfilePage.stack": "2625ddf2abe00e7b"
+   }
+  },
+  {
+   "key": "var OnboardingProfilePage.stack",
+   "hash": "df47abe96569d636",
+   "does": "VStack of header, birthday, biological sex and body-weight cards.",
+   "entry": "SwiftUI view composition.",
+   "calls": [
+    "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift::var OnboardingProfilePage.profileHeaderCard",
+    "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift::var OnboardingProfilePage.birthdayCard",
+    "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift::var OnboardingProfilePage.biologicalSexCard",
+    "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift::var OnboardingProfilePage.bodyWeightCard"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift::var OnboardingProfilePage.biologicalSexCard": "556307d7f1930827",
+    "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift::var OnboardingProfilePage.birthdayCard": "3d76af8756846b36",
+    "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift::var OnboardingProfilePage.bodyWeightCard": "0b24079379af81bb",
+    "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift::var OnboardingProfilePage.profileHeaderCard": "62ecc2be63054ade"
+   }
+  },
+  {
+   "key": "var OnboardingProfilePage.pinnedNavigationButtons",
+   "hash": "484bf7ae14f6be3a",
+   "does": "Pinned bottom area: incomplete-profile hint above Skip/Next.",
+   "entry": "SwiftUI view composition.",
+   "calls": [
+    "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift::var OnboardingProfilePage.incompleteProfileHint",
+    "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift::var OnboardingProfilePage.profileNavigationButtons"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift::var OnboardingProfilePage.incompleteProfileHint": "8eedf46d5a522fd6",
+    "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift::var OnboardingProfilePage.profileNavigationButtons": "8588071403ea9314",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "053cc91a5a90d115"
+   }
+  },
+  {
+   "key": "var OnboardingProfilePage.incompleteProfileHint",
+   "hash": "f0d818a6559fc38a",
+   "does": "Hint telling the user to set birthday and sex or Skip, shown while the profile is incomplete.",
+   "entry": "SwiftUI view composition.",
+   "calls": [
+    "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift::var OnboardingProfilePage.isProfileComplete",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "!isProfileComplete",
+     "effect": "true: show caption hint. false: nothing."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift::var OnboardingProfilePage.isProfileComplete": "cc6eeb6b78b8369c",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var OnboardingProfilePage.profileHeaderCard",
+   "hash": "1ee92f2bed25e89c",
+   "does": "profilePageHeader at full width.",
+   "entry": "SwiftUI view composition.",
+   "calls": [
+    "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift::var OnboardingProfilePage.profilePageHeader"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift::var OnboardingProfilePage.profilePageHeader": "140cd8bc7b14ee81"
+   }
+  },
+  {
+   "key": "var OnboardingProfilePage.birthdayCard",
+   "hash": "d1f702043dcc0c76",
+   "does": "birthdayField in a card.",
+   "entry": "SwiftUI view composition.",
+   "calls": [
+    "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift::var OnboardingProfilePage.birthdayField"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift::var OnboardingProfilePage.birthdayField": "69c77ffb99c01a8b",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e"
+   }
+  },
+  {
+   "key": "var OnboardingProfilePage.biologicalSexCard",
+   "hash": "76ec5783f8e10c7b",
+   "does": "biologicalSexField in a card.",
+   "entry": "SwiftUI view composition.",
+   "calls": [
+    "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift::var OnboardingProfilePage.biologicalSexField"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift::var OnboardingProfilePage.biologicalSexField": "1a595d8448204f7c",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e"
+   }
+  },
+  {
+   "key": "var OnboardingProfilePage.bodyWeightCard",
+   "hash": "6dd1e24c4f5014b2",
+   "does": "bodyWeightField in a card.",
+   "entry": "SwiftUI view composition.",
+   "calls": [
+    "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift::var OnboardingProfilePage.bodyWeightField"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift::var OnboardingProfilePage.bodyWeightField": "8b58cfeb14cff87f",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e"
+   }
+  },
+  {
+   "key": "var OnboardingProfilePage.profilePageHeader",
+   "hash": "ff9fc448426de649",
+   "does": "Header: person glyph, \"Quick profile\", \"Three things and we're done.\"",
+   "entry": "SwiftUI view composition.",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var OnboardingProfilePage.birthdayField",
+   "hash": "37d526149dd1dac7",
+   "does": "\"Birthday\" label, the wheel picker and an \"HRV ranges adjust by age.\" caption.",
+   "entry": "SwiftUI view composition.",
+   "calls": [
+    "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift::var OnboardingProfilePage.birthdayWheel",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift::var OnboardingProfilePage.birthdayWheel": "65f1dbb7748455e8",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var OnboardingProfilePage.birthdayWheel",
+   "hash": "e42e56afa35fa96a",
+   "does": "Wheel DatePicker bound to birthdayBinding, limited to dates up to now, clipped to wheelHeight.",
+   "entry": "SwiftUI view composition.",
+   "calls": [
+    "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift::var OnboardingProfilePage.birthdayBinding",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift::var OnboardingProfilePage.birthdayBinding": "da5332ff498eed69"
+   }
+  },
+  {
+   "key": "var OnboardingProfilePage.biologicalSexField",
+   "hash": "9a67874554ce25ae",
+   "does": "Biological sex picker row plus caption.",
+   "entry": "SwiftUI view composition.",
+   "calls": [
+    "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift::var OnboardingProfilePage.biologicalSexPicker",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift::var OnboardingProfilePage.biologicalSexPicker": "15a870a07483f4ed",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var OnboardingProfilePage.bodyWeightField",
+   "hash": "a7011827dcff3cfb",
+   "does": "Body weight row: label, weightTextField, unit (lb or kg) and caption.",
+   "entry": "SwiftUI view composition.",
+   "calls": [
+    "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift::var OnboardingProfilePage.weightTextField",
+    "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift::var OnboardingProfilePage.isImperial",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "isImperial",
+     "effect": "true: \"lb\". false: \"kg\"."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift::var OnboardingProfilePage.isImperial": "468c92b5e00a09fd",
+    "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift::var OnboardingProfilePage.weightTextField": "976596b1e5b5976d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var OnboardingProfilePage.weightTextField",
+   "hash": "97d9ad4083f661fd",
+   "does": "Decimal-pad TextField bound to weightBinding (.number format) with keyboard Done toolbar and unit-specific a11y label.",
+   "entry": "SwiftUI view composition.",
+   "calls": [
+    "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift::var OnboardingProfilePage.weightBinding",
+    "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift::var OnboardingProfilePage.keyboardDoneButton",
+    "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift::var OnboardingProfilePage.isImperial",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "isImperial",
+     "effect": "true: a11y label \"Body weight in pounds\". false: \"...in kilograms\"."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift::var OnboardingProfilePage.isImperial": "468c92b5e00a09fd",
+    "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift::var OnboardingProfilePage.keyboardDoneButton": "26f1d1f85afdb9b9",
+    "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift::var OnboardingProfilePage.weightBinding": "0c56514e6f22a63f"
+   }
+  },
+  {
+   "key": "var OnboardingProfilePage.profileNavigationButtons",
+   "hash": "14657df9e5a8b813",
+   "does": "Skip (identifier onboarding.skip) and Next (identifier onboarding.advance, disabled until isProfileComplete, hint 'Continue to the next step') both call advance; neither writes anything (values are already saved through the bindings).",
+   "entry": "SwiftUI Button actions.",
+   "calls": [
+    "closure:advance — OnboardingView.advanceToNext",
+    "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift::var OnboardingProfilePage.isProfileComplete",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift::var OnboardingProfilePage.isProfileComplete": "cc6eeb6b78b8369c",
+    "Emuqu/Sources/Views/Theme.swift::func ButtonStyle.zen(_:)": "90992ed75b9feffe"
+   }
+  },
+  {
+   "key": "var OnboardingProfilePage.biologicalSexPicker",
+   "hash": "28c054d486f55a5c",
+   "does": "Labeled HStack with a menu Picker bound to biologicalSexBinding.",
+   "entry": "SwiftUI view composition.",
+   "calls": [
+    "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift::var OnboardingProfilePage.biologicalSexBinding",
+    "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift::var OnboardingProfilePage.biologicalSexOptions",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift::var OnboardingProfilePage.biologicalSexBinding": "442dc33d63e34d4c",
+    "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift::var OnboardingProfilePage.biologicalSexOptions": "348db45cce8bd739"
+   }
+  },
+  {
+   "key": "var OnboardingProfilePage.biologicalSexOptions",
+   "hash": "2066eeb80f44bd8a",
+   "does": "\"Not Set\" option tagged nil plus one option per UserSettings.BiologicalSex case using displayName.",
+   "entry": "SwiftUI view composition.",
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.BiologicalSex.displayName",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.BiologicalSex.displayName": "e8d64cefdaf3d4d7",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var OnboardingProfilePage.birthdayBinding",
+   "hash": "907e767ea6b7b263",
+   "does": "Binding: get returns settings.birthday or, if nil, the date 30 years ago (or now if the calendar math fails); set writes settings.birthday.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.birthday"
+   ],
+   "writes": [
+    "mem:SettingsManager.settings.birthday (persisted by didSet save)"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "settings.birthday ?? (date 30y ago ?? Date())",
+     "effect": "birthday nil: shows 30-years-ago without saving it; if Calendar.date(byAdding:) returns nil shows today."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.birthday": "848cd8a572666b81"
+   }
+  },
+  {
+   "key": "var OnboardingProfilePage.biologicalSexBinding",
+   "hash": "fe4608b3e9fb0c75",
+   "does": "Binding get/set to settings.biologicalSex.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.biologicalSex"
+   ],
+   "writes": [
+    "mem:SettingsManager.settings.biologicalSex"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.biologicalSex": "55c985aa6bd25115"
+   }
+  },
+  {
+   "key": "var OnboardingProfilePage.isImperial",
+   "hash": "1ede0c4b64a54b2a",
+   "does": "True when UnitsPreferenceStore.current.resolved == .imperial.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved"
+   ],
+   "reads": [
+    "ud:fitness.unitsPreference (App Group suite, legacy standard fallback)"
+   ],
+   "writes": [
+    "ud:fitness.unitsPreference (App Group suite; UnitsPreferenceStore.current getter copies a legacy standard-suite value into the App Group on first read, UnitsPreference.swift:136-139)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d"
+   }
+  },
+  {
+   "key": "var OnboardingProfilePage.weightBinding",
+   "hash": "8ec62a4a771d8e36",
+   "does": "Binding in display units: get = bodyWeightKg × (2.20462 if imperial else 1); set: nil or ≤0 clears bodyWeightKg, otherwise stores min(value/factor, BiometricsSettingsPage.maximumBodyWeightKg = 250) kg.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift::var OnboardingProfilePage.isImperial",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.bodyWeightKg"
+   ],
+   "writes": [
+    "mem:SettingsManager.settings.bodyWeightKg"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "isImperial ? 2.20462 : 1.0",
+     "effect": "imperial: lb conversion factor; metric: 1"
+    },
+    {
+     "at": "+5",
+     "cond": "let value = newValue, value > 0 (guard)",
+     "effect": "fails: bodyWeightKg = nil; passes: min(value/factor, the shared 250 kg ceiling)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Same kg-canonical display-unit weight binding as BiometricsSettingsPage.bodyWeightDisplayBinding (factor 2.20462, min(..., 250.0) ceiling), and the two copies already diverge: onboarding clears bodyWeightKg for values <= 0 (line 259), Biometrics stores any non-nil value including 0 or negatives (BiometricsSettingsPage.swift:226-235). (The 250 kg ceiling is now the shared BiometricsSettingsPage.maximumBodyWeightKg; handoff b23 to share the whole binding.)",
+     "evidence": [
+      "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift:254-266",
+      "Emuqu/Sources/Views/BiometricsSettingsPage.swift:219-238"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "201177101ead59c4",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.bodyWeightKg": "832c4ee32f6110e2",
+    "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift::var OnboardingProfilePage.isImperial": "468c92b5e00a09fd"
+   }
+  },
+  {
+   "key": "var OnboardingProfilePage.isProfileComplete",
+   "hash": "0d93f7e1616b41ed",
+   "does": "True when settings.birthday and settings.biologicalSex are both non-nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:SettingsManager.settings.birthday",
+    "mem:SettingsManager.settings.biologicalSex"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.biologicalSex": "55c985aa6bd25115",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.birthday": "848cd8a572666b81"
+   }
+  },
+  {
+   "key": "var OnboardingProfilePage.keyboardDoneButton",
+   "hash": "9bed29a55ca111ef",
+   "does": "Keyboard toolbar with a Done button that sets isWeightFocused=false.",
+   "entry": "SwiftUI toolbar content; Button action.",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  }
+ ],
+ "deps": {}
+}

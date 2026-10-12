@@ -1,0 +1,306 @@
+{
+ "file": "scripts/codemap/report.py",
+ "hash": "5471b778113488ef",
+ "role": "Builds the browsable code-map report (index.html plus data/*.json) from the records, the current inventory and the source text: call graph, reachability, shared state, area and file flowcharts, findings. Invoked through `codemap.py report OUTDIR` / `make codemap-report`.",
+ "types": [],
+ "state": [
+  "AREA_NAMES: area id -> display name",
+  "PROD: production area ids (excludes tests, build/CI/tools, docs, strings)",
+  "STATUS: maps a finding's `found` text to the report's status id (confirmed / new-in-verify; anything else 'later')"
+ ],
+ "toplevel": "Module docstring, imports (collections, html, json, re, shutil, Path, inventory.inventory) and the three constants. No side effects at import.",
+ "flags": [],
+ "units": [
+  {
+   "key": "def _area_resolver",
+   "hash": "f8e1711b7d3125cd",
+   "does": "Loads docs/codemap/areas.json and returns a function mapping a path to its area: the listed area, else the most common area among listed files in the nearest enclosing directory, else 'N_nonswift'.",
+   "entry": null,
+   "calls": [
+    "scripts/codemap/report.py::def _area_resolver.area"
+   ],
+   "reads": [
+    "file:docs/codemap/areas.json"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/codemap/report.py::def _area_resolver.area": "56e847583d9d0a6c"
+   }
+  },
+  {
+   "key": "def _area_resolver.area",
+   "hash": "c0eee024b19e3617",
+   "does": "Area of one path, by exact entry or by majority vote of known files under each enclosing directory, walking upward.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "path listed",
+     "effect": "its area"
+    },
+    {
+     "at": "+7",
+     "cond": "some known file lies under this directory",
+     "effect": "most common area there; otherwise keep walking up, finally N_nonswift"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def _tok",
+   "hash": "65e3ca9b3875ec08",
+   "does": "Set of identifier tokens in a text.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def build",
+   "hash": "eef4a28f2495bb7a",
+   "does": "Builds the report. Joins inventory and records into per-unit entries (branch offsets turned back into line numbers; `current` = record hash equals code hash) and collects every file and unit finding. Builds the call graph (graph.build) and merges it with the recorded calls (direct `path::key`, or keys embedded in dyn:/closure: text): recorded calls and certain graph edges become `callers`, possible graph edges not already certain become `possible_callers`, and both count as `targets` for reachability, so the unreachable list errs toward leaving code out. Reachability: walks the call graph from units with an external trigger, admitting a type once code already reached mentions it and seeding @main types plus EmuquMain/EmuquApp/WatchApp; dead types are those never admitted; then a name closure also marks a production unit reached when its type is live and its name appears in reached code; test code is walked separately. Groups reads/writes into shared-state rows with writer/reader areas. Counts area-to-area and file-to-file call edges and renders a whole-app Mermaid flowchart (edges of 8+ calls) and one per production area (45 strongest internal file links plus in/out traffic). Writes data/index.json, data/units/<area>.json, flags, stores, unreachable, strings, meta, and index.html from report_template.html, failing if any {{placeholder}} is left.",
+   "entry": null,
+   "calls": [
+    "scripts/codemap/inventory.py::def inventory",
+    "scripts/codemap/report.py::def _area_resolver",
+    "scripts/codemap/graph.py::def build",
+    "scripts/codemap/report.py::def build.targets",
+    "scripts/codemap/report.py::def build.lines",
+    "scripts/codemap/report.py::def build.seed",
+    "scripts/codemap/report.py::def build.drain",
+    "scripts/codemap/report.py::def build.norm",
+    "scripts/codemap/report.py::def _tok",
+    "ext:shutil.rmtree",
+    "ext:html.escape"
+   ],
+   "reads": [
+    "file:docs/codemap/areas.json",
+    "file:docs/codemap/strings.json",
+    "file:scripts/codemap/report_template.html",
+    "file:every in-scope source file"
+   ],
+   "writes": [
+    "file:OUTDIR/index.html",
+    "file:OUTDIR/data/**"
+   ],
+   "branches": [
+    {
+     "at": "+13",
+     "cond": "file record has findings",
+     "effect": "each listed with status from STATUS"
+    },
+    {
+     "at": "+25",
+     "cond": "branch offset is relative",
+     "effect": "converted to an absolute line; otherwise kept as written"
+    },
+    {
+     "at": "+55",
+     "cond": "graph edge is possible and not already a recorded or certain call",
+     "effect": "possible caller, not a caller"
+    },
+    {
+     "at": "+82",
+     "cond": "an @main attribute within 40 lines above a production unit",
+     "effect": "its type becomes a root"
+    },
+    {
+     "at": "+117",
+     "cond": "no further types referenced by reached code",
+     "effect": "call-graph walk complete"
+    },
+    {
+     "at": "+127",
+     "cond": "unit already reached, not production Swift, or its type is not live",
+     "effect": "not considered by the name closure"
+    },
+    {
+     "at": "+129",
+     "cond": "name appears in reached code, or it is an init/deinit of a live type",
+     "effect": "marked reached"
+    },
+    {
+     "at": "+149",
+     "cond": "production unit",
+     "effect": "prod / tests-only / none"
+    },
+    {
+     "at": "+170",
+     "cond": "singleton or external store touched by one unit only",
+     "effect": "left out of the shared-state table"
+    },
+    {
+     "at": "+212",
+     "cond": "area has calls to or from other areas",
+     "effect": "hub node with up to six in and six out links"
+    },
+    {
+     "at": "+224",
+     "cond": "output directory exists",
+     "effect": "deleted first"
+    },
+    {
+     "at": "+239",
+     "cond": "strings audit file present",
+     "effect": "included; otherwise empty"
+    },
+    {
+     "at": "+277",
+     "cond": "a template placeholder was not filled",
+     "effect": "SystemExit with the names"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "scripts/codemap/graph.py::def build": "4f1c5f170901e1fb",
+    "scripts/codemap/inventory.py::def inventory": "34fef8bbe2bcc698",
+    "scripts/codemap/report.py::def _area_resolver": "7a2707c1eb790b7d",
+    "scripts/codemap/report.py::def _area_resolver.area": "56e847583d9d0a6c",
+    "scripts/codemap/report.py::def _tok": "0aa569e798380d89",
+    "scripts/codemap/report.py::def build.drain": "b4dd4ca0459189fd",
+    "scripts/codemap/report.py::def build.lines": "aebdcc43eee41170",
+    "scripts/codemap/report.py::def build.norm": "1c1122b165af5555",
+    "scripts/codemap/report.py::def build.seed": "2047fe1fa8801aa7",
+    "scripts/codemap/report.py::def build.targets": "2f534864e024a641"
+   }
+  },
+  {
+   "key": "def build.targets",
+   "hash": "9d7a2eef54138011",
+   "does": "Unit keys a call entry resolves to: the entry itself when it is a unit key; for dyn:/closure: text, every embedded `path::` followed by the longest unit key of that file that matches at that position; otherwise none.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "entry is a unit key",
+     "effect": "[entry]"
+    },
+    {
+     "at": "+3",
+     "cond": "ext: or other free text",
+     "effect": "[]"
+    },
+    {
+     "at": "+9",
+     "cond": "a unit key matches at this position",
+     "effect": "added"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def build.lines",
+   "hash": "1c5c25f890cf5fee",
+   "does": "Source lines of a file, read once and cached.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "file:<source path>"
+   ],
+   "writes": [
+    "mem:build.src"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "not cached",
+     "effect": "read the file"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def build.seed",
+   "hash": "80cc3ec54c8be5e5",
+   "does": "Queues every not-yet-reached entry-point unit of a type.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:build.seen",
+    "mem:build.stack"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "entry unit not reached yet",
+     "effect": "marked reached and queued"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def build.drain",
+   "hash": "17ae2534005fedc5",
+   "does": "Processes the queue: adds each unit's tokens (and its file's top-level tokens, once per file) to the referenced set, makes its type live (seeding that type's entry points), and queues its unreached production-Swift callees.",
+   "entry": null,
+   "calls": [
+    "scripts/codemap/report.py::def build.seed"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:build.ref",
+    "mem:build.live",
+    "mem:build.seen"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "first unit reached in this file",
+     "effect": "the file's top-level tokens join the referenced set"
+    },
+    {
+     "at": "+8",
+     "cond": "its type was not live",
+     "effect": "type made live and seeded"
+    },
+    {
+     "at": "+12",
+     "cond": "callee is unreached production Swift",
+     "effect": "queued"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "scripts/codemap/report.py::def build.seed": "2047fe1fa8801aa7",
+    "scripts/codemap/report.py::def build.targets": "2f534864e024a641"
+   }
+  },
+  {
+   "key": "def build.norm",
+   "hash": "d9840964d984f549",
+   "does": "Normalises a read/write entry like 'ud:key (note)' to 'ud:key': prefix without any parenthesised qualifier, key cut before an explanatory phrase or parenthesis, quotes and trailing period removed, at most 80 characters. Entries without a prefix give None.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "no prefix: form",
+     "effect": "None"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {
+  "scripts/codemap/inventory.py::def inventory": "34fef8bbe2bcc698"
+ }
+}

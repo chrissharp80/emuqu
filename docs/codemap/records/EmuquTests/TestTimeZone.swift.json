@@ -1,0 +1,26 @@
+{
+ "file": "EmuquTests/TestTimeZone.swift",
+ "hash": "75866b2499cfd932",
+ "role": "Test-target fixed time zones (UTC and America/New_York) without force-unwrapping TimeZone(identifier:).",
+ "types": [
+  "TestTimeZone: enum — static fixture time zones"
+ ],
+ "state": [
+  "TestTimeZone.utc: TimeZone(identifier: \"UTC\") ?? .gmt",
+  "TestTimeZone.newYork: TimeZone(identifier: \"America/New_York\") ?? .gmt"
+ ],
+ "toplevel": "Two static lets: utc falls back to .gmt (same zero offset) and newYork falls back to .gmt if the tz database lacks the identifier. No functions.",
+ "flags": [
+  {
+   "kind": "test-defect",
+   "sev": "low",
+   "text": "newYork silently falls back to GMT, which has no DST; the suites that use it to test wall-clock behaviour across a DST boundary would then run without the boundary and pass or fail misleadingly with no message.",
+   "evidence": [
+    "EmuquTests/TestTimeZone.swift:22"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [],
+ "deps": {}
+}

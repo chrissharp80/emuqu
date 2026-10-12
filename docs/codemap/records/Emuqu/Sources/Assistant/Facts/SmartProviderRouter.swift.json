@@ -1,0 +1,360 @@
+{
+ "file": "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift",
+ "hash": "ff46c46d80c45224",
+ "role": "MainActor singleton that turns a CapabilityClassifier proposal into a session-sticky tier (Quick/Auto/Deep), owns the shared NaturalLanguage sentence embedder used by the classifier, and enforces a 50/day Tier-3 turn cap persisted in UserDefaults. Also declares the per-conversation RoutingSessionState and the EmbeddingCentroid helper.",
+ "types": [
+  "SmartProviderRouter: final class (@MainActor) — routing + embedder + Tier-3 cap",
+  "SmartProviderRouter.Tier: enum (Int, Comparable) — quick=1, auto=2, deep=3",
+  "RoutingSessionState: final class (@MainActor) — currentTier + turnCount per conversation, owned by AssistantViewModel",
+  "EmbeddingCentroid: enum — mean of embedding vectors"
+ ],
+ "state": [
+  "mem:SmartProviderRouter.shared (singleton)",
+  "mem:SmartProviderRouter.dailyTier3Cap = 50",
+  "mem:SmartProviderRouter.settlingTurns = 3",
+  "mem:SmartProviderRouter.contextualEmbedder (lazy NLContextualEmbedding?, loaded once per launch)",
+  "mem:SmartProviderRouter.wordEmbedder (lazy NLEmbedding?)",
+  "ud:assistant.router.tier3Day (yyyy-MM-dd of the stored count)",
+  "ud:assistant.router.tier3Count (Tier-3 turns that day)",
+  "mem:RoutingSessionState.currentTier",
+  "mem:RoutingSessionState.turnCount"
+ ],
+ "toplevel": "contextualEmbedder is a lazy stored property initialised by loadContextualEmbedder(); RoutingSessionState.turnCount = 0. The Tier-3 cap counter lives in UserDefaults (standard), so a relaunch does not reset it.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func SmartProviderRouter.Tier.<(lhs:rhs:)",
+   "hash": "50a522e56b58731c",
+   "does": "Orders tiers by rawValue (quick < auto < deep).",
+   "entry": "Comparable conformance; used by `>` in stickyTier",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SmartProviderRouter.route(message:in:)",
+   "hash": "c7e2a307dd1c49c4",
+   "does": "Classifies the message with CapabilityClassifier, applies sticky-tier rules against the session, logs the decision at .info and returns the chosen tier. Called only from AssistantViewModel routing's proposeTier in Auto mode, which increments turnCount before and stores the result as currentTier after.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::var CapabilityClassifier.Requirement.requiredTier",
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.stickyTier(proposed:requirement:session:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::var CapabilityClassifier.Requirement.debugSummary",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.capabilityClassifier"
+   ],
+   "reads": [
+    "mem:RoutingSessionState.turnCount",
+    "mem:RoutingSessionState.currentTier"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)": "67f299962bb530f2",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::var CapabilityClassifier.Requirement.debugSummary": "7635398939270bf7",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::var CapabilityClassifier.Requirement.requiredTier": "b6c76a8b4046cb8c",
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.stickyTier(proposed:requirement:session:)": "e68b27c975e4e4a2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "3848c612cbdb11bc",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.capabilityClassifier": "47b5297e6944b251",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func SmartProviderRouter.stickyTier(proposed:requirement:session:)",
+   "hash": "2ff7232379a835ec",
+   "does": "Session stickiness: take the proposal if it is an upgrade, or during the settling window (turnCount <= 3: turns 1-3, since the caller counts the current turn first), or if it is Quick with no capability flags; otherwise keep session.currentTier.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:RoutingSessionState.currentTier",
+    "mem:RoutingSessionState.turnCount"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "proposed > currentTier",
+     "effect": "returns proposed (upgrade)"
+    },
+    {
+     "at": "+6",
+     "cond": "turnCount <= settlingTurns (3)",
+     "effect": "returns proposed (settling window: turns 1-3)"
+    },
+    {
+     "at": "+7",
+     "cond": "proposed == .quick and requirement == .none",
+     "effect": "returns proposed (capability-clear downgrade). proposed == .quick already implies requirement == .none per Requirement.requiredTier, so the second clause is redundant"
+    },
+    {
+     "at": "+8",
+     "cond": "none of the above",
+     "effect": "returns session.currentTier (sticky)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "untested",
+     "sev": "low",
+     "text": "No test references SmartProviderRouter or RoutingSessionState: grepping EmuquTests for SmartProviderRouter, RoutingSessionState, sessionState.turnCount, route(message and recordTier3 finds nothing. TurnRouterTests covers only the pure TurnRouter. The sticky upgrade/downgrade rules, the settling window and the Tier-3 cap that pick the cloud provider are never exercised.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift:84",
+      "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift:215",
+      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift:120"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func SmartProviderRouter.loadContextualEmbedder()",
+   "hash": "c14f08cb88bcc251",
+   "does": "Creates an English NLContextualEmbedding (the deployment target is iOS 17, so no availability check); if its assets are not on device, fires a detached Task to requestAssets() on a fresh instance and returns nil for this launch; otherwise loads it and returns it, nil on load failure.",
+   "entry": "Initialiser of the lazy contextualEmbedder property (first embed call).",
+   "calls": [
+    "ext:NLContextualEmbedding(language:)",
+    "ext:NLContextualEmbedding.requestAssets",
+    "ext:NLContextualEmbedding.load"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "NLContextualEmbedding(language: .english) is nil",
+     "effect": "returns nil"
+    },
+    {
+     "at": "+6",
+     "cond": "hasAvailableAssets",
+     "effect": "false: detached asset download (errors swallowed by try?), returns nil — word vectors for the rest of this launch; true: load"
+    },
+    {
+     "at": "+15",
+     "cond": "catch load error",
+     "effect": "error discarded, returns nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "let SmartProviderRouter.wordEmbedder",
+   "hash": "ed027286a59cf8d3",
+   "does": "Lazy stored-closure initializer: NLEmbedding.wordEmbedding(for: .english) (nil if unavailable).",
+   "entry": "lazy var first access from wordVectorEmbedding",
+   "calls": [
+    "ext:NLEmbedding.wordEmbedding"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:SmartProviderRouter.wordEmbedder"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SmartProviderRouter.embed(_:)",
+   "hash": "da9db892b7c8586d",
+   "does": "Sentence embedding, always in one vector space per launch: when a contextual embedder exists, its mean-pooled vector (nil when it fails for this text — never a word-vector embedding, whose length and meaning differ); otherwise the word-vector mean. Called by CapabilityClassifier.embed for both prototype centroids and query vectors; nil reads there as 'no embedding'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.contextualEmbedding(_:)",
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.wordVectorEmbedding(_:)"
+   ],
+   "reads": [
+    "mem:SmartProviderRouter.contextualEmbedder"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no contextual embedder this launch",
+     "effect": "word-vector mean; else contextual (nil on failure)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.contextualEmbedding(_:)": "3b0b6c67f7eda9bd",
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.wordVectorEmbedding(_:)": "4df4d49ba5a3852a"
+   }
+  },
+  {
+   "key": "func SmartProviderRouter.contextualEmbedding(_:)",
+   "hash": "12b6e785d3b72410",
+   "does": "Mean-pools the contextual embedder's per-token vectors over the whole text; nil when no embedder, embeddingResult throws, or no tokens.",
+   "entry": null,
+   "calls": [
+    "ext:NLContextualEmbedding.embeddingResult",
+    "ext:NLContextualEmbeddingResult.enumerateTokenVectors"
+   ],
+   "reads": [
+    "mem:SmartProviderRouter.contextualEmbedder"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "embedder exists and embeddingResult succeeds",
+     "effect": "false: nil (thrown error swallowed by try?)"
+    },
+    {
+     "at": "+6",
+     "cond": "sum empty (first token)",
+     "effect": "allocates zero vector of the token vector's length"
+    },
+    {
+     "at": "+7",
+     "cond": "for i in 0..<min(sum, vector)",
+     "effect": "adds per-dimension, bounded by the shorter length"
+    },
+    {
+     "at": "+11",
+     "cond": "count > 0 and sum non-empty",
+     "effect": "false: nil; true: returns sum / count"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::let SmartProviderRouter.contextualEmbedder": "4743d11884ab4aeb"
+   }
+  },
+  {
+   "key": "func SmartProviderRouter.wordVectorEmbedding(_:)",
+   "hash": "4839251709a64286",
+   "does": "Splits text on non-letters, lowercases, looks up static word vectors, and returns their mean; nil when no word embedder or no known words.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::let SmartProviderRouter.wordEmbedder",
+    "ext:NLEmbedding.vector(for:)"
+   ],
+   "reads": [
+    "mem:SmartProviderRouter.wordEmbedder"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "word embedder exists",
+     "effect": "false: nil"
+    },
+    {
+     "at": "+4",
+     "cond": "at least one token has a vector",
+     "effect": "false: nil; true: start sum from first"
+    },
+    {
+     "at": "+5",
+     "cond": "for each remaining vector",
+     "effect": "accumulate"
+    },
+    {
+     "at": "+6",
+     "cond": "for i in 0..<sum.count",
+     "effect": "adds v[i]; all word vectors share one dimension so no bounds issue"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::let SmartProviderRouter.wordEmbedder": "7d849944de31d4f6"
+   }
+  },
+  {
+   "key": "func SmartProviderRouter.dayKey(_:)",
+   "hash": "c3b04f82b5d52856",
+   "does": "Formats a date (default now) as yyyy-MM-dd in the Gregorian calendar with en_US_POSIX locale and the device's current time zone, building a new DateFormatter each call.",
+   "entry": null,
+   "calls": [
+    "ext:DateFormatter"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SmartProviderRouter.recordTier3UsageAndCheck()",
+   "hash": "94d2893450d5c92b",
+   "does": "Increments today's Tier-3 count in UserDefaults (a stored count from another day starts over at 0), stores today's day key and the new count, and returns whether the count is ≤ 50. Called by AssistantViewModel+Routing.makeTierStageInputs only when the proposal is Deep and Deep maps to a non-Apple provider.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.dayKey(_:)",
+    "ext:UserDefaults.standard"
+   ],
+   "reads": [
+    "ud:assistant.router.tier3Day",
+    "ud:assistant.router.tier3Count"
+   ],
+   "writes": [
+    "ud:assistant.router.tier3Day",
+    "ud:assistant.router.tier3Count"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "stored day key is today",
+     "effect": "continues from the stored count; else starts from 0"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.dayKey(_:)": "570eea800f58e83b"
+   }
+  },
+  {
+   "key": "init RoutingSessionState(initialTier:)",
+   "hash": "6a3c2fdf88683acc",
+   "does": "Initializes a session's routing state with currentTier (default .quick) and turnCount 0. Constructed once per AssistantViewModel (AssistantViewModel.swift:124).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func EmbeddingCentroid.mean(of:)",
+   "hash": "9313da1962f177d2",
+   "does": "Element-wise mean of embedding vectors using the first vector's dimension; components beyond a shorter vector's length are skipped but still divided by the full vector count. nil for an empty input.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "vectors non-empty",
+     "effect": "false: nil"
+    },
+    {
+     "at": "+4",
+     "cond": "for each vector",
+     "effect": "accumulates"
+    },
+    {
+     "at": "+5",
+     "cond": "index < vector.count (where clause)",
+     "effect": "shorter vectors contribute 0 for missing dimensions (yet still count in the divisor)"
+    },
+    {
+     "at": "+9",
+     "cond": "for each dimension",
+     "effect": "divides by vectors.count"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

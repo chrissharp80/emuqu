@@ -9,8 +9,8 @@ import Foundation
 /// cleanly.
 ///
 /// Research context (May 2026 review):
-///   • Banister TRIMP requires HR — there's no published HR-free
-///     formulation. The honest fallback when HR is missing is to
+///   • TRIMP (Banister's, and the Lucia zone TRIMP this app records)
+///     requires HR — there's no published HR-free formulation. The honest fallback when HR is missing is to
 ///     anchor on a different effort proxy.
 ///   • Power-based TSS (Coggan; Stryd RSS) is the most accurate
 ///     HR-free intensity proxy and outperforms hrTSS on variable
@@ -33,6 +33,11 @@ import Foundation
 ///      ≥ 1 prior session on this route: use the prior route
 ///      average directly.
 ///
+/// With no priors, today's own TRIMP-per-metre is scaled up only when the
+/// estimate covers more than was recorded (the whole route after a
+/// truncated recording); scaled to the recorded distance it would be the
+/// recorded TRIMP again, so no estimate is made.
+///
 /// Every case scales TRIMP-per-metre to today's recorded distance (the
 /// whole route only when the recording itself may have stopped early; see
 /// `targetDistance`).
@@ -40,8 +45,9 @@ import Foundation
 /// Priors are earlier runs of THIS saved route: same sport, ended before
 /// the workout being estimated starts (so a backfilled session never
 /// counts itself), whose own shape matches the route, and whose own HR
-/// load was not itself a dropout. Ratios under half the median prior
-/// ratio are dropped as outliers.
+/// load was not itself a dropout — the most recent `maxPriors` of them
+/// within `priorLookbackDays`. Ratios under half the median prior ratio
+/// are dropped as outliers.
 ///
 /// Confidence: floor 0.4 (no priors, today-only ratio), scales to
 /// 0.85 cap with sample size. Never claims gospel — the UI always
@@ -71,8 +77,9 @@ enum RouteTRIMPEstimator {
     ///     started from a saved route this is still required because
     ///     we score the actual recorded shape, not just the binding.
     ///   - sport: filters prior sessions to the same sport.
-    ///   - recordedTRIMP: the workout's Banister TRIMP as computed
-    ///     from whatever HR the strap delivered. May be `nil` or
+    ///   - recordedTRIMP: the workout's Lucia TRIMP
+    ///     (`WorkoutMetadata.luciaTRIMP`, the load every prior is read
+    ///     from too) as computed from whatever HR the strap delivered. May be `nil` or
     ///     near-zero when the strap dropped entirely.
     ///   - recordedDistance: how far the user actually moved in the
     ///     recording. The estimate is scaled to it (see `targetDistance`).
@@ -82,8 +89,9 @@ enum RouteTRIMPEstimator {
     ///   - archive: source of prior workouts on the same route.
     ///   - savedRouteStore: the user's saved-route library.
     /// - Returns: an estimate, or `nil` if there's not enough data
-    ///   (no route match, no priors and no recordedTRIMP, or the
-    ///   recorded TRIMP already looks healthy).
+    ///   (no route match, no priors and no recordedTRIMP, no priors and
+    ///   nothing to scale beyond the recorded distance, or the recorded
+    ///   TRIMP already looks healthy).
     static func estimate(
         track: [CLLocation],
         sport: Sport,
@@ -101,12 +109,13 @@ enum RouteTRIMPEstimator {
         let recordedRatio = trimpPerMetre(trimp: recordedTRIMP, distance: recordedDistance)
         // Case 1: nothing to do — the measured value already tracks the route.
         if let priorAvgRatio, let recordedRatio, recordedRatio >= 0.7 * priorAvgRatio { return nil }
+        let target = targetDistance(
+            recordedDistance: recordedDistance, savedDistance: match.savedRoute.totalDistanceMeters,
+            distanceMayBeTruncated: distanceMayBeTruncated
+        )
+        if priorAvgRatio == nil, target == recordedDistance { return nil }
         guard let scaled = scaledEstimate(
-            priorAvgRatio: priorAvgRatio, recordedRatio: recordedRatio, priorCount: ratios.count,
-            targetDistance: targetDistance(
-                recordedDistance: recordedDistance, savedDistance: match.savedRoute.totalDistanceMeters,
-                distanceMayBeTruncated: distanceMayBeTruncated
-            )
+            priorAvgRatio: priorAvgRatio, recordedRatio: recordedRatio, priorCount: ratios.count, targetDistance: target
         ) else { return nil }
         return Estimate(
             estimatedTRIMP: scaled.trimp, confidence: scaled.confidence,
@@ -207,10 +216,22 @@ enum RouteTRIMPEstimator {
         }
     }
 
-    /// Archived workouts that ran the same saved route before this one. The
-    /// archive index rules out later sessions before anything is decoded; the
-    /// 150 m start check (either end of the route) is a cheap pre-filter, and the shape match then ties
-    /// each prior to THIS route rather than to any run from the same door.
+    /// How far back a prior run may be. Bounds the sessions decoded (on the
+    /// main actor) at every finalize and backfill, and keeps the estimate on
+    /// the user's recent fitness.
+    static let priorLookbackDays = 365
+
+    /// The most recent priors used. Confidence is already at its cap by
+    /// three; more only cost decoding time.
+    static let maxPriors = 20
+
+    /// Archived workouts that ran the same saved route before this one, most
+    /// recent first. The archive index rules out later sessions and sessions
+    /// older than `priorLookbackDays` before anything is decoded, and the scan
+    /// stops at `maxPriors` matches. The start check (either end of the route,
+    /// within `RouteLibrary.startGateMeters`) is a cheap pre-filter, and the
+    /// shape match then ties each prior to THIS route rather than to any run
+    /// from the same door. Each prior's polyline is decoded once for both.
     private static func priorSessionsOnRoute(
         archive: SessionArchive,
         route: PriorRoute,
@@ -218,11 +239,19 @@ enum RouteTRIMPEstimator {
     ) -> [HRVSession] {
         let anchors = endAnchors(of: route.savedRoute)
         guard !anchors.isEmpty else { return [] }
-        return archive.entries
-            .filter { $0.sessionType == .workout && ($0.endDate ?? $0.date) <= workoutStart }
+        let cutoff = workoutStart.addingTimeInterval(-Double(priorLookbackDays) * 86_400)
+        let candidates = archive.entries
+            .filter { $0.sessionType == .workout && ($0.endDate ?? $0.date) <= workoutStart && $0.date >= cutoff }
+            .sorted { $0.date > $1.date }
+        let priors = candidates.lazy
             .compactMap { archive.retrieveLightweightOrLog($0.sessionId, caller: "RouteTRIMPEstimator") }
             .filter { isCleanPrior($0, sport: route.sport, before: workoutStart) }
-            .filter { startsNear(anchors, session: $0) && ranRoute(route, session: $0) }
+            .filter { session in
+                let path = track(of: session)
+                return startsNear(anchors, track: path) && ranRoute(route, track: path)
+            }
+            .prefix(maxPriors)
+        return Array(priors)
     }
 
     /// The saved route's first and last points. A prior can run the route in
@@ -246,17 +275,17 @@ enum RouteTRIMPEstimator {
         return meta.partialDataReason == nil && !meta.routeEstimateReplacesHRLoad
     }
 
-    /// Whether the session's first GPS fix sits within 150 m of either end of
-    /// the route.
-    private static func startsNear(_ anchors: [CLLocation], session: HRVSession) -> Bool {
-        guard let first = track(of: session).first else { return false }
+    /// Whether the track's first GPS fix sits within the start gate of either
+    /// end of the route.
+    private static func startsNear(_ anchors: [CLLocation], track: [CLLocation]) -> Bool {
+        guard let first = track.first else { return false }
         let firstLoc = CLLocation(latitude: first.coordinate.latitude, longitude: first.coordinate.longitude)
-        return anchors.contains { firstLoc.distance(from: $0) <= 150 }
+        return anchors.contains { firstLoc.distance(from: $0) <= RouteLibrary.startGateMeters }
     }
 
-    /// Whether the session's whole track is recognised as this saved route.
-    private static func ranRoute(_ route: PriorRoute, session: HRVSession) -> Bool {
-        RouteLibrary.findMatch(currentTrack: track(of: session), sport: route.sport, store: route.store)?
+    /// Whether the whole track is recognised as this saved route.
+    private static func ranRoute(_ route: PriorRoute, track: [CLLocation]) -> Bool {
+        RouteLibrary.findMatch(currentTrack: track, sport: route.sport, store: route.store)?
             .savedRoute.id == route.savedRoute.id
     }
 

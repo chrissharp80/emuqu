@@ -1,0 +1,323 @@
+{
+ "file": "EmuquUITests/HistoryTrendsUITests.swift",
+ "hash": "dce4d18cb9c87b17",
+ "role": "XCUITest coverage of History (reached from the Dashboard Recent strip with a seeded reading) and Trends (from More): Day-1 checklist on empty archive, seeded History row, search with no match, range chips on empty and seeded archives.",
+ "types": [
+  "HistoryTrendsUITests: class — XCTestCase"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Passes the bare '-UITests' launch argument, which no production code reads (only -UITests-FreshInstall at AppLaunchRecovery.swift:185 and -UITests-ForcePaywall/-UITests-SeedArchive at UITestLaunchArguments.swift:18,23 are checked); it is inert",
+   "evidence": [
+    "EmuquUITests/HistoryTrendsUITests.swift:27",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift:185",
+    "Emuqu/Sources/Services/UITestLaunchArguments.swift:18"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Class doc describes Trends period controls as 1W/1M/3M/All Time and History pagination/filter controls; the tests (lines 132-136) and TrendsV2View.TimeRange use 7/14/30/90/All chips, and no test touches pagination or filters",
+   "evidence": [
+    "EmuquUITests/HistoryTrendsUITests.swift:10",
+    "Emuqu/Sources/Views/TrendsV2View.swift:82"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func HistoryTrendsUITests.setUp()",
+   "hash": "5afd054df2a6b2da",
+   "does": "Sets continueAfterFailure=false, creates XCUIApplication, appends launch arguments -UITests, -UITests-FreshInstall and English locale (UITestLanguage.english), launches the app (the app wipes onboarding/disclaimer/paywall flags, settings files and the session archive via AppLaunchRecovery.resetUITestStateIfRequested) and walks every first-run gate with UITestLaunch.toMainUI, ignoring its Bool result.",
+   "entry": "XCTest runner: setUp before each test in the class",
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)",
+    "ext:XCUIApplication.launch",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resetUITestStateIfRequested()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resetUITestStateIfRequested()": "6ce77cca4f0ebae6",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)": "35f7ec6a1e50e9a0",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)": "747ec38364b540cd"
+   }
+  },
+  {
+   "key": "func HistoryTrendsUITests.tearDown()",
+   "hash": "c6f9bd9c44559741",
+   "does": "Releases the XCUIApplication (app = nil); does not terminate the app.",
+   "entry": "XCTest runner: tearDown after each test in the class",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HistoryTrendsUITests.openHistoryWithSeededArchive()",
+   "hash": "db199d938422934b",
+   "does": "Terminates and relaunches with -UITests-FreshInstall and -UITests-SeedArchive, waits up to 60s for the disclaimer, walks gates, and asserts UITestNav.openHistory succeeds.",
+   "entry": null,
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.openHistory(_:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)",
+    "ext:XCUIApplication.launch",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resetUITestStateIfRequested()",
+    "Emuqu/Sources/Services/UITestLaunchArguments.swift::var UITestLaunchArguments.seedsArchive",
+    "Emuqu/Sources/Services/UITestLaunchArguments.swift::func UITestArchiveSeed.plantIfRequested(into:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resetUITestStateIfRequested()": "6ce77cca4f0ebae6",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)": "35f7ec6a1e50e9a0",
+    "Emuqu/Sources/Services/UITestLaunchArguments.swift::func UITestArchiveSeed.plantIfRequested(into:)": "2b754ae9ec1519fb",
+    "Emuqu/Sources/Services/UITestLaunchArguments.swift::var UITestLaunchArguments.seedsArchive": "f3ca67b3d6af7d2c",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)": "747ec38364b540cd",
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.openHistory(_:)": "1c1ff9e3f23f61f1",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+   }
+  },
+  {
+   "key": "func HistoryTrendsUITests.openTrendsWithSeededArchive()",
+   "hash": "0552aa9e7d2bb4ad",
+   "does": "Relaunches with the archive seed exactly like openHistoryWithSeededArchive, walks gates, then opens Trends from More.",
+   "entry": null,
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)",
+    "EmuquUITests/HistoryTrendsUITests.swift::func HistoryTrendsUITests.openTrends()",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)",
+    "ext:XCUIApplication.launch",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resetUITestStateIfRequested()",
+    "Emuqu/Sources/Services/UITestLaunchArguments.swift::var UITestLaunchArguments.seedsArchive",
+    "Emuqu/Sources/Services/UITestLaunchArguments.swift::func UITestArchiveSeed.plantIfRequested(into:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Relaunch-with-seed block is copied verbatim in openHistoryWithSeededArchive, EmuquUITests.openHistory and MorningResultsUITests.setUp",
+     "evidence": [
+      "EmuquUITests/HistoryTrendsUITests.swift:67",
+      "EmuquUITests/HistoryTrendsUITests.swift:45",
+      "EmuquUITests/EmuquUITests.swift:842",
+      "EmuquUITests/MorningResultsUITests.swift:35"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resetUITestStateIfRequested()": "6ce77cca4f0ebae6",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)": "35f7ec6a1e50e9a0",
+    "Emuqu/Sources/Services/UITestLaunchArguments.swift::func UITestArchiveSeed.plantIfRequested(into:)": "2b754ae9ec1519fb",
+    "Emuqu/Sources/Services/UITestLaunchArguments.swift::var UITestLaunchArguments.seedsArchive": "f3ca67b3d6af7d2c",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)": "747ec38364b540cd",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68",
+    "EmuquUITests/HistoryTrendsUITests.swift::func HistoryTrendsUITests.openTrends()": "78d6ac43cc20f5aa"
+   }
+  },
+  {
+   "key": "func HistoryTrendsUITests.openTrends()",
+   "hash": "cf705e8a27d88440",
+   "does": "Asserts UITestNav.openTrends succeeds.",
+   "entry": null,
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.openTrends(_:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.openTrends(_:)": "bef5639aa1b88061"
+   }
+  },
+  {
+   "key": "func HistoryTrendsUITests.testEmptyArchiveShowsDay1ChecklistInsteadOfHistory()",
+   "hash": "062a8fae84044bc0",
+   "does": "On the empty archive asserts a static text containing 'first recovery score' (Day-1 checklist) appears, then asserts UITestNav.openHistory fails (no View all entry point).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.openHistory(_:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "The negative assertion XCTAssertFalse(openHistory) also passes when navigation fails for any unrelated reason (Dashboard tab not selectable, slow layout), so it cannot distinguish 'no entry point' from 'could not look'",
+     "evidence": [
+      "EmuquUITests/HistoryTrendsUITests.swift:91"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.openHistory(_:)": "1c1ff9e3f23f61f1",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+   }
+  },
+  {
+   "key": "func HistoryTrendsUITests.testHistoryRendersWithAReading()",
+   "hash": "a4628d658515df83",
+   "does": "With a seeded archive asserts a history.entryRow element appears within 16s.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/HistoryTrendsUITests.swift::func HistoryTrendsUITests.openHistoryWithSeededArchive()",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.anyElement(in:identifier:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.anyElement(in:identifier:)": "7c7096c59b35ed60",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68",
+    "EmuquUITests/HistoryTrendsUITests.swift::func HistoryTrendsUITests.openHistoryWithSeededArchive()": "a6d62fa9601cd0d2"
+   }
+  },
+  {
+   "key": "func HistoryTrendsUITests.testHistorySearchWithNoMatchIsSafe()",
+   "hash": "3ff404e4e1042550",
+   "does": "With a seeded archive asserts history.search text field exists, types 'xyzunlikely', and asserts the tab bar exists.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/HistoryTrendsUITests.swift::func HistoryTrendsUITests.openHistoryWithSeededArchive()",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "The only post-search assertion is tabBar.exists (no wait), which holds on any screen that has not crashed; the empty-result state is not checked",
+     "evidence": [
+      "EmuquUITests/HistoryTrendsUITests.swift:115"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68",
+    "EmuquUITests/HistoryTrendsUITests.swift::func HistoryTrendsUITests.openHistoryWithSeededArchive()": "a6d62fa9601cd0d2"
+   }
+  },
+  {
+   "key": "func HistoryTrendsUITests.testTrendsTabRendersOnEmptyArchive()",
+   "hash": "731ebc6e9d88446b",
+   "does": "Opens Trends on an empty archive and asserts the trends.range.30 chip appears.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/HistoryTrendsUITests.swift::func HistoryTrendsUITests.openTrends()",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68",
+    "EmuquUITests/HistoryTrendsUITests.swift::func HistoryTrendsUITests.openTrends()": "78d6ac43cc20f5aa"
+   }
+  },
+  {
+   "key": "func HistoryTrendsUITests.testTrendsPeriodSwitchOnEmptyArchive()",
+   "hash": "f35dd79bf47be478",
+   "does": "Opens Trends on an empty archive and for ranges 7,14,30,90,0 asserts each trends.range.<n> chip exists and taps it when safely hittable; asserts the tab bar exists.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/HistoryTrendsUITests.swift::func HistoryTrendsUITests.openTrends()",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.isSafelyHittable(_:in:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each range value",
+     "effect": "assert chip and tap"
+    },
+    {
+     "at": "+6",
+     "cond": "chip missing or not safely hittable",
+     "effect": "continue without tapping (silently skips the tap)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.isSafelyHittable(_:in:)": "9dbb37297908f3b2",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68",
+    "EmuquUITests/HistoryTrendsUITests.swift::func HistoryTrendsUITests.openTrends()": "78d6ac43cc20f5aa"
+   }
+  },
+  {
+   "key": "func HistoryTrendsUITests.testTrendsPeriodSwitchWithAReading()",
+   "hash": "66938e3e2a77c71c",
+   "does": "Opens Trends with a seeded reading and for ranges 7,14,30,90,0 asserts each chip exists and taps it via tapSafely; asserts the tab bar exists.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/HistoryTrendsUITests.swift::func HistoryTrendsUITests.openTrendsWithSeededArchive()",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.tapSafely(_:in:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each range value",
+     "effect": "assert chip, tapSafely (result ignored)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.tapSafely(_:in:)": "5ba2bf71286c792e",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68",
+    "EmuquUITests/HistoryTrendsUITests.swift::func HistoryTrendsUITests.openTrendsWithSeededArchive()": "8c26ac57262c52a5"
+   }
+  }
+ ],
+ "deps": {}
+}

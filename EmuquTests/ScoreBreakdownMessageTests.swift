@@ -22,11 +22,33 @@ final class ScoreBreakdownMessageTests: XCTestCase {
         return RecoveryScoreCalculator.ScoreBreakdown(compositeScore: composite, tier: 3, factors: factors, penalties: [])
     }
 
+    /// Asked with a clear load, so only the HRV gate stands between this
+    /// breakdown and the all-clear lines: the screenshot's numbers must get
+    /// the "carrying the score" line, not "all in a good place".
     func testStrongCompositeWithWeakHRVDoesNotSayGoHard() {
         let b = breakdown(hrv: 71, sleep: 95, vitals: 96)
         XCTAssertGreaterThanOrEqual(b.compositeScore, 80)
-        XCTAssertFalse(b.message.contains("Go hard"), b.message)
-        XCTAssertTrue(b.message.contains("HRV"), "the message should name the factor that is not strong: \(b.message)")
+        let message = ScoreBreakdownCopy.message(for: b, loadLevel: .clear)
+        XCTAssertFalse(message.contains("Go hard"), message)
+        XCTAssertTrue(message.contains("carrying the score while HRV sits under its usual level"), message)
+        XCTAssertFalse(message.contains("all in a good place"), message)
+    }
+
+    /// With HRV weighted light enough for an Excellent composite (≥ 90) and a
+    /// clear load, everything but the HRV gate allows "Go hard"; HRV under its
+    /// baseline score must still hold it back.
+    func testExcellentCompositeCarriedPastWeakHRVDoesNotSayGoHard() {
+        let factors = [
+            Factor(label: "HRV", detail: "", score: 71, weight: 0.2, impact: .negative),
+            Factor(label: "Sleep", detail: "", score: 99, weight: 0.5, impact: .positive),
+            Factor(label: "Vitals", detail: "", score: 99, weight: 0.3, impact: .positive)
+        ]
+        let composite = 71 * 0.2 + 99 * 0.5 + 99 * 0.3
+        let b = RecoveryScoreCalculator.ScoreBreakdown(compositeScore: composite, tier: 3, factors: factors, penalties: [])
+        XCTAssertGreaterThanOrEqual(b.compositeScore, 90)
+        let message = ScoreBreakdownCopy.message(for: b, loadLevel: .clear)
+        XCTAssertFalse(message.contains("Go hard"), message)
+        XCTAssertTrue(message.contains("carrying the score while HRV sits under its usual level"), message)
     }
 
     /// "Go hard" now also needs a clear training load, so this asks with one.

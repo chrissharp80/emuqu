@@ -31,6 +31,7 @@ extension WorkoutFinalizer {
         hrrSamples: [HRRSample]
     ) async -> HRVSession {
         guard var session = recorder.currentSession, let startDate = recorder.sessionStartDate else {
+            debugLog("[WorkoutRecorder.finalize] no current session or start date — nothing to finalize or archive", level: .warning)
             return HRVSession(sessionType: .workout)
         }
         let analysis = analyzeWorkoutForFinalize(rrPoints: rrPoints, session: session, startDate: startDate)
@@ -62,6 +63,7 @@ extension WorkoutFinalizer {
         applyElevationMetrics(to: &metadata)
         applyAnalyzerMetrics(to: &metadata, computed: analysis.computed, hrrSamples: hrrSamples)
         await backfillHRAndAttachSamples(metadata: &metadata, startDate: startDate, stopDate: stopDate)
+        metadata.pauseSpans = WorkoutPauseSpan.spans(of: recorder.lifecycle.pauseTimeline)
         applyPowerAggregates(to: &metadata, sport: analysis.sport, startDate: startDate, stopDate: stopDate)
         applyRouteTRIMPEstimate(to: &metadata, sport: analysis.sport)
         applyRowingTelemetry(to: &metadata, sport: analysis.sport)
@@ -212,9 +214,13 @@ extension WorkoutFinalizer {
     /// 5–10 s on the wrist regardless of whether our Watch app is
     /// running. We can't recover RR-level variability from those
     /// samples (HRV needs strap-grade RR), but we CAN fill in HR for
-    /// every workout sample whose `heartRate` is nil — which fixes
-    /// average HR, peak HR, zone distribution, TRIMP, and the HR
-    /// chart that would otherwise look mostly empty.
+    /// every workout sample whose `heartRate` is nil — which fills the
+    /// HR chart and everything read from the per-second rows (zone
+    /// breakdown, sample-based HR figures) that would otherwise look
+    /// mostly empty. It does not touch TRIMP or hrTSS: stage 1 computes
+    /// those from the RR beats alone, and nothing recomputes them from the
+    /// filled rows, so a workout short of beats is scored by the lower
+    /// tiers of the training-load ladder (`TrainingLoadPrecedence`).
     ///
     /// Backfill rules:
     ///   • only fill nil heartRate values (don't overwrite real
@@ -402,8 +408,9 @@ extension WorkoutFinalizer {
     ///
     /// Sessions with no HR AND no GPS movement are a different case:
     /// they're almost certainly accidental Start taps, not real
-    /// recordings. Those still go to `.failed` so the archive isn't
-    /// littered with ghost rows.
+    /// recordings. Those go to `.failed`, and `archive(session:)` does not
+    /// write a `.failed` session, so the archive (and iCloud and Apple
+    /// Health after it) isn't littered with ghost rows.
     private func classifySessionAndAttachData(
         session: inout HRVSession,
         metadata: inout WorkoutMetadata,
@@ -450,10 +457,12 @@ extension WorkoutFinalizer {
     /// Without this the post-workout PDF / Holistic Daily Report
     /// / Coach Report email show "no training-load snapshot" and
     /// can't deliver TSB/ACWR-aware recommendations. We intentionally
-    /// use forMorningReading: false so today's load contributions
-    /// (this very workout) are included — the snapshot represents
-    /// the post-session state, the canonical thing to display next
-    /// to the workout. Mirrors the recovery-session attach in
+    /// use forMorningReading: false so today's earlier load contributions
+    /// are included. This workout itself is not: the snapshot is taken
+    /// before `archive(session:)` writes it (and before its Apple Health
+    /// export), so neither the warm cache nor the cold archive + HealthKit
+    /// merge has it yet. The stored ATL/CTL/TSB is the load the user
+    /// brought into this workout. Mirrors the recovery-session attach in
     /// RRCollector+DeviceRecording.swift, including the
     /// user's VO2max override / opt-out handling.
     private func attachTrainingSnapshot(to session: inout HRVSession, stopDate: Date) async {
@@ -491,10 +500,7 @@ extension WorkoutFinalizer {
     /// workout entirely.
     private func resolveFinalizeTrainingContext(stopDate: Date) async -> TrainingContext? {
         if let live = AppDependencies.current.analysis.trainingMetricsCache.current, live.atl > 0 || live.ctl > 0 {
-            return TrainingContext(
-                atl: live.atl, ctl: live.ctl, tsb: live.tsb, yesterdayTrimp: live.todayTrimp,
-                vo2Max: live.vo2MaxLatest, daysSinceHardWorkout: nil, recentWorkouts: nil
-            )
+            return Self.trainingContext(fromCached: live, relativeTo: stopDate)
         }
         let healthKit = recorder.core.healthKit
         guard let load = await Self.runWithTimeout(seconds: 1.5, {
@@ -504,6 +510,21 @@ extension WorkoutFinalizer {
             return nil
         }
         return TrainingContext(from: load, relativeTo: stopDate)
+    }
+
+    /// The warm cache as a snapshot. `yesterdayTrimp` is the TRIMP of the day
+    /// before `stopDate` from the cache's daily series: the same day the
+    /// HealthKit path (`TrainingContext(from:relativeTo:)`) stores, so the
+    /// field means one thing whichever path ran. The cache carries no
+    /// days-since-hard-workout or recent-workout list, so those stay nil.
+    private static func trainingContext(fromCached live: TrainingMetrics, relativeTo stopDate: Date) -> TrainingContext {
+        let calendar = Calendar.current
+        let yesterday = calendar.date(byAdding: .day, value: -1, to: calendar.startOfDay(for: stopDate))
+        return TrainingContext(
+            atl: live.atl, ctl: live.ctl, tsb: live.tsb,
+            yesterdayTrimp: yesterday.flatMap { live.dailyTrimp[$0] } ?? 0,
+            vo2Max: live.vo2MaxLatest, daysSinceHardWorkout: nil, recentWorkouts: nil
+        )
     }
 
     /// Race a value-returning async operation against a timeout.
@@ -578,18 +599,42 @@ extension WorkoutFinalizer {
         return offsets.isEmpty ? nil : offsets.sorted()
     }
 
+    /// A failed query (HealthKit locked or not authorized) and a timeout are
+    /// logged as such, apart from a query that found no samples; each gives
+    /// the backfill nothing to fill with.
     private static func wristHRSamples(
         from sessionStart: Date,
         to sessionEnd: Date,
         healthKit: HealthKitManager
     ) async -> [(date: Date, hr: Double)] {
-        let samples: [(date: Date, hr: Double)] = await runWithTimeout(seconds: 3.0) {
-            (try? await healthKit.fetchHeartRateSamples(from: sessionStart, to: sessionEnd)) ?? []
-        } ?? []
-        if samples.isEmpty {
-            debugLog("[WorkoutRecorder.backfill] HealthKit had 0 HR samples in [\(sessionStart), \(sessionEnd)] — wrist HR may be unavailable")
+        switch await wristHRQuery(from: sessionStart, to: sessionEnd, healthKit: healthKit) {
+        case nil:
+            debugLog("[WorkoutRecorder.backfill] HealthKit HR query timed out after 3 s — no wrist HR backfill")
+            return []
+        case let .failure(error)?:
+            debugLog("[WorkoutRecorder.backfill] HealthKit HR query failed: \(error.localizedDescription) — no wrist HR backfill")
+            return []
+        case let .success(samples)?:
+            if samples.isEmpty {
+                debugLog("[WorkoutRecorder.backfill] HealthKit had 0 HR samples in [\(sessionStart), \(sessionEnd)] — wrist HR may be unavailable")
+            }
+            return samples
         }
-        return samples
+    }
+
+    /// The HealthKit heart-rate query, bounded at 3 s: nil when it timed out.
+    private static func wristHRQuery(
+        from sessionStart: Date,
+        to sessionEnd: Date,
+        healthKit: HealthKitManager
+    ) async -> Result<[(date: Date, hr: Double)], any Error>? {
+        await runWithTimeout(seconds: 3.0) { () async -> Result<[(date: Date, hr: Double)], any Error> in
+            do {
+                return .success(try await healthKit.fetchHeartRateSamples(from: sessionStart, to: sessionEnd))
+            } catch {
+                return .failure(error)
+            }
+        }
     }
 
     /// Find nearest HealthKit sample within ±15 s. Watch wrist HR

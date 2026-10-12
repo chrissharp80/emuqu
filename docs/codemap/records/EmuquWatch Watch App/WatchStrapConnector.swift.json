@@ -1,0 +1,1380 @@
+{
+ "file": "EmuquWatch Watch App/WatchStrapConnector.swift",
+ "hash": "63aec1264f864952",
+ "role": "Watch-side CoreBluetooth central that scans for, connects to and streams standard BLE Heart Rate Service (180D/2A37) and Battery (180F/2A19) from a chest strap; publishes state for the pairing UI, mirrors each beat into WatchSessionManager and forwards it live to the iPhone over WCSession.",
+ "types": [
+  "WatchStrapConnector: class (@MainActor, NSObject, ObservableObject) — singleton BLE HR connector",
+  "WatchStrapConnector.ConnectionState: enum — idle/waitingForBluetooth/unauthorized/poweredOff/scanning/connecting/connected/disconnected UI state",
+  "WatchStrapConnector.DiscoveredDevice: struct — id (peripheral UUID), name, rssi row for picker",
+  "extension WatchStrapConnector: CBCentralManagerDelegate — central callbacks",
+  "extension WatchStrapConnector: CBPeripheralDelegate — service/characteristic discovery and value updates",
+  "extension WatchStrapConnector — bridge to WatchSessionManager and iPhone (WCSession)"
+ ],
+ "state": [
+  "mem:WatchStrapConnector.shared (static singleton, :45)",
+  "mem:WatchStrapConnector.sessionManager (weak WatchSessionManager, set by attach, :50)",
+  "mem:WatchStrapConnector.connectionState (@Published, default .waitingForBluetooth, :67)",
+  "mem:WatchStrapConnector.discovered (@Published [DiscoveredDevice], :72)",
+  "mem:WatchStrapConnector.liveHeartRate (@Published Int?, :81)",
+  "mem:WatchStrapConnector.lastRRMillis (@Published [Double], :85)",
+  "mem:WatchStrapConnector.batteryPercent (@Published Int?, :88)",
+  "mem:WatchStrapConnector.central (lazy CBCentralManager, delegate self, main queue, :101)",
+  "mem:WatchStrapConnector.connectedPeripheral (:102)",
+  "static UUID strings 180D/2A37/180F/2A19 (:115-118)",
+  "ud:WatchStrapConnector.savedPeripheralIdentifier (standard suite, key constant savedPeripheralKey :130, UUID string of last connected peripheral)",
+  "mem:WatchStrapConnector.autoReconnectEnabled (default false, :137)",
+  "mem:WatchStrapConnector.pendingScanRequest (:148)",
+  "wc:type=watchStrapSample {hr, rrMillis, ts} (sent :669-677)",
+  "Logger subsystem com.chrissharp.flowrecovery category WatchStrapConnector (:92, :684)",
+  "mem:WatchStrapConnector.savedStrapIdentifier (@Published mirror of ud:WatchStrapConnector.savedPeripheralIdentifier)"
+ ],
+ "toplevel": "Stored-property initializers: shared singleton built via private init (which loads savedStrapIdentifier from UserDefaults); central is lazy so CBCentralManager (and the Bluetooth permission prompt) is only created on first access; connectionState starts .waitingForBluetooth; autoReconnectEnabled starts false. Conformances to CBCentralManagerDelegate/CBPeripheralDelegate in extensions. @preconcurrency import CoreBluetooth.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var WatchStrapConnector.heartRateServiceUUID",
+   "hash": "7f894927af93dce9",
+   "does": "Static computed CBUUID built from heartRateServiceUUIDString \"180D\".",
+   "entry": null,
+   "calls": [
+    "ext:CBUUID(string:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var WatchStrapConnector.heartRateMeasurementUUID",
+   "hash": "2c134d3c168b0cdd",
+   "does": "Static computed CBUUID built from \"2A37\" (Heart Rate Measurement).",
+   "entry": null,
+   "calls": [
+    "ext:CBUUID(string:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var WatchStrapConnector.batteryServiceUUID",
+   "hash": "a9b96fe24e08dccf",
+   "does": "Static computed CBUUID built from \"180F\" (Battery Service).",
+   "entry": null,
+   "calls": [
+    "ext:CBUUID(string:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var WatchStrapConnector.batteryLevelUUID",
+   "hash": "ff75d3c4f0cee684",
+   "does": "Static computed CBUUID built from \"2A19\" (Battery Level).",
+   "entry": null,
+   "calls": [
+    "ext:CBUUID(string:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var WatchStrapConnector.genericSensorName",
+   "hash": "f7369064f03cd73e",
+   "does": "Returns the localized string \"Heart Rate Sensor\" used as the display name of a peripheral with no advertised name.",
+   "entry": null,
+   "calls": [
+    "ext:String(localized:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "init WatchStrapConnector()",
+   "hash": "39c799332e630472",
+   "does": "super.init, loads savedStrapIdentifier from UserDefaults, and creates the CBCentralManager now only when a strap is saved (so it can reconnect when the radio comes up).",
+   "entry": "Called once when `WatchStrapConnector.shared` is first accessed (WatchApp.init at EmuquWatch Watch App/WatchApp.swift:23 / @StateObject at :16).",
+   "calls": [
+    "ext:CBCentralManager(delegate:queue:)"
+   ],
+   "reads": [
+    "ud:WatchStrapConnector.savedPeripheralIdentifier"
+   ],
+   "writes": [
+    "mem:WatchStrapConnector.savedStrapIdentifier"
+   ],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "a strap is saved",
+     "effect": "touch central (creates the manager)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WatchStrapConnector.startScanning()",
+   "hash": "1f16ee2ef4ced30a",
+   "does": "Pairing-screen entry: clears `discovered`; Bluetooth not powered on → deferScan; otherwise clears pendingScanRequest, and if a strap is already connected restates .connected without scanning; else reconnects the saved strap (auto-reconnect on and known to the system) or sets .scanning and starts discovery.",
+   "entry": null,
+   "calls": [
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.deferScan()",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.restingState()",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.savedPeripheral()",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.connect(to: CBPeripheral)",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.beginDiscovery()",
+    "ext:CBCentralManager.state"
+   ],
+   "reads": [
+    "mem:WatchStrapConnector.savedStrapIdentifier",
+    "mem:WatchStrapConnector.autoReconnectEnabled",
+    "mem:WatchStrapConnector.connectedPeripheral"
+   ],
+   "writes": [
+    "mem:WatchStrapConnector.discovered",
+    "mem:WatchStrapConnector.connectionState",
+    "mem:WatchStrapConnector.pendingScanRequest"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "central.state is .poweredOn",
+     "effect": "false: deferScan and return"
+    },
+    {
+     "at": "+5",
+     "cond": "restingState is .connected",
+     "effect": "true: connectionState = it, return without scanning"
+    },
+    {
+     "at": "+9",
+     "cond": "autoReconnectEnabled and saved peripheral known",
+     "effect": "true: connect(to:), return; false: .scanning + beginDiscovery()"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.beginDiscovery()": "878c0987240ff21b",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.connect(to: CBPeripheral)": "fe5ab72d722074ec",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.deferScan()": "9b55611d09670591",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.restingState()": "563906a517532234",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.savedPeripheral()": "b03626a05bfcb452"
+   }
+  },
+  {
+   "key": "func WatchStrapConnector.deferScan()",
+   "hash": "af90993b1780ebb7",
+   "does": "Logs the Bluetooth state, sets connectionState from mapBluetoothState and pendingScanRequest=true so radioCameUp runs the scan later.",
+   "entry": null,
+   "calls": [
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.stateString(_:)",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.mapBluetoothState(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:WatchStrapConnector.connectionState",
+    "mem:WatchStrapConnector.pendingScanRequest"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.mapBluetoothState(_:)": "89bf69f0a7f3118f",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.stateString(_:)": "ab845a2c33f5db15"
+   }
+  },
+  {
+   "key": "func WatchStrapConnector.savedPeripheral()",
+   "hash": "01586c2ad8504e5e",
+   "does": "The saved strap as a CBPeripheral from central.retrievePeripherals, using savedStrapIdentifier; nil when none is saved, the id is malformed, or the system no longer knows it. The single lookup (the delegate-side duplicate is gone).",
+   "entry": null,
+   "calls": [
+    "ext:CBCentralManager.retrievePeripherals(withIdentifiers:)"
+   ],
+   "reads": [
+    "mem:WatchStrapConnector.savedStrapIdentifier"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "saved string exists and parses as UUID",
+     "effect": "false: returns nil; true: returns retrievePeripherals(...).first (nil if system forgot the peripheral)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WatchStrapConnector.restingState()",
+   "hash": "17c1b9805145b37c",
+   "does": "Header state when no scan runs: .connected/.connecting(name) for connectedPeripheral's state, else .idle.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:WatchStrapConnector.connectedPeripheral"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "connectedPeripheral exists",
+     "effect": "nil: .idle"
+    },
+    {
+     "at": "+3",
+     "cond": "peripheral.state",
+     "effect": "connected → .connected; connecting → .connecting; else .idle"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.genericSensorName": "e4d4abd340da2426"
+   }
+  },
+  {
+   "key": "func WatchStrapConnector.beginDiscovery()",
+   "hash": "d9c2ca4874a963af",
+   "does": "Starts a CoreBluetooth scan with no service filter and AllowDuplicates=true so RSSI updates keep arriving; filtering happens in didDiscover.",
+   "entry": null,
+   "calls": [
+    "ext:CBCentralManager.scanForPeripherals(withServices:options:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WatchStrapConnector.stopScanning()",
+   "hash": "0099b3c0e145b0b0",
+   "does": "Clears pendingScanRequest, stops an in-flight scan and, if the UI state is .scanning, sets it to restingState() (connected/connecting/idle).",
+   "entry": null,
+   "calls": [
+    "ext:CBCentralManager.isScanning",
+    "ext:CBCentralManager.stopScan()",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.restingState()"
+   ],
+   "reads": [
+    "mem:WatchStrapConnector.connectionState"
+   ],
+   "writes": [
+    "mem:WatchStrapConnector.connectionState",
+    "mem:WatchStrapConnector.pendingScanRequest"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "central.isScanning",
+     "effect": "true: stopScan()"
+    },
+    {
+     "at": "+3",
+     "cond": "connectionState is .scanning",
+     "effect": "true: connectionState = restingState()"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "docs/USERS_MANUAL.md says the app 'stops scanning aggressively when the Watch app backgrounds', but the connector has no scenePhase/background hook: discovery stops only when the pairing view disappears (stopScanning) and a deferred pendingScanRequest can still start a scan later with no screen open.",
+     "evidence": [
+      "docs/USERS_MANUAL.md:1421",
+      "EmuquWatch Watch App/WatchStrapPairingView.swift:37",
+      "EmuquWatch Watch App/WatchStrapConnector.swift:221",
+      "EmuquWatch Watch App/WatchStrapConnector.swift:433"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.restingState()": "563906a517532234"
+   }
+  },
+  {
+   "key": "func WatchStrapConnector.appDidEnterBackground()",
+   "hash": "06eb5d33c3be2ed8",
+   "does": "Called when the Watch app backgrounds: clears pendingScanRequest and, only when a scan is running, stopScanning (never touches the lazy central otherwise, so no permission prompt).",
+   "entry": "WatchApp.followScenePhase on scenePhase .background",
+   "calls": [
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.stopScanning()"
+   ],
+   "reads": [
+    "mem:WatchStrapConnector.connectionState"
+   ],
+   "writes": [
+    "mem:WatchStrapConnector.pendingScanRequest"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "connectionState is .scanning",
+     "effect": "false: return; true: stopScanning()"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.stopScanning()": "bfd5547360a73e27"
+   }
+  },
+  {
+   "key": "func WatchStrapConnector.connect(to: CBPeripheral)",
+   "hash": "ab0db9d8e704350a",
+   "does": "Connects to a peripheral: stops scan; if already connected to the same peripheral just restates .connected; if a different peripheral is held, clears connectedPeripheral then cancels its connection; then records the peripheral, sets itself as its delegate, state .connecting(name) and calls central.connect.",
+   "entry": null,
+   "calls": [
+    "ext:CBCentralManager.stopScan()",
+    "ext:CBCentralManager.cancelPeripheralConnection",
+    "ext:CBCentralManager.connect(_:options:)",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.genericSensorName"
+   ],
+   "reads": [
+    "mem:WatchStrapConnector.connectedPeripheral"
+   ],
+   "writes": [
+    "mem:WatchStrapConnector.connectedPeripheral",
+    "mem:WatchStrapConnector.connectionState",
+    "ble:CBPeripheral connection"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "central.isScanning",
+     "effect": "true: stopScan(); false: nothing"
+    },
+    {
+     "at": "+2",
+     "cond": "peripheral.name is nil",
+     "effect": "uses genericSensorName (\"Heart Rate Sensor\") as display name"
+    },
+    {
+     "at": "+3",
+     "cond": "connectedPeripheral exists, has same identifier and its state is .connected",
+     "effect": "true: connectionState=.connected(name) and return (no reconnect); false: continue"
+    },
+    {
+     "at": "+8",
+     "cond": "connectedPeripheral exists with a different identifier",
+     "effect": "true: connectedPeripheral=nil then cancelPeripheralConnection(other) so its later disconnect callback is ignored by handleDisconnect; false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.genericSensorName": "e4d4abd340da2426"
+   }
+  },
+  {
+   "key": "var WatchStrapConnector.hasSavedStrap",
+   "hash": "aa5de461ce9b792c",
+   "does": "True when savedStrapIdentifier (the @Published mirror of the saved-peripheral default) is non-nil, so observing views re-render on save/forget.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:WatchStrapConnector.savedStrapIdentifier"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WatchStrapConnector.rememberStrap(_:)",
+   "hash": "1bb28dc86830dc2a",
+   "does": "Writes the peripheral UUID string to UserDefaults and savedStrapIdentifier.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "ud:WatchStrapConnector.savedPeripheralIdentifier",
+    "mem:WatchStrapConnector.savedStrapIdentifier"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WatchStrapConnector.forgetSavedStrap()",
+   "hash": "5a99d383a1fafd92",
+   "does": "Removes the saved-peripheral default and clears savedStrapIdentifier.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "ud:WatchStrapConnector.savedPeripheralIdentifier",
+    "mem:WatchStrapConnector.savedStrapIdentifier"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WatchStrapConnector.rescan()",
+   "hash": "b357fafb664b75c4",
+   "does": "Refresh button action: clears discovered; if Bluetooth not poweredOn defers like startScanning; otherwise cancels a pending (connecting) link, sets .scanning and starts discovery — always scans, even with a saved strap.",
+   "entry": null,
+   "calls": [
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.mapBluetoothState(_:)",
+    "ext:CBCentralManager.cancelPeripheralConnection",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.beginDiscovery()"
+   ],
+   "reads": [
+    "mem:WatchStrapConnector.connectionState",
+    "mem:WatchStrapConnector.connectedPeripheral"
+   ],
+   "writes": [
+    "mem:WatchStrapConnector.discovered",
+    "mem:WatchStrapConnector.connectionState",
+    "mem:WatchStrapConnector.pendingScanRequest",
+    "mem:WatchStrapConnector.connectedPeripheral",
+    "ble:CBPeripheral connection (cancel pending)"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "central.state is .poweredOn",
+     "effect": "false: connectionState=mapBluetoothState(state), pendingScanRequest=true, return; true: clears pendingScanRequest, continue"
+    },
+    {
+     "at": "+8",
+     "cond": "connectionState is .connecting and a connectedPeripheral exists",
+     "effect": "true: connectedPeripheral=nil and cancelPeripheralConnection(pending) (strap stays saved); false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.beginDiscovery()": "878c0987240ff21b",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.mapBluetoothState(_:)": "89bf69f0a7f3118f"
+   }
+  },
+  {
+   "key": "func WatchStrapConnector.setAutoReconnect(_:)",
+   "hash": "9241939445759ea1",
+   "does": "Sets autoReconnectEnabled from the phone's mode. Turning on with a saved strap and powered radio runs radioCameUp (reconnects saved strap); turning off disconnects the current link (saved strap kept).",
+   "entry": "Called from WatchApp .onChange(of: sessionManager.displayOnlyMode, initial: true) with !displayOnly (EmuquWatch Watch App/WatchApp.swift:34-35).",
+   "calls": [
+    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.hasSavedStrap",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.radioCameUp()",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.disconnect()"
+   ],
+   "reads": [
+    "mem:WatchStrapConnector.autoReconnectEnabled",
+    "ud:WatchStrapConnector.savedPeripheralIdentifier"
+   ],
+   "writes": [
+    "mem:WatchStrapConnector.autoReconnectEnabled"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "enabled equals current autoReconnectEnabled",
+     "effect": "true: return, no change; false: store new value"
+    },
+    {
+     "at": "+3",
+     "cond": "enabled",
+     "effect": "true: go to line 282 check; false: disconnect()"
+    },
+    {
+     "at": "+4",
+     "cond": "hasSavedStrap and central.state == .poweredOn",
+     "effect": "true: radioCameUp(central); false: nothing (centralManagerDidUpdateState will run radioCameUp later if the manager exists)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "docs/USERS_MANUAL.md says the last-paired strap 'reconnect is automatic on Watch app launch', but autoReconnectEnabled starts false and is only turned on when displayOnlyMode is false; displayOnlyMode defaults to true, so in the default mode a saved strap is never reconnected automatically.",
+     "evidence": [
+      "docs/USERS_MANUAL.md:1418",
+      "EmuquWatch Watch App/WatchStrapConnector.swift:137",
+      "EmuquWatch Watch App/WatchApp.swift:34",
+      "EmuquWatch Watch App/WatchSessionManager.swift:112"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.disconnect()": "7140759c7879b0ed",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.radioCameUp()": "2b1760f9ea2e2f67",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.hasSavedStrap": "fbad0ed2294343c8"
+   }
+  },
+  {
+   "key": "func WatchStrapConnector.connect(to: DiscoveredDevice)",
+   "hash": "3726d920b073f990",
+   "does": "Picker convenience: resolves a DiscoveredDevice id to a CBPeripheral via retrievePeripherals and calls connect(to: peripheral); logs a warning and returns if the system no longer knows it.",
+   "entry": null,
+   "calls": [
+    "ext:CBCentralManager.retrievePeripherals(withIdentifiers:)",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.connect(to: CBPeripheral)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "retrievePeripherals returns a peripheral",
+     "effect": "false: log warning, return (no UI state change — the tap does nothing visible); true: connect(to:)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.connect(to: CBPeripheral)": "fe5ab72d722074ec"
+   }
+  },
+  {
+   "key": "func WatchStrapConnector.disconnectAndForget()",
+   "hash": "da0684e4a75498f2",
+   "does": "Forget Strap: forgetSavedStrap, cancels any connection, clears connectedPeripheral and the live readings, and sets .idle unless a discovery scan is running (which carries on with .scanning).",
+   "entry": null,
+   "calls": [
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.forgetSavedStrap()",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.clearLiveReadings()",
+    "ext:CBCentralManager.cancelPeripheralConnection"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:WatchStrapConnector.savedPeripheralIdentifier",
+    "mem:WatchStrapConnector.savedStrapIdentifier",
+    "mem:WatchStrapConnector.connectedPeripheral",
+    "mem:WatchStrapConnector.liveHeartRate",
+    "mem:WatchStrapConnector.lastRRMillis",
+    "mem:WatchStrapConnector.batteryPercent",
+    "mem:WatchStrapConnector.connectionState"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "a peripheral is held",
+     "effect": "cancel its connection"
+    },
+    {
+     "at": "+7",
+     "cond": "not scanning",
+     "effect": ".idle; scanning: left"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.clearLiveReadings()": "705d5365c5504363",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.forgetSavedStrap()": "22edd46590e4eefa"
+   }
+  },
+  {
+   "key": "func WatchStrapConnector.clearLiveReadings()",
+   "hash": "f83d99c484048074",
+   "does": "Clears liveHeartRate, lastRRMillis and batteryPercent.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:WatchStrapConnector.liveHeartRate",
+    "mem:WatchStrapConnector.lastRRMillis",
+    "mem:WatchStrapConnector.batteryPercent"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WatchStrapConnector.disconnect()",
+   "hash": "d358ac96b95f47b6",
+   "does": "Cancels the current connection (if any) but keeps the saved UUID and connectedPeripheral; the didDisconnect callback (handleDisconnect) clears state afterwards.",
+   "entry": null,
+   "calls": [
+    "ext:CBCentralManager.cancelPeripheralConnection"
+   ],
+   "reads": [
+    "mem:WatchStrapConnector.connectedPeripheral"
+   ],
+   "writes": [
+    "ble:CBPeripheral connection"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "connectedPeripheral exists",
+     "effect": "true: cancelPeripheralConnection; false: no-op"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WatchStrapConnector.mapBluetoothState(_:)",
+   "hash": "248a57c0debec7cb",
+   "does": "Maps CBManagerState to ConnectionState.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .poweredOn",
+     "effect": ".idle"
+    },
+    {
+     "at": "+3",
+     "cond": "case .poweredOff",
+     "effect": ".poweredOff"
+    },
+    {
+     "at": "+4",
+     "cond": "case .unauthorized",
+     "effect": ".unauthorized"
+    },
+    {
+     "at": "+5",
+     "cond": "case .resetting/.unknown",
+     "effect": ".waitingForBluetooth"
+    },
+    {
+     "at": "+6",
+     "cond": "case .unsupported",
+     "effect": ".unauthorized (UI then says 'Bluetooth not allowed' for unsupported hardware)"
+    },
+    {
+     "at": "+7",
+     "cond": "@unknown default",
+     "effect": ".waitingForBluetooth"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WatchStrapConnector.stateString(_:)",
+   "hash": "6305d605ec3876b5",
+   "does": "Maps CBManagerState to a log string.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .poweredOn",
+     "effect": "\"poweredOn\""
+    },
+    {
+     "at": "+3",
+     "cond": "case .poweredOff",
+     "effect": "\"poweredOff\""
+    },
+    {
+     "at": "+4",
+     "cond": "case .unauthorized",
+     "effect": "\"unauthorized\""
+    },
+    {
+     "at": "+5",
+     "cond": "case .resetting",
+     "effect": "\"resetting\""
+    },
+    {
+     "at": "+6",
+     "cond": "case .unsupported",
+     "effect": "\"unsupported\""
+    },
+    {
+     "at": "+7",
+     "cond": "case .unknown",
+     "effect": "\"unknown\""
+    },
+    {
+     "at": "+8",
+     "cond": "@unknown default",
+     "effect": "\"default\""
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WatchStrapConnector.centralManagerDidUpdateState(_:)",
+   "hash": "21f905fbff879ebb",
+   "does": "Bluetooth state callback: on the main actor sets connectionState to restingState() when powered on (keeping a live/pending link's state), else mapBluetoothState; logs; when powered on calls radioCameUp.",
+   "entry": "CoreBluetooth delegate callback when CBCentralManager state changes (first fires right after the lazy manager is created).",
+   "calls": [
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.restingState()",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.mapBluetoothState(_:)",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.stateString(_:)",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.radioCameUp()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:WatchStrapConnector.connectionState"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "state == .poweredOn",
+     "effect": "false: return after mapping state; true: radioCameUp(central)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.mapBluetoothState(_:)": "89bf69f0a7f3118f",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.radioCameUp()": "2b1760f9ea2e2f67",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.restingState()": "563906a517532234",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.stateString(_:)": "ab845a2c33f5db15"
+   }
+  },
+  {
+   "key": "func WatchStrapConnector.radioCameUp()",
+   "hash": "f807fb243b42a16f",
+   "does": "Bluetooth came up: reconnects the saved strap when auto-reconnect is on and it is known, else runs a deferred scan (pendingScanRequest) via startScanning.",
+   "entry": null,
+   "calls": [
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.savedPeripheral()",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.connect(to: CBPeripheral)",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.startScanning()"
+   ],
+   "reads": [
+    "mem:WatchStrapConnector.autoReconnectEnabled",
+    "mem:WatchStrapConnector.pendingScanRequest",
+    "mem:WatchStrapConnector.savedStrapIdentifier"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "autoReconnectEnabled and saved peripheral known",
+     "effect": "connect, return"
+    },
+    {
+     "at": "+6",
+     "cond": "pendingScanRequest",
+     "effect": "false: return; true: startScanning()"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.connect(to: CBPeripheral)": "fe5ab72d722074ec",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.savedPeripheral()": "b03626a05bfcb452",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.startScanning()": "6cd8f0145b6c5b55"
+   }
+  },
+  {
+   "key": "func WatchStrapConnector.centralManager(_:didDiscover:advertisementData:rssi:)",
+   "hash": "d254c12a642199b0",
+   "does": "CBCentralManagerDelegate didDiscover: takes name from peripheral.name, else advertised local name, else \"\"; drops peripherals that do not look like HR sensors; builds a DiscoveredDevice (generic name if empty, RSSI) and hands it to noteDiscovered on MainActor.",
+   "entry": "CoreBluetooth callback for each advertisement during scanForPeripherals (AllowDuplicates on, so repeatedly per device).",
+   "calls": [
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.looksLikeHeartRateSensor(advertisementData:name:)",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.genericSensorName",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.noteDiscovered(_:carriesName:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+13",
+     "cond": "peripheral.name is nil",
+     "effect": "falls back to advertisementData[LocalName]"
+    },
+    {
+     "at": "+14",
+     "cond": "advertised local name missing/not String",
+     "effect": "falls back to empty string"
+    },
+    {
+     "at": "+16",
+     "cond": "looksLikeHeartRateSensor",
+     "effect": "false: return, device ignored; true: continue"
+    },
+    {
+     "at": "+20",
+     "cond": "rawName is empty",
+     "effect": "true: name = genericSensorName; false: rawName"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::var AnthropicProvider.RequestBody.ToolDecl.AnyKey.intValue": "5b3e3e88bcb958f6",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.looksLikeHeartRateSensor(advertisementData:name:)": "75eddb41b3c636cc",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.noteDiscovered(_:carriesName:)": "2a337c627456aaac",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.genericSensorName": "e4d4abd340da2426"
+   }
+  },
+  {
+   "key": "func WatchStrapConnector.looksLikeHeartRateSensor(advertisementData:name:)",
+   "hash": "ca92734cefeeedfb",
+   "does": "True if the advertisement lists service 180D, or the lowercased name contains any of polar/h10/h9/verity/oh1/wahoo/tickr/hrm/heart.",
+   "entry": null,
+   "calls": [
+    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.heartRateServiceUUID"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "advertisement service UUID list missing or not [CBUUID]",
+     "effect": "falls back to empty list"
+    },
+    {
+     "at": "+4",
+     "cond": "advertised UUIDs contain 180D",
+     "effect": "true: return true; false: test name substrings"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "hack",
+     "sev": "low",
+     "text": "Name-substring allow-list (\"h9\", \"hrm\", \"heart\" etc.) is a heuristic: any BLE device whose name contains e.g. \"h9\" is listed as a strap, and an HR strap from another brand that neither advertises 180D nor matches a listed substring never appears in the picker.",
+     "evidence": [
+      "EmuquWatch Watch App/WatchStrapConnector.swift:482"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.heartRateServiceUUID": "69bb0aeeb59197c8"
+   }
+  },
+  {
+   "key": "func WatchStrapConnector.noteDiscovered(_:carriesName:)",
+   "hash": "509ee640e23c9235",
+   "does": "Updates or inserts a discovered device: an existing row gets the new RSSI and its generic name replaced by a real name when this packet carries one; new devices are appended; list is re-sorted by RSSI descending.",
+   "entry": null,
+   "calls": [
+    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.genericSensorName"
+   ],
+   "reads": [
+    "mem:WatchStrapConnector.discovered"
+   ],
+   "writes": [
+    "mem:WatchStrapConnector.discovered"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "device id already in discovered",
+     "effect": "true: update rssi (and maybe name); false: append"
+    },
+    {
+     "at": "+4",
+     "cond": "packet carries a name and existing row has the generic name",
+     "effect": "true: replace row with the named device; false: keep existing name"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.genericSensorName": "e4d4abd340da2426"
+   }
+  },
+  {
+   "key": "func WatchStrapConnector.centralManager(_:didConnect:)",
+   "hash": "dd54d541b222adda",
+   "does": "CBCentralManagerDelegate didConnect: captures id and name (generic if nil) and forwards to didConnect on MainActor.",
+   "entry": "CoreBluetooth callback when central.connect completes.",
+   "calls": [
+    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.genericSensorName",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.didConnect(_:id:name:central:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "peripheral.name is nil",
+     "effect": "uses genericSensorName"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.didConnect(_:id:name:central:)": "28bc568ee8ac54a1",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.genericSensorName": "e4d4abd340da2426"
+   }
+  },
+  {
+   "key": "func WatchStrapConnector.didConnect(_:id:name:central:)",
+   "hash": "2f438a8a8fea3889",
+   "does": "Adopts a completed connection only if it is still the wanted connectedPeripheral (else cancels it); saves its UUID to UserDefaults, sets state .connected(name) and discovers services 180D and 180F.",
+   "entry": null,
+   "calls": [
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.rememberStrap(_:)",
+    "ext:CBPeripheral.discoverServices",
+    "ext:CBCentralManager.cancelPeripheralConnection"
+   ],
+   "reads": [
+    "mem:WatchStrapConnector.connectedPeripheral"
+   ],
+   "writes": [
+    "ud:WatchStrapConnector.savedPeripheralIdentifier",
+    "mem:WatchStrapConnector.savedStrapIdentifier",
+    "mem:WatchStrapConnector.connectionState"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "connectedPeripheral?.identifier == id",
+     "effect": "false: cancelPeripheralConnection(peripheral) and return (stale connect dropped); true: persist + discover"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.rememberStrap(_:)": "3463e73872a12df6",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.batteryServiceUUID": "31f985f660a859fb",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.heartRateServiceUUID": "69bb0aeeb59197c8"
+   }
+  },
+  {
+   "key": "func WatchStrapConnector.centralManager(_:didFailToConnect:error:)",
+   "hash": "c5214549205bf5f4",
+   "does": "CBCentralManagerDelegate didFailToConnect: on MainActor logs, and if the failed peripheral is still the wanted one clears connectedPeripheral and sets .disconnected(reason: error description). No retry.",
+   "entry": "CoreBluetooth callback when a connect attempt fails.",
+   "calls": [],
+   "reads": [
+    "mem:WatchStrapConnector.connectedPeripheral"
+   ],
+   "writes": [
+    "mem:WatchStrapConnector.connectedPeripheral",
+    "mem:WatchStrapConnector.connectionState"
+   ],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "error is nil",
+     "effect": "logs \"no error\""
+    },
+    {
+     "at": "+9",
+     "cond": "connectedPeripheral?.identifier == failed id",
+     "effect": "false: return (stale failure ignored); true: clear and set .disconnected(reason:)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WatchStrapConnector.centralManager(_:didDisconnectPeripheral:error:)",
+   "hash": "b0cf9cb29f64223e",
+   "does": "CBCentralManagerDelegate didDisconnectPeripheral: captures error description and calls handleDisconnect on MainActor.",
+   "entry": "CoreBluetooth callback when a peripheral link drops or is cancelled.",
+   "calls": [
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.handleDisconnect(_:central:detail:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.handleDisconnect(_:central:detail:)": "5b2462b214199843"
+   }
+  },
+  {
+   "key": "func WatchStrapConnector.handleDisconnect(_:central:detail:)",
+   "hash": "cb313be34b7bf6e5",
+   "does": "Disconnect of the current strap: clears connectedPeripheral and the live readings; if scanning, stops there; else .disconnected(detail), then with auto-reconnect on and a saved strap reconnects and shows .connecting. A strap no longer held is ignored.",
+   "entry": null,
+   "calls": [
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.clearLiveReadings()",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.hasSavedStrap",
+    "ext:CBCentralManager.connect"
+   ],
+   "reads": [
+    "mem:WatchStrapConnector.connectedPeripheral",
+    "mem:WatchStrapConnector.connectionState",
+    "mem:WatchStrapConnector.autoReconnectEnabled",
+    "ud:WatchStrapConnector.savedPeripheralIdentifier"
+   ],
+   "writes": [
+    "mem:WatchStrapConnector.hrCharacteristic",
+    "mem:WatchStrapConnector.batteryCharacteristic",
+    "mem:WatchStrapConnector.connectedPeripheral",
+    "mem:WatchStrapConnector.connectionState",
+    "ble:CBPeripheral connection"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "detail is nil",
+     "effect": "logs \"no error\""
+    },
+    {
+     "at": "+3",
+     "cond": "connectedPeripheral?.identifier == peripheral.identifier",
+     "effect": "false: return (link this connector already let go); true: clear characteristics and connectedPeripheral"
+    },
+    {
+     "at": "+7",
+     "cond": "connectionState != .scanning",
+     "effect": "false: return (user moved to a discovery scan, no reconnect); true: set .disconnected(reason)"
+    },
+    {
+     "at": "+9",
+     "cond": "autoReconnectEnabled and hasSavedStrap",
+     "effect": "false: return, stays .disconnected; true: re-connect"
+    },
+    {
+     "at": "+12",
+     "cond": "peripheral.name is nil",
+     "effect": "generic name in .connecting state"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.clearLiveReadings()": "705d5365c5504363",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.genericSensorName": "e4d4abd340da2426",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.hasSavedStrap": "fbad0ed2294343c8"
+   }
+  },
+  {
+   "key": "func WatchStrapConnector.peripheral(_:didDiscoverServices:)",
+   "hash": "278fc3e01fd69b20",
+   "does": "On a discovery error or no Heart Rate Service, hops to noHeartRateService with the error text; otherwise discovers 2A37 on 180D and, if present, 2A19 on 180F.",
+   "entry": "CoreBluetooth peripheral callback after discoverServices.",
+   "calls": [
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.noHeartRateService(_:reason:)",
+    "ext:CBPeripheral.discoverCharacteristics"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "no error and a 180D service",
+     "effect": "false: noHeartRateService, return"
+    },
+    {
+     "at": "+8",
+     "cond": "battery service present",
+     "effect": "discover 2A19"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "8f71f3de23c47a6a",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.noHeartRateService(_:reason:)": "3e397b8f587a5382",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.batteryLevelUUID": "ef11e5ac80ea1560",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.batteryServiceUUID": "31f985f660a859fb",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.heartRateMeasurementUUID": "3af73660317c769f",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.heartRateServiceUUID": "69bb0aeeb59197c8"
+   }
+  },
+  {
+   "key": "func WatchStrapConnector.noHeartRateService(_:reason:)",
+   "hash": "e249925697786c72",
+   "does": "For the current strap only: drops the link (connectedPeripheral=nil, cancel), forgets it when it simply has no Heart Rate Service and is the saved one, and shows .disconnected(reason or \"No heart rate from strap\").",
+   "entry": null,
+   "calls": [
+    "ext:CBCentralManager.cancelPeripheralConnection",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.forgetSavedStrap()"
+   ],
+   "reads": [
+    "mem:WatchStrapConnector.connectedPeripheral",
+    "mem:WatchStrapConnector.savedStrapIdentifier"
+   ],
+   "writes": [
+    "mem:WatchStrapConnector.connectedPeripheral",
+    "mem:WatchStrapConnector.connectionState",
+    "ud:WatchStrapConnector.savedPeripheralIdentifier",
+    "mem:WatchStrapConnector.savedStrapIdentifier"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "peripheral is the current one",
+     "effect": "false: return"
+    },
+    {
+     "at": "+4",
+     "cond": "no error and it is the saved strap",
+     "effect": "forgetSavedStrap()"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.forgetSavedStrap()": "22edd46590e4eefa"
+   }
+  },
+  {
+   "key": "func WatchStrapConnector.peripheral(_:didDiscoverCharacteristicsFor:error:)",
+   "hash": "16af543f46201619",
+   "does": "CBPeripheralDelegate didDiscoverCharacteristicsFor: on success calls subscribe for each characteristic; errors dropped.",
+   "entry": "CoreBluetooth peripheral callback after discoverCharacteristics.",
+   "calls": [
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.subscribe(_:to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "error == nil and characteristics non-nil",
+     "effect": "false: return silently; true: iterate"
+    },
+    {
+     "at": "+6",
+     "cond": "for each characteristic",
+     "effect": "subscribe(peripheral, to:)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.subscribe(_:to:)": "5ca81fe2e2ccf497"
+   }
+  },
+  {
+   "key": "func WatchStrapConnector.subscribe(_:to:)",
+   "hash": "c76e74081ef79e05",
+   "does": "2A37: enables notifications; 2A19: reads once and enables notifications; others ignored.",
+   "entry": null,
+   "calls": [
+    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.heartRateMeasurementUUID",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.batteryLevelUUID",
+    "ext:CBPeripheral.setNotifyValue",
+    "ext:CBPeripheral.readValue(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case uuid == 2A37",
+     "effect": "store hrCharacteristic (via MainActor Task) and enable notify"
+    },
+    {
+     "at": "+5",
+     "cond": "case uuid == 2A19",
+     "effect": "store batteryCharacteristic, read and enable notify"
+    },
+    {
+     "at": "+9",
+     "cond": "default",
+     "effect": "break"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.batteryLevelUUID": "ef11e5ac80ea1560",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.heartRateMeasurementUUID": "3af73660317c769f"
+   }
+  },
+  {
+   "key": "func WatchStrapConnector.peripheral(_:didUpdateValueFor:error:)",
+   "hash": "ef2b1fbde86b07b5",
+   "does": "On a value: 2A37 is decoded with WatchMessageDecoding.strapMeasurement and handed to publishBeat with the peripheral id; 2A19's first byte goes to noteBattery with the id. Errors and empty values are ignored.",
+   "entry": "CoreBluetooth peripheral callback for each notification or read response.",
+   "calls": [
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.strapMeasurement(_:)",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.publishBeat(_:from:)",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.noteBattery(_:from:)"
+   ],
+   "reads": [
+    "ble:2A37 Heart Rate Measurement notification",
+    "ble:2A19 Battery Level value"
+   ],
+   "writes": [
+    "mem:WatchStrapConnector.batteryPercent"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "error == nil and value non-nil",
+     "effect": "false: return; true: continue"
+    },
+    {
+     "at": "+6",
+     "cond": "characteristic is 2A37",
+     "effect": "true: parse; false: check battery"
+    },
+    {
+     "at": "+7",
+     "cond": "parseHeartRateMeasurement returns non-nil",
+     "effect": "false: return (no-contact / HR 0 / truncated packet dropped); true: publishBeat"
+    },
+    {
+     "at": "+9",
+     "cond": "characteristic is 2A19",
+     "effect": "true: read byte; false: ignored"
+    },
+    {
+     "at": "+10",
+     "cond": "value has a first byte",
+     "effect": "false: return; true: batteryPercent = Int(byte)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.strapMeasurement(_:)": "019084dd262af147",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.noteBattery(_:from:)": "ee3d55baeca3c947",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.publishBeat(_:from:)": "ac25d877d7ae8f7f",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.batteryLevelUUID": "ef11e5ac80ea1560",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.heartRateMeasurementUUID": "3af73660317c769f"
+   }
+  },
+  {
+   "key": "func WatchStrapConnector.noteBattery(_:from:)",
+   "hash": "d48b6fc334b5c70a",
+   "does": "Sets batteryPercent only when id is the current strap.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:WatchStrapConnector.connectedPeripheral"
+   ],
+   "writes": [
+    "mem:WatchStrapConnector.batteryPercent"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "id is current",
+     "effect": "false: dropped"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WatchStrapConnector.publishToWatchSession(hr:rrMillis:)",
+   "hash": "31739b2bdf8b352c",
+   "does": "Pushes the bpm into the attached WatchSessionManager via applyDirectStrapHR (RR ignored); no-op if no session manager attached.",
+   "entry": null,
+   "calls": [
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.applyDirectStrapHR(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:WatchSessionManager.directStrapHeartRate",
+    "mem:WatchSessionManager.directStrapHeartRateAt"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.applyDirectStrapHR(_:)": "dd45468389758dd1"
+   }
+  },
+  {
+   "key": "func WatchStrapConnector.attach(sessionManager:)",
+   "hash": "4e64111bca500aa9",
+   "does": "Stores a weak reference to the session manager that receives direct-strap HR.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:WatchStrapConnector.sessionManager"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WatchStrapConnector.publishBeat(_:from:)",
+   "hash": "629b19ce97906771",
+   "does": "For the current strap only: sets liveHeartRate (nil when no real beat) and lastRRMillis, mirrors a real beat into WatchSessionManager, and forwards the sample to the iPhone.",
+   "entry": null,
+   "calls": [
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.publishToWatchSession(hr:rrMillis:)",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.forwardSampleToiPhone(hr:rrMillis:)"
+   ],
+   "reads": [
+    "mem:WatchStrapConnector.connectedPeripheral"
+   ],
+   "writes": [
+    "mem:WatchStrapConnector.liveHeartRate",
+    "mem:WatchStrapConnector.lastRRMillis"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "id is current",
+     "effect": "false: dropped"
+    },
+    {
+     "at": "+4",
+     "cond": "heartRate non-nil",
+     "effect": "publishToWatchSession"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.forwardSampleToiPhone(hr:rrMillis:)": "964d5974a9459bea",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.publishToWatchSession(hr:rrMillis:)": "d290a51a44093cc9"
+   }
+  },
+  {
+   "key": "func WatchStrapConnector.forwardSampleToiPhone(hr:rrMillis:)",
+   "hash": "a5a52b035279e59f",
+   "does": "Live-channel only: when there is a rate or intervals and WCSession is activated and reachable, sends {type: watchStrapSample, rrMillis, ts, hr when present} with no reply; failures logged and dropped.",
+   "entry": null,
+   "calls": [
+    "ext:WCSession.sendMessage(_:replyHandler:errorHandler:)",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.logDroppedSample(_:)"
+   ],
+   "reads": [
+    "ext:WCSession.isReachable"
+   ],
+   "writes": [
+    "wc:watchStrapSample",
+    "net:iPhone via WatchConnectivity"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "supported and hr or RR present",
+     "effect": "false: return"
+    },
+    {
+     "at": "+3",
+     "cond": "activated and reachable",
+     "effect": "false: drop"
+    },
+    {
+     "at": "+6",
+     "cond": "hr present",
+     "effect": "include hr"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "data-loss",
+     "sev": "low",
+     "text": "RR intervals produced while the iPhone is unreachable (or after a failed send) are dropped by design, so a phone-side recorder that relies on the Watch strap path has gaps in its RR series for those periods; documented in the comment at :658-662.",
+     "evidence": [
+      "EmuquWatch Watch App/WatchStrapConnector.swift:667",
+      "EmuquWatch Watch App/WatchStrapConnector.swift:677"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.logDroppedSample(_:)": "1abe90207c880839"
+   }
+  },
+  {
+   "key": "func WatchStrapConnector.logDroppedSample(_:)",
+   "hash": "4c442b75cde93fe2",
+   "does": "Logs at debug that a live strap sample send failed and was dropped.",
+   "entry": "Invoked from the WCSession sendMessage error handler (closure at :677) on WatchConnectivity's queue.",
+   "calls": [
+    "ext:Logger.debug"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

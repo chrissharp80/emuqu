@@ -1,0 +1,1106 @@
+{
+ "file": "Emuqu/Sources/Views/ReportsListView.swift",
+ "hash": "588cc08e67762235",
+ "role": "'All Reports' list: decodes the last 90 days of workout and overnight sessions, emits one row per workout (holistic if a reliable overnight started within 36 h before it, else workout-only) and one Recovery/HRV row per overnight, and renders the chosen PDF on tap into a temp file shown in a PDF preview sheet.",
+ "types": [
+  "ReportsListView: struct (View) — list, load, generation",
+  "ReportsListView.SectionedGroup: struct — section title + rows",
+  "ReportsListView.GenerationInputs: struct — snapshot passed to the render",
+  "ReportRow: struct (Identifiable) — one report row; Kind enum holistic/workoutOnly/recovery",
+  "ReportsListError: enum (LocalizedError) — recovery generation errors",
+  "URLWrapper: struct (Identifiable) — sheet item wrapper for a URL"
+ ],
+ "state": [
+  "@State rows, loading, loadTask, presentedPDF, shownPDF, isGenerating, generationError, generatingRowID (view-local)",
+  "@Environment ArchiveSignal (reloads the rows on version change)",
+  "file:<tmp>/emuqu-report-<id8>-<epoch>.pdf (FileManager.temporaryDirectory; deleted when the preview sheet closes or the render fails)"
+ ],
+ "toplevel": "Presented from MainTabView.swift:542 and ReportsSettingsPage.swift:37; snapshot test ChartScreenSnapshotTests.swift:153. Header comment (lines 4-33) documents the three row kinds and the 36 h night-before rule.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var ReportsListView.body",
+   "hash": "82bb750fb3e6b9a5",
+   "does": "Group of content with 'Reports' title; loads rows on appear and on every ArchiveSignal version change; PDF preview sheet bound to presentedPDF whose dismissal deletes the shown PDF; error alert bound to errorAlertShown.",
+   "entry": "SwiftUI body; .onAppear; sheet; alert OK button",
+   "calls": [
+    "Emuqu/Sources/Views/ReportsListView.swift::var ReportsListView.content",
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.load()",
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.removeShownPDF()",
+    "Emuqu/Sources/Views/ReportsListView.swift::var ReportsListView.errorAlertShown"
+   ],
+   "reads": [
+    "mem:ReportsListView @State (view-local)",
+    "mem:ArchiveSignal.version"
+   ],
+   "writes": [
+    "mem:ReportsListView @State (view-local)"
+   ],
+   "branches": [
+    {
+     "at": "+12",
+     "cond": "generationError nil (??)",
+     "effect": "empty message text"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.load()": "955f19ba7a1bb5f5",
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.removeShownPDF()": "5e050df9e96317fa",
+    "Emuqu/Sources/Views/ReportsListView.swift::var ReportsListView.content": "65f69b6d63898a80",
+    "Emuqu/Sources/Views/ReportsListView.swift::var ReportsListView.errorAlertShown": "0fd17ad5f3565818"
+   }
+  },
+  {
+   "key": "var ReportsListView.errorAlertShown",
+   "hash": "328ed735b2a2a587",
+   "does": "Binding: true while generationError is set; setting false (any dismissal) clears generationError.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:ReportsListView.generationError"
+   ],
+   "writes": [
+    "mem:ReportsListView.generationError"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "set to false",
+     "effect": "generationError = nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var ReportsListView.content",
+   "hash": "21622862c0641636",
+   "does": "Spinner while loading, empty state when no rows, else the list.",
+   "entry": "SwiftUI view builder",
+   "calls": [
+    "Emuqu/Sources/Views/ReportsListView.swift::var ReportsListView.emptyState",
+    "Emuqu/Sources/Views/ReportsListView.swift::var ReportsListView.reportsList"
+   ],
+   "reads": [
+    "mem:ReportsListView @State (view-local)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "loading",
+     "effect": "ProgressView"
+    },
+    {
+     "at": "+5",
+     "cond": "rows empty",
+     "effect": "emptyState; else reportsList"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ReportsListView.swift::var ReportsListView.emptyState": "eb856686880fea75",
+    "Emuqu/Sources/Views/ReportsListView.swift::var ReportsListView.reportsList": "0d1fac491af6f64b"
+   }
+  },
+  {
+   "key": "var ReportsListView.reportsList",
+   "hash": "e2c635e001830e51",
+   "does": "Inset-grouped List of sectioned rows.",
+   "entry": "SwiftUI view builder",
+   "calls": [
+    "Emuqu/Sources/Views/ReportsListView.swift::var ReportsListView.sectionedRows",
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.reportSection(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.reportSection(_:)": "43117e706f077477",
+    "Emuqu/Sources/Views/ReportsListView.swift::var ReportsListView.sectionedRows": "f47c9de8947401cb"
+   }
+  },
+  {
+   "key": "func ReportsListView.reportSection(_:)",
+   "hash": "c917b3a689c0b03f",
+   "does": "Section titled with the group name containing a rowView per row.",
+   "entry": "SwiftUI view builder",
+   "calls": [
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.rowView(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.rowView(_:)": "2c625874d51e40ea"
+   }
+  },
+  {
+   "key": "var ReportsListView.emptyState",
+   "hash": "bb855c29f4440108",
+   "does": "Empty-state icon, 'No reports yet' and explanation.",
+   "entry": "SwiftUI view builder",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "func ReportsListView.rowView(_:)",
+   "hash": "25d5f020f06c765d",
+   "does": "Plain button row (icon, caption, accessory) that calls generate; disabled while any generation runs.",
+   "entry": "button tap",
+   "calls": [
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.generate(_:)",
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.rowCaption(_:)",
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.rowAccessory(_:)",
+    "Emuqu/Sources/Views/ReportsListView.swift::var ReportRow.iconName",
+    "Emuqu/Sources/Views/ReportsListView.swift::var ReportRow.iconTint"
+   ],
+   "reads": [
+    "mem:ReportsListView @State (view-local)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.generate(_:)": "30573c398cf854ca",
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.rowAccessory(_:)": "bac57c1089ce92a3",
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.rowCaption(_:)": "24b0b9903010c325",
+    "Emuqu/Sources/Views/ReportsListView.swift::var ReportRow.iconName": "8498f30c082959ff",
+    "Emuqu/Sources/Views/ReportsListView.swift::var ReportRow.iconTint": "f7fe0d8124f1271e"
+   }
+  },
+  {
+   "key": "func ReportsListView.rowCaption(_:)",
+   "hash": "113b09a4e6f8b80b",
+   "does": "Title and two-line subtitle of a row.",
+   "entry": "SwiftUI view builder",
+   "calls": [
+    "Emuqu/Sources/Views/ReportsListView.swift::var ReportRow.title",
+    "Emuqu/Sources/Views/ReportsListView.swift::var ReportRow.subtitle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ReportsListView.swift::var ReportRow.subtitle": "83ce7d142a076946",
+    "Emuqu/Sources/Views/ReportsListView.swift::var ReportRow.title": "695fc20e4e05bcd6",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func ReportsListView.rowAccessory(_:)",
+   "hash": "53985114da030ae6",
+   "does": "Spinner for the row being generated, otherwise a chevron.",
+   "entry": "SwiftUI view builder",
+   "calls": [],
+   "reads": [
+    "mem:ReportsListView @State (view-local)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "generatingRowID == row.id",
+     "effect": "ProgressView; else chevron"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var ReportsListView.sectionedRows",
+   "hash": "6bf83cf7af3682dd",
+   "does": "Buckets rows into Today (≥ start of today), Last 7 days (≥ 7 days before start of today), Earlier, omitting empty groups.",
+   "entry": "SwiftUI view builder",
+   "calls": [],
+   "reads": [
+    "mem:ReportsListView @State (view-local)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "Calendar date arithmetic returns nil (??)",
+     "effect": "weekAgo falls back to todayStart (Last 7 days empty)"
+    },
+    {
+     "at": "+9",
+     "cond": "loop over rows",
+     "effect": "bucket each"
+    },
+    {
+     "at": "+10",
+     "cond": "r.date >= todayStart / >= weekAgo / else",
+     "effect": "Today / Last 7 days / Earlier"
+    },
+    {
+     "at": "+13",
+     "cond": "today non-empty",
+     "effect": "append Today group"
+    },
+    {
+     "at": "+14",
+     "cond": "lastWeek non-empty",
+     "effect": "append Last 7 days group"
+    },
+    {
+     "at": "+15",
+     "cond": "earlier non-empty",
+     "effect": "append Earlier group"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13",
+    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
+   }
+  },
+  {
+   "key": "func ReportsListView.load()",
+   "hash": "a4933cfc056d5b2e",
+   "does": "Cancels any prior load (and, through a cancellation handler, its detached buildRows, which stops between sessions), runs buildRows in a detached task and publishes the rows on the main actor unless cancelled.",
+   "entry": ".onAppear",
+   "calls": [
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.buildRows()",
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.publishRows(_:)"
+   ],
+   "reads": [
+    "archive:entries",
+    "archive:retrieveLightweight"
+   ],
+   "writes": [
+    "mem:ReportsListView @State (view-local)"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "load task cancelled after build",
+     "effect": "drop the result; otherwise publish"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.buildRows()": "a9032016e70c82b0",
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.publishRows(_:)": "5fee86f993008a87"
+   }
+  },
+  {
+   "key": "func ReportsListView.publishRows(_:)",
+   "hash": "22fb75202ac223a3",
+   "does": "MainActor: sets rows and loading=false unless the current task is cancelled.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:ReportsListView @State (view-local)"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "Task.isCancelled",
+     "effect": "return without publishing"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ReportsListView.buildRows()",
+   "hash": "362eafba0f628eaf",
+   "does": "Nonisolated: filters archive entries to the last 90 days by type, decodes the overnights once (lightweightSessions), keeps the reliable ones for pairing, builds workout rows (paired with the night before) plus one recovery row per decoded overnight, newest first.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ReportsListView.swift::var ReportsListView.archive",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.lightweightSessions(_:archive:)",
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.workoutRows(_:archive:nights:)",
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.recoveryRows(_:)"
+   ],
+   "reads": [
+    "archive:entries",
+    "archive:retrieveLightweight",
+    "mem:AppDependencies.current"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "Calendar returns nil (??)",
+     "effect": "cutoff = Date.distantPast (no 90-day limit)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.lightweightSessions(_:archive:)": "99a0716bfc282824",
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.overnights(before:archive:)": "65f0543318650627",
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.recoveryRows(_:)": "d68af62ffdd6773b",
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.workoutRows(_:archive:nights:)": "d5e766d06586edcf",
+    "Emuqu/Sources/Views/ReportsListView.swift::var ReportsListView.archive": "a1666ba6bb81209f"
+   }
+  },
+  {
+   "key": "var ReportsListView.archive",
+   "hash": "bb08769aba46557f",
+   "does": "Local computed accessor returning AppDependencies.current.storage.sessionArchive on each use.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.sessionArchive"
+   ],
+   "reads": [
+    "mem:AppDependencies.current"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.sessionArchive": "2c8002649ba22b7f"
+   }
+  },
+  {
+   "key": "func ReportsListView.lightweightSessions(_:archive:)",
+   "hash": "d9038782c1b431bb",
+   "does": "Nonisolated: decodes each entry lightweight (try?, failures dropped); stops decoding (returns nil per entry) once the task is cancelled.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweight(_:)"
+   ],
+   "reads": [
+    "archive:retrieveLightweight"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "Task.isCancelled",
+     "effect": "nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweight(_:)": "63fb382811fb095f",
+    "Emuqu/Sources/Views/ReportsListView.swift::var ReportsListView.archive": "a1666ba6bb81209f"
+   }
+  },
+  {
+   "key": "func ReportsListView.nightBefore(_:in:)",
+   "hash": "05da16044b866e14",
+   "does": "Returns the latest night that started within 36 h before the workout start (and strictly before it).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Same night-before rule (latest reliable overnight within 36 h before the workout) re-implemented inline in MainTabView.mostRecentDailyPair.",
+     "evidence": [
+      "Emuqu/Sources/Views/ReportsListView.swift:231",
+      "Emuqu/Sources/Views/MainTabView+Tabs.swift:249"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func ReportsListView.workoutRows(_:archive:nights:)",
+   "hash": "ecb59b67de9e16c3",
+   "does": "For each workout entry decodes it and builds a row: .holistic with its night before when one exists, else .workoutOnly. Skips the remaining entries once the task is cancelled.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweight(_:)",
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.nightBefore(_:in:)"
+   ],
+   "reads": [
+    "archive:retrieveLightweight"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "task cancelled, or decode fails / nil",
+     "effect": "no row"
+    },
+    {
+     "at": "+7",
+     "cond": "overnight found",
+     "effect": ".holistic else .workoutOnly"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Pairing rule differs from the auto-email path: the list pairs only reliable overnights within 36 h before the workout start, while WorkoutSessionLifecycle.coachReportInputs takes any overnight since now-36h; the same workout can get a holistic report by email and a workout-only row here (or vice versa).",
+     "evidence": [
+      "Emuqu/Sources/Views/ReportsListView.swift:231",
+      "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift:320",
+      "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift:330"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweight(_:)": "63fb382811fb095f",
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.nightBefore(_:in:)": "55b5d96708cab9b2",
+    "Emuqu/Sources/Views/ReportsListView.swift::var ReportsListView.archive": "a1666ba6bb81209f"
+   }
+  },
+  {
+   "key": "func ReportsListView.recoveryRows(_:)",
+   "hash": "dd9daed3469a938e",
+   "does": "One .recovery row per decoded overnight session (workoutSession is the same session as a placeholder).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.overnights(before:archive:)": "65f0543318650627"
+   }
+  },
+  {
+   "key": "func ReportsListView.generate(_:)",
+   "hash": "e50e2dd60595037a",
+   "does": "Ignores taps while generating; otherwise marks the row busy, captures generationInputs on the main actor and starts renderAndPublish in a detached userInitiated task.",
+   "entry": "row button tap",
+   "calls": [
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.generationInputs(for:)",
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.renderAndPublish(_:)"
+   ],
+   "reads": [
+    "mem:ReportsListView @State (view-local)"
+   ],
+   "writes": [
+    "mem:ReportsListView @State (view-local)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "isGenerating",
+     "effect": "return"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.generationInputs(for:)": "755dcb0a53733e7e",
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.renderAndPublish(_:)": "73290fb1f68fa57c"
+   }
+  },
+  {
+   "key": "func ReportsListView.renderAndPublish(_:)",
+   "hash": "ac004124bb7f1bc1",
+   "does": "Awaits renderReport; on success finishGeneration with the pdf URL, on error removes any partial PDF at pdfURL and finishGeneration with its localizedDescription.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.renderReport(_:)",
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.removeTemporaryPDF(_:)",
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.finishGeneration(url:error:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:ReportsListView @State (view-local)",
+    "file:<tmp>/emuqu-report-*.pdf (removed on failure)"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "renderReport throws",
+     "effect": "finishGeneration(url:nil,error:message) → alert"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.finishGeneration(url:error:)": "16fa097051706a0f",
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.removeTemporaryPDF(_:)": "b343e813aad3f7b4",
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.renderReport(_:)": "3131a1afddcfbbd9"
+   }
+  },
+  {
+   "key": "func ReportsListView.finishGeneration(url:error:)",
+   "hash": "d72b68004dad8dfc",
+   "does": "MainActor: with a URL presents the PDF sheet and records it as shownPDF; sets generationError; clears busy flags.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:ReportsListView @State (view-local)"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "url non-nil",
+     "effect": "presentedPDF = URLWrapper(url)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ReportsListView.removeShownPDF()",
+   "hash": "4331c835d09d872d",
+   "does": "Preview sheet onDismiss: deletes the shown PDF (health data) from tmp and clears shownPDF.",
+   "entry": "sheet(item:onDismiss:) dismissal",
+   "calls": [
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.removeTemporaryPDF(_:)"
+   ],
+   "reads": [
+    "mem:ReportsListView.shownPDF"
+   ],
+   "writes": [
+    "mem:ReportsListView.shownPDF",
+    "file:<tmp>/emuqu-report-*.pdf"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "shownPDF nil",
+     "effect": "return"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.removeTemporaryPDF(_:)": "b343e813aad3f7b4"
+   }
+  },
+  {
+   "key": "func ReportsListView.removeTemporaryPDF(_:)",
+   "hash": "b8dada027995b6cd",
+   "does": "Nonisolated: removes the file when it exists, through attempt (failure logged).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "ext:FileManager.removeItem"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<tmp>/emuqu-report-*.pdf"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "file missing",
+     "effect": "return"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+   }
+  },
+  {
+   "key": "func ReportsListView.generationInputs(for:)",
+   "hash": "29f24abc3b51da04",
+   "does": "Snapshots on the main actor: row kind/sessions, the baseline as it stood for the reported night (baselineStats(for:settings:)), GPS polyline, start/duration, temp PDF URL, units, max/resting HR, LTHR and temperature unit from settings.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.baselineStats(for:settings:)",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveRestingHR",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveLTHR"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings",
+    "mem:BaselineTracker.historicalData",
+    "ud:fitness.unitsPreference (App Group suite SharedUserDefaults.appGroup, via UnitsPreferenceStore.current)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveLTHR": "d8f21d4214c3f50a",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "cef5ee5d9e3b4ade",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveRestingHR": "6de242bd745f1424",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift::var ScoreBreakdownCard.temperatureUnit": "063a6053cf5ccc9d",
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.baselineStats(for:settings:)": "6537ab043775758a",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4"
+   }
+  },
+  {
+   "key": "func ReportsListView.baselineStats(for:settings:)",
+   "hash": "0f1318418ca25063",
+   "does": "Recovery baseline for the report: with a night, BaselineTracker.recoveryBaselineStats(excludingNightOf:sleepSchedule:) (nights before it only); without one, the current recoveryBaselineStats.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.recoveryBaselineStats",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.recoveryBaselineStats(excludingNightOf:sleepSchedule:)",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.sleepSchedule"
+   ],
+   "reads": [
+    "mem:BaselineTracker.historicalData"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "night nil",
+     "effect": "current baseline"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.recoveryBaselineStats(excludingNightOf:sleepSchedule:)": "7bf3e795972555e6",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.recoveryBaselineStats": "9916669422d3e401",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.sleepSchedule": "8de4d6a741ac1366"
+   }
+  },
+  {
+   "key": "func ReportsListView.renderReport(_:)",
+   "hash": "dd7bccd38c1b8d91",
+   "does": "Loads full sessions and prior overnights off-main, refreshes the live training-load snapshot, decodes the GPS polyline into CLLocations, then dispatches to the holistic / workout-only / recovery renderer. Nonisolated, as are the render steps, so decode, drawing and the file move run off the main actor; the PDF uses the live load only for a session from today.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.withFullSessions(_:)",
+    "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift::func TrainingLoadRegistry.liveRefreshed()",
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.decode(polyline:startDate:duration:)",
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.renderHolistic(_:track:load:)",
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.renderWorkoutOnly(_:track:)",
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.renderRecovery(_:load:)"
+   ],
+   "reads": [
+    "mem:TrainingMetricsCache"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "polyline is nil (?? [])",
+     "effect": "track = [] (no map)"
+    },
+    {
+     "at": "+7",
+     "cond": ".holistic",
+     "effect": "renderHolistic"
+    },
+    {
+     "at": "+9",
+     "cond": ".workoutOnly",
+     "effect": "renderWorkoutOnly"
+    },
+    {
+     "at": "+11",
+     "cond": ".recovery",
+     "effect": "renderRecovery"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.decode(polyline:startDate:duration:)": "8bf8d7e73e673ac6",
+    "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift::func TrainingLoadRegistry.liveRefreshed()": "f6fdc835bab57f33",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.polyline(for:)": "92368270c3e12467",
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.renderHolistic(_:track:load:)": "39ce73af5486e47f",
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.renderRecovery(_:load:)": "85d21ba35adf2965",
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.renderWorkoutOnly(_:track:)": "a8693b74d4c55001",
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.withFullSessions(_:)": "1341b3507c480eac"
+   }
+  },
+  {
+   "key": "func ReportsListView.withFullSessions(_:)",
+   "hash": "77d445e18761754f",
+   "does": "Nonisolated: replaces overnight (and, except for a .recovery row, workout) with full RR-bearing archive reads, falling back to the lightweight copies, and fills recentOvernight with ReportBaselineNights.before the reported night (or the workout's start when there is no overnight): the nights before it, read until 60 are reliable.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.sessionArchive",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)",
+    "Emuqu/Sources/Views/MainTabView+Reports.swift::func ReportBaselineNights.before(_:archive:)"
+   ],
+   "reads": [
+    "archive:retrieve",
+    "archive:entries",
+    "archive:retrieveLightweight"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "kind != .recovery",
+     "effect": "full workout read (lightweight on failure); .recovery keeps the lightweight placeholder"
+    },
+    {
+     "at": "+8",
+     "cond": "overnight present; full read fails (??)",
+     "effect": "lightweight copy"
+    },
+    {
+     "at": "+9",
+     "cond": "no overnight (??)",
+     "effect": "workout start as the cutoff"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Parallel copy of MainTabView.withFullSessions (full-read with lightweight fallback).",
+     "evidence": [
+      "Emuqu/Sources/Views/ReportsListView.swift:368",
+      "Emuqu/Sources/Views/MainTabView+Reports.swift:42"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)": "f0a309cc2b24de13",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.sessionArchive": "2c8002649ba22b7f",
+    "Emuqu/Sources/Views/MainTabView+Reports.swift::func ReportBaselineNights.before(_:archive:)": "1ff6f104c1019b50",
+    "Emuqu/Sources/Views/ReportsListView.swift::var ReportsListView.archive": "a1666ba6bb81209f"
+   }
+  },
+  {
+   "key": "func ReportsListView.renderHolistic(_:track:load:)",
+   "hash": "6840fb8ad6b2f5ee",
+   "does": "The holistic daily report for the row through the shared ReportRenderer.renderDaily (workout, track, overnight, recent overnights, profile, live load) to pdfURL. Nonisolated.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.profile(_:)",
+    "Emuqu/Sources/Views/MainTabView+Reports.swift::func ReportRenderer.renderDaily(workout:track:overnight:recentOvernight:profile:load:to:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<tmp>/emuqu-report-*.pdf"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MainTabView+Reports.swift::func ReportRenderer.renderDaily(workout:track:overnight:recentOvernight:profile:load:to:)": "e43162a208232dfb",
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.load()": "955f19ba7a1bb5f5",
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.profile(_:)": "e9ef4c8492c2a5b4"
+   }
+  },
+  {
+   "key": "func ReportsListView.renderWorkoutOnly(_:track:)",
+   "hash": "5f08cda8d7821ad9",
+   "does": "The workout PDF for the row through the shared ReportRenderer.renderWorkout to pdfURL. Nonisolated.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.profile(_:)",
+    "Emuqu/Sources/Views/MainTabView+Reports.swift::func ReportRenderer.renderWorkout(_:track:profile:to:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<tmp>/emuqu-report-*.pdf"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MainTabView+Reports.swift::func ReportRenderer.renderWorkout(_:track:profile:to:)": "4a896824cf0c3e27",
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.profile(_:)": "e9ef4c8492c2a5b4"
+   }
+  },
+  {
+   "key": "func ReportsListView.profile(_:)",
+   "hash": "0927806033592aaa",
+   "does": "The inputs' max/resting HR, LTHR, units and temperature unit as a ReportRenderer.Profile. Nonisolated.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift::var ScoreBreakdownCard.temperatureUnit": "063a6053cf5ccc9d"
+   }
+  },
+  {
+   "key": "func ReportsListView.renderRecovery(_:load:)",
+   "hash": "f14f9d59cc56bda4",
+   "does": "Requires an overnight and renders the comprehensive frozen-snapshot recovery PDF onto pdfURL through the shared ReportRenderer.renderRecovery (recent overnights, the baseline before that night, live load). Throws typed errors when the session is missing or the generator couldn't render it; a file-move error propagates.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MainTabView+Reports.swift::func ReportRenderer.renderRecovery(_:recentOvernight:baselineStats:load:to:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<tmp>/emuqu-report-*.pdf"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "inputs.overnight is nil",
+     "effect": "throw recoverySessionMissing (unreachable for .recovery rows, which always set overnightSession)"
+    },
+    {
+     "at": "+8",
+     "cond": "renderRecovery returned false",
+     "effect": "throw recoveryGenerationFailed"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MainTabView+Reports.swift::func ReportRenderer.renderRecovery(_:recentOvernight:baselineStats:load:to:)": "5df0504de6a6b1f0",
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.load()": "955f19ba7a1bb5f5"
+   }
+  },
+  {
+   "key": "var ReportRow.title",
+   "hash": "c98965be863fc824",
+   "does": "Row title: 'Daily Report — <sport>', '<sport> Report' or 'Recovery / HRV Report'.",
+   "entry": "SwiftUI view builder (row caption)",
+   "calls": [
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.localizedName"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "workoutSession.workoutMetadata is nil (sport itself is non-optional, WorkoutMetadata.swift:299)",
+     "effect": "sport = 'Workout'"
+    },
+    {
+     "at": "+3",
+     "cond": ".holistic",
+     "effect": "Daily Report — sport"
+    },
+    {
+     "at": "+4",
+     "cond": ".workoutOnly",
+     "effect": "sport Report"
+    },
+    {
+     "at": "+5",
+     "cond": ".recovery",
+     "effect": "Recovery / HRV Report"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.localizedName": "dbe667c792d47f39",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var ReportRow.subtitle",
+   "hash": "e239a9908463f1b0",
+   "does": "Localized date stamp joined with detail bits by ' · '.",
+   "entry": "SwiftUI view builder",
+   "calls": [
+    "Emuqu/Sources/Utilities/LocalizedDateFormat.swift::func LocalizedDateFormat.string(from:template:)",
+    "Emuqu/Sources/Views/ReportsListView.swift::var ReportRow.detailBits"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/LocalizedDateFormat.swift::func LocalizedDateFormat.string(from:template:)": "3f04b1b2d2a2db68",
+    "Emuqu/Sources/Views/ReportsListView.swift::var ReportRow.detailBits": "500b06aeb4c9e738"
+   }
+  },
+  {
+   "key": "var ReportRow.detailBits",
+   "hash": "1addda5efb6023dd",
+   "does": "Detail bits per kind: distance + 'with morning recovery', distance, or recovery score.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ReportsListView.swift::var ReportRow.distanceBit",
+    "Emuqu/Sources/Views/ReportsListView.swift::var ReportRow.recoveryScoreBit"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".holistic",
+     "effect": "distance + 'with morning recovery'"
+    },
+    {
+     "at": "+4",
+     "cond": ".workoutOnly",
+     "effect": "distance"
+    },
+    {
+     "at": "+6",
+     "cond": ".recovery",
+     "effect": "recovery score bit"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ReportsListView.swift::var ReportRow.distanceBit": "c1405327f7154adc",
+    "Emuqu/Sources/Views/ReportsListView.swift::var ReportRow.recoveryScoreBit": "293182ae2eb60df6"
+   }
+  },
+  {
+   "key": "var ReportRow.distanceBit",
+   "hash": "9063cf8038e757ab",
+   "does": "Formatted workout distance in the user's units, or nothing.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved",
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)"
+   ],
+   "reads": [
+    "ud:fitness.unitsPreference (App Group suite SharedUserDefaults.appGroup, via UnitsPreferenceStore.current)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "distanceMeters nil",
+     "effect": "[]; else formatted distance"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)": "a36dafa82ad91f58",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d"
+   }
+  },
+  {
+   "key": "var ReportRow.recoveryScoreBit",
+   "hash": "0320db1144ad8125",
+   "does": "'score N' from the overnight's composite score via ScoreVerdict.safeDisplayScore, or nothing.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no composite score",
+     "effect": "[]"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)": "243c4d1d41c669f4",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.scoreBreakdown(result:session:inputs:training:useBaselineHRV:)": "245c2d41dcd0a692"
+   }
+  },
+  {
+   "key": "var ReportRow.iconName",
+   "hash": "513bf698b5915ba7",
+   "does": "SF Symbol per kind.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".holistic",
+     "effect": "doc.text.image.fill"
+    },
+    {
+     "at": "+3",
+     "cond": ".workoutOnly",
+     "effect": "doc.text.fill"
+    },
+    {
+     "at": "+4",
+     "cond": ".recovery",
+     "effect": "moon.stars.fill"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var ReportRow.iconTint",
+   "hash": "47cabeebe3b05ac9",
+   "does": "Theme colour per kind.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".holistic",
+     "effect": "AppTheme.primary"
+    },
+    {
+     "at": "+3",
+     "cond": ".workoutOnly",
+     "effect": "AppTheme.sage"
+    },
+    {
+     "at": "+4",
+     "cond": ".recovery",
+     "effect": "AppTheme.terracotta"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+   }
+  },
+  {
+   "key": "var ReportsListError.errorDescription",
+   "hash": "3dd95f10be100338",
+   "does": "Localized messages for the two recovery errors.",
+   "entry": "LocalizedError witness read via error.localizedDescription",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".recoverySessionMissing",
+     "effect": "'Recovery session data is missing — try reanalysing the session.'"
+    },
+    {
+     "at": "+4",
+     "cond": ".recoveryGenerationFailed",
+     "effect": "'Couldn't generate the recovery PDF…'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var URLWrapper.id",
+   "hash": "7d1e5a821a3571f0",
+   "does": "Identity = url.absoluteString.",
+   "entry": "Identifiable witness used by .sheet(item:)",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

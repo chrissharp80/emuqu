@@ -41,10 +41,16 @@ extension VoiceConversationController {
     /// the line is.
     ///
     /// The spoken-form expansions ("zone one", "per minute") are English, so
-    /// they apply only when the voice is.
+    /// they apply only when the voice is. With no voice chosen yet the
+    /// utterance speaks with the system default voice, the one for the
+    /// device's current language, so that language decides.
+    ///
+    /// A line that fails to queue gets no `didFinish`; for a scripted trigger
+    /// line that is what restores the pre-trigger state, so it is settled
+    /// here instead (`settleUnspokenTriggerLine`).
     func speak(_ text: String, voice: AVSpeechSynthesisVoice? = nil, scripted: Bool = false) {
         let chosenVoice = voice ?? bestVoice
-        let english = chosenVoice?.language.hasPrefix("en") ?? true
+        let english = (chosenVoice?.language ?? AVSpeechSynthesisVoice.currentLanguageCode()).hasPrefix("en")
         let guarded = applyHallucinationGuard(to: perimeterScrubbed(text))
         // Scripted lines (coach triggers, the recovery line) are not Flo's
         // reply, so they don't get the "Flo here. <Model>." preamble.
@@ -52,9 +58,20 @@ extension VoiceConversationController {
         let attributed = TTSTextNormalizer.normalize(isScripted ? guarded : announced(guarded), english: english)
         let utterance = Self.makeUtterance(attributed, voice: chosenVoice)
         var speakErr: NSError?
-        if !FRSafeSpeak(synthesizer, utterance, &speakErr) {
-            debugLog("[VoiceConv] synthesizer.speak failed (skipping TTS chunk): \(speakErr?.localizedDescription ?? "?")", level: .warning)
-        }
+        guard !FRSafeSpeak(synthesizer, utterance, &speakErr) else { return }
+        debugLog("[VoiceConv] synthesizer.speak failed (skipping TTS chunk): \(speakErr?.localizedDescription ?? "?")", level: .warning)
+        settleUnspokenTriggerLine()
+    }
+
+    /// A scripted trigger line (`playSpokenTriggerNow`) that failed to queue
+    /// leaves nothing playing and no `didFinish` coming, so voice would stay
+    /// in `.triggerSpeaking` with the mic shut and the talk button ignored.
+    /// Finish it as `didFinish` would have: play the next queued trigger or
+    /// restore the prior state. An AI interjection (`llmTask` set) is left to
+    /// `finishInterjection`, which settles the state when its stream ends.
+    private func settleUnspokenTriggerLine() {
+        guard state == .triggerSpeaking, llmTask == nil, !synthesizer.isSpeaking else { return }
+        finishTriggerSpeech()
     }
 
     /// One TTS utterance at the conversation rate. Pre/post delays are
@@ -246,134 +263,19 @@ extension VoiceConversationController {
 
     // MARK: - Permissions
 
+    /// Speech recognition, then the microphone (`VoicePermissionGate`); a
+    /// refusal is surfaced in `permissionError`.
     func ensurePermissions() async -> Bool {
-        guard await speechRecognitionAllowed() else { return false }
-        return await micAllowed()
-    }
-
-    /// Speech recognition — log the existing status, request when undetermined.
-    private func speechRecognitionAllowed() async -> Bool {
-        let status = SFSpeechRecognizer.authorizationStatus()
-        debugLog("[VoiceConv] current speech auth status: \(describe(status))")
-        switch status {
-        case .authorized:
-            return true
-        case .notDetermined:
-            return await requestSpeechAuthorization()
-        case .denied:
-            await report(String(localized: "Speech Recognition is denied. Open Settings → Emuqu → enable Speech Recognition.", bundle: LanguageManager.appBundle))
-            return false
-        case .restricted:
-            await report(String(localized: "Speech Recognition is restricted on this device (e.g. by Screen Time or parental controls).", bundle: LanguageManager.appBundle))
-            return false
-        @unknown default:
-            await report(String(localized: "Speech Recognition permission was not granted.", bundle: LanguageManager.appBundle))
-            return false
-        }
-    }
-
-    /// Show the system prompt and report the outcome.
-    private func requestSpeechAuthorization() async -> Bool {
-        debugLog("[VoiceConv] requesting speech recognition authorization (should show prompt)…")
-        // `@Sendable`: the framework does not promise the main queue for this
-        // callback, and a main-actor closure asserts it on entry.
-        let status = await withCheckedContinuation { continuation in
-            SFSpeechRecognizer.requestAuthorization { @Sendable status in
-                continuation.resume(returning: status)
-            }
-        }
-        debugLog("[VoiceConv] speech auth result: \(describe(status))")
-        let granted = status == .authorized
-        if !granted { await report(String(localized: "Speech Recognition permission was not granted.", bundle: LanguageManager.appBundle)) }
-        return granted
-    }
-
-    /// Microphone. The app targets iOS 17+ so we use AVAudioApplication only.
-    private func micAllowed() async -> Bool {
-        let status = AVAudioApplication.shared.recordPermission
-        debugLog("[VoiceConv] current mic permission: \(describe(status))")
-        switch status {
-        case .granted:
-            return true
-        case .undetermined:
-            debugLog("[VoiceConv] requesting mic permission (should show prompt)…")
-            let granted = await AVAudioApplication.requestRecordPermission()
-            debugLog("[VoiceConv] mic permission result: \(granted ? "granted" : "denied")")
-            if !granted { await report(String(localized: "Microphone permission was not granted.", bundle: LanguageManager.appBundle)) }
-            return granted
-        case .denied:
-            await report(String(localized: "Microphone access is denied. Open Settings → Emuqu → enable Microphone.", bundle: LanguageManager.appBundle))
-            return false
-        @unknown default:
-            await report(String(localized: "Microphone permission was not granted.", bundle: LanguageManager.appBundle))
-            return false
-        }
-    }
-
-    /// Surface a permission failure on the main actor.
-    private func report(_ message: String) async {
-        await MainActor.run { self.permissionError = message }
-    }
-
-    func describe(_ status: SFSpeechRecognizerAuthorizationStatus) -> String {
-        switch status {
-        case .notDetermined: "notDetermined"
-        case .denied: "denied"
-        case .restricted: "restricted"
-        case .authorized: "authorized"
-        @unknown default: "unknown"
-        }
-    }
-
-    func describe(_ perm: AVAudioApplication.recordPermission) -> String {
-        switch perm {
-        case .undetermined: "undetermined"
-        case .denied: "denied"
-        case .granted: "granted"
-        @unknown default: "unknown"
-        }
+        guard let denial = await VoicePermissionGate.denialMessage() else { return true }
+        permissionError = denial
+        return false
     }
 
     // MARK: - System prompt
 
     func buildSystemPrompt() -> String {
-        Self.voiceCoachPersona + "\n\n" + Self.voiceCoachHardRules
+        VoiceCoachPrompt.interjectionPrompt
     }
-
-    /// The persona and the be-specific-or-be-silent contract.
-    private static let voiceCoachPersona = """
-        You are a voice coach companion for a runner/walker wearing AirPods. \
-        You will be read aloud by a text-to-speech engine, so avoid markdown, \
-        code fences, lists, and emoji. Speak in short, conversational sentences \
-        — 1 to 3 at a time, no more.
-
-        BE SPECIFIC OR BE SILENT — this is the whole job:
-        - Every line MUST be anchored to a concrete number or observation from \
-          the CONTEXT block and say what it MEANS. \
-          "HR drifted 6% over the last mile at the same pace — that's a heat or \
-          fuel signal; ease off if it climbs more." NOT "nice work" / "keep it \
-          up" / "go for it" / "great run" / "you're doing great."
-        - NEVER emit generic encouragement, praise, or filler. If nothing in the \
-          context stands out as worth saying right now, SAY NOTHING — silence is \
-          the correct output, not a motivational platitude.
-        - Lead with the data point, then the cause-and-effect, then (optionally) \
-          what to do. One specific useful sentence beats three vague ones.
-        - Translate sports-science jargon to plain English ("above your usual \
-          range", not "ACWR 1.4"; "carrying fatigue", not "TSB -12").
-        """
-
-    /// The two non-negotiables, kept separate so a persona edit can't
-    /// accidentally reword them.
-    private static let voiceCoachHardRules = """
-        HARD RULES:
-        - Only reference data that appears in the CONTEXT block. Do not invent \
-          terrain, baselines, history, or metrics the user didn't mention. If you \
-          don't have the data to make a SPECIFIC point, stay silent.
-        - Never issue commands. Offer, don't order. Close observations with an \
-          optional phrase like "your call", "if you feel like it", or "up to you".
-
-        The user can interrupt you at any time.
-        """
 }
 
 // MARK: - AVSpeechSynthesizerDelegate
@@ -414,6 +316,12 @@ extension VoiceConversationController: AVSpeechSynthesizerDelegate {
     /// Multiple alerts queued during a long user response play
     /// one-after-another instead of each restoring → re-listening → next
     /// preempting.
+    ///
+    /// A prior of `.triggerSpeaking` is a trigger that started while an
+    /// earlier one's line had finished and listening was about to resume
+    /// (its prior was a live conversation; one whose prior was idle goes
+    /// straight to `.idle`), so it resumes listening too rather than leaving
+    /// the mic running under an idle state.
     @MainActor
     func finishTriggerSpeech() {
         if !pendingTriggers.isEmpty {
@@ -422,7 +330,7 @@ extension VoiceConversationController: AVSpeechSynthesizerDelegate {
         }
         let prior = preemptedState ?? .idle
         preemptedState = nil
-        if prior == .listening || prior == .speaking {
+        if prior == .listening || prior == .speaking || prior == .triggerSpeaking {
             scheduleListenAfterAudioDrain()
         } else {
             state = .idle
@@ -584,6 +492,11 @@ extension VoiceConversationController: AVSpeechSynthesizerDelegate {
 /// runs off the main actor (the controller calls it from a detached task) and
 /// caches its answer per language for the rest of the launch.
 enum ConversationVoicePicker {
+    /// The app's language, the one the recognizer listens in
+    /// (`VoiceConversationController.recognizerLocale`) and the AI replies
+    /// in, not the device's: with the app set to Japanese on an English
+    /// phone, the reply is read by a Japanese voice.
+    ///
     /// Honors the user's "force English AI" setting for
     /// voice synthesis too. Without this a Japanese-locale phone
     /// would speak with a Japanese voice even when the AI's text was being
@@ -591,7 +504,7 @@ enum ConversationVoicePicker {
     @MainActor
     static func preferredLanguage() -> String {
         let forceEnglish = AppDependencies.current.app.settingsManager.settings.forceAIEnglish
-        return forceEnglish ? "en-US" : Locale.current.language.maximalIdentifier
+        return forceEnglish ? "en-US" : LanguageManager.appLocale.language.maximalIdentifier
     }
 
     /// The voice for `preferredLanguage`: the best installed one, or the
@@ -622,28 +535,54 @@ enum ConversationVoicePicker {
     /// in the launch is picked up at the next launch.
     private static let cache = OSAllocatedUnfairLock<[String: AVSpeechSynthesisVoice]>(initialState: [:])
 
-    /// The best installed voice for the language family (en-US, en-GB, en-AU
-    /// all match "en"), or nil when none is installed.
+    /// The best installed voice for the language (en-US, en-GB, en-AU all
+    /// speak "en"), or nil when none is installed.
     ///
     /// Novelty voices (Bahh, Cellos, Trinoids, …) and any voice flagged
     /// personal are skipped — the latter need explicit user opt-in.
     ///
-    /// Ranking is premium > enhanced > default; at equal quality it prefers
-    /// voices whose identifier doesn't include ".compact.", which are the
-    /// small / robotic legacy ones.
+    /// Ranking, most important first: the preferred script (Mandarin in
+    /// Simplified Chinese is not served by a Traditional-script Hong Kong or
+    /// Taiwan voice), then the preferred region (an en-US enhanced voice beats
+    /// an en-GB premium one for an en-US user), then quality (premium >
+    /// enhanced > default), then a voice whose identifier doesn't include
+    /// ".compact." (the small / robotic legacy ones).
     private static func bestInstalledVoice(matching preferredLanguage: String) -> AVSpeechSynthesisVoice? {
-        let langPrefix = preferredLanguage.split(separator: "-").first.map(String.init) ?? "en"
+        let wanted = VoiceLanguage(preferredLanguage)
         let candidates = AVSpeechSynthesisVoice.speechVoices().filter { voice in
-            voice.language.hasPrefix(langPrefix)
+            VoiceLanguage(voice.language).language == wanted.language
                 && !voice.voiceTraits.contains(.isNoveltyVoice)
                 && !voice.voiceTraits.contains(.isPersonalVoice)
         }
-        return candidates.sorted { a, b in
-            let qa = qualityRank(a.quality)
-            let qb = qualityRank(b.quality)
-            if qa != qb { return qa > qb }
-            return !a.identifier.contains(".compact.") && b.identifier.contains(".compact.")
-        }.first
+        return candidates.max { rank($0, for: wanted) < rank($1, for: wanted) }
+    }
+
+    /// Sort key for `bestInstalledVoice`: script match, region match,
+    /// quality, not compact.
+    private static func rank(_ voice: AVSpeechSynthesisVoice, for wanted: VoiceLanguage) -> (Int, Int, Int, Int) {
+        let language = VoiceLanguage(voice.language)
+        return (
+            language.script == wanted.script ? 1 : 0,
+            language.region == wanted.region ? 1 : 0,
+            qualityRank(voice.quality),
+            voice.identifier.contains(".compact.") ? 0 : 1
+        )
+    }
+
+    /// A BCP-47 language tag expanded to its likely script and region
+    /// ("zh-HK" → zh, Hant, HK; "en" → en, Latn, US), so tags written with
+    /// and without them compare.
+    private struct VoiceLanguage {
+        let language: String?
+        let script: String?
+        let region: String?
+
+        init(_ identifier: String) {
+            let expanded = Locale.Language(identifier: Locale.Language(identifier: identifier).maximalIdentifier)
+            language = expanded.languageCode?.identifier
+            script = expanded.script?.identifier
+            region = expanded.region?.identifier
+        }
     }
 
     static func qualityRank(_ q: AVSpeechSynthesisVoiceQuality) -> Int {
@@ -663,6 +602,139 @@ enum ConversationVoicePicker {
         @unknown default: "unknown"
         }
     }
+}
+
+// MARK: - Permissions
+
+/// Speech-recognition and microphone permission checks for voice chat: logs
+/// the current status, shows the system prompt when it is undetermined, and
+/// says why voice can't start when either is refused.
+@MainActor
+enum VoicePermissionGate {
+    /// nil when both are granted; otherwise the message to show. The mic is
+    /// not checked once speech recognition is refused.
+    static func denialMessage() async -> String? {
+        if let denial = await speechRecognitionDenial() { return denial }
+        return await micDenial()
+    }
+
+    private static var notGranted: String {
+        String(localized: "Speech Recognition permission was not granted.", bundle: LanguageManager.appBundle)
+    }
+
+    /// Speech recognition: log the existing status, request when undetermined.
+    private static func speechRecognitionDenial() async -> String? {
+        let status = SFSpeechRecognizer.authorizationStatus()
+        debugLog("[VoiceConv] current speech auth status: \(describe(status))")
+        switch status {
+        case .authorized:
+            return nil
+        case .notDetermined:
+            return await requestSpeechAuthorization()
+        case .denied:
+            return String(localized: "Speech Recognition is denied. Open Settings → Emuqu → enable Speech Recognition.", bundle: LanguageManager.appBundle)
+        case .restricted:
+            return String(localized: "Speech Recognition is restricted on this device (e.g. by Screen Time or parental controls).", bundle: LanguageManager.appBundle)
+        @unknown default:
+            return notGranted
+        }
+    }
+
+    /// Show the system prompt and report the outcome.
+    private static func requestSpeechAuthorization() async -> String? {
+        debugLog("[VoiceConv] requesting speech recognition authorization (should show prompt)…")
+        // `@Sendable`: the framework does not promise the main queue for this
+        // callback, and a main-actor closure asserts it on entry.
+        let status = await withCheckedContinuation { continuation in
+            SFSpeechRecognizer.requestAuthorization { @Sendable status in
+                continuation.resume(returning: status)
+            }
+        }
+        debugLog("[VoiceConv] speech auth result: \(describe(status))")
+        return status == .authorized ? nil : notGranted
+    }
+
+    /// Microphone. The app targets iOS 17+ so we use AVAudioApplication only.
+    private static func micDenial() async -> String? {
+        let status = AVAudioApplication.shared.recordPermission
+        debugLog("[VoiceConv] current mic permission: \(describe(status))")
+        let micNotGranted = String(localized: "Microphone permission was not granted.", bundle: LanguageManager.appBundle)
+        switch status {
+        case .granted:
+            return nil
+        case .undetermined:
+            debugLog("[VoiceConv] requesting mic permission (should show prompt)…")
+            let granted = await AVAudioApplication.requestRecordPermission()
+            debugLog("[VoiceConv] mic permission result: \(granted ? "granted" : "denied")")
+            return granted ? nil : micNotGranted
+        case .denied:
+            return String(localized: "Microphone access is denied. Open Settings → Emuqu → enable Microphone.", bundle: LanguageManager.appBundle)
+        @unknown default:
+            return micNotGranted
+        }
+    }
+
+    static func describe(_ status: SFSpeechRecognizerAuthorizationStatus) -> String {
+        switch status {
+        case .notDetermined: "notDetermined"
+        case .denied: "denied"
+        case .restricted: "restricted"
+        case .authorized: "authorized"
+        @unknown default: "unknown"
+        }
+    }
+
+    static func describe(_ perm: AVAudioApplication.recordPermission) -> String {
+        switch perm {
+        case .undetermined: "undetermined"
+        case .denied: "denied"
+        case .granted: "granted"
+        @unknown default: "unknown"
+        }
+    }
+}
+
+// MARK: - Voice coach system prompt
+
+/// The system prompt for voice interjections (`buildSystemPrompt`): the
+/// persona, then the hard rules.
+enum VoiceCoachPrompt {
+    static var interjectionPrompt: String { persona + "\n\n" + hardRules }
+
+    /// The persona and the be-specific-or-be-silent contract.
+    private static let persona = """
+        You are a voice coach companion for a runner/walker wearing AirPods. \
+        You will be read aloud by a text-to-speech engine, so avoid markdown, \
+        code fences, lists, and emoji. Speak in short, conversational sentences \
+        — 1 to 3 at a time, no more.
+
+        BE SPECIFIC OR BE SILENT — this is the whole job:
+        - Every line MUST be anchored to a concrete number or observation from \
+          the CONTEXT block and say what it MEANS. \
+          "HR drifted 6% over the last mile at the same pace — that's a heat or \
+          fuel signal; ease off if it climbs more." NOT "nice work" / "keep it \
+          up" / "go for it" / "great run" / "you're doing great."
+        - NEVER emit generic encouragement, praise, or filler. If nothing in the \
+          context stands out as worth saying right now, SAY NOTHING — silence is \
+          the correct output, not a motivational platitude.
+        - Lead with the data point, then the cause-and-effect, then (optionally) \
+          what to do. One specific useful sentence beats three vague ones.
+        - Translate sports-science jargon to plain English ("above your usual \
+          range", not "ACWR 1.4"; "carrying fatigue", not "TSB -12").
+        """
+
+    /// The two non-negotiables, kept separate so a persona edit can't
+    /// accidentally reword them.
+    private static let hardRules = """
+        HARD RULES:
+        - Only reference data that appears in the CONTEXT block. Do not invent \
+          terrain, baselines, history, or metrics the user didn't mention. If you \
+          don't have the data to make a SPECIFIC point, stay silent.
+        - Never issue commands. Offer, don't order. Close observations with an \
+          optional phrase like "your call", "if you feel like it", or "up to you".
+
+        The user can interrupt you at any time.
+        """
 }
 
 // MARK: - File-scope helpers

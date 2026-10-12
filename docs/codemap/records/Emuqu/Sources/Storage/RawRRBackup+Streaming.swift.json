@@ -1,0 +1,945 @@
+{
+ "file": "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift",
+ "hash": "0f4e3b21dfc148bb",
+ "role": "RawRRBackup extension: the append-only streaming backup (header JSON + JSONL points, each point line sealed with EncryptionManager and base64-encoded when the key is reachable, plain JSON otherwise; files under completeUntilFirstUserAuthentication), point reading/merging (deduplicated by timestamp) with .corrupted_* siblings, beat-count reconciliation, backup-directory protection migration, index load/save (with a pre-write merge of an index the launch could not read), and BackupError.",
+ "types": [
+  "RawRRBackup: extension — append-format streaming backup and index I/O",
+  "RawRRBackup.BackupError: enum — noDataToBackup/hashMismatch/notFound/wouldReplaceLargerBackup"
+ ],
+ "state": [
+  "file:<backupDir>/<uuid>_header.json",
+  "file:<backupDir>/<uuid>_points.jsonl",
+  "file:<backupDir>/<uuid>_points.jsonl.corrupted_<ts>",
+  "file:<AppGroup>/<AppConfig.backupDirectoryName>/backup_index.json (RawRRBackup.indexFile)",
+  "file:backup_index.json.unreadable_<ts> (from recovery)"
+ ],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func RawRRBackup.appendBackup(points:sessionId:deviceId:)",
+   "hash": "7ff32e43fef98411",
+   "does": "Merges an index the launch could not read (throws while it is still unreadable), then appends points beyond the index's backedUpCount to the session's JSONL file — starting the append format first when there is no entry or a one-shot entry, refusing (wouldReplaceLargerBackup) when that one-shot holds more beats — then updates and saves the index.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.mergeIndexIfLaunchReadFailed()",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.refuseReplacingLargerBackup(_:newCount:)",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.startAppendFormat(sessionId:deviceId:existingEntry:)",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.encodedLines(_:)",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.writeAppendData(_:to:sessionId:count:)",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.updateAppendIndex(sessionId:existingEntry:beatCount:)",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.pointsURL(for:)"
+   ],
+   "reads": [
+    "mem:RawRRBackup.index",
+    "mem:RawRRBackup.indexReadFailed",
+    "file:<AppGroup>/<AppConfig.backupDirectoryName>/backup_index.json (RawRRBackup.indexFile)"
+   ],
+   "writes": [
+    "file:<backupDir>/<uuid>_header.json",
+    "file:<backupDir>/<uuid>_points.jsonl",
+    "mem:RawRRBackup.index",
+    "file:<AppGroup>/<AppConfig.backupDirectoryName>/backup_index.json (RawRRBackup.indexFile)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "launch index read failed and file still unreadable",
+     "effect": "throws before writing anything"
+    },
+    {
+     "at": "+5",
+     "cond": "existing backedUpCount nil",
+     "effect": "?? 0 → write from the first point"
+    },
+    {
+     "at": "+7",
+     "cond": "points.count > previousCount",
+     "effect": "continue; else return (nothing new)"
+    },
+    {
+     "at": "+10",
+     "cond": "no entry or one-shot entry",
+     "effect": "refuse if the one-shot holds more beats; else startAppendFormat (header keeps the one-shot's captureDate, deletes the one-shot file, empties the points file)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.encodedLines(_:)": "bb5a9b0d5522b4ca",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.mergeIndexIfLaunchReadFailed()": "98852a12826d5099",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.refuseReplacingLargerBackup(_:newCount:)": "8b726bd8e45073c9",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.startAppendFormat(sessionId:deviceId:existingEntry:)": "6283ed906898efe4",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.updateAppendIndex(sessionId:existingEntry:beatCount:)": "b70e54d39d282e0a",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.writeAppendData(_:to:sessionId:count:)": "0735881aed25fb8b",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.pointsURL(for:)": "c513933badbf2627"
+   }
+  },
+  {
+   "key": "func RawRRBackup.refuseReplacingLargerBackup(_:newCount:)",
+   "hash": "97944c1ab52d6b52",
+   "does": "Throws BackupError.wouldReplaceLargerBackup when the given (one-shot) index entry's beatCount exceeds newCount; returns otherwise (including nil).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no entry, or entry.beatCount <= newCount",
+     "effect": "return; else throw"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RawRRBackup.startAppendFormat(sessionId:deviceId:existingEntry:)",
+   "hash": "2026564f23fdd30b",
+   "does": "Writes a new header (captureDate = the replaced entry's captureDate, else now) with completeUntilFirstUserAuthentication, deletes the legacy one-shot file named in the existing entry (logging failure), and writes an empty points file.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.headerURL(for:)",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.pointsURL(for:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:Data.write",
+    "ext:FileManager.removeItem"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<backupDir>/<uuid>_header.json",
+    "file:<backupDir>/<uuid>_points.jsonl",
+    "file:<backupDir>/<legacy one-shot>.json (deleted)"
+   ],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "existing entry has a legacy fileName",
+     "effect": "remove that file"
+    },
+    {
+     "at": "+11",
+     "cond": "removal failed",
+     "effect": "log and continue"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.headerURL(for:)": "bdca1b0234aa53b6",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.pointsURL(for:)": "c513933badbf2627",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::let RawRRBackup.lineEncoder": "609e08be12f3fdee",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func RawRRBackup.encodedLines(_:)",
+   "hash": "dc06967216522eaa",
+   "does": "JSON-encodes each point with lineEncoder; when EncryptionManager is available each line is sealed and base64-encoded (sealedLine), otherwise — or after a sealing failure, for the rest of the batch — the plain JSON is written; lines are joined with newlines. A batch with unsealed lines is logged at .error.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.sealedLine(_:with:sealing:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.encryptionManager",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::var EncryptionManager.isAvailable",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "kc:session-encryption-key (via EncryptionManager)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "for each point",
+     "effect": "encode; an encode error throws"
+    },
+    {
+     "at": "+6",
+     "cond": "sealing on",
+     "effect": "append sealedLine; else plain JSON"
+    },
+    {
+     "at": "+13",
+     "cond": "sealing off at the end and batch non-empty",
+     "effect": "log .error 'appended WITHOUT app-layer encryption'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/EncryptionManager.swift::var EncryptionManager.isAvailable": "660c20ec52781b17",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.sealedLine(_:with:sealing:)": "49988ddc6b2739b8",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::let RawRRBackup.lineEncoder": "609e08be12f3fdee",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.encryptionManager": "c32367b86a9f2256",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func RawRRBackup.sealedLine(_:with:sealing:)",
+   "hash": "0cdb14a8b6428e6c",
+   "does": "Returns EncryptionManager.encrypt(json) base64-encoded; on a throw logs .error, sets sealing = false and returns the plain JSON.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "kc:session-encryption-key (via EncryptionManager)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "encrypt throws",
+     "effect": "log, switch sealing off, return plain JSON"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)": "6236f6fa0100fadb",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func RawRRBackup.decodePointLine(_:decoder:)",
+   "hash": "54132f8a5c61e70b",
+   "does": "Decodes one points-file line: a line starting with '{' as plain RRPoint JSON; otherwise base64-decodes it (BackupError.hashMismatch if not base64), decrypts with EncryptionManager and decodes the JSON.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.encryptionManager",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.decrypt(_:)",
+    "ext:JSONDecoder.decode",
+    "ext:Data(base64Encoded:)"
+   ],
+   "reads": [
+    "kc:session-encryption-key (via EncryptionManager)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "line starts with '{'",
+     "effect": "plain JSON decode"
+    },
+    {
+     "at": "+3",
+     "cond": "not valid base64",
+     "effect": "throw hashMismatch"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.decrypt(_:)": "32058ab0050d0265",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.encryptionManager": "c32367b86a9f2256"
+   }
+  },
+  {
+   "key": "func RawRRBackup.writeAppendData(_:to:sessionId:count:)",
+   "hash": "c9d083d5ff3a0258",
+   "does": "Appends bytes through a FileHandle when one opens (appendThroughHandle: seek to end, write, truncate a failed write back and rethrow, close quietly). If the handle won't open and the file exists, rewrites existing+new (rewriteKeepingExisting); else writes the bytes as a fresh file with completeFileProtectionUntilFirstUserAuthentication, logging and rethrowing on failure.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.appendThroughHandle(_:_:sessionId:)",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.rewriteKeepingExisting(_:at:sessionId:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:FileHandle",
+    "ext:Data.write"
+   ],
+   "reads": [
+    "file:<backupDir>/<uuid>_points.jsonl"
+   ],
+   "writes": [
+    "file:<backupDir>/<uuid>_points.jsonl"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "FileHandle opened",
+     "effect": "appendThroughHandle (rethrows its error), return"
+    },
+    {
+     "at": "+7",
+     "cond": "file exists and rewriteKeepingExisting succeeded",
+     "effect": "return; false → fall through to fresh write"
+    },
+    {
+     "at": "+15",
+     "cond": "fresh write failed",
+     "effect": "log error and rethrow"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/StoreKitManager.swift::func handle(_:)": "4ca4c631cc8c2212",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.appendThroughHandle(_:_:sessionId:)": "22f28893e5dad6ca",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.rewriteKeepingExisting(_:at:sessionId:)": "9a5b989efb924156",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func RawRRBackup.appendThroughHandle(_:_:sessionId:)",
+   "hash": "be36889bfaf90c02",
+   "does": "Seeks the open handle to its end and writes the bytes; a write that throws is truncated back to the offset it started at (truncateFailedAppend) and rethrown, so a retried batch is not in the file twice. The handle is closed quietly on every exit (defer). A throwing seekToEnd propagates.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.closeQuietly(_:sessionId:)",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.truncateFailedAppend(_:to:sessionId:)",
+    "ext:FileHandle.seekToEnd",
+    "ext:FileHandle.write(contentsOf:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<backupDir>/<uuid>_points.jsonl"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "write throws",
+     "effect": "truncate to the start offset, rethrow"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/StoreKitManager.swift::func handle(_:)": "4ca4c631cc8c2212",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.closeQuietly(_:sessionId:)": "0c1e1160b73e13ad",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.truncateFailedAppend(_:to:sessionId:)": "4c7b7d1fcc8a0ec5"
+   }
+  },
+  {
+   "key": "func RawRRBackup.rewriteKeepingExisting(_:at:sessionId:)",
+   "hash": "118c02688becc055",
+   "does": "Reads the existing points file and atomically writes existing+new bytes; if unreadable, renames it to .corrupted_<ts> and returns false.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.preserveCorruptedPointsFile(at:sessionId:)",
+    "ext:Data.write"
+   ],
+   "reads": [
+    "file:<backupDir>/<uuid>_points.jsonl"
+   ],
+   "writes": [
+    "file:<backupDir>/<uuid>_points.jsonl",
+    "file:<backupDir>/<uuid>_points.jsonl.corrupted_<ts>"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "existing bytes read",
+     "effect": "write combined, return true; else preserve as corrupted and return false"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.preserveCorruptedPointsFile(at:sessionId:)": "9e39a9b562f59ef6",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+   }
+  },
+  {
+   "key": "func RawRRBackup.truncateFailedAppend(_:to:sessionId:)",
+   "hash": "259be3e58aaf1157",
+   "does": "Truncates the points file handle back to the given offset (undoing a partial append); logs a .warning if the truncate throws.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:FileHandle.truncate(atOffset:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<backupDir>/<uuid>_points.jsonl"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "truncate throws",
+     "effect": "log warning (duplicates are then removed on read by timestamp)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/StoreKitManager.swift::func handle(_:)": "4ca4c631cc8c2212",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func RawRRBackup.closeQuietly(_:sessionId:)",
+   "hash": "958751159e0d3bad",
+   "does": "Closes the file handle, logging a warning on failure.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:FileHandle.close"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "close threw",
+     "effect": "log warning"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/StoreKitManager.swift::func handle(_:)": "4ca4c631cc8c2212",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func RawRRBackup.preserveCorruptedPointsFile(at:sessionId:)",
+   "hash": "5f75e34e8207a8c1",
+   "does": "Renames the points file to <name>.corrupted_<unix ts> for later merge by readAllPointLines; logs on failure.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:FileManager.moveItem"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<backupDir>/<uuid>_points.jsonl",
+    "file:<backupDir>/<uuid>_points.jsonl.corrupted_<ts>"
+   ],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "move failed",
+     "effect": "log warning; file stays in place"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func RawRRBackup.updateAppendIndex(sessionId:existingEntry:beatCount:)",
+   "hash": "d6bf57dbf5dad74c",
+   "does": "Replaces the session's index row with an append-format row (captureDate kept or now, archived kept, lastBackupTime now, beat counts = beatCount) and saves the index.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.saveIndex()"
+   ],
+   "reads": [
+    "mem:RawRRBackup.index"
+   ],
+   "writes": [
+    "mem:RawRRBackup.index",
+    "file:<AppGroup>/<AppConfig.backupDirectoryName>/backup_index.json (RawRRBackup.indexFile)"
+   ],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "existing captureDate nil",
+     "effect": "?? now"
+    },
+    {
+     "at": "+10",
+     "cond": "existing archived nil",
+     "effect": "?? false"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.saveIndex()": "a010e8cad74c7a96",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.beatCount(of:)": "5026ba91086a8bf6",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup.BackupIndex(id:captureDate:fileName:beatCount:hash:archived:lastBackupTime:backedUpCount:)": "f9a1b95b476fb77f"
+   }
+  },
+  {
+   "key": "func RawRRBackup.retrieveAppendFormat(sessionId:indexEntry:)",
+   "hash": "b3030a01449eba20",
+   "does": "Reads the header and all point lines (live + corrupted siblings), throws noDataToBackup when none, checks the count against the index, and returns a BackupEntry with a hash computed over the recovered points.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.headerURL(for:)",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.readAllPointLines(sessionId:decoder:)",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.checkRecoveredCount(_:against:sessionId:)",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.integrityHash(of:)"
+   ],
+   "reads": [
+    "file:<backupDir>/<uuid>_header.json",
+    "file:<backupDir>/<uuid>_points.jsonl",
+    "file:<backupDir>/<uuid>_points.jsonl.corrupted_<ts>"
+   ],
+   "writes": [
+    "mem:RawRRBackup.index",
+    "file:<AppGroup>/<AppConfig.backupDirectoryName>/backup_index.json (RawRRBackup.indexFile)"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "points non-empty",
+     "effect": "continue; else throw noDataToBackup"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.checkRecoveredCount(_:against:sessionId:)": "cd147616bbb992ec",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.readAllPointLines(sessionId:decoder:)": "2c4bacca347cc1c5",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.headerURL(for:)": "bdca1b0234aa53b6",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.integrityHash(of:)": "a0026fd7232f77e8"
+   }
+  },
+  {
+   "key": "func RawRRBackup.readAllPointLines(sessionId:decoder:)",
+   "hash": "f8278ba86f9ce472",
+   "does": "Merges points from every .corrupted_ sibling and the live file keyed by t_ms (live wins, duplicates collapse) and returns them sorted by time; without siblings the live file must exist (its read throws otherwise).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.pointsURL(for:)",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.corruptedSiblingNames(of:)",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.readPointLines(at:sessionId:decoder:)"
+   ],
+   "reads": [
+    "file:<backupDir>/<uuid>_points.jsonl",
+    "file:<backupDir>/<uuid>_points.jsonl.corrupted_<ts>"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "for each sibling",
+     "effect": "read it; a failed read is logged and skipped (?? [])"
+    },
+    {
+     "at": "+6",
+     "cond": "for each sibling point",
+     "effect": "store by t_ms"
+    },
+    {
+     "at": "+10",
+     "cond": "no siblings, or live file exists",
+     "effect": "read the live file (throws if missing), overwriting by t_ms"
+    },
+    {
+     "at": "+11",
+     "cond": "for each live point",
+     "effect": "store by t_ms"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.corruptedSiblingNames(of:)": "dc0340235f1b41a4",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.readPointLines(at:sessionId:decoder:)": "a015ad2a665082a2",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.pointsURL(for:)": "c513933badbf2627",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+   }
+  },
+  {
+   "key": "func RawRRBackup.corruptedSiblingNames(of:)",
+   "hash": "b7b5e841eed09508",
+   "does": "Lists backup-directory names beginning '<points name>.corrupted_' (internal: also used by backupSize).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)"
+   ],
+   "reads": [
+    "file:<backupDir> listing"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "listing failed",
+     "effect": "?? [] → none"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+   }
+  },
+  {
+   "key": "func RawRRBackup.readPointLines(at:sessionId:decoder:)",
+   "hash": "38d54b92bc99fdff",
+   "does": "Reads a JSONL file as UTF-8 and decodes each line with decodePointLine (plain or sealed), skipping lines that fail and logging the skipped count once.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.decodePointLine(_:decoder:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "file:<backupDir>/<uuid>_points.jsonl",
+    "file:<backupDir>/<uuid>_points.jsonl.corrupted_<ts>"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "for each line",
+     "effect": "decode"
+    },
+    {
+     "at": "+9",
+     "cond": "decode failed",
+     "effect": "count and skip"
+    },
+    {
+     "at": "+13",
+     "cond": "any skipped",
+     "effect": "one log line with the count"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.decodePointLine(_:decoder:)": "b6fb4f4ab5f92758",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func RawRRBackup.checkRecoveredCount(_:against:sessionId:)",
+   "hash": "e852b510e25806b9",
+   "does": "When recovered differs from the index backedUpCount: lowers the stored count to recovered if fewer and the last backup is older than 600 s (or unknown); otherwise logs a mismatch warning.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.reconcileBeatCount(sessionId:to:claimed:)"
+   ],
+   "reads": [
+    "mem:RawRRBackup.index"
+   ],
+   "writes": [
+    "mem:RawRRBackup.index",
+    "file:<AppGroup>/<AppConfig.backupDirectoryName>/backup_index.json (RawRRBackup.indexFile)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "backedUpCount nil or equal",
+     "effect": "return"
+    },
+    {
+     "at": "+2",
+     "cond": "lastBackupTime nil",
+     "effect": "?? true → treated as stale"
+    },
+    {
+     "at": "+3",
+     "cond": "recovered < expected and stale",
+     "effect": "reconcileBeatCount; else log warning only"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.reconcileBeatCount(sessionId:to:claimed:)": "49a9e06024f6ae43",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func RawRRBackup.createBackupDirectoryIfNeeded()",
+   "hash": "31002d52538136da",
+   "does": "Creates the backup directory if missing, sets completeUntilFirstUserAuthentication on it, and migrates existing file protection; logs failures.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.migrateExistingFileProtection()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:FileManager.createDirectory",
+    "ext:FileManager.setAttributes"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<backupDir> (created, protection)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "directory missing",
+     "effect": "create it"
+    },
+    {
+     "at": "+4",
+     "cond": "create failed",
+     "effect": "log, continue"
+    },
+    {
+     "at": "+13",
+     "cond": "setAttributes failed",
+     "effect": "log warning"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.migrateExistingFileProtection()": "c1418b3d4adf3ec1",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func RawRRBackup.migrateExistingFileProtection()",
+   "hash": "0d72882adaa4cf13",
+   "does": "Sets completeUntilFirstUserAuthentication on every non-hidden file in the backup directory except files whose name starts with an id pending re-encryption; failures are counted and logged once.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.pending(in:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:FileManager.setAttributes"
+   ],
+   "reads": [
+    "ud:storage.pendingReencryption.rawBackupIDs",
+    "file:Application Support/PendingEncryption/<store key>.json (no file protection)",
+    "file:<backupDir> listing"
+   ],
+   "writes": [
+    "file:<backupDir>/* (protection class)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "listing failed",
+     "effect": "return"
+    },
+    {
+     "at": "+8",
+     "cond": "file not prefixed by a pending raw-backup id",
+     "effect": "set protection; else skip"
+    },
+    {
+     "at": "+14",
+     "cond": "setAttributes throws",
+     "effect": "count it"
+    },
+    {
+     "at": "+18",
+     "cond": "any failures",
+     "effect": "one log line"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.pending(in:)": "bb41fa12d89ea28f",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func RawRRBackup.cleanupAppendFiles(for:)",
+   "hash": "1983b6c10c6a17d3",
+   "does": "Deletes the header, points and any .corrupted_ sibling files for a session; missing files ignored, other failures logged.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.pointsURL(for:)",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.headerURL(for:)",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:FileManager.removeItem"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<backupDir>/<uuid>_header.json",
+    "file:<backupDir>/<uuid>_points.jsonl",
+    "file:<backupDir>/<uuid>_points.jsonl.corrupted_<ts>"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "listing failed",
+     "effect": "?? [] → no siblings"
+    },
+    {
+     "at": "+5",
+     "cond": "for each file",
+     "effect": "remove"
+    },
+    {
+     "at": "+8",
+     "cond": "NSFileNoSuchFileError",
+     "effect": "ignore"
+    },
+    {
+     "at": "+10",
+     "cond": "other error",
+     "effect": "log"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "8e9dc5b9d24c750a",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.headerURL(for:)": "bdca1b0234aa53b6",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.pointsURL(for:)": "c513933badbf2627",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+   }
+  },
+  {
+   "key": "func RawRRBackup.loadIndex()",
+   "hash": "5d61d303c1cca2f6",
+   "does": "Loads backup_index.json: absent → keep empty; read error → set indexReadFailed and keep in-memory index; read OK → decode or rebuild from files and store under the lock.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.decodedIndexOrRecovered(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "file:<AppGroup>/<AppConfig.backupDirectoryName>/backup_index.json (RawRRBackup.indexFile)"
+   ],
+   "writes": [
+    "mem:RawRRBackup.index",
+    "mem:RawRRBackup.indexReadFailed"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "index file exists",
+     "effect": "read it; else return"
+    },
+    {
+     "at": "+5",
+     "cond": "read threw",
+     "effect": "log, indexReadFailed=true, return"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.decodedIndexOrRecovered(_:)": "605495b7f6a9e36c",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func RawRRBackup.decodedIndexOrRecovered(_:)",
+   "hash": "cd2b8f425ab78fc1",
+   "does": "Decodes [BackupIndex] (iso8601); on decode failure logs and returns recoverIndexFromFiles().",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func RawRRBackup.recoverIndexFromFiles()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<AppGroup>/<AppConfig.backupDirectoryName>/backup_index.json (RawRRBackup.indexFile) (moved aside on recovery)"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "decode threw",
+     "effect": "log error and rebuild from files"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func RawRRBackup.recoverIndexFromFiles()": "a07478fd4e59af49",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func RawRRBackup.mergeIndexThatFailedToLoad()",
+   "hash": "021cd31d0d90cb4f",
+   "does": "When the launch read failed: if the index file no longer exists (purged) just clears the flag; otherwise re-reads it (throws while still unreadable), clears the flag, and adds on-disk rows whose ids are not already in memory.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.decodedIndexOrRecovered(_:)"
+   ],
+   "reads": [
+    "file:<AppGroup>/<AppConfig.backupDirectoryName>/backup_index.json (RawRRBackup.indexFile)",
+    "mem:RawRRBackup.indexReadFailed"
+   ],
+   "writes": [
+    "mem:RawRRBackup.index",
+    "mem:RawRRBackup.indexReadFailed"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "indexReadFailed",
+     "effect": "continue; else return"
+    },
+    {
+     "at": "+2",
+     "cond": "index file missing",
+     "effect": "clear flag, return"
+    },
+    {
+     "at": "+7",
+     "cond": "read throws",
+     "effect": "propagates; flag stays set"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.decodedIndexOrRecovered(_:)": "605495b7f6a9e36c",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func RawRRBackup.mergeIndexIfLaunchReadFailed()",
+   "hash": "767298b244f72769",
+   "does": "Under indexLock runs mergeIndexThatFailedToLoad, so a write first merges an index the launch could not read; throws while the file still cannot be read.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.mergeIndexThatFailedToLoad()"
+   ],
+   "reads": [
+    "mem:RawRRBackup.indexReadFailed",
+    "file:<AppGroup>/<AppConfig.backupDirectoryName>/backup_index.json (RawRRBackup.indexFile)"
+   ],
+   "writes": [
+    "mem:RawRRBackup.index",
+    "mem:RawRRBackup.indexReadFailed"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.mergeIndexThatFailedToLoad()": "dee06bd997cc845c"
+   }
+  },
+  {
+   "key": "func RawRRBackup.saveIndex()",
+   "hash": "6cc0de5a3f28839e",
+   "does": "Under indexLock, merges a previously unreadable index, then encodes the index (iso8601, pretty, sorted) and writes it atomically with completeUntilFirstUserAuthentication.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.mergeIndexThatFailedToLoad()",
+    "ext:Data.write"
+   ],
+   "reads": [
+    "mem:RawRRBackup.index"
+   ],
+   "writes": [
+    "file:<AppGroup>/<AppConfig.backupDirectoryName>/backup_index.json (RawRRBackup.indexFile)",
+    "mem:RawRRBackup.index"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.mergeIndexThatFailedToLoad()": "dee06bd997cc845c"
+   }
+  },
+  {
+   "key": "var RawRRBackup.BackupError.errorDescription",
+   "hash": "825eb0d0101225b4",
+   "does": "English (non-localized) text for BackupError cases.",
+   "entry": "LocalizedError witness; read via localizedDescription in logs/recovery errors",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".noDataToBackup",
+     "effect": "\"No RR data to backup\""
+    },
+    {
+     "at": "+4",
+     "cond": ".hashMismatch",
+     "effect": "integrity message"
+    },
+    {
+     "at": "+6",
+     "cond": ".notFound",
+     "effect": "\"Backup not found\""
+    },
+    {
+     "at": "+8",
+     "cond": ".wouldReplaceLargerBackup",
+     "effect": "kept-existing message with beat counts"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

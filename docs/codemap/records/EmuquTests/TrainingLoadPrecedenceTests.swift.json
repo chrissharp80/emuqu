@@ -1,0 +1,722 @@
+{
+ "file": "EmuquTests/TrainingLoadPrecedenceTests.swift",
+ "hash": "5d94758da0d6bbe5",
+ "role": "XCTest suite for TrainingLoadPrecedence.stored, the tier order that picks one load per historical workout for CTL/ATL/TSB: power > route estimate replacing a strap dropout > hrTSS > METs > Banister > route history; zero/negative fall through; moving-time power TSS; read-time power TSS from the sport's own FTP.",
+ "types": [
+  "TrainingLoadPrecedenceTests: class — XCTestCase over TrainingLoadPrecedence.stored/readTimePowerTSS"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func TrainingLoadPrecedenceTests.metadata(powerTSS:hrTSS:mets:luciaTRIMP:extrapolatedTRIMP:)",
+   "hash": "88455618956ed684",
+   "does": "Test helper: a run WorkoutMetadata with the given powerTSS/hrTSS/luciaTRIMP/extrapolatedTRIMP and, when mets is given, 60 samples every 30 s carrying that METs value.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+12",
+     "cond": "if let mets",
+     "effect": "true: attaches a 60-sample METs stream so computedMETLoad is non-nil; false: no samples"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "eb772ae55676de35",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "26b496eaa37ca3d8"
+   }
+  },
+  {
+   "key": "func TrainingLoadPrecedenceTests.testTheMETsFixtureProducesALoad()",
+   "hash": "a584f1be3aa8deb1",
+   "does": "Fixture guard: asserts metadata(mets: 6).computedMETLoad is non-nil and > 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.metadata(powerTSS:hrTSS:mets:luciaTRIMP:extrapolatedTRIMP:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.computedMETLoad"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.computedMETLoad": "ac00ed3ee58eea67",
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.metadata(powerTSS:hrTSS:mets:luciaTRIMP:extrapolatedTRIMP:)": "ff28774b93800246"
+   }
+  },
+  {
+   "key": "func TrainingLoadPrecedenceTests.picked(_:)",
+   "hash": "344c4f211821dc03",
+   "does": "Test helper: TrainingLoadPrecedence.stored(meta, ftp: .none) (no read-time power TSS).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.stored(_:ftp:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.stored(_:ftp:)": "4072cd48894182bc"
+   }
+  },
+  {
+   "key": "func TrainingLoadPrecedenceTests.testPowerWinsOverEveryOtherSource()",
+   "hash": "8a5b9b9ee4f53f97",
+   "does": "Asserts power 50 wins (source .power, value 50) over hrTSS/METs/Banister/route values of 900.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.metadata(powerTSS:hrTSS:mets:luciaTRIMP:extrapolatedTRIMP:)",
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.picked(_:)",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.stored(_:ftp:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.storedPowerTSS",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.readTimePowerTSS(_:ftp:)",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.FTPAnchors.ftp(for:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.routeEstimateReplacesHRLoad",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.computedMETLoad"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.FTPAnchors.ftp(for:)": "b3470c4c18bd7598",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.readTimePowerTSS(_:ftp:)": "6498081b30f85858",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.stored(_:ftp:)": "4072cd48894182bc",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.computedMETLoad": "ac00ed3ee58eea67",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.routeEstimateReplacesHRLoad": "fe42b9b533314c95",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.storedPowerTSS": "bf76d29c4aaa4ebd",
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.metadata(powerTSS:hrTSS:mets:luciaTRIMP:extrapolatedTRIMP:)": "ff28774b93800246",
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.picked(_:)": "d1e3e34363319e17"
+   }
+  },
+  {
+   "key": "func TrainingLoadPrecedenceTests.testHeartRateWinsWhenThereIsNoPower()",
+   "hash": "847af3695b2c9995",
+   "does": "Asserts hrTSS wins (.hr) when there is no power.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.metadata(powerTSS:hrTSS:mets:luciaTRIMP:extrapolatedTRIMP:)",
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.picked(_:)",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.stored(_:ftp:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.storedPowerTSS",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.readTimePowerTSS(_:ftp:)",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.FTPAnchors.ftp(for:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.routeEstimateReplacesHRLoad",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.computedMETLoad"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.FTPAnchors.ftp(for:)": "b3470c4c18bd7598",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.readTimePowerTSS(_:ftp:)": "6498081b30f85858",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.stored(_:ftp:)": "4072cd48894182bc",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.computedMETLoad": "ac00ed3ee58eea67",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.routeEstimateReplacesHRLoad": "fe42b9b533314c95",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.storedPowerTSS": "bf76d29c4aaa4ebd",
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.metadata(powerTSS:hrTSS:mets:luciaTRIMP:extrapolatedTRIMP:)": "ff28774b93800246",
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.picked(_:)": "d1e3e34363319e17"
+   }
+  },
+  {
+   "key": "func TrainingLoadPrecedenceTests.testMETLoadWinsWhenThereIsNeitherPowerNorHeartRateTSS()",
+   "hash": "dd4bebb7b82958fc",
+   "does": "Asserts METs wins (.mets) with no power and no hrTSS over Banister/route 900.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.metadata(powerTSS:hrTSS:mets:luciaTRIMP:extrapolatedTRIMP:)",
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.picked(_:)",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.stored(_:ftp:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.storedPowerTSS",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.readTimePowerTSS(_:ftp:)",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.FTPAnchors.ftp(for:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.routeEstimateReplacesHRLoad",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.computedMETLoad"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.FTPAnchors.ftp(for:)": "b3470c4c18bd7598",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.readTimePowerTSS(_:ftp:)": "6498081b30f85858",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.stored(_:ftp:)": "4072cd48894182bc",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.computedMETLoad": "ac00ed3ee58eea67",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.routeEstimateReplacesHRLoad": "fe42b9b533314c95",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.storedPowerTSS": "bf76d29c4aaa4ebd",
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.metadata(powerTSS:hrTSS:mets:luciaTRIMP:extrapolatedTRIMP:)": "ff28774b93800246",
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.picked(_:)": "d1e3e34363319e17"
+   }
+  },
+  {
+   "key": "func TrainingLoadPrecedenceTests.testBanisterWinsOverRouteHistory()",
+   "hash": "e49616344e9aef66",
+   "does": "Asserts luciaTRIMP 30 (.banister) wins over extrapolatedTRIMP 900.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.metadata(powerTSS:hrTSS:mets:luciaTRIMP:extrapolatedTRIMP:)",
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.picked(_:)",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.stored(_:ftp:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.storedPowerTSS",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.readTimePowerTSS(_:ftp:)",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.FTPAnchors.ftp(for:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.routeEstimateReplacesHRLoad",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.computedMETLoad"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.FTPAnchors.ftp(for:)": "b3470c4c18bd7598",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.readTimePowerTSS(_:ftp:)": "6498081b30f85858",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.stored(_:ftp:)": "4072cd48894182bc",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.computedMETLoad": "ac00ed3ee58eea67",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.routeEstimateReplacesHRLoad": "fe42b9b533314c95",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.storedPowerTSS": "bf76d29c4aaa4ebd",
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.metadata(powerTSS:hrTSS:mets:luciaTRIMP:extrapolatedTRIMP:)": "ff28774b93800246",
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.picked(_:)": "d1e3e34363319e17"
+   }
+  },
+  {
+   "key": "func TrainingLoadPrecedenceTests.testRouteHistoryIsTheLastResort()",
+   "hash": "ff615646708be1b4",
+   "does": "Asserts extrapolatedTRIMP 25 alone yields .routeHistory with value 25.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.metadata(powerTSS:hrTSS:mets:luciaTRIMP:extrapolatedTRIMP:)",
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.picked(_:)",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.stored(_:ftp:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.storedPowerTSS",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.readTimePowerTSS(_:ftp:)",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.FTPAnchors.ftp(for:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.routeEstimateReplacesHRLoad",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.computedMETLoad"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.FTPAnchors.ftp(for:)": "b3470c4c18bd7598",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.readTimePowerTSS(_:ftp:)": "6498081b30f85858",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.stored(_:ftp:)": "4072cd48894182bc",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.computedMETLoad": "ac00ed3ee58eea67",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.routeEstimateReplacesHRLoad": "fe42b9b533314c95",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.storedPowerTSS": "bf76d29c4aaa4ebd",
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.metadata(powerTSS:hrTSS:mets:luciaTRIMP:extrapolatedTRIMP:)": "ff28774b93800246",
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.picked(_:)": "d1e3e34363319e17"
+   }
+  },
+  {
+   "key": "func TrainingLoadPrecedenceTests.testTheFullOrderHoldsForEveryPair()",
+   "hash": "0cc7312b0de4bd3b",
+   "does": "For every ordered pair of the five tiers, builds the better tier at 10 plus the worse tier's field at 900 and asserts the better source is picked.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.metadata(powerTSS:hrTSS:mets:luciaTRIMP:extrapolatedTRIMP:)",
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.picked(_:)",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.stored(_:ftp:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.storedPowerTSS",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.readTimePowerTSS(_:ftp:)",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.FTPAnchors.ftp(for:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.routeEstimateReplacesHRLoad",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.computedMETLoad"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "for each (betterIndex, better) tier",
+     "effect": "pairs it with every lower tier"
+    },
+    {
+     "at": "+9",
+     "cond": "for each worse tier after it",
+     "effect": "builds the merged metadata and asserts"
+    },
+    {
+     "at": "+12",
+     "cond": "meta.powerTSS ?? worseMeta.powerTSS",
+     "effect": "keeps the better tier's power if set, else takes the worse tier's"
+    },
+    {
+     "at": "+13",
+     "cond": "meta.hrTSS ?? worseMeta.hrTSS",
+     "effect": "same merge for hrTSS"
+    },
+    {
+     "at": "+14",
+     "cond": "meta.samples ?? worseMeta.samples",
+     "effect": "same merge for the METs sample stream"
+    },
+    {
+     "at": "+15",
+     "cond": "meta.luciaTRIMP ?? worseMeta.luciaTRIMP",
+     "effect": "same merge for luciaTRIMP"
+    },
+    {
+     "at": "+16",
+     "cond": "meta.extrapolatedTRIMP ?? worseMeta.extrapolatedTRIMP",
+     "effect": "same merge for extrapolatedTRIMP"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "The pairwise property never covers the conditional route-estimate tier that sits between power and hrTSS (routeEstimateReplacesHRLoad needs extrapolationConfidence, which the closures never set), so reordering that tier is caught only by the separate dropout tests.",
+     "evidence": [
+      "EmuquTests/TrainingLoadPrecedenceTests.swift:93",
+      "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift:88"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.FTPAnchors.ftp(for:)": "b3470c4c18bd7598",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.readTimePowerTSS(_:ftp:)": "6498081b30f85858",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.stored(_:ftp:)": "4072cd48894182bc",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.computedMETLoad": "ac00ed3ee58eea67",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.routeEstimateReplacesHRLoad": "fe42b9b533314c95",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.storedPowerTSS": "bf76d29c4aaa4ebd",
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.metadata(powerTSS:hrTSS:mets:luciaTRIMP:extrapolatedTRIMP:)": "ff28774b93800246",
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.picked(_:)": "d1e3e34363319e17"
+   }
+  },
+  {
+   "key": "func TrainingLoadPrecedenceTests.dropout(luciaTRIMP:hrTSS:confidence:)",
+   "hash": "50cc70467d919eac",
+   "does": "Test helper: metadata with hrTSS, luciaTRIMP, extrapolatedTRIMP 80 and the given extrapolationConfidence.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.metadata(powerTSS:hrTSS:mets:luciaTRIMP:extrapolatedTRIMP:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.metadata(powerTSS:hrTSS:mets:luciaTRIMP:extrapolatedTRIMP:)": "ff28774b93800246"
+   }
+  },
+  {
+   "key": "func TrainingLoadPrecedenceTests.testARouteEstimateReplacesAStrapDropoutsHeartRateLoad()",
+   "hash": "e8a94db2266b0c91",
+   "does": "Asserts recorded TRIMP 2 / hrTSS 3 with route estimate 80 at confidence 0.7 picks .routeHistory with value 80.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.dropout(luciaTRIMP:hrTSS:confidence:)",
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.picked(_:)",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.stored(_:ftp:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.storedPowerTSS",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.readTimePowerTSS(_:ftp:)",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.FTPAnchors.ftp(for:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.routeEstimateReplacesHRLoad",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.computedMETLoad"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.FTPAnchors.ftp(for:)": "b3470c4c18bd7598",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.readTimePowerTSS(_:ftp:)": "6498081b30f85858",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.stored(_:ftp:)": "4072cd48894182bc",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.computedMETLoad": "ac00ed3ee58eea67",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.routeEstimateReplacesHRLoad": "fe42b9b533314c95",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.storedPowerTSS": "bf76d29c4aaa4ebd",
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.dropout(luciaTRIMP:hrTSS:confidence:)": "241f70849cce0715",
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.picked(_:)": "d1e3e34363319e17"
+   }
+  },
+  {
+   "key": "func TrainingLoadPrecedenceTests.testAnEasyDayKeepsItsRecordedLoad()",
+   "hash": "8e2132882c29b65c",
+   "does": "Asserts recorded TRIMP 50 / hrTSS 45 (over half the estimate) keeps .hr.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.dropout(luciaTRIMP:hrTSS:confidence:)",
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.picked(_:)",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.stored(_:ftp:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.storedPowerTSS",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.readTimePowerTSS(_:ftp:)",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.FTPAnchors.ftp(for:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.routeEstimateReplacesHRLoad",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.computedMETLoad"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.FTPAnchors.ftp(for:)": "b3470c4c18bd7598",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.readTimePowerTSS(_:ftp:)": "6498081b30f85858",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.stored(_:ftp:)": "4072cd48894182bc",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.computedMETLoad": "ac00ed3ee58eea67",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.routeEstimateReplacesHRLoad": "fe42b9b533314c95",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.storedPowerTSS": "bf76d29c4aaa4ebd",
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.dropout(luciaTRIMP:hrTSS:confidence:)": "241f70849cce0715",
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.picked(_:)": "d1e3e34363319e17"
+   }
+  },
+  {
+   "key": "func TrainingLoadPrecedenceTests.testAnEstimateWithoutPriorRunsNeverReplacesHeartRate()",
+   "hash": "6f79e5331cd0ac61",
+   "does": "Asserts confidence 0.4 (no prior runs) never replaces HR: .hr.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.dropout(luciaTRIMP:hrTSS:confidence:)",
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.picked(_:)",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.stored(_:ftp:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.storedPowerTSS",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.readTimePowerTSS(_:ftp:)",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.FTPAnchors.ftp(for:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.routeEstimateReplacesHRLoad",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.computedMETLoad"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.FTPAnchors.ftp(for:)": "b3470c4c18bd7598",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.readTimePowerTSS(_:ftp:)": "6498081b30f85858",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.stored(_:ftp:)": "4072cd48894182bc",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.computedMETLoad": "ac00ed3ee58eea67",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.routeEstimateReplacesHRLoad": "fe42b9b533314c95",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.storedPowerTSS": "bf76d29c4aaa4ebd",
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.dropout(luciaTRIMP:hrTSS:confidence:)": "241f70849cce0715",
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.picked(_:)": "d1e3e34363319e17"
+   }
+  },
+  {
+   "key": "func TrainingLoadPrecedenceTests.testPowerStillOutranksARouteEstimate()",
+   "hash": "68a33d962e112256",
+   "does": "Asserts power 70 still outranks the route estimate: .power.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.dropout(luciaTRIMP:hrTSS:confidence:)",
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.picked(_:)",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.stored(_:ftp:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.storedPowerTSS",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.readTimePowerTSS(_:ftp:)",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.FTPAnchors.ftp(for:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.routeEstimateReplacesHRLoad",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.computedMETLoad"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.FTPAnchors.ftp(for:)": "b3470c4c18bd7598",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.readTimePowerTSS(_:ftp:)": "6498081b30f85858",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.stored(_:ftp:)": "4072cd48894182bc",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.computedMETLoad": "ac00ed3ee58eea67",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.routeEstimateReplacesHRLoad": "fe42b9b533314c95",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.storedPowerTSS": "bf76d29c4aaa4ebd",
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.dropout(luciaTRIMP:hrTSS:confidence:)": "241f70849cce0715",
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.picked(_:)": "d1e3e34363319e17"
+   }
+  },
+  {
+   "key": "func TrainingLoadPrecedenceTests.testPowerTSSCountsMovingTimeNotPausedTime()",
+   "hash": "796016b18090cb25",
+   "does": "Asserts stored power TSS 96 with IF 0.8 and samples to 3600 s is re-derived over moving time as 64.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.metadata(powerTSS:hrTSS:mets:luciaTRIMP:extrapolatedTRIMP:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)",
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.picked(_:)",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.stored(_:ftp:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.storedPowerTSS",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.readTimePowerTSS(_:ftp:)",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.FTPAnchors.ftp(for:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.routeEstimateReplacesHRLoad",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.computedMETLoad"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.FTPAnchors.ftp(for:)": "b3470c4c18bd7598",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.readTimePowerTSS(_:ftp:)": "6498081b30f85858",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.stored(_:ftp:)": "4072cd48894182bc",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "26b496eaa37ca3d8",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.computedMETLoad": "ac00ed3ee58eea67",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.routeEstimateReplacesHRLoad": "fe42b9b533314c95",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.storedPowerTSS": "bf76d29c4aaa4ebd",
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.metadata(powerTSS:hrTSS:mets:luciaTRIMP:extrapolatedTRIMP:)": "ff28774b93800246",
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.picked(_:)": "d1e3e34363319e17"
+   }
+  },
+  {
+   "key": "func TrainingLoadPrecedenceTests.testStoredPowerTSSStandsWithoutSamples()",
+   "hash": "6d9a2830243151c4",
+   "does": "Asserts with IF 0.8 but no samples the stored power TSS 96 stands.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.metadata(powerTSS:hrTSS:mets:luciaTRIMP:extrapolatedTRIMP:)",
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.picked(_:)",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.stored(_:ftp:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.storedPowerTSS",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.readTimePowerTSS(_:ftp:)",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.FTPAnchors.ftp(for:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.routeEstimateReplacesHRLoad",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.computedMETLoad"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.FTPAnchors.ftp(for:)": "b3470c4c18bd7598",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.readTimePowerTSS(_:ftp:)": "6498081b30f85858",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.stored(_:ftp:)": "4072cd48894182bc",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.computedMETLoad": "ac00ed3ee58eea67",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.routeEstimateReplacesHRLoad": "fe42b9b533314c95",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.storedPowerTSS": "bf76d29c4aaa4ebd",
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.metadata(powerTSS:hrTSS:mets:luciaTRIMP:extrapolatedTRIMP:)": "ff28774b93800246",
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.picked(_:)": "d1e3e34363319e17"
+   }
+  },
+  {
+   "key": "func TrainingLoadPrecedenceTests.testAZeroValueFallsThroughToTheNextTier()",
+   "hash": "80048cc64e4816c4",
+   "does": "Asserts powerTSS 0 falls through to hrTSS (.hr).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.metadata(powerTSS:hrTSS:mets:luciaTRIMP:extrapolatedTRIMP:)",
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.picked(_:)",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.stored(_:ftp:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.storedPowerTSS",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.readTimePowerTSS(_:ftp:)",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.FTPAnchors.ftp(for:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.routeEstimateReplacesHRLoad",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.computedMETLoad"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.FTPAnchors.ftp(for:)": "b3470c4c18bd7598",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.readTimePowerTSS(_:ftp:)": "6498081b30f85858",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.stored(_:ftp:)": "4072cd48894182bc",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.computedMETLoad": "ac00ed3ee58eea67",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.routeEstimateReplacesHRLoad": "fe42b9b533314c95",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.storedPowerTSS": "bf76d29c4aaa4ebd",
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.metadata(powerTSS:hrTSS:mets:luciaTRIMP:extrapolatedTRIMP:)": "ff28774b93800246",
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.picked(_:)": "d1e3e34363319e17"
+   }
+  },
+  {
+   "key": "func TrainingLoadPrecedenceTests.testANegativeValueFallsThroughToTheNextTier()",
+   "hash": "923a2c14eeeb63f7",
+   "does": "Asserts powerTSS −5 falls through to hrTSS (.hr).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.metadata(powerTSS:hrTSS:mets:luciaTRIMP:extrapolatedTRIMP:)",
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.picked(_:)",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.stored(_:ftp:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.storedPowerTSS",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.readTimePowerTSS(_:ftp:)",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.FTPAnchors.ftp(for:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.routeEstimateReplacesHRLoad",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.computedMETLoad"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.FTPAnchors.ftp(for:)": "b3470c4c18bd7598",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.readTimePowerTSS(_:ftp:)": "6498081b30f85858",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.stored(_:ftp:)": "4072cd48894182bc",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.computedMETLoad": "ac00ed3ee58eea67",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.routeEstimateReplacesHRLoad": "fe42b9b533314c95",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.storedPowerTSS": "bf76d29c4aaa4ebd",
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.metadata(powerTSS:hrTSS:mets:luciaTRIMP:extrapolatedTRIMP:)": "ff28774b93800246",
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.picked(_:)": "d1e3e34363319e17"
+   }
+  },
+  {
+   "key": "func TrainingLoadPrecedenceTests.testAWorkoutWithNoLoadAtAllYieldsNothing()",
+   "hash": "2b341ec967203839",
+   "does": "Asserts stored returns nil for empty metadata and for all-zero loads.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.metadata(powerTSS:hrTSS:mets:luciaTRIMP:extrapolatedTRIMP:)",
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.picked(_:)",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.stored(_:ftp:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.storedPowerTSS",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.readTimePowerTSS(_:ftp:)",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.FTPAnchors.ftp(for:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.routeEstimateReplacesHRLoad",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.computedMETLoad"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.FTPAnchors.ftp(for:)": "b3470c4c18bd7598",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.readTimePowerTSS(_:ftp:)": "6498081b30f85858",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.stored(_:ftp:)": "4072cd48894182bc",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.computedMETLoad": "ac00ed3ee58eea67",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.routeEstimateReplacesHRLoad": "fe42b9b533314c95",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.storedPowerTSS": "bf76d29c4aaa4ebd",
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.metadata(powerTSS:hrTSS:mets:luciaTRIMP:extrapolatedTRIMP:)": "ff28774b93800246",
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.picked(_:)": "d1e3e34363319e17"
+   }
+  },
+  {
+   "key": "func TrainingLoadPrecedenceTests.npOnlyRun()",
+   "hash": "591896ce86e77821",
+   "does": "Test helper: run metadata with hrTSS 55, NP 230 W and 3601 one-second 230 W samples, no stored power TSS.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.metadata(powerTSS:hrTSS:mets:luciaTRIMP:extrapolatedTRIMP:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "26b496eaa37ca3d8",
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.metadata(powerTSS:hrTSS:mets:luciaTRIMP:extrapolatedTRIMP:)": "ff28774b93800246"
+   }
+  },
+  {
+   "key": "func TrainingLoadPrecedenceTests.testReadTimePowerTSSReachesTheLoadOnceAnFTPExists()",
+   "hash": "73a5bd4f359e7b77",
+   "does": "Asserts with a running FTP of 250, stored picks .power with value (230/250)²×100.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.npOnlyRun()",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.stored(_:ftp:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.storedPowerTSS",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.readTimePowerTSS(_:ftp:)",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.FTPAnchors.ftp(for:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.routeEstimateReplacesHRLoad",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.computedMETLoad"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.FTPAnchors.ftp(for:)": "b3470c4c18bd7598",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.readTimePowerTSS(_:ftp:)": "6498081b30f85858",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.stored(_:ftp:)": "4072cd48894182bc",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.computedMETLoad": "ac00ed3ee58eea67",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.routeEstimateReplacesHRLoad": "fe42b9b533314c95",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.storedPowerTSS": "bf76d29c4aaa4ebd",
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13",
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.npOnlyRun()": "f9e90f8f1cdfcab5"
+   }
+  },
+  {
+   "key": "func TrainingLoadPrecedenceTests.testWithoutAnFTPTheHeartRateLoadStands()",
+   "hash": "d22c4244b9d7fedc",
+   "does": "Asserts with no FTP the NP-only run is scored .hr.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.npOnlyRun()",
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.picked(_:)",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.stored(_:ftp:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.storedPowerTSS",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.readTimePowerTSS(_:ftp:)",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.FTPAnchors.ftp(for:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.routeEstimateReplacesHRLoad",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.computedMETLoad"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.FTPAnchors.ftp(for:)": "b3470c4c18bd7598",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.readTimePowerTSS(_:ftp:)": "6498081b30f85858",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.stored(_:ftp:)": "4072cd48894182bc",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.computedMETLoad": "ac00ed3ee58eea67",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.routeEstimateReplacesHRLoad": "fe42b9b533314c95",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.storedPowerTSS": "bf76d29c4aaa4ebd",
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.npOnlyRun()": "f9e90f8f1cdfcab5",
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.picked(_:)": "d1e3e34363319e17"
+   }
+  },
+  {
+   "key": "func TrainingLoadPrecedenceTests.testReadTimePowerTSSUsesTheSportsOwnFTP()",
+   "hash": "27bc3d379de04577",
+   "does": "Asserts a cycling-only FTP does not produce running power TSS: .hr.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.npOnlyRun()",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.stored(_:ftp:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.storedPowerTSS",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.readTimePowerTSS(_:ftp:)",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.FTPAnchors.ftp(for:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.routeEstimateReplacesHRLoad",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.computedMETLoad"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.FTPAnchors.ftp(for:)": "b3470c4c18bd7598",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.readTimePowerTSS(_:ftp:)": "6498081b30f85858",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.stored(_:ftp:)": "4072cd48894182bc",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.computedMETLoad": "ac00ed3ee58eea67",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.routeEstimateReplacesHRLoad": "fe42b9b533314c95",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.storedPowerTSS": "bf76d29c4aaa4ebd",
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13",
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.npOnlyRun()": "f9e90f8f1cdfcab5"
+   }
+  },
+  {
+   "key": "func TrainingLoadPrecedenceTests.testStoredPowerTSSWinsOverTheReadTimeFigure()",
+   "hash": "b5def39f2f75cd6a",
+   "does": "Asserts a stored power TSS 70 wins over the read-time figure.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.npOnlyRun()",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.stored(_:ftp:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.storedPowerTSS",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.readTimePowerTSS(_:ftp:)",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.FTPAnchors.ftp(for:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.routeEstimateReplacesHRLoad",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.computedMETLoad"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.FTPAnchors.ftp(for:)": "b3470c4c18bd7598",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.readTimePowerTSS(_:ftp:)": "6498081b30f85858",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.stored(_:ftp:)": "4072cd48894182bc",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.computedMETLoad": "ac00ed3ee58eea67",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.routeEstimateReplacesHRLoad": "fe42b9b533314c95",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.storedPowerTSS": "bf76d29c4aaa4ebd",
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13",
+    "EmuquTests/TrainingLoadPrecedenceTests.swift::func TrainingLoadPrecedenceTests.npOnlyRun()": "f9e90f8f1cdfcab5"
+   }
+  }
+ ],
+ "deps": {}
+}

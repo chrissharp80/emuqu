@@ -2,16 +2,18 @@ import XCTest
 
 /// Record tab coverage.
 ///
-/// The Record tab is the entry point for HRV recording sessions. Its
-/// session-type selection is covered in `EmuquUITests`; this suite covers
-/// the no-strap state, the connect-panel fallbacks, and the data-recovery
-/// banner.
+/// The Record tab is the entry point for HRV recording sessions. The
+/// session chooser's header is covered in `EmuquUITests`; this suite covers
+/// the chooser's three session cards, the no-strap connect panel, and that
+/// the panel area scrolls.
 ///
 /// This suite asserts:
-///   • The session-type selector renders (Extended / Quick variants).
-///   • Without a Polar device, the connect panel surfaces an empty
-///     device-list state — not a crash.
-///   • The Lost Sessions / Data Recovery entry is reachable.
+///   • The session chooser offers all three session types (Daily,
+///     Extended, Nap).
+///   • Without a paired strap, the connect panel offers "Scan for Devices"
+///     (or, with Bluetooth denied, says so) — not a crash and not a blank
+///     area.
+///   • The Record panel scrolls both ways and the tab bar stays reachable.
 @MainActor
 final class RecordTabUITests: XCTestCase {
 
@@ -20,7 +22,7 @@ final class RecordTabUITests: XCTestCase {
     override func setUp() async throws {
         continueAfterFailure = false
         app = XCUIApplication()
-        app.launchArguments += ["-UITests", "-UITests-FreshInstall"] + UITestLanguage.english
+        app.launchArguments += ["-UITests-FreshInstall"] + UITestLanguage.english
         app.launch()
         UITestLaunch.toMainUI(app)
         navigateToRecord()
@@ -30,84 +32,63 @@ final class RecordTabUITests: XCTestCase {
         app = nil
     }
 
+    /// Through the shared navigator, which polls for hittability and confirms
+    /// the Record tab's content actually came up.
     private func navigateToRecord() {
-        let tabBar = app.tabBars.firstMatch
-        XCTAssertTrue(tabBar.waitForExistence(timeout: UITestTiming.s(8)), "Tab bar required")
-        let predicate = NSPredicate(format: "label CONTAINS[c] %@", "Record")
-        let recordTab = tabBar.buttons.matching(predicate).firstMatch
-        XCTAssertTrue(recordTab.waitForExistence(timeout: UITestTiming.s(3)), "Record tab must exist")
-        recordTab.tap()
-        // RecordView is wrapped in a LazyView — give it time to materialize.
-        _ = app.scrollViews.firstMatch.waitForExistence(timeout: UITestTiming.s(3))
+        XCTAssertTrue(
+            UITestNav.selectTab(app, identifier: UITestID.tabRecord, title: UITestID.tabRecordTitle),
+            "The Record tab must open — \(UITestFind.onScreen(app))"
+        )
     }
 
     // MARK: - Session-type selection
 
-    /// The session-type selector must surface at least one "Extended"
-    /// or "Quick" option. Kept loose — we
-    /// don't pin specific sub-button labels, only that the selector
-    /// is on screen.
+    /// Each of the three session cards must be on screen. The chooser's
+    /// header is `EmuquUITests.testRecordViewShowsSessionSelector`'s; this
+    /// pins the choices under it. Matched on the card's leading word, as
+    /// each card's accessibility label is "<type> session — <subheading>".
     func testSessionTypeSelectorRenders() {
-        let extendedPredicate = NSPredicate(format: "label CONTAINS[c] %@", "Extended")
-        let quickPredicate = NSPredicate(format: "label CONTAINS[c] %@", "Quick")
-        let extended = app.buttons.matching(extendedPredicate).firstMatch
-        let quick = app.buttons.matching(quickPredicate).firstMatch
-        let extendedText = app.staticTexts.matching(extendedPredicate).firstMatch
-        let quickText = app.staticTexts.matching(quickPredicate).firstMatch
-
-        let anyVisible = extended.waitForExistence(timeout: UITestTiming.s(5))
-            || quick.waitForExistence(timeout: UITestTiming.s(2))
-            || extendedText.waitForExistence(timeout: UITestTiming.s(2))
-            || quickText.waitForExistence(timeout: UITestTiming.s(2))
-
-        XCTAssertTrue(
-            anyVisible,
-            "Record tab must surface Extended or Quick session-type controls"
-        )
+        for type in ["Daily", "Extended", "Nap"] {
+            let card = app.buttons.matching(NSPredicate(format: "label BEGINSWITH[c] %@", type)).firstMatch
+            XCTAssertTrue(
+                card.waitForExistence(timeout: UITestTiming.s(5)),
+                "Record tab must offer the \(type) session — \(UITestFind.onScreen(app))"
+            )
+        }
     }
 
     // MARK: - No-strap empty state
 
-    /// Without a paired Polar device, the connect-panel area must
-    /// either show an empty-device-list state, an "Add device" CTA, or
-    /// a "Pair your strap" prompt — not a crash and not a silent
-    /// blank area.
+    /// Without a paired Polar device the connect panel must offer the scan
+    /// that pairs one, or — when Bluetooth access was denied — say so with
+    /// a way to Settings. Either is a way forward; a blank panel is not.
+    /// Matched on the panel's own copy, so text elsewhere on the screen
+    /// cannot satisfy it.
     func testNoStrapStateSurfacesGuidance() {
-        let predicates: [NSPredicate] = [
-            NSPredicate(format: "label CONTAINS[c] %@", "Pair"),
-            NSPredicate(format: "label CONTAINS[c] %@", "device"),
-            NSPredicate(format: "label CONTAINS[c] %@", "Polar"),
-            NSPredicate(format: "label CONTAINS[c] %@", "Strap"),
-            NSPredicate(format: "label CONTAINS[c] %@", "Connect"),
-            NSPredicate(format: "label CONTAINS[c] %@", "Add")
-        ]
-        var anyMatch = false
-        for p in predicates {
-            if app.staticTexts.matching(p).firstMatch.waitForExistence(timeout: UITestTiming.s(1))
-                || app.buttons.matching(p).firstMatch.waitForExistence(timeout: UITestTiming.s(1)) {
-                anyMatch = true
-                break
-            }
-        }
+        let scan = app.buttons.matching(NSPredicate(format: "label ==[c] %@", "Scan for Devices")).firstMatch
+        let bluetoothOff = app.staticTexts.matching(
+            NSPredicate(format: "label ==[c] %@", "Bluetooth access is off")
+        ).firstMatch
+        let offered = scan.waitForExistence(timeout: UITestTiming.s(8)) || bluetoothOff.exists
         XCTAssertTrue(
-            anyMatch,
-            "Record tab must surface device-pairing guidance when no strap is paired"
+            offered,
+            "With no strap paired the Record tab must offer 'Scan for Devices' — \(UITestFind.onScreen(app))"
         )
     }
 
-    // MARK: - Lost-sessions / Data Recovery reachable
+    // MARK: - Scrolling
 
-    /// Settings → Advanced → Lost Sessions is the recovery flow when a
-    /// session was killed mid-recording. From the Record tab, scrolling
-    /// the panel area should not crash even though there's nothing to
-    /// recover.
+    /// The Record panel scrolls both ways without crashing, and the tab bar
+    /// is still there afterwards.
     func testRecordPanelScrollsWithoutCrashing() {
         let scrollView = app.scrollViews.firstMatch
-        guard scrollView.waitForExistence(timeout: UITestTiming.s(3)) else { return }
+        XCTAssertTrue(
+            scrollView.waitForExistence(timeout: UITestTiming.s(3)),
+            "The Record tab must render its scroll view — \(UITestFind.onScreen(app))"
+        )
         for _ in 0 ..< 4 { scrollView.swipeUp() }
         for _ in 0 ..< 4 { scrollView.swipeDown() }
-        // Tab bar must still be reachable after scrolling.
-        let tabBar = app.tabBars.firstMatch
-        XCTAssertTrue(tabBar.exists, "Record-tab scroll must not lose the tab bar")
+        XCTAssertEqual(app.state, .runningForeground, "Scrolling the Record tab must not crash the app")
+        XCTAssertTrue(app.tabBars.firstMatch.exists, "Record-tab scroll must not lose the tab bar")
     }
 }

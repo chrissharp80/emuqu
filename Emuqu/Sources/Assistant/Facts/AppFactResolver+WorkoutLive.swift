@@ -21,7 +21,10 @@ import Foundation
 // `.missing(.notRecorded)` with a human-readable "no workout active"
 // detail, which the provider surfaces back to the user verbatim.
 struct WorkoutLiveNamespace: FactNamespaceResolver {
-    let namespace = "workout.live"
+    /// The registry dispatches on a key's first token, so the head token
+    /// "workout" (shared with `WorkoutNamespace`) is what reaches these
+    /// `workout.live.*` entries on the primary path.
+    let namespace = "workout"
     /// Needed by the per-route history baseline tool
     /// (`workout.live.route_history_baseline`) to look up past
     /// sessions tagged with the same `recognizedRouteName`.
@@ -154,19 +157,43 @@ struct WorkoutLiveNamespace: FactNamespaceResolver {
     /// same conversation produces wildly swinging TSB readings —
     /// -9 → -17 → -29 across consecutive turns in one user's transcript —
     /// because some AI tool calls hit the frozen snapshot here while others
-    /// hit the live `training.load.tsb` resolver).
+    /// hit the live `training.load.tsb` resolver). The forecasts beside them
+    /// are seeded from that same live load, so no record pairs today's TSB
+    /// with a forecast from the start-of-workout load; only without a live
+    /// load do the snapshot's start-time forecasts stand in.
     private func readinessFields(_ s: AssistantContext.LiveWorkoutSnapshot) -> [String: FactValue] {
         var rec: [String: FactValue] = [:]
         if let r = s.todayRecoveryScore { rec["today_recovery_score"] = .double(r) }
         if let r = s.todayTrainingReadiness { rec["today_training_readiness"] = .double(r) }
-        if let live = liveTrainingLoad() {
-            rec["today_atl"] = .double(live.atl)
-            rec["today_ctl"] = .double(live.ctl)
-            rec["today_tsb"] = .double(live.tsb)
+        guard let live = liveTrainingLoad() else {
+            return rec.merging(Self.startForecastFields(s)) { _, new in new }
         }
-        if let d = s.projectedDaysUntilFresh { rec["projected_days_until_fresh"] = .integer(d) }
-        if let t = s.projectedTSBTomorrowSteadyState { rec["projected_tsb_tomorrow_steady_state"] = .double(t) }
-        if let h = s.recoveryHoursNeeded { rec["recovery_hours_needed"] = .double(h) }
+        rec["today_atl"] = .double(live.atl)
+        rec["today_ctl"] = .double(live.ctl)
+        rec["today_tsb"] = .double(live.tsb)
+        return rec.merging(Self.liveForecastFields(atl: live.atl, ctl: live.ctl)) { _, new in new }
+    }
+
+    /// The recorder's formulas (`WorkoutRecorder+StartBaselines`
+    /// trainingProjection, `liveRecoveryHoursNeeded`) applied to the live load:
+    /// a stay-the-course day (ATL as the day's load) for tomorrow's TSB, a
+    /// rest forecast for days until fresh.
+    private static func liveForecastFields(atl: Double, ctl: Double) -> [String: FactValue] {
+        let tomorrow = TrainingLoadProjection.project(startingATL: atl, startingCTL: ctl, dailyTrimp: atl, horizonDays: 1).first?.tsb
+        var rec: [String: FactValue] = [:]
+        rec["projected_days_until_fresh"] = TrainingLoadProjection.daysUntilFresh(currentATL: atl, currentCTL: ctl).map { .integer($0) }
+        rec["projected_tsb_tomorrow_steady_state"] = tomorrow.map { .double($0) }
+        rec["recovery_hours_needed"] = RecoveryTimeEstimate.hoursFromTrainingLoad(atl: atl, ctl: ctl).map { .double($0) }
+        return rec
+    }
+
+    /// The forecasts the recorder froze at workout start, for when there is
+    /// no live load to seed them from.
+    private static func startForecastFields(_ s: AssistantContext.LiveWorkoutSnapshot) -> [String: FactValue] {
+        var rec: [String: FactValue] = [:]
+        rec["projected_days_until_fresh"] = s.projectedDaysUntilFresh.map { .integer($0) }
+        rec["projected_tsb_tomorrow_steady_state"] = s.projectedTSBTomorrowSteadyState.map { .double($0) }
+        rec["recovery_hours_needed"] = s.recoveryHoursNeeded.map { .double($0) }
         return rec
     }
 
@@ -398,11 +425,11 @@ struct WorkoutLiveNamespace: FactNamespaceResolver {
     private var workoutLivePowerWattsEntry: FactEntry {
         .fixed(
             key: "workout.live.power_watts",
-            description: "Current running power in watts. Only available when a Stryd-class foot pod is connected.",
+            description: "Current power in watts from the connected power source: a Stryd-class foot pod (running power), a Concept2 PM5 rower or an FTMS bike trainer. Missing when none is connected or it has not reported yet.",
             valueType: "Int"
         ) {
             guard let s = self.snapshot else { return self.missing() }
-            return s.powerWatts.map { .integer($0) } ?? self.missing("no foot pod / no power")
+            return s.powerWatts.map { .integer($0) } ?? self.missing("no power reading — no foot pod, rower or bike trainer power source connected")
         }
     }
 
@@ -452,18 +479,16 @@ struct WorkoutLiveNamespace: FactNamespaceResolver {
         return .list(matches)
     }
 
+    /// The shared segment lookup, leaving out the in-flight session by
+    /// start-date match.
     private func lookbackMatches(near target: CLLocation, radius: Double, excluding activeStart: Date) -> [FactValue] {
-        // Exclude the in-flight session by start-date match.
-        let candidates = self.archive.entries
-            .filter { $0.sessionType == .workout && abs($0.date.timeIntervalSince(activeStart)) > 1.0 }
-            .sorted { $0.date > $1.date }
-            .prefix(30)
-            .compactMap { self.archive.retrieveLightweightOrLog($0.sessionId) }
-        return candidates.compactMap { SegmentPointSampler.match(in: $0, near: target, radius: radius) }
+        SegmentPointSampler.matches(in: archive, near: target, radius: radius) {
+            abs($0.date.timeIntervalSince(activeStart)) > 1.0
+        }
     }
 
     private static let segmentLookbackDescription = """
-    [ACTION-FREE] At the user's CURRENT live-workout GPS position, looks back across the 30 most recent finished workouts and returns past pace + HR + power + cadence + altitude at that exact spot. Single call. Use when the \
+    [ACTION-FREE] At the user's CURRENT live-workout GPS position, looks back across the 30 most recent finished GPS workouts and returns past pace + HR + power + cadence + altitude at that exact spot. Single call. Use when the \
     user asks 'how am I doing here vs last time' / 'what was my heart rate at this corner last Tuesday' / 'am I faster than I was on this hill before'. Returns a list of records: { date, sport, offset_sec_at_point, distance_to_point_m, \
     pace_sec_per_km_at_point?, hr_bpm_at_point?, power_watts_at_point?, cadence_spm_at_point?, altitude_m_at_point?, alpha1_at_point? }. Default radius 50 m; not user-tunable here (the live snapshot already knows where the user \
     is). Returns notRecorded when no GPS fix yet, no live workout active, or no past workout passed near the current position.

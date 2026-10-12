@@ -1,0 +1,79 @@
+{
+ "file": "EmuquTests/MorningNotificationPayloadTests.swift",
+ "hash": "0c19bc6a5204f30e",
+ "role": "XCTest suite pinning the repeating fixed-time morning fallback notification payload (MorningNotificationScheduler.buildPayload): no digits, non-empty title/body, body ≤120 chars.",
+ "types": [
+  "MorningNotificationPayloadTests: class — XCTestCase over MorningNotificationScheduler.buildPayload"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func MorningNotificationPayloadTests.testTheRepeatingFallbackPayloadCarriesNoNumber()",
+   "hash": "1864e74e000313a6",
+   "does": "Asserts neither title nor body of buildPayload() contains any numeric character (repeating trigger content is frozen, so a score would go stale).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.buildPayload()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each of title, body",
+     "effect": "asserts no isNumber character; loop over two strings"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Only checks the strings in whichever language LanguageManager.appBundle resolves to in the test host; translated variants of the body (other .lproj) are never checked for digits or length.",
+     "evidence": [
+      "EmuquTests/MorningNotificationPayloadTests.swift:15",
+      "Emuqu/Sources/Services/MorningNotificationScheduler.swift:299"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.buildPayload()": "15eb08f1045f2698"
+   }
+  },
+  {
+   "key": "func MorningNotificationPayloadTests.testTheRepeatingFallbackPayloadIsNotEmpty()",
+   "hash": "1e560f0d39ade45a",
+   "does": "Asserts title and body are non-empty after trimming whitespace.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.buildPayload()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.buildPayload()": "15eb08f1045f2698"
+   }
+  },
+  {
+   "key": "func MorningNotificationPayloadTests.testTheRepeatingFallbackBodyFitsALockScreenPreview()",
+   "hash": "889d7a95a0319870",
+   "does": "Asserts body length ≤ 120 characters.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.buildPayload()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.buildPayload()": "15eb08f1045f2698"
+   }
+  }
+ ],
+ "deps": {}
+}

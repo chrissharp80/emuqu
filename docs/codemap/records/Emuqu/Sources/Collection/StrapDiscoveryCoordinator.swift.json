@@ -1,0 +1,464 @@
+{
+ "file": "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift",
+ "hash": "c4a9e58bb35bdf63",
+ "role": "BLE scan and connect/disconnect/cancel lifecycle for the Polar strap, plus the fetch-progress setter; a stateless value built on demand by PolarManager.discovery.",
+ "types": [
+  "StrapDiscoveryCoordinator: struct (@MainActor) — holds PolarManager strongly; all state lives on the manager"
+ ],
+ "state": [],
+ "toplevel": "All SDK-dependent bodies sit under #if canImport(PolarBleSdk); without the SDK startScanning/connect set lastError = sdkNotAvailable and stopScanning/disconnect/cancelConnection do nothing.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func StrapDiscoveryCoordinator.startScanning()",
+   "hash": "093dc9e800ae9fed",
+   "does": "Initialises the SDK lazily and, if the manager is disconnected and has an SDK handle, starts a device search; without the SDK sets lastError = sdkNotAvailable.",
+   "entry": "Via PolarManager.startScanning (PolarManager+Discovery.swift:12) from the strap pairing UI.",
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.ensureApiReady()",
+    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.readyToScan()",
+    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.beginSearch(api:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:PolarManager.lastError"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "readyToScan() returned a handle",
+     "effect": "false: returns (reason already logged / lastError set); true: beginSearch"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.ensureApiReady()": "9cbc086a623b614c",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "9f997d8c7612d204",
+    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.beginSearch(api:)": "7d3cb9404cf82790",
+    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.readyToScan()": "1bf6241e2f9bb5be"
+   }
+  },
+  {
+   "key": "func StrapDiscoveryCoordinator.readyToScan()",
+   "hash": "d001f95826edb48f",
+   "does": "Returns manager.strapAPI if connectionState is .disconnected; otherwise logs and returns nil, setting lastError = sdkNotAvailable when the handle is nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.strapAPI",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "mem:PolarManager.connectionState",
+    "mem:PolarManager.api"
+   ],
+   "writes": [
+    "mem:PolarManager.lastError"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "connectionState == .disconnected",
+     "effect": "false: logs 'already in state' and returns nil (scan not started, no error shown); true: continue"
+    },
+    {
+     "at": "+5",
+     "cond": "manager.strapAPI non-nil",
+     "effect": "false: logs, sets lastError sdkNotAvailable, returns nil; true: returns handle"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.strapAPI": "e4c52ee834297d0b",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "9f997d8c7612d204",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func StrapDiscoveryCoordinator.beginSearch(api:)",
+   "hash": "0d83a200bcd4491f",
+   "does": "Clears discoveredDevices, sets connectionState .scanning, cancels any previous searchTask and starts a new Task that weakly captures the manager and runs consumeDeviceSearch on manager.discovery.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.consumeDeviceSearch(api:)",
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::var PolarManager.discovery",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:Task"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:PolarManager.discoveredDevices",
+    "mem:PolarManager.connectionState",
+    "mem:PolarManager.searchTask"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::var PolarManager.discovery": "0161bd0814db91da",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
+    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.consumeDeviceSearch(api:)": "45b9c87e38ee92c6",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func StrapDiscoveryCoordinator.consumeDeviceSearch(api:)",
+   "hash": "289d0a8935965195",
+   "does": "Forwards every device from the SDK search stream. When the stream ends without an error and the task was not cancelled, logs 'Search ended' and calls endSearch on the main actor (leaves .scanning); on a stream error that is not a cancellation, logs and calls failSearch.",
+   "entry": "Body of the searchTask created in beginSearch.",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.forwardDiscoveries(api:)",
+    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.endSearch()",
+    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.failSearch(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "stream ended without error and task not cancelled",
+     "effect": "logs and endSearch moves .scanning back to .disconnected; cancelled: returns silently"
+    },
+    {
+     "at": "+6",
+     "cond": "forwardDiscoveries throws",
+     "effect": "catch: handled below"
+    },
+    {
+     "at": "+7",
+     "cond": "task was cancelled",
+     "effect": "true: return silently (stopScanning/connect cancelled it); false: logs and failSearch sets lastError + .disconnected"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.endSearch()": "c73023a1340039ee",
+    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.failSearch(_:)": "64a8715cce61ea0e",
+    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.forwardDiscoveries(api:)": "8a704c2fe38b989e",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func StrapDiscoveryCoordinator.forwardDiscoveries(api:)",
+   "hash": "e147223012e5f44e",
+   "does": "Iterates api.searchForDevice() and passes each PolarDeviceInfo to noteDiscovered until the task is cancelled.",
+   "entry": null,
+   "calls": [
+    "dyn:StrapRadio.searchForDevice → Emuqu/Sources/Collection/StrapRadio.swift:83|EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.searchForDevice()",
+    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.noteDiscovered(_:)"
+   ],
+   "reads": [
+    "ble:Polar scan"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for-await over the search stream",
+     "effect": "each element forwarded; stream end returns; stream error propagates to consumeDeviceSearch"
+    },
+    {
+     "at": "+2",
+     "cond": "Task.isCancelled",
+     "effect": "true: break out of the loop; false: forward the device"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.noteDiscovered(_:)": "9da1e3ca57e2bb29"
+   }
+  },
+  {
+   "key": "func StrapDiscoveryCoordinator.noteDiscovered(_:)",
+   "hash": "0ab5ccda67cb14a9",
+   "does": "Logs the found device name and calls handleDiscoveredDevice on the main actor.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.handleDiscoveredDevice(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.handleDiscoveredDevice(_:)": "4891077fc3c1b878",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func StrapDiscoveryCoordinator.failSearch(_:)",
+   "hash": "1a9963077bcf3e05",
+   "does": "Sets manager.lastError to the search error and connectionState to .disconnected.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:PolarManager.lastError",
+    "mem:PolarManager.connectionState"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "9f997d8c7612d204",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad"
+   }
+  },
+  {
+   "key": "func StrapDiscoveryCoordinator.endSearch()",
+   "hash": "1f2eae736777b9e2",
+   "does": "Moves connectionState from .scanning to .disconnected after a search stream ended normally, so the next scan is not refused as already running; leaves any other state (a connect begun from the results) alone.",
+   "entry": "Called on the main actor by consumeDeviceSearch when the SDK search stream finishes without an error.",
+   "calls": [],
+   "reads": [
+    "mem:PolarManager.connectionState"
+   ],
+   "writes": [
+    "mem:PolarManager.connectionState"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "connectionState == .scanning",
+     "effect": "true: set .disconnected; false: no-op"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad"
+   }
+  },
+  {
+   "key": "func StrapDiscoveryCoordinator.handleDiscoveredDevice(_:)",
+   "hash": "8246557b85f6da00",
+   "does": "Builds a DiscoveredDevice (id, name, rssi, type from name) and replaces the existing entry with the same id in manager.discoveredDevices or appends it.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarDeviceType.from(deviceName:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "mem:PolarManager.discoveredDevices"
+   ],
+   "writes": [
+    "mem:PolarManager.discoveredDevices"
+   ],
+   "branches": [
+    {
+     "at": "+13",
+     "cond": "device id already listed",
+     "effect": "true: entry replaced in place (rssi/name refreshed); false: appended"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarDeviceType.from(deviceName:)": "dd99195287b4b04d",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func StrapDiscoveryCoordinator.stopScanning()",
+   "hash": "e63dfe45ab3fe43b",
+   "does": "Cancels and clears the search task and moves connectionState from .scanning to .disconnected.",
+   "entry": "Via PolarManager.stopScanning (PolarManager+Discovery.swift:13) from UI; also from connect().",
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "mem:PolarManager.connectionState"
+   ],
+   "writes": [
+    "mem:PolarManager.searchTask",
+    "mem:PolarManager.connectionState"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "connectionState == .scanning",
+     "effect": "true: set .disconnected; false: state left as is (e.g. connecting/connected)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func StrapDiscoveryCoordinator.connect(deviceId:)",
+   "hash": "5f5f78154f87a652",
+   "does": "Initialises the SDK, stops scanning, and unless already connected clears battery/firmware, sets pendingDeviceId and .connecting, and asks the SDK to connect; an SDK throw sets lastError and reverts to .disconnected. Without the SDK sets lastError sdkNotAvailable.",
+   "entry": "Via PolarManager.connect(deviceId:) (PolarManager+Discovery.swift:14) from pairing UI and connectToLastDevice.",
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.ensureApiReady()",
+    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.stopScanning()",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.strapAPI",
+    "dyn:StrapRadio.connectToDevice → Emuqu/Sources/Collection/StrapRadio.swift:81|EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.connectToDevice(_:)"
+   ],
+   "reads": [
+    "mem:PolarManager.connectionState"
+   ],
+   "writes": [
+    "mem:PolarManager.batteryLevel",
+    "mem:PolarManager.firmwareVersion",
+    "mem:PolarManager.hasReceivedSoftwareRevision",
+    "mem:PolarManager.pendingDeviceId",
+    "mem:PolarManager.connectionState",
+    "mem:PolarManager.lastError",
+    "ble:Polar connect"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "connectionState != .connected",
+     "effect": "false: returns silently — a connect to another strap while one is connected does nothing; true: proceeds"
+    },
+    {
+     "at": "+12",
+     "cond": "connectToDevice throws",
+     "effect": "catch: lastError set, pendingDeviceId nil, state .disconnected; no throw: stays .connecting awaiting the SDK connected event (if strapAPI is nil the optional chain does nothing and the state stays .connecting)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.ensureApiReady()": "9cbc086a623b614c",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.strapAPI": "e4c52ee834297d0b",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "9f997d8c7612d204",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.batteryLevel": "ddfd0bc6b3d69f3b",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
+    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.stopScanning()": "1aef2b6b4e439cd1"
+   }
+  },
+  {
+   "key": "func StrapDiscoveryCoordinator.connectToLastDevice()",
+   "hash": "6c504ffc3fecadd9",
+   "does": "Connects to the most recently paired strap (knownDevices.first) if there is one.",
+   "entry": "Via PolarManager.connectToLastDevice (PolarManager+Discovery.swift:15).",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.connect(deviceId:)"
+   ],
+   "reads": [
+    "mem:PolarManager.knownDevices"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "lastConnectedDeviceId non-nil",
+     "effect": "false: returns, nothing happens; true: connect"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.lastConnectedDeviceId": "75415a0e1618e364",
+    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.connect(deviceId:)": "202482ab41910e07"
+   }
+  },
+  {
+   "key": "func StrapDiscoveryCoordinator.disconnect()",
+   "hash": "2274e28d981ca33e",
+   "does": "User disconnect: marks the coming drop as deliberate (noteUserDisconnect), asks the SDK to disconnect (error → lastError), then clears device id/type, pending id, battery, firmware and sets .disconnected; leaves recordingState/isRecordingOnDevice alone.",
+   "entry": "Via PolarManager.disconnect (PolarManager+Discovery.swift:16) from UI.",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.noteUserDisconnect()",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.strapAPI",
+    "dyn:StrapRadio.disconnectFromDevice → Emuqu/Sources/Collection/StrapRadio.swift:82|EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.disconnectFromDevice(_:)"
+   ],
+   "reads": [
+    "mem:PolarManager.connectedDeviceId"
+   ],
+   "writes": [
+    "mem:PolarManager.connectedDeviceId",
+    "mem:PolarManager.connectedDeviceType",
+    "mem:PolarManager.pendingDeviceId",
+    "mem:PolarManager.batteryLevel",
+    "mem:PolarManager.firmwareVersion",
+    "mem:PolarManager.hasReceivedSoftwareRevision",
+    "mem:PolarManager.connectionState",
+    "mem:PolarManager.lastError",
+    "ble:Polar disconnect"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "connectedDeviceId non-nil",
+     "effect": "false: returns, nothing done; true: proceeds"
+    },
+    {
+     "at": "+6",
+     "cond": "disconnectFromDevice throws",
+     "effect": "catch: lastError set but local state is still cleared; no throw: same clearing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.strapAPI": "e4c52ee834297d0b",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "9f997d8c7612d204",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.batteryLevel": "ddfd0bc6b3d69f3b",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "f529498b78d90b9d",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.noteUserDisconnect()": "c9008851c9f63c04"
+   }
+  },
+  {
+   "key": "func StrapDiscoveryCoordinator.cancelConnection()",
+   "hash": "66d07e2201abc634",
+   "does": "Cancels an in-progress connect: marks the drop deliberate, asks the SDK to disconnect the pending device (error only logged), clears pendingDeviceId and sets .disconnected.",
+   "entry": "Via PolarManager.cancelConnection (PolarManager+Discovery.swift:17) from UI.",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.noteUserDisconnect()",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.strapAPI",
+    "dyn:StrapRadio.disconnectFromDevice → Emuqu/Sources/Collection/StrapRadio.swift:82|EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.disconnectFromDevice(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "mem:PolarManager.connectionState",
+    "mem:PolarManager.pendingDeviceId"
+   ],
+   "writes": [
+    "mem:PolarManager.pendingDeviceId",
+    "mem:PolarManager.connectionState",
+    "ble:Polar disconnect"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "state is .connecting and pendingDeviceId set",
+     "effect": "false: returns, nothing done; true: cancels"
+    },
+    {
+     "at": "+6",
+     "cond": "disconnectFromDevice throws",
+     "effect": "catch: logged as non-critical, state still cleared; no throw: same"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.strapAPI": "e4c52ee834297d0b",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.noteUserDisconnect()": "c9008851c9f63c04",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func StrapDiscoveryCoordinator.updateProgress(_:progress:attempt:maxAttempts:message:)",
+   "hash": "b866e1429f1ef7c7",
+   "does": "On the main actor sets manager.fetchProgress to a new FetchProgress(stage, progress, attempt, maxAttempts, message).",
+   "entry": "Via PolarManager.updateProgress (PolarManager+Discovery.swift:22) from StrapRecordingCoordinator+Transfer.swift:153,226,237,266,283,400,428.",
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:PolarManager.fetchProgress"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.fetchProgress": "9fbf2a3a7a28c5c5",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+   }
+  }
+ ],
+ "deps": {}
+}

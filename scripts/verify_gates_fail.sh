@@ -35,8 +35,11 @@ FILTER="${1:-}"
 PASS=0; FAIL=0; SKIP=0
 source "$(dirname "$0")/lib/preflight.sh"
 gate_acquire_tree_lock "verify_gates_fail.sh"
+# The trap goes in before anything else can fail, so a failed temp-dir
+# creation does not leave the lock behind.
+BACKUP_DIR=""
+trap 'restore_all; [[ -n "$BACKUP_DIR" ]] && rm -rf "$BACKUP_DIR"; gate_release_tree_lock' EXIT INT TERM HUP
 BACKUP_DIR="$(gate_mktemp_dir verify-gates)" || exit $?
-trap 'restore_all; rm -rf "$BACKUP_DIR"; gate_release_tree_lock' EXIT INT TERM HUP
 
 TOUCHED=()
 
@@ -527,6 +530,31 @@ check "uitest_fresh_install/dropped_flag" \
     "EmuquUITests/DashboardUITests.swift" \
     "import pathlib;p=pathlib.Path('EmuquUITests/DashboardUITests.swift');s=p.read_text();t=s.replace('app.launchArguments += [\"-UITests\", \"-UITests-FreshInstall\"]','app.launchArguments += [\"-UITests\"]',1);assert t!=s;p.write_text(t)"
 
+# A unit with no record, and a unit whose code changed after its record was
+# written, must both turn the code map red.
+CODEMAP_PY=python3
+[[ -x .venv-codemap/bin/python ]] && CODEMAP_PY=.venv-codemap/bin/python
+check "codemap/unrecorded_function" \
+    "CODEMAP_PYTHON=$CODEMAP_PY ./scripts/check_codemap.sh" \
+    "Emuqu/Sources/Utilities/Errors.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Errors.swift');p.write_text(p.read_text()+chr(10)+'func plantedUnrecorded() -> Int { 1 }'+chr(10))"
+
+check "codemap/stale_record" \
+    "CODEMAP_PYTHON=$CODEMAP_PY ./scripts/check_codemap.sh" \
+    "Emuqu/Sources/Utilities/Extensions.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Extensions.swift');s=p.read_text();t=s.replace('static func hoursMinutes(minutes: Int) -> String {','static func hoursMinutes(minutes: Int) -> String {'+chr(10)+'        let planted = 0; _ = planted',1);assert t!=s;p.write_text(t)"
+
+# A change that records a new high-severity finding, instead of fixing it, must
+# break the open-findings ratchet.
+check "codemap/new_high_finding" \
+    "CODEMAP_PYTHON=$CODEMAP_PY ./scripts/check_codemap.sh" \
+    "docs/codemap/records/Emuqu/Sources/Utilities/Errors.swift.json" \
+    "import json,pathlib;p=pathlib.Path('docs/codemap/records/Emuqu/Sources/Utilities/Errors.swift.json');r=json.loads(p.read_text());r['flags'].append({'kind':'broken','sev':'high','text':'planted','evidence':[]});p.write_text(json.dumps(r,indent=1)+chr(10))"
+
+# TODO(codemap-recheck): restore the "codemap/callee_behaviour_changed" case (a
+# planted change to a callee's record must turn the check red) once re-check
+# lines fail the check again; see the TODO in scripts/codemap/codemap.py.
+
 echo
 echo "  $PASS proven, $FAIL not protecting anything, $SKIP skipped"
 echo
@@ -580,3 +608,14 @@ fi
 rm -f Emuqu/Sources/Utilities/PlantedOrphan.swift
 
 (( FAIL == 0 )) || exit 1
+
+# A skipped case proved nothing: its gate was already red, or the plant's
+# anchor text has changed. Counting it as success let a permanently red gate
+# or a stale plant drop out of verification silently — the "reports clean
+# while measuring nothing" shape this file exists to catch. Same rule as
+# verify_tests_fail.sh.
+if (( SKIP > 0 )); then
+    echo "ERROR: ${SKIP} case(s) skipped; a skipped case is not a verified gate." >&2
+    echo "Make the gate green, or re-anchor its plant, and run again." >&2
+    exit 1
+fi

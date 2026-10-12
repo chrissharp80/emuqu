@@ -2,9 +2,11 @@ import Foundation
 
 // MARK: - Load & Trajectory
 //
-// The trajectory verdict the dashboard chip shows, exposed to the fact
-// catalog. Split out of `AppFactResolver+Sessions.swift` so
-// `TrainingLoadNamespace` stays under the type-body budget.
+// The trajectory verdict the Load & Trajectory screen shows, exposed to the
+// fact catalog. The dashboard chip anchors on yesterday's CTL and the one 8
+// days back, so on a given morning it can show a different verdict. Split
+// out of `AppFactResolver+Sessions.swift` so `TrainingLoadNamespace` stays
+// under the type-body budget.
 
 extension TrainingLoadNamespace {
     /// The Load & Trajectory verdict — assembled from the SAME inputs the
@@ -14,7 +16,9 @@ extension TrainingLoadNamespace {
     /// `TrajectoryVerdict.ctlSlopePerWeek`, today's CTL as the verdict's
     /// current value, and the user's comeback/overreach/peaking flags — so the AI and the screen agree.
     /// Covers trajectory direction, ramp band + rate, form descriptor, and
-    /// Foster monotony/strain.
+    /// Foster monotony/strain. `verdict_as_of` names the verdict's day: the
+    /// last stored day until the daily series has today's bucket, while
+    /// current_ctl/atl/tsb are always live.
     func trajectoryRecord() -> FactValue {
         let seriesDict = MainActor.assumeIsolated { AppDependencies.current.analysis.trainingMetricsCache.dailySeries }
         guard let live = liveOrCached() else {
@@ -30,6 +34,7 @@ extension TrainingLoadNamespace {
             series: series, currentCTL: today.ctl, ctlOneWeekAgo: weekAgoCTL,
             rampRate: rampRate, tsb: live.tsb, cfg: settings())
         var record = Self.trajectoryFields(verdict: verdict, rampRate: rampRate, live: live)
+        record["verdict_as_of"] = .date(today.date)
         record.merge(Self.fosterFields(seriesDict)) { current, _ in current }
         return .record(record)
     }

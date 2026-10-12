@@ -1,0 +1,911 @@
+{
+ "file": "Emuqu/Sources/Views/FitnessTabView+Sections.swift",
+ "hash": "f3bf7c0d5bf46545",
+ "role": "FitnessTabView extension for the Get Me Back card (disclaimer + breadcrumb engage), the 7-day daily activity card with today's workout/passive split and weekly bars, and the loader that computes workout elevation totals, 7-day mean HRR@1m, daily activity (HealthKit, or the phone pedometer when HealthKit returned no steps for the week) and workout attribution over today's merged workout windows; plus file-private helpers.",
+ "types": [
+  "FitnessTabView: extension — Get Me Back card, daily activity card, fitness home data loading",
+  "FitnessTabView.BreakdownFit: struct (private ViewModifier) — one-line shrink-to-fit"
+ ],
+ "state": [
+  "reads/writes ud:fitness.getMeBack.disclaimerSeenV1 via FitnessTabView.getMeBackDisclaimerSeenKey (declared FitnessTabView.swift:107)"
+ ],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "var FitnessTabView.getMeBackCard",
+   "hash": "7610bc4a7323eb01",
+   "does": "Get Me Back card button (label by trail state) with the first-use safety disclaimer alert and the GetMeBackView sheet.",
+   "entry": "Rendered from FitnessTabView default body (FitnessTabView.swift:377); alert/sheet bindings",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func FitnessTabView.tapGetMeBack()",
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func FitnessTabView.getMeBackCardLabel(_:)",
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::var FitnessTabView.iUnderstandEngageButton",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:BreadcrumbRecorder.activeTrail"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func FitnessTabView.getMeBackCardLabel(_:)": "32c90718e0cebc1c",
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func FitnessTabView.tapGetMeBack()": "b30326afbc0afdc4",
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::var FitnessTabView.iUnderstandEngageButton": "169b3e72fe3a87ba",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.breadcrumbRecorder": "986bfbb43d0455e7"
+   }
+  },
+  {
+   "key": "func FitnessTabView.tapGetMeBack()",
+   "hash": "b628e812b2e9c24b",
+   "does": "On tap: with no active trail and the disclaimer unseen, shows the disclaimer and stops. Otherwise engages a new trail when none is active and opens the GetMeBack sheet.",
+   "entry": "Button tap",
+   "calls": [
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.engage(label:)"
+   ],
+   "reads": [
+    "ud:fitness.getMeBack.disclaimerSeenV1 (standard)",
+    "mem:BreadcrumbRecorder.activeTrail"
+   ],
+   "writes": [
+    "mem:FitnessTabView.showGetMeBackDisclaimer",
+    "mem:FitnessTabView.showGetMeBackSheet"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "trail == nil AND disclaimer not yet seen",
+     "effect": "true: show disclaimer alert, return; false: continue"
+    },
+    {
+     "at": "+6",
+     "cond": "trail == nil",
+     "effect": "true: breadcrumbRecorder.engage() (silently returns if location is denied/restricted); false: reuse the active trail. Sheet opens either way"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.engage(label:)": "bef212664a1481d4",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.breadcrumbRecorder": "986bfbb43d0455e7"
+   }
+  },
+  {
+   "key": "var FitnessTabView.iUnderstandEngageButton",
+   "hash": "271044d284fbe6c5",
+   "does": "Alert button 'I understand — engage': persists disclaimer-seen, engages the breadcrumb trail and opens the sheet.",
+   "entry": "Alert button tap",
+   "calls": [
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.engage(label:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:fitness.getMeBack.disclaimerSeenV1 (standard)",
+    "mem:FitnessTabView.showGetMeBackSheet"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.engage(label:)": "bef212664a1481d4",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.breadcrumbRecorder": "986bfbb43d0455e7"
+   }
+  },
+  {
+   "key": "func FitnessTabView.getMeBackCardLabel(_:)",
+   "hash": "25a6785e388a0a92",
+   "does": "Row with an orange pin icon (no trail) or green north arrow (trail active), title/subtitle text and chevron.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func FitnessTabView.getMeBackCardText(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "trail == nil",
+     "effect": "mappin.and.ellipse vs location.north.line.fill"
+    },
+    {
+     "at": "+5",
+     "cond": "trail == nil",
+     "effect": "orange vs green circle"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func FitnessTabView.getMeBackCardText(_:)": "031cc6f886d4ae7f",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "func FitnessTabView.getMeBackCardText(_:)",
+   "hash": "0de8419e2ee5846e",
+   "does": "Title ('Get Me Back' or 'Trail active — open') and 2-line subtitle.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func FitnessTabView.getMeBackSubtitle(for:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "trail == nil",
+     "effect": "'Get Me Back' vs 'Trail active — open'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func FitnessTabView.getMeBackSubtitle(for:)": "a41cd7b154e2430e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func FitnessTabView.getMeBackSubtitle(for:)",
+   "hash": "b89d5f4fdf9812da",
+   "does": "Subtitle: the feature pitch with no trail, 'Recording — N GPS points so far' before an origin exists, else '<distance> from origin · N GPS points'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbTrail.crowFlyDistanceFromTipToOriginMeters()",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved",
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "ud:fitness.unitsPreference (App Group suite, legacy migration from standard)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "trail == nil",
+     "effect": "pitch text"
+    },
+    {
+     "at": "+5",
+     "cond": "crow-fly distance nil (no origin/tip)",
+     "effect": "'Recording — N GPS points so far'; else distance text"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)": "a36dafa82ad91f58",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbTrail.crowFlyDistanceFromTipToOriginMeters()": "a5a538ba51c8a5c9",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.fixes(count:everySec:)": "42272288bfb6323a"
+   }
+  },
+  {
+   "key": "var FitnessTabView.dailyActivityCard",
+   "hash": "2519ef59b70b0e78",
+   "does": "7-day activity card (header, today's breakdown, weekly bars, legend), shown when the week has HealthKit steps or the CMPedometer snapshot is non-empty.",
+   "entry": "Rendered from FitnessTabView default body (FitnessTabView.swift:376)",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::var FitnessTabView.dailyActivityHeader",
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::var FitnessTabView.todayBreakdownRow",
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::var FitnessTabView.weeklyBarChart",
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::var FitnessTabView.dailyActivityLegend"
+   ],
+   "reads": [
+    "mem:FitnessTabView.dailyActivity",
+    "mem:FitnessTabView.passiveSteps"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "weekTotalSteps > 0 OR passiveSteps non-empty",
+     "effect": "true: card; false: nothing"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "USERS_MANUAL describes this as 'a passive activity card (phone-tracked steps/distance)'. The card actually shows HealthKit all-source totals (header 'last 7 days · phone + watch') split into workout vs passive, plus floors.",
+     "evidence": [
+      "docs/USERS_MANUAL.md:984",
+      "Emuqu/Sources/Views/FitnessTabView+Sections.swift:150",
+      "Emuqu/Sources/Views/FitnessTabView+Sections.swift:167",
+      "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift:425"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::var FitnessTabView.dailyActivityHeader": "5392d9f37a83e687",
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::var FitnessTabView.dailyActivityLegend": "8dabf3ed7abb25ae",
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::var FitnessTabView.todayBreakdownRow": "5295f834e6949569",
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::var FitnessTabView.weeklyBarChart": "07b41407620894b4",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e"
+   }
+  },
+  {
+   "key": "var FitnessTabView.dailyActivityHeader",
+   "hash": "99b8305cc1da7b7c",
+   "does": "'Daily activity' title with the dailyActivitySourceCaption caption.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::var FitnessTabView.dailyActivitySourceCaption",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::var FitnessTabView.dailyActivitySourceCaption": "6fc00e176d0017d3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var FitnessTabView.dailyActivitySourceCaption",
+   "hash": "37e378db7870b2e0",
+   "does": "'last 7 days · phone + watch' when dailyActivity holds HealthKit's all-source totals; plain 'last 7 days' before it loads or when it holds the pedometer fallback.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:FitnessTabView.dailyActivity",
+    "mem:FitnessTabView.dailyActivityFromPedometer"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no data yet or pedometer fallback",
+     "effect": "\"last 7 days\"; else \"last 7 days · phone + watch\""
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var FitnessTabView.dailyActivityLegend",
+   "hash": "2819ca34877a4ada",
+   "does": "Legend chips for Workout (accent) and Passive (grey).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func FitnessTabView.legendChip(color:label:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func FitnessTabView.legendChip(color:label:)": "4e8524387e7a0392",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.fitnessAccent": "d9d2d99276db5bab",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var FitnessTabView.todayBreakdownRow",
+   "hash": "44e771d910a03c7f",
+   "does": "Three-column steps / distance / floors breakdown.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::var FitnessTabView.stepsBreakdownStat",
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::var FitnessTabView.distanceBreakdownStat",
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::var FitnessTabView.floorsBreakdownStat"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::var FitnessTabView.distanceBreakdownStat": "72e6b744507f0588",
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::var FitnessTabView.floorsBreakdownStat": "9e6a236382204859",
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::var FitnessTabView.stepsBreakdownStat": "04c23237d130dd3f"
+   }
+  },
+  {
+   "key": "var FitnessTabView.todayStepTotal",
+   "hash": "6cb259204e36a2b4",
+   "does": "Today's steps: HealthKit day-0 total, else CMPedometer day-0, else 0.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:FitnessTabView.dailyActivity",
+    "mem:FitnessTabView.passiveSteps"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "dailyActivity empty → passiveSteps.first → 0",
+     "effect": "falls back when dailyActivity is empty (not loaded yet / HK unavailable with no pedometer data); a HealthKit week with no steps has already been replaced by the pedometer days in applyDailyActivity"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var FitnessTabView.todayDistanceTotal",
+   "hash": "f64bf1f3c6278c9b",
+   "does": "Today's distance: HK day-0 metres, else CMPedometer day-0, else 0.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:FitnessTabView.dailyActivity",
+    "mem:FitnessTabView.passiveSteps"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "dailyActivity empty → passiveSteps.first → 0",
+     "effect": "fallback only when the HK array is empty (same denied-auth gap as todayStepTotal)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var FitnessTabView.workoutFloorsFromElevation",
+   "hash": "2755af9b6a636334",
+   "does": "Today's recorded workout elevation gain ÷ 3.05 m, rounded, as floors.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:FitnessTabView.todayWorkoutElevationMeters"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var FitnessTabView.todayWorkoutFloors",
+   "hash": "794c98b895b8a435",
+   "does": "max(HK flights during today's workouts, elevation-derived floors).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::var FitnessTabView.workoutFloorsFromElevation"
+   ],
+   "reads": [
+    "mem:FitnessTabView.todayWorkoutAttributedFlights"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::var FitnessTabView.workoutFloorsFromElevation": "99d0c374700cdcf8"
+   }
+  },
+  {
+   "key": "var FitnessTabView.todayPassiveFloors",
+   "hash": "fa9c20a53ea44ff1",
+   "does": "HK (or CMPedometer) flights today minus workout-attributed flights, floored at 0.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:FitnessTabView.dailyActivity",
+    "mem:FitnessTabView.passiveSteps",
+    "mem:FitnessTabView.todayWorkoutAttributedFlights"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "dailyActivity empty → passiveSteps.first.floorsAscended → 0",
+     "effect": "fallback chain as for steps"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var FitnessTabView.stepsBreakdownStat",
+   "hash": "3b8e6b73aaa33d20",
+   "does": "Steps stat: today total, workout-attributed steps, passive = max(0, total − workout).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::var FitnessTabView.todayStepTotal",
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func FitnessTabView.breakdownStat(label:total:workout:passive:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:FitnessTabView.todayWorkoutAttributedSteps"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3",
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func FitnessTabView.breakdownStat(label:total:workout:passive:)": "e13bc31cd1d3326c",
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::var FitnessTabView.todayStepTotal": "175f9c34fda28f4f"
+   }
+  },
+  {
+   "key": "var FitnessTabView.distanceBreakdownStat",
+   "hash": "481b187b3cb3ba97",
+   "does": "Distance stat formatted with the tab's computed `units` (UnitsPreferenceStore.current, read each render, so a km/mi switch shows on the next render): total, workout-attributed, passive.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::var FitnessTabView.todayDistanceTotal",
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func FitnessTabView.breakdownStat(label:total:workout:passive:)",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.units",
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "ud:UnitsPreferenceStore (units preference)",
+    "mem:FitnessTabView.todayWorkoutAttributedDistanceMeters"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)": "a36dafa82ad91f58",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func FitnessTabView.breakdownStat(label:total:workout:passive:)": "e13bc31cd1d3326c",
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::var FitnessTabView.todayDistanceTotal": "adce0d590fb6633d",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.units": "2b5b3b2c99d9c7cc"
+   }
+  },
+  {
+   "key": "var FitnessTabView.floorsBreakdownStat",
+   "hash": "b64369a234ceb396",
+   "does": "Floors stat: total = workout floors + passive floors, with both parts listed.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::var FitnessTabView.todayWorkoutFloors",
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::var FitnessTabView.todayPassiveFloors",
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func FitnessTabView.breakdownStat(label:total:workout:passive:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func FitnessTabView.breakdownStat(label:total:workout:passive:)": "e13bc31cd1d3326c",
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::var FitnessTabView.todayPassiveFloors": "3731d9620349650e",
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::var FitnessTabView.todayWorkoutFloors": "5640a0e88d6b43b3"
+   }
+  },
+  {
+   "key": "func FitnessTabView.breakdownStat(label:total:workout:passive:)",
+   "hash": "1de7c7a589668005",
+   "does": "Column: uppercase label, total, workout (accent) and passive (grey) lines, each one line and shrinking to 0.7.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func FitnessTabView.BreakdownFit.body(content:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func FitnessTabView.BreakdownFit.body(content:)": "1cdb98eb30fe17a1",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.fitnessAccent": "d9d2d99276db5bab",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "func FitnessTabView.BreakdownFit.body(content:)",
+   "hash": "82b96558bc70812d",
+   "does": "ViewModifier: lineLimit(1) and minimumScaleFactor(0.7).",
+   "entry": "SwiftUI ViewModifier.body via .modifier(BreakdownFit())",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var FitnessTabView.weeklyBarChart",
+   "hash": "ad32f19d65a0deeb",
+   "does": "Oldest-to-newest bar row over dailyActivity (HK), scaled to max(max steps, 1).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func FitnessTabView.dayColumn(_:maxSteps:)"
+   ],
+   "reads": [
+    "mem:FitnessTabView.dailyActivity"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "no days (dailyActivity empty)",
+     "effect": "?? 1 → maxSteps = 1; ForEach renders nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func FitnessTabView.dayColumn(_:maxSteps:)": "4bbae0b504a0a45b"
+   }
+  },
+  {
+   "key": "func FitnessTabView.dayColumn(_:maxSteps:)",
+   "hash": "1bca2ca2c4bb790d",
+   "does": "One day column: bar plus weekday letter, bold for today, with a VoiceOver label '<weekday>, N steps'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func FitnessTabView.dayBar(_:maxSteps:isToday:)",
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func FitnessTabView.dayLabel(_:)",
+    "Emuqu/Sources/Utilities/LocalizedDateFormat.swift::func LocalizedDateFormat.string(from:template:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "isToday",
+     "effect": "primary vs tertiary label colour"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Utilities/LocalizedDateFormat.swift::func LocalizedDateFormat.string(from:template:)": "3f04b1b2d2a2db68",
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func FitnessTabView.dayBar(_:maxSteps:isToday:)": "970ef8c531cf2934",
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func FitnessTabView.dayLabel(_:)": "b897d9f12748bf71",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "func FitnessTabView.dayBar(_:maxSteps:isToday:)",
+   "hash": "32e2300836e006c6",
+   "does": "Stacked bar (50 pt full scale, min 3 pt). For today, the workout-attributed steps sit on top in accent and the remainder is grey.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:FitnessTabView.todayWorkoutAttributedSteps"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "isToday AND attributed steps > 0",
+     "effect": "workout height = attributed/max × 50; else 0"
+    },
+    {
+     "at": "+6",
+     "cond": "workoutH > 0",
+     "effect": "true: accent segment drawn; false: grey only"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.fitnessAccent": "d9d2d99276db5bab",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "func FitnessTabView.legendChip(color:label:)",
+   "hash": "a8f87dcc41adcac2",
+   "does": "Small coloured square plus label.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "func FitnessTabView.dayLabel(_:)",
+   "hash": "8be1b6af5e42eb6b",
+   "does": "Very-short standalone weekday symbol for the date's weekday, from Calendar.current with the app locale (no DateFormatter allocated).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "func FitnessTabView.loadWorkoutElevationTotals()",
+   "hash": "00fc7c5dc631080c",
+   "does": "Loads the week's workout sessions (lightweight, detached) and the 7 days of HealthKit daily activity in parallel. Then sets elevation totals (today's = workouts started today), the 7-day mean HRR@1m, dailyActivity (HealthKit or pedometer fallback) and today's workout attribution over all the week's workouts' windows clipped to today, writes the UI cache and logs timing.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func weekWorkoutSessionIds(archive:since:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)",
+    "Emuqu/Sources/Collection/HealthKitManager+VitalsForwarding.swift::func HealthKitManager.fetchDailyActivity(days:)",
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func FitnessTabView.applyElevationTotals(workouts:todaysWorkouts:weekAgo:)",
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func FitnessTabView.applyCachedMeanHRR(workouts:archive:)",
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func FitnessTabView.applyDailyActivity(healthKit:)",
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func FitnessTabView.applyWorkoutAttribution(workouts:since:)",
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func FitnessTabView.cacheFitnessDisplayState()",
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func logFitnessLoadTiming(count:startedAt:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries",
+    "archive:retrieveLightweightOrLog (week's workouts)",
+    "hk:stepCount",
+    "hk:distanceWalkingRunning",
+    "hk:flightsClimbed"
+   ],
+   "writes": [
+    "mem:FitnessTabView.dailyActivity",
+    "mem:FitnessTabView.dailyActivityFromPedometer"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "calendar date −7 days fails",
+     "effect": "return without loading (never happens for Gregorian)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+VitalsForwarding.swift::func HealthKitManager.fetchDailyActivity(days:)": "af16c19e3d220755",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "8dd50c9f204fb5d6",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.healthKit": "f61a7a679f5280dd",
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func FitnessTabView.applyCachedMeanHRR(workouts:archive:)": "e4b677db9d3503f4",
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func FitnessTabView.applyDailyActivity(healthKit:)": "4b50c2abe7e6238d",
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func FitnessTabView.applyElevationTotals(workouts:todaysWorkouts:weekAgo:)": "2f94c7e78ed63fc6",
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func FitnessTabView.applyWorkoutAttribution(workouts:since:)": "944b023c6ad6d041",
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func FitnessTabView.cacheFitnessDisplayState()": "effa78dcbbdebfaa",
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func logFitnessLoadTiming(count:startedAt:)": "b547c9e68a083894",
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func weekWorkoutSessionIds(archive:since:)": "7e92a5b3ec213e10"
+   }
+  },
+  {
+   "key": "func FitnessTabView.applyElevationTotals(workouts:todaysWorkouts:weekAgo:)",
+   "hash": "593213c90b00e3b0",
+   "does": "Sets todayWorkoutElevationMeters (sum of gains for workouts started today) and weekWorkoutElevationMeters (sum for workouts since weekAgo).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:FitnessTabView.todayWorkoutElevationMeters",
+    "mem:FitnessTabView.weekWorkoutElevationMeters"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933"
+   }
+  },
+  {
+   "key": "func FitnessTabView.applyCachedMeanHRR(workouts:archive:)",
+   "hash": "cae76d15b5fb4f8b",
+   "does": "For each archive workout entry in the last 7 days (withinDays), takes the session from the decrypted set or re-reads it. Averages the best 1-minute HRR drops into meanHRR1m7d (nil if none).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.withinDays(_:_:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries",
+    "archive:retrieveLightweightOrLog (fallback)"
+   ],
+   "writes": [
+    "mem:FitnessTabView.meanHRR1m7d"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "entry is workout AND within 7 days",
+     "effect": "loop body runs only for these entries"
+    },
+    {
+     "at": "+5",
+     "cond": "session not in the decrypted set",
+     "effect": "?? fallback: fresh retrieveLightweightOrLog (nil on failure, entry skipped)"
+    },
+    {
+     "at": "+7",
+     "cond": "session has hrrSamples.bestAtOneMinute.drop",
+     "effect": "true: append drop; false: skip"
+    },
+    {
+     "at": "+11",
+     "cond": "drops empty",
+     "effect": "true: nil; false: mean"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var [HRRSample].bestAtOneMinute": "080c4f9acef7ff40",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "8dd50c9f204fb5d6",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.withinDays(_:_:)": "83e7047b25182f7a",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "13c88f99e05e0173"
+   }
+  },
+  {
+   "key": "func FitnessTabView.applyDailyActivity(healthKit:)",
+   "hash": "43bbb73f69041503",
+   "does": "Stores HealthKit's daily totals in dailyActivity, unless HealthKit reported zero steps for every day (a denied or unavailable read looks like that) while the CMPedometer snapshot counted steps — then stores the pedometer days (floors ascended as flights) and sets dailyActivityFromPedometer.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func dailyActivityFromPedometerDay(_:)"
+   ],
+   "reads": [
+    "mem:FitnessTabView.passiveSteps"
+   ],
+   "writes": [
+    "mem:FitnessTabView.dailyActivity",
+    "mem:FitnessTabView.dailyActivityFromPedometer"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "HealthKit all-zero (or empty) AND pedometer has a day with steps",
+     "effect": "pedometer days; else HealthKit days"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func dailyActivityFromPedometerDay(_:)": "63e3c1bf61549c6a"
+   }
+  },
+  {
+   "key": "func FitnessTabView.applyWorkoutAttribution(workouts:since:)",
+   "hash": "aded0c0ec22791d5",
+   "does": "Sums HealthKit steps/distance/flights inside each merged window of today covered by a workout (mergedWorkoutWindows: clipped to start at midnight, open workouts end now, overlaps merged so nothing counts twice) and stores today's attributed totals.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func mergedWorkoutWindows(_:since:now:)",
+    "Emuqu/Sources/Collection/HealthKitManager+VitalsForwarding.swift::func HealthKitManager.fetchSumSteps(from:to:)",
+    "Emuqu/Sources/Collection/HealthKitManager+VitalsForwarding.swift::func HealthKitManager.fetchSumDistance(from:to:)",
+    "Emuqu/Sources/Collection/HealthKitManager+VitalsForwarding.swift::func HealthKitManager.fetchSumFlights(from:to:)"
+   ],
+   "reads": [
+    "hk:stepCount",
+    "hk:distanceWalkingRunning",
+    "hk:flightsClimbed"
+   ],
+   "writes": [
+    "mem:FitnessTabView.todayWorkoutAttributedSteps",
+    "mem:FitnessTabView.todayWorkoutAttributedDistanceMeters",
+    "mem:FitnessTabView.todayWorkoutAttributedFlights"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "each merged window",
+     "effect": "three parallel HK sums added; no windows → zeros"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+VitalsForwarding.swift::func HealthKitManager.fetchSumDistance(from:to:)": "5fc74b10eb74c4ab",
+    "Emuqu/Sources/Collection/HealthKitManager+VitalsForwarding.swift::func HealthKitManager.fetchSumFlights(from:to:)": "59fbbb20a94d3628",
+    "Emuqu/Sources/Collection/HealthKitManager+VitalsForwarding.swift::func HealthKitManager.fetchSumSteps(from:to:)": "0f0ed0d6c775a592",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.healthKit": "f61a7a679f5280dd",
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func mergedWorkoutWindows(_:since:now:)": "2e666143bd85539c"
+   }
+  },
+  {
+   "key": "func FitnessTabView.cacheFitnessDisplayState()",
+   "hash": "1f34ad698d9ad6b3",
+   "does": "Writes today/week elevation and today's attributed steps/distance/flights to UIStateCache.fitness (persisted to Application Support/UIStateCache.json).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/UIStateCache.swift::func UIStateCache.setFitness(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:UIStateCache.fitness",
+    "file:Application Support/UIStateCache.json"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "med",
+     "text": "The cached snapshot carries no date (UIStateCache.FitnessSnapshot fields only). paintCachedFitnessSnapshot (FitnessTabView.swift:437) repaints 'today' attributed steps/distance/flights and today's elevation on the next tab open even when that is a later day, so yesterday's workout split shows as today's until the HealthKit reload finishes.",
+     "evidence": [
+      "Emuqu/Sources/Storage/UIStateCache.swift:46",
+      "Emuqu/Sources/Views/FitnessTabView.swift:437",
+      "Emuqu/Sources/Views/FitnessTabView+Sections.swift:430"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13",
+    "Emuqu/Sources/Storage/UIStateCache.swift::func UIStateCache.setFitness(_:)": "b3795d55a51f1976",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74"
+   }
+  },
+  {
+   "key": "func weekWorkoutSessionIds(archive:since:)",
+   "hash": "4e346bf8b7237b8e",
+   "does": "File-private helper: session ids of archive index entries that are workouts dated on/after weekAgo.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "archive:SessionArchive.entries"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef"
+   }
+  },
+  {
+   "key": "func dailyActivityFromPedometerDay(_:)",
+   "hash": "dee58e74d243ac93",
+   "does": "Converts a CMPedometer day into a HealthKitManager.DailyActivity (same date, steps, distance; floors ascended as flights climbed).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func mergedWorkoutWindows(_:since:now:)",
+   "hash": "e65c7a8a69b21c68",
+   "does": "Each workout's [max(start, dayStart), endDate ?? now] window, empty ones dropped, sorted by start, with overlapping or touching windows merged.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "window ends at or before its start (e.g. ended before midnight)",
+     "effect": "dropped"
+    },
+    {
+     "at": "+7",
+     "cond": "overlaps the previous merged window",
+     "effect": "extends it; else starts a new window"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func logFitnessLoadTiming(count:startedAt:)",
+   "hash": "7523af1d720f0c60",
+   "does": "Logs '[LaunchTiming] fitness load: N workouts decrypted in Xms' at info level.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  }
+ ],
+ "deps": {}
+}

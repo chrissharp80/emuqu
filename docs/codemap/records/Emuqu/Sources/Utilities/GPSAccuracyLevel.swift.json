@@ -1,0 +1,96 @@
+{
+ "file": "Emuqu/Sources/Utilities/GPSAccuracyLevel.swift",
+ "hash": "378dbe002b601eff",
+ "role": "Classifies a CoreLocation horizontal accuracy into good/ok/poor/waiting for the Get Me Back screen and safely converts metres to Int for its label.",
+ "types": [
+  "GPSAccuracyLevel: enum — accuracy bands"
+ ],
+ "state": [
+  "static unusableAboveMetres = 100"
+ ],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func GPSAccuracyLevel.classify(horizontalAccuracyMetres:)",
+   "hash": "1f44e9c7238d1ba5",
+   "does": "nil/non-finite/negative → waiting; <10 good; <30 ok; <100 poor; otherwise waiting.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "accuracy nil, non-finite or negative",
+     "effect": "waiting"
+    },
+    {
+     "at": "+3",
+     "cond": "< 10 m",
+     "effect": "good"
+    },
+    {
+     "at": "+4",
+     "cond": "< 30 m",
+     "effect": "ok"
+    },
+    {
+     "at": "+5",
+     "cond": "< 100 m",
+     "effect": "poor"
+    },
+    {
+     "at": "+6",
+     "cond": ">= 100 m",
+     "effect": "waiting"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func GPSAccuracyLevel.displayMetres(_:)",
+   "hash": "1ab5ad0db0db5d52",
+   "does": "Int(meters) when finite and in Int range, else nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "nil, non-finite or out of Int range",
+     "effect": "nil (caller shows waiting text); negative values pass through as negative Int"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var GPSAccuracyLevel.showsDirection",
+   "hash": "cac96042fe732b62",
+   "does": "True unless the level is waiting (a direction arrow may be drawn only with a usable fix).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "showsDirection has no production caller; only GPSAccuracyLevelTests uses it (GetMeBackView.showsArrow re-tests `accuracyState != .waiting`). Kept because removing it broke the test build.",
+     "evidence": [
+      "Emuqu/Sources/Utilities/GPSAccuracyLevel.swift:57",
+      "EmuquTests/GPSAccuracyLevelTests.swift:73",
+      "Emuqu/Sources/Views/GetMeBackView.swift:174"
+     ],
+     "found": "h_src2 handoff pass"
+    }
+   ],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

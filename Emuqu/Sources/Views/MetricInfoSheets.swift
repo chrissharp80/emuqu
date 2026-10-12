@@ -98,8 +98,10 @@ struct MetricInfoSheet: View {
 
     /// Per-metric copy, keyed by every label the Engine Room uses for that
     /// metric. A label missing here falls back to the Morning Results popover's
-    /// copy for the same metric, so the two glossaries never disagree and every
-    /// grid metric has an entry. The values are factories rather than `Entry` values so the
+    /// copy for the same metric, so every grid metric has an entry. A label in
+    /// both tables shows this table's copy, which is written separately and
+    /// can word a metric differently; SDNN's typical range is the popover's
+    /// own string, so the two screens quote one range for it. The values are factories rather than `Entry` values so the
     /// localized strings resolve at read time — caching the built `Entry` would
     /// freeze the copy in whichever language happened to be active the first
     /// time this table was touched.
@@ -149,7 +151,7 @@ struct MetricInfoSheet: View {
         Entry(
             short: String(localized: "Standard deviation of all RR intervals — total variability.", bundle: LanguageManager.appBundle),
             body: String(localized: "SDNN captures both the slow (sympathetic / breathing-driven) and the fast (vagal) variations in heart rate. Useful for total autonomic-tone snapshots, but RMSSD is cleaner for vagal tone alone.", bundle: LanguageManager.appBundle),
-            typicalRange: String(localized: "Resting: 30–120 ms. Sleep windows usually 50–150 ms.", bundle: LanguageManager.appBundle)
+            typicalRange: String(localized: "Varies widely between people and with age (roughly 50–100 ms in many adults). Increases with fitness. Your own trend is the useful comparison.", bundle: LanguageManager.appBundle)
         )
     }
 
@@ -433,31 +435,19 @@ struct MetricCompareToHistorySheet: View {
         let archiveCapture = archive
         let labelCapture = metricLabel
         let loaded: [Point] = await Task.detached(priority: .userInitiated) {
-            Self.buildPointsStatic(metricLabel: labelCapture, archive: archiveCapture)
+            Self.computePoints(metricLabel: labelCapture, archive: archiveCapture)
         }.value
         if Task.isCancelled { return }
         pts = loaded
         pointsLoadCompleted = true
     }
 
-    /// Static, archive-injected variant of `buildPoints` so it can run
-    /// from a `Task.detached` without capturing `self`.
-    nonisolated private static func buildPointsStatic(metricLabel: String, archive: SessionArchive) -> [Point] {
-        return computePoints(metricLabel: metricLabel, archive: archive)
-    }
-
-    nonisolated private static func computePoints(metricLabel: String, archive: SessionArchive) -> [Point] {
-        // Static / nonisolated so the work can run on Task.detached
-        // without capturing `self`. `fastValueStatic` and `analysisValueStatic`
-        // below are also static nonisolated — they only branch on
-        // the label, no instance state required.
-        return computePointsImpl(metricLabel: metricLabel, archive: archive)
-    }
-
     /// Walks the whole archive, newest first, and keeps the most recent 30
     /// reliable overnight readings that carry the metric. Workout, Quick and
     /// Breathe readings are left out so they cannot widen the ±1 SD band.
-    nonisolated private static func computePointsImpl(metricLabel: String, archive: SessionArchive) -> [Point] {
+    /// Static and nonisolated, archive passed in, so it runs from a
+    /// `Task.detached` without capturing `self`.
+    nonisolated private static func computePoints(metricLabel: String, archive: SessionArchive) -> [Point] {
         let allEntries = archive.entries.sorted { $0.date > $1.date }
         var collected: [Point] = []
         for entry in allEntries {
@@ -469,8 +459,9 @@ struct MetricCompareToHistorySheet: View {
         return collected.reversed()
     }
 
-    /// Reliable overnight entries only. Fast path first: the four metrics
-    /// cached on the index entry. Otherwise fall back to a lightweight
+    /// Reliable overnight entries only. Fast path first: the metrics the
+    /// index entry caches for an overnight (RMSSD, mean HR, stress index; its
+    /// SDNN is filled only for Breathe readings, so SDNN reads the session). Otherwise fall back to a lightweight
     /// session read.
     nonisolated private static func pointValue(metricLabel: String, entry: SessionArchiveEntry, archive: SessionArchive) -> Point? {
         guard entry.sessionType == .overnight, entry.isReliableForHRVAggregates else { return nil }
@@ -488,7 +479,6 @@ struct MetricCompareToHistorySheet: View {
         switch label {
         case "RMSSD": return entry.meanRMSSD
         case "Mean HR": return entry.meanHR
-        case "SDNN": return entry.meanSDNN
         case "Stress", "Stress index", "Stress Index", "Baevsky SI": return entry.stressIndex
         default: return nil
         }

@@ -42,10 +42,27 @@ enum VoiceEchoHeuristics {
         return found
     }
 
-    /// U+3000 and up holds the CJK, kana and Hangul blocks.
+    /// Whether the word starts in a CJK ideograph, kana or Hangul block.
     private static func isCJKOrHangul(_ word: String) -> Bool {
-        (word.unicodeScalars.first?.value ?? 0) >= 0x3000
+        guard let scalar = word.unicodeScalars.first?.value else { return false }
+        return cjkKanaHangulBlocks.contains { $0.contains(scalar) }
     }
+
+    /// The blocks where one character is often a whole word. Other scripts
+    /// above U+3000 (Yi, private use, emoji and the other supplementary
+    /// planes) are not among them.
+    private static let cjkKanaHangulBlocks: [ClosedRange<UInt32>] = [
+        0x1100 ... 0x11FF,   // Hangul Jamo
+        0x3040 ... 0x30FF,   // Hiragana, Katakana
+        0x3130 ... 0x318F,   // Hangul Compatibility Jamo
+        0x31F0 ... 0x31FF,   // Katakana Phonetic Extensions
+        0x3400 ... 0x4DBF,   // CJK Unified Ideographs Extension A
+        0x4E00 ... 0x9FFF,   // CJK Unified Ideographs
+        0xAC00 ... 0xD7AF,   // Hangul Syllables
+        0xF900 ... 0xFAFF,   // CJK Compatibility Ideographs
+        0xFF66 ... 0xFF9F,   // Halfwidth Katakana
+        0x20000 ... 0x3FFFF  // Supplementary and Tertiary Ideographic Planes
+    ]
 
     /// Fraction of `transcript`'s tokens that also appear in `reference`.
     /// Zero for an empty transcript — nothing overlaps nothing.
@@ -57,10 +74,15 @@ enum VoiceEchoHeuristics {
     }
 
     /// Barge-in guard: is this candidate the mic hearing the response that is
-    /// still being spoken?
+    /// still being spoken? The share of the candidate's distinct words that
+    /// also appear in the reply streamed so far, against a fixed threshold.
     ///
-    /// Deliberately more permissive (0.65) than the post-turn guard: we would
-    /// rather miss a barge-in than yank the AI mid-sentence on a false one.
+    /// The threshold (0.65) sits above the post-turn guard's 0.6 for long
+    /// transcripts, so mid-reply it takes MORE overlap to call the candidate
+    /// echo: a user who interrupts with words the reply has already used
+    /// still gets through. The cost is that more of the reply's own leakage
+    /// counts as a barge-in; the grace period, sustained-RMS and two-new-words
+    /// gates in `checkForBargeIn` are what hold that back.
     static func isEchoOfInFlightResponse(candidate: String, streamedSoFar: String) -> Bool {
         guard !streamedSoFar.isEmpty, !tokens(candidate).isEmpty else { return false }
         return overlapRatio(of: candidate, against: streamedSoFar) >= inFlightEchoThreshold
@@ -74,11 +96,9 @@ enum VoiceEchoHeuristics {
     /// four tokens or fewer must clear a much higher bar.
     static func looksLikeEcho(transcript: String, ofLastAssistantTurn lastAssistant: String) -> Bool {
         guard !lastAssistant.isEmpty, !transcript.isEmpty else { return false }
-        let transcriptTokens = tokens(transcript)
-        guard !transcriptTokens.isEmpty else { return false }
-        let ratio = Double(transcriptTokens.intersection(tokens(lastAssistant)).count)
-            / Double(transcriptTokens.count)
-        return ratio >= threshold(forTokenCount: transcriptTokens.count)
+        let tokenCount = tokens(transcript).count
+        guard tokenCount > 0 else { return false }
+        return overlapRatio(of: transcript, against: lastAssistant) >= threshold(forTokenCount: tokenCount)
     }
 
     /// High enough to catch genuine echo, low enough not to eat a real

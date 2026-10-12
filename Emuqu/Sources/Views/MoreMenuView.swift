@@ -13,7 +13,6 @@ struct MoreMenuView: View {
     @Environment(\.dependencies) var dependencies
     let scrollToTopToken: UUID
 
-    private var settingsManager: SettingsManager { dependencies.app.settingsManager }
     /// Four navigation entries below the purchase row:
     /// Trends ▸ / Settings ▸ / Help & Learn ▸ / About Emuqu ▸
     ///
@@ -189,7 +188,7 @@ struct AboutFlowView: View {
         [
             String(localized: "An HRV recovery and training-load app.", bundle: LanguageManager.appBundle),
             String(localized: "Your data stays on this iPhone. Optional iCloud sync between your devices is encrypted on the iPhone first and leaves out readings from Apple Health.", bundle: LanguageManager.appBundle),
-            String(localized: "Beyond that, data leaves the iPhone only in reports you send or to a cloud AI you turn on.", bundle: LanguageManager.appBundle)
+            String(localized: "Beyond that, data leaves the iPhone only in reports you send, to a cloud AI you turn on, and in the lookups outdoor workouts and trail search make: your approximate location for weather, nearby roads and elevation, as the privacy policy lists.", bundle: LanguageManager.appBundle)
         ].joined(separator: " ")
     }
 

@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// The contributor chip. Three to four chips below the
-/// hero on Dashboard. Reused inside detail views.
+/// hero on Dashboard (the dashboard's chip row is the only production use).
 ///
 /// Variants: HRV / Sleep / Vitals / Load. Same layout, different content
 /// and accent. The Load chip is **always neutral** (gray-blue) — never
@@ -10,9 +10,11 @@ import SwiftUI
 ///
 /// States:
 ///   • default          — label, value, optional trend arrow
-///   • loading          — skeleton shimmer
+///   • loading          — static "—" placeholder, no subline
 ///   • buildingBaseline — value "—", subcopy "calibrating"
-///   • noData           — value "—", tappable to source-config screen
+///   • noData           — value "—", subcopy "tap to set up"; the tap runs
+///                        the same `onTap` as every state (the dashboard
+///                        opens the metric's detail view)
 ///   • locked           — paywall lock glyph overlay, value blurred
 struct ContributorChip: View {
     enum Variant {
@@ -69,6 +71,10 @@ struct ContributorChip: View {
     /// Fixed 88pt chips needed 412pt for four, wider than a 375, 393 or
     /// 402pt iPhone, and the row ran off the screen edge.
     var compact: Bool = true
+    /// How long ago the shown reading was recorded ("yesterday", "3 days
+    /// ago"), when it is not this morning's. Replaces the subline in the
+    /// default state so an older night never reads as current.
+    var recordedAgo: String?
     var onTap: () -> Void = {}
 
     var body: some View {
@@ -243,7 +249,8 @@ struct ContributorChip: View {
         case .buildingBaseline: String(localized: "calibrating", bundle: LanguageManager.appBundle)
         case .noData: String(localized: "tap to set up", bundle: LanguageManager.appBundle)
         case .loading: nil
-        case .locked, .default: variantSubline
+        case .default: recordedAgo ?? variantSubline
+        case .locked: variantSubline
         }
     }
 
@@ -286,7 +293,7 @@ struct ContributorChip: View {
     private var accessibilityLabel: String {
         let bundle = LanguageManager.appBundle
         switch state {
-        case .default: return variantAccessibilityLabel
+        case .default: return [variantAccessibilityLabel, recordedAgo].compactMap { $0 }.joined(separator: ", ")
         case .loading: return "\(label), \(String(localized: "Loading...", bundle: bundle))"
         case .buildingBaseline: return "\(label), \(String(localized: "calibrating", bundle: bundle))"
         case .noData:

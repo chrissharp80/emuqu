@@ -1,0 +1,187 @@
+{
+ "file": "Emuqu/Sources/Collection/StrapAudioRouteWatch.swift",
+ "hash": "6a2bd9ff63dd2672",
+ "role": "Diagnostic logger of AVAudioSession route changes while the strap is live, to correlate AirPods/audio renegotiation with BLE drops.",
+ "types": [
+  "StrapAudioRouteWatch: enum — static observer/log helpers"
+ ],
+ "state": [
+  "notif:AVAudioSession.routeChangeNotification (observed)"
+ ],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func StrapAudioRouteWatch.observe(on:into:)",
+   "hash": "6b8425a10b368dd1",
+   "does": "Registers a NotificationCenter observer for AVAudioSession.routeChangeNotification on the main queue (token stored in the given NotificationTokens) that calls handle with a weak manager. Called from PolarManager.observeAudioRouteChanges.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/StrapAudioRouteWatch.swift::func StrapAudioRouteWatch.handle(_:manager:)",
+    "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.add(_:)",
+    "ext:NotificationCenter.addObserver"
+   ],
+   "reads": [
+    "notif:AVAudioSession.routeChangeNotification"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapAudioRouteWatch.swift::func StrapAudioRouteWatch.handle(_:manager:)": "24bef8054df339e6",
+    "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.add(_:)": "e97498d0288a8c95"
+   }
+  },
+  {
+   "key": "func StrapAudioRouteWatch.handle(_:manager:)",
+   "hash": "1b7e003aa1005027",
+   "does": "Extracts the route-change reason (default 0) and a description of the previous route ('unknown' if absent), then on MainActor logs if the manager still exists.",
+   "entry": "NotificationCenter AVAudioSession.routeChangeNotification observer block",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapAudioRouteWatch.swift::func StrapAudioRouteWatch.describeRoute(_:)",
+    "Emuqu/Sources/Collection/StrapAudioRouteWatch.swift::func StrapAudioRouteWatch.log(reasonRaw:previous:manager:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "userInfo reason as UInt ?? 0",
+     "effect": "reason 0 (.unknown) when missing"
+    },
+    {
+     "at": "+2",
+     "cond": "previous route present ?? 'unknown'",
+     "effect": "describes it; else 'unknown'"
+    },
+    {
+     "at": "+5",
+     "cond": "manager still alive",
+     "effect": "logs; else returns"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapAudioRouteWatch.swift::func StrapAudioRouteWatch.describeRoute(_:)": "d57cf45a80aa5b52",
+    "Emuqu/Sources/Collection/StrapAudioRouteWatch.swift::func StrapAudioRouteWatch.log(reasonRaw:previous:manager:)": "5746300d35478d4c"
+   }
+  },
+  {
+   "key": "func StrapAudioRouteWatch.log(reasonRaw:previous:manager:)",
+   "hash": "c6a0686705064212",
+   "does": "Logs reason, previous and current route, with whether the strap is streaming and whether it is linked, when the strap is streaming or connected; silent otherwise.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/StrapAudioRouteWatch.swift::func StrapAudioRouteWatch.reasonName(_:)",
+    "Emuqu/Sources/Collection/StrapAudioRouteWatch.swift::func StrapAudioRouteWatch.describeRoute(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "mem:PolarManager.isStreaming",
+    "mem:PolarManager.connectionState"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "manager.isStreaming || connectionState == .connected",
+     "effect": "logs; else returns"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
+    "Emuqu/Sources/Collection/StrapAudioRouteWatch.swift::func StrapAudioRouteWatch.describeRoute(_:)": "d57cf45a80aa5b52",
+    "Emuqu/Sources/Collection/StrapAudioRouteWatch.swift::func StrapAudioRouteWatch.reasonName(_:)": "b78381495e792653",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func StrapAudioRouteWatch.reasonName(_:)",
+   "hash": "d5a96388419ab844",
+   "does": "Maps a raw AVAudioSession.RouteChangeReason value to its name; 'unknown' for .unknown or an invalid raw value; 'raw=N' for future cases.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "newDeviceAvailable",
+     "effect": "name"
+    },
+    {
+     "at": "+3",
+     "cond": "oldDeviceUnavailable",
+     "effect": "name"
+    },
+    {
+     "at": "+4",
+     "cond": "categoryChange",
+     "effect": "name"
+    },
+    {
+     "at": "+5",
+     "cond": "override",
+     "effect": "name"
+    },
+    {
+     "at": "+6",
+     "cond": "wakeFromSleep",
+     "effect": "name"
+    },
+    {
+     "at": "+7",
+     "cond": "noSuitableRouteForCategory",
+     "effect": "name"
+    },
+    {
+     "at": "+8",
+     "cond": "routeConfigurationChange",
+     "effect": "name"
+    },
+    {
+     "at": "+9",
+     "cond": ".unknown or nil (invalid raw)",
+     "effect": "\"unknown\""
+    },
+    {
+     "at": "+10",
+     "cond": "@unknown default",
+     "effect": "\"raw=<n>\""
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func StrapAudioRouteWatch.describeRoute(_:)",
+   "hash": "0d30a3788bdcf438",
+   "does": "Formats a route as 'out=[type:name,...] in=[...]', omitting empty sides, or '(none)'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "outputs non-empty",
+     "effect": "adds out=[...]"
+    },
+    {
+     "at": "+5",
+     "cond": "inputs non-empty",
+     "effect": "adds in=[...]"
+    },
+    {
+     "at": "+6",
+     "cond": "no parts",
+     "effect": "\"(none)\"; else joined parts"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

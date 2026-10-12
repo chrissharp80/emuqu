@@ -1,0 +1,126 @@
+{
+ "file": "Emuqu/Sources/Views/TermsOfUseView.swift",
+ "hash": "d0de01bfad20e75d",
+ "role": "Read-only Terms of Use screen: last-revised date, the HealthDisclaimer sections, and a contact pointer to Settings → About & Help.",
+ "types": [
+  "TermsOfUseView: struct (View) — terms list"
+ ],
+ "state": [
+  "mem:TermsOfUseView.lastRevisedDate (static let DateComponents 2026-10-05; read by HealthDisclaimerTests.swift:34)"
+ ],
+ "toplevel": "static let lastRevisedDate = 2026-10-05 (line 7). #Preview (61-65).",
+ "flags": [],
+ "units": [
+  {
+   "key": "var TermsOfUseView.lastRevised",
+   "hash": "ef0baec48e00ee27",
+   "does": "Formats lastRevisedDate as a long date in the app locale with a Gregorian calendar.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "calendar cannot build a date from lastRevisedDate",
+     "effect": "returns '' (displayed as 'Last revised: '); otherwise formatted date"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "unreachable-branch",
+     "sev": "low",
+     "text": "lastRevisedDate is the constant 2026-10-05, which a Gregorian calendar always resolves, so the guard's return \"\" never runs.",
+     "evidence": [
+      "Emuqu/Sources/Views/TermsOfUseView.swift:7",
+      "Emuqu/Sources/Views/TermsOfUseView.swift:13"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3"
+   }
+  },
+  {
+   "key": "var TermsOfUseView.body",
+   "hash": "b28bc7f5f5ab3685",
+   "does": "List with last-revised, disclaimer sections and contact section; zen background; title 'Terms of Use'.",
+   "entry": "SwiftUI body; pushed from SettingsView.legalLinks, SettingsSearchIndex.swift:380 and PaywallView.swift:429",
+   "calls": [
+    "Emuqu/Sources/Views/TermsOfUseView.swift::var TermsOfUseView.lastRevisedSection",
+    "Emuqu/Sources/Views/TermsOfUseView.swift::var TermsOfUseView.disclaimerSections",
+    "Emuqu/Sources/Views/TermsOfUseView.swift::var TermsOfUseView.contactSection",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenFormBackground()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/TermsOfUseView.swift::var TermsOfUseView.contactSection": "2363beb1fb1d6340",
+    "Emuqu/Sources/Views/TermsOfUseView.swift::var TermsOfUseView.disclaimerSections": "4d12573e137031b9",
+    "Emuqu/Sources/Views/TermsOfUseView.swift::var TermsOfUseView.lastRevisedSection": "1c7e1aa1f4a0adad",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenFormBackground()": "fde01388fd5e4e8c"
+   }
+  },
+  {
+   "key": "var TermsOfUseView.lastRevisedSection",
+   "hash": "9b99b149f78db02c",
+   "does": "Section: 'By using Emuqu you agree…' and 'Last revised: <date>'.",
+   "entry": "SwiftUI evaluates this view-builder member while rendering the parent",
+   "calls": [
+    "Emuqu/Sources/Views/TermsOfUseView.swift::var TermsOfUseView.lastRevised"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/TermsOfUseView.swift::var TermsOfUseView.lastRevised": "31bebbd40da0d2c5",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var TermsOfUseView.disclaimerSections",
+   "hash": "8b5fe04ef01c1e26",
+   "does": "One Section per HealthDisclaimer.sections entry rendered with DisclaimerSectionView.",
+   "entry": "SwiftUI evaluates this view-builder member while rendering the parent",
+   "calls": [
+    "Emuqu/Sources/Views/HealthDisclaimerView.swift::var HealthDisclaimer.sections",
+    "Emuqu/Sources/Views/HealthDisclaimerView.swift::var DisclaimerSectionView.body"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HealthDisclaimerView.swift::var DisclaimerSectionView.body": "b85ef97f3e2be465",
+    "Emuqu/Sources/Views/HealthDisclaimerView.swift::var HealthDisclaimer.sections": "b56cef1812263673"
+   }
+  },
+  {
+   "key": "var TermsOfUseView.contactSection",
+   "hash": "5a186b4083dbccdc",
+   "does": "Contact section telling the user to use Contact Support in Settings → About & Help.",
+   "entry": "SwiftUI evaluates this view-builder member while rendering the parent",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  }
+ ],
+ "deps": {}
+}

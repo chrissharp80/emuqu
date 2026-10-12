@@ -1,0 +1,67 @@
+{
+ "file": "Emuqu/Sources/Analysis/RecordingSleepEstimate.swift",
+ "hash": "3aed23db90698b87",
+ "role": "Fallback time-asleep estimate from overnight recording length alone (90% if > 180 min, else 85%), shared by the Overnight screen (OvernightChartsView+Stats.swift:530) and the Overnight PDF (OvernightReportRenderer+Sections.swift:472).",
+ "types": [
+  "RecordingSleepEstimate: struct (Equatable) — recordingMinutes, asleepMinutes, efficiencyPercent"
+ ],
+ "state": [
+  "mem:RecordingSleepEstimate.fullNightMinutes = 180",
+  "mem:RecordingSleepEstimate.fullNightAsleepShare = 0.90",
+  "mem:RecordingSleepEstimate.shortAsleepShare = 0.85"
+ ],
+ "toplevel": "Static constants only; Equatable synthesized.",
+ "flags": [],
+ "units": [
+  {
+   "key": "init RecordingSleepEstimate(recordingMinutes:)",
+   "hash": "fa645a1d105e9853",
+   "does": "Clamps recordingMinutes to >= 0 and sets asleepMinutes = Int(minutes * share), share 0.90 when minutes > 180 else 0.85 (truncated toward zero).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "minutes > fullNightMinutes (180)",
+     "effect": "true: share 0.90; false (incl. exactly 180): share 0.85"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var RecordingSleepEstimate.efficiencyPercent",
+   "hash": "2d693fdf65559454",
+   "does": "Asleep minutes as percent of recording minutes; 0 for an empty recording. Because both are derived from the fixed share it is always ~85 or ~90 (minus truncation).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "recordingMinutes > 0",
+     "effect": "true: asleep/recording*100; false: 0"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "efficiencyPercent is by construction the fixed share (~85 or ~90%) of an estimate, yet OvernightChartsView passes it as OvernightStats.sleepEfficiency, whose declaration says it is nil when the night's wake was not measured; the type doc claims nothing is invented for a recording-length estimate.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/RecordingSleepEstimate.swift:28",
+      "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:536",
+      "Emuqu/Sources/Views/OvernightChartsView+Init.swift:87",
+      "Emuqu/Sources/Analysis/RecordingSleepEstimate.swift:8"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

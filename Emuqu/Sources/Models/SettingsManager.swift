@@ -21,17 +21,7 @@ final class SettingsManager {
         didSet {
             let snapshot = settings
             snapshotBox.withLock { $0 = snapshot }
-            // Refuse to persist over a load that failed silently — that
-            // would replace the user's real settings with the in-memory
-            // defaults. See `loadOutcome` and `init` below for the rationale.
-            // (A crash + re-launch sequence once stamped fresh
-            // defaults onto the file because `init` had no way to tell
-            // "file missing" from "file unreadable.")
-            guard loadOutcome != .blockedByProtection else {
-                debugLog("[SettingsManager] settings change suppressed — load failed earlier and overwriting would clobber the real file. Will retry once the file becomes readable.", level: .warning)
-                return
-            }
-            save()
+            saveUnlessLocked()
             // Tell any cache / derived-state holder that the user just
             // changed something. AssistantContextSource listens so the AI
             // sees the new Max HR / units preference / training-break state
@@ -54,12 +44,23 @@ final class SettingsManager {
         /// destroy the user's real settings.
         case blockedByProtection
         /// File exists and was unreadable for a non-protection reason
-        /// (corruption, schema mismatch). We continue with defaults but
-        /// allow saves so the user can recover by reconfiguring.
+        /// (corruption, schema mismatch). A copy is kept beside it
+        /// (`unreadableBackupName`) and we continue with defaults, allowing
+        /// saves so the user can recover by reconfiguring.
         case unreadableOther
     }
 
     private(set) var loadOutcome: LoadOutcome = .fileNotPresent
+
+    /// The in-memory settings the app started from while the file was locked
+    /// (nil otherwise). Changes made while locked are the fields that differ
+    /// from it, and those are merged onto the file's settings once it can be
+    /// read, instead of being discarded.
+    @ObservationIgnored private var lockedStartingPoint: UserSettings?
+
+    /// The copy `load(from:)` keeps of a settings file it could not read for
+    /// a reason other than file protection, beside the file.
+    nonisolated static let unreadableBackupName = "user_settings.unreadable.json"
 
     /// Lock-backed mirror of `settings` for readers off the main actor
     /// (analysis, export, and assistant code running on background tasks).
@@ -90,6 +91,7 @@ final class SettingsManager {
         _loadOutcome = outcome
         let initial = loaded ?? UserSettings()
         _settings = initial
+        lockedStartingPoint = outcome == .blockedByProtection ? initial : nil
         snapshotBox = OSAllocatedUnfairLock(initialState: initial)
 
         // If the load failed because the device was locked, watch for the
@@ -107,7 +109,11 @@ final class SettingsManager {
     /// defaults until the CloudKit settings pull restores the synced values.
     ///
     /// Migration: if a file exists in Documents but none in the App Group,
-    /// copy it across and continue using the App Group path.
+    /// copy it across and continue using the App Group path. When the copy
+    /// fails the Documents file stays in use for this launch, so the user's
+    /// settings are read and saved there and the copy is tried again next
+    /// launch; starting on defaults would create the App Group file on the
+    /// first change and abandon the Documents settings for good.
     nonisolated private static func resolveSettingsURL(fileManager: FileManager) -> URL {
         let appGroupURL = AppConfig.sharedContainerURL().appendingPathComponent("user_settings.json")
         let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask)
@@ -119,10 +125,11 @@ final class SettingsManager {
         do {
             try fileManager.copyItem(at: legacyURL, to: appGroupURL)
             debugLog("[SettingsManager] Migrated user_settings.json from Documents → App Group container")
+            return appGroupURL
         } catch {
-            debugLog("[SettingsManager] Migration copy failed (will continue with fresh defaults): \(error)")
+            debugLog("[SettingsManager] Migration copy failed (staying on the Documents file, retrying next launch): \(error)", level: .warning)
+            return legacyURL
         }
-        return appGroupURL
     }
 
     /// Durability for the off-main coalesced write: flush any pending settings
@@ -166,7 +173,23 @@ final class SettingsManager {
                 return (nil, .blockedByProtection)
             }
             debugLog("[SettingsManager] failed to load settings: \(nsError) — falling through to defaults", level: .warning)
+            preserveUnreadableFile(at: url)
             return (nil, .unreadableOther)
+        }
+    }
+
+    /// Keeps a copy of a settings file that exists but cannot be read, beside
+    /// it as `unreadableBackupName`, before the first change saves defaults
+    /// over it. A newer copy replaces an older one.
+    nonisolated private static func preserveUnreadableFile(at url: URL) {
+        let fm = FileManager.default
+        let backup = url.deletingLastPathComponent().appendingPathComponent(unreadableBackupName)
+        do {
+            if fm.fileExists(atPath: backup.path) { try fm.removeItem(at: backup) }
+            try fm.copyItem(at: url, to: backup)
+            debugLog("[SettingsManager] kept the unreadable settings file as \(unreadableBackupName)", level: .warning)
+        } catch {
+            debugLog("[SettingsManager] could not keep a copy of the unreadable settings file: \(error)", level: .error)
         }
     }
 
@@ -189,21 +212,68 @@ final class SettingsManager {
             Task { @MainActor in self?.retryLoadAfterUnlock() }
         }
     }
+    /// While the file is still locked the observer stays, so the next
+    /// unlock tries again.
     @MainActor
     private func retryLoadAfterUnlock() {
         let (loaded, outcome) = SettingsManager.load(from: settingsURL)
+        guard outcome != .blockedByProtection else {
+            debugLog("[SettingsManager] settings file still locked after unlock — will retry on the next unlock", level: .warning)
+            return
+        }
+        let startingPoint = lockedStartingPoint
+        lockedStartingPoint = nil
         loadOutcome = outcome
         if let loaded {
-            // Replace in-memory defaults with the real on-disk settings. The
-            // assignment runs `didSet`, which writes them back unchanged and
-            // posts the settings-changed notification observers need.
-            settings = loaded
+            // The real on-disk settings, keeping every field changed while
+            // locked. `didSet` saves the result and posts the notification.
+            settings = startingPoint.map { Self.merging(changesFrom: $0, to: settings, onto: loaded) } ?? loaded
             debugLog("[SettingsManager] real settings loaded after device unlock — \(loadOutcome) — guard lifted")
+        } else {
+            // Gone or unreadable (a copy kept) after all: saves are allowed,
+            // so the changes made while locked are written now.
+            save()
         }
-        if let observer = protectedDataObserver {
-            NotificationCenter.default.removeObserver(observer)
-            protectedDataObserver = nil
+        removeProtectedDataObserver()
+    }
+
+    private func removeProtectedDataObserver() {
+        guard let observer = protectedDataObserver else { return }
+        NotificationCenter.default.removeObserver(observer)
+        protectedDataObserver = nil
+    }
+
+    /// `disk` with every top-level field that `changed` holds differently
+    /// from `base` taken from `changed` (a field cleared in `changed` is
+    /// cleared). Compared and merged as JSON, so it covers every field
+    /// `UserSettings` encodes. Falls back to `disk` if the merge cannot be
+    /// encoded or decoded.
+    nonisolated static func merging(
+        changesFrom base: UserSettings, to changed: UserSettings, onto disk: UserSettings
+    ) -> UserSettings {
+        do {
+            let before = try jsonFields(base)
+            let after = try jsonFields(changed)
+            var merged = try jsonFields(disk)
+            for key in Set(before.keys).union(after.keys) where (before[key] as? NSObject) != (after[key] as? NSObject) {
+                merged[key] = after[key]
+            }
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .iso8601
+            return try decoder.decode(UserSettings.self, from: try JSONSerialization.data(withJSONObject: merged))
+        } catch {
+            debugLog("[SettingsManager] could not merge settings changed while the file was locked: \(error) — keeping the file's settings", level: .warning)
+            return disk
         }
+    }
+
+    /// The settings' top-level JSON fields, encoded as they are saved.
+    nonisolated private static func jsonFields(_ settings: UserSettings) throws -> [String: Any] {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        let object = try JSONSerialization.jsonObject(with: try encoder.encode(settings))
+        guard let fields = object as? [String: Any] else { throw CocoaError(.coderReadCorrupt) }
+        return fields
     }
 
     /// Reset every stored preference to a fresh-install state.
@@ -215,9 +285,46 @@ final class SettingsManager {
     /// next `save()` would rewrite the in-memory copy straight back. The
     /// in-memory state is the source of truth, so resetting it — and letting
     /// the `didSet` persist the defaults — is the only wipe that holds.
+    ///
+    /// While the file is locked the guard would suppress that save, so the
+    /// locked file is deleted instead (removing a file does not need to read
+    /// it) and the pending unlock retry is dropped, so it cannot load the
+    /// erased settings back. The copy kept of an unreadable file goes too.
     func resetToDefaults() {
+        if loadOutcome == .blockedByProtection {
+            Self.removeFile(at: settingsURL, what: "locked settings file")
+            loadOutcome = .fileNotPresent
+            lockedStartingPoint = nil
+            removeProtectedDataObserver()
+        }
+        Self.removeFile(at: settingsURL.deletingLastPathComponent().appendingPathComponent(Self.unreadableBackupName), what: "unreadable settings copy")
         settings = UserSettings()
         hasAcceptedDisclaimer = false
+    }
+
+    /// Deletes a settings file if it exists, logging a failure.
+    nonisolated private static func removeFile(at url: URL, what: String) {
+        guard FileManager.default.fileExists(atPath: url.path) else { return }
+        do {
+            try FileManager.default.removeItem(at: url)
+        } catch {
+            debugLog("[SettingsManager] could not delete the \(what): \(error)", level: .error)
+        }
+    }
+
+    /// Refuse to persist over a load that failed silently — that would
+    /// replace the user's real settings with the in-memory defaults. See
+    /// `loadOutcome` and `init` for the rationale. (A crash + re-launch
+    /// sequence once stamped fresh defaults onto the file because `init` had
+    /// no way to tell "file missing" from "file unreadable.") The change is
+    /// kept in memory and merged onto the real file once it can be read
+    /// (`retryLoadAfterUnlock`).
+    private func saveUnlessLocked() {
+        guard loadOutcome != .blockedByProtection else {
+            debugLog("[SettingsManager] settings change not saved yet — the file is locked and overwriting it would clobber the real settings. It is merged in once the file becomes readable.", level: .warning)
+            return
+        }
+        save()
     }
 
     private func save() {
@@ -301,7 +408,7 @@ final class SettingsManager {
                 forKey: .fileProtectionKey
             )
         } catch {
-            debugLog("Failed to save settings: \(error)")
+            debugLog("[SettingsManager] Failed to save settings: \(error)", level: .error)
         }
     }
 
@@ -315,11 +422,12 @@ final class SettingsManager {
         }
     }
 
-    /// Public access for the CloudKit sync helper — read-only export
-    /// of the current on-disk settings file as raw JSON, suitable for
-    /// pushing into a `CKRecord`. Returns nil when load failed (e.g.
-    /// device locked) so the sync layer doesn't echo defaults to
-    /// the cloud and overwrite the real backup.
+    /// Public access for the CloudKit sync helper — the in-memory settings
+    /// encoded as JSON the way they are saved, suitable for pushing into a
+    /// `CKRecord`. Returns nil unless the file loaded or did not exist: when
+    /// it was locked or unreadable the in-memory settings started from
+    /// defaults, and pushing them would overwrite the cloud copy, which is
+    /// how the user gets their real settings back.
     func currentSettingsJSON() -> Data? {
         guard loadOutcome == .loaded || loadOutcome == .fileNotPresent else { return nil }
         let encoder = JSONEncoder()
@@ -340,7 +448,12 @@ final class SettingsManager {
         // user-initiated action that supersedes whatever local state
         // was wedged.
         loadOutcome = .loaded
+        lockedStartingPoint = nil
         settings = restored
+        // The restored copy carries the synced mirror of the trial start; the
+        // anchor adopts it (keeping the earlier start) and the resolved start
+        // is mirrored back.
+        if let trialStart = restored.trialStartDate { adoptTrialStart(trialStart) }
     }
 
     // MARK: - Custom Tag Management
@@ -417,7 +530,8 @@ final class SettingsManager {
     /// Mirrors the trial clock into settings so CloudKit carries a second
     /// copy. StoreKitManager records the App Store's trial start in the
     /// anchor first, where it replaces any start an earlier build kept, so
-    /// here it only mirrors that date. A start from anywhere else is adopted
+    /// for it this only mirrors that date. A start from anywhere else — the
+    /// synced mirror `restoreFromJSON` brings back from iCloud — is adopted
     /// as a device start, which can only move earlier.
     func adoptTrialStart(_ start: Date) {
         if let current = EntitlementAnchor.cached().trialStartDate, current <= start {

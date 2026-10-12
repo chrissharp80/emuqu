@@ -160,8 +160,10 @@ extension RecoveryScoreDetailView {
     /// `RecoveryVitals.status` looks at breathing, temperature and SpO₂ only,
     /// so "All vitals at baseline … resting heart rate … within your usual
     /// range" could sit under a key finding of "Sleep HR 69 bpm (+13 vs
-    /// baseline)". The HR comparison the score itself uses — whole-night mean
-    /// HR against `meanHRBaseline`, in SD units — now gates that wording.
+    /// baseline)". The HR comparison the score itself uses — the strap's
+    /// analysis-window mean HR (`result.timeDomain.meanHR`, the same signal
+    /// `meanHRBaseline` is built from) against `meanHRBaseline`, in SD
+    /// units — now gates that wording.
     func sleepHRAboveBaselineExplanation() -> Explanation? {
         guard let baseline = baselineStats?.meanHRBaseline, baseline > 0,
               let sd = baselineStats?.meanHRSD, sd > 0 else { return nil }
@@ -184,11 +186,18 @@ extension RecoveryScoreDetailView {
         )
     }
 
+    /// "Within your usual range" is said only of vitals that were compared
+    /// (`everyMeasuredVitalCompared`); with nothing to compare against, no
+    /// card. Low SpO₂ alone is a low value, not one above baseline.
     func vitalsExplanation() -> Explanation? {
         guard let v = effectiveVitals, !v.isEmpty else { return nil }
         if v.status == .normal, let hr = sleepHRAboveBaselineExplanation() { return hr }
+        if v.status == .elevated, !v.isRespiratoryElevated, !v.isTemperatureElevated {
+            return RecoveryDetailCopy.lowSpO2Explanation
+        }
         switch v.status {
         case .normal:
+            guard everyMeasuredVitalCompared(v) else { return nil }
             return RecoveryDetailCopy.normalVitalsExplanation(effectiveVitals)
         case .elevated, .warning:
             return Explanation(
@@ -198,6 +207,16 @@ extension RecoveryScoreDetailView {
                 badgeColor: v.status == .warning ? AppTheme.wongAttention : AppTheme.wongCaution
             )
         }
+    }
+
+    /// Breathing and temperature are compared only with a baseline; sleep
+    /// HR only with `meanHRBaseline` and its SD (as in
+    /// `sleepHRAboveBaselineExplanation`); SpO₂ always, against its floor.
+    private func everyMeasuredVitalCompared(_ v: RecoveryVitals) -> Bool {
+        let hrBaselineKnown = (baselineStats?.meanHRBaseline ?? 0) > 0 && (baselineStats?.meanHRSD ?? 0) > 0
+        return (v.restingHeartRate == nil || hrBaselineKnown)
+            && (v.respiratoryRate == nil || v.respiratoryDeviation != nil)
+            && (v.wristTemperature == nil || v.wristTemperatureDeviation != nil)
     }
 
     func explanationCard(index: Int, title: String, body: String, badge: String, badgeColor: Color) -> some View {
@@ -272,8 +291,12 @@ extension RecoveryScoreDetailView {
         .padding(.top, 6)
     }
 
+    /// A frozen score with no stored breakdown has no recorded version: the
+    /// breakdown shown is today's recompute, whose version is not the one
+    /// that produced the score.
     private var scoringVersionLine: String {
-        guard breakdown.scoringVersion != ScoringVersion.unversioned else {
+        let versionRecorded = session.recoveryScore == nil || session.scoreBreakdown != nil
+        guard versionRecorded, breakdown.scoringVersion != ScoringVersion.unversioned else {
             return String(localized: "Scored before score versions were recorded", bundle: LanguageManager.appBundle)
         }
         return String(localized: "Scored by \(breakdown.scoringVersion)", bundle: LanguageManager.appBundle)
@@ -582,6 +605,17 @@ extension RecoveryScoreDetailView {
 /// the view type stays within its size budget; nothing here reads view state.
 @MainActor
 enum RecoveryDetailCopy {
+    /// `selectedSource` is an internal tag ("streaming", "internal",
+    /// "composite"), not display text.
+    static func dataSourceLabel(_ source: String) -> String {
+        switch source {
+        case "streaming": String(localized: "Streaming", bundle: LanguageManager.appBundle)
+        case "internal": String(localized: "Strap recording", bundle: LanguageManager.appBundle)
+        case "composite": String(localized: "Merged", bundle: LanguageManager.appBundle)
+        default: source
+        }
+    }
+
     /// `ScoreDetailBuilder` labels factors with fixed English identifiers;
     /// these are their catalog names.
     static func factorName(_ label: String) -> String {
@@ -601,6 +635,17 @@ enum RecoveryDetailCopy {
             return String(localized: "Overnight heart rate averaged %d bpm, %d above your usual.", bundle: LanguageManager.appBundle)
         }
         return String(localized: "Overnight heart rate averaged %d bpm, %d above your usual. Breathing and temperature are in range, so this is the one vital out of line tonight.", bundle: LanguageManager.appBundle)
+    }
+
+    /// SpO₂ below its floor with breathing and temperature in range: a low
+    /// reading, so not the "above your usual range" card.
+    static var lowSpO2Explanation: RecoveryScoreDetailView.Explanation {
+        RecoveryScoreDetailView.Explanation(
+            title: String(localized: "Blood Oxygen (SpO₂)", bundle: LanguageManager.appBundle),
+            body: String(localized: "Vitals penalties are deducted after the weighted composite. Elevated respiratory rate, temperature, or low SpO₂ signal physiological stress that may not yet appear in HRV.", bundle: LanguageManager.appBundle),
+            badge: String(localized: "Watch", bundle: LanguageManager.appBundle),
+            badgeColor: AppTheme.wongCaution
+        )
     }
 
     /// With neither breathing rate nor temperature measured, only the strap's

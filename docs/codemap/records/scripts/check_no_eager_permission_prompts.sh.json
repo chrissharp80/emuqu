@@ -1,0 +1,15 @@
+{
+ "file": "scripts/check_no_eager_permission_prompts.sh",
+ "hash": "30b87d68eb05a9c3",
+ "role": "CI gate: CBCentralManager/CBPeripheralManager/PolarBleApiDefaultImpl.polarImplementation must not be built in a non-lazy stored property or inside init(), and init() must not unconditionally read a lazy/computed builder property.",
+ "types": [],
+ "state": [
+  "dir:Emuqu/Sources",
+  "dir:EmuquWatch Watch App",
+  "file:Emuqu/EmuquApp.swift"
+ ],
+ "toplevel": "set -euo pipefail; cd to repo root. Python ROOTS Emuqu/Sources, watch app, Emuqu/EmuquApp.swift (a missing root -> exit 2); code_lines strips // tails; builder_properties at brace depth <=1; builder_functions = methods in the same file whose body constructs a prompting type, reads a builder property, or (transitively) calls such a method; scan tracks init bodies by brace depth and flags constructions at stored-property depth (non-lazy), inside init, top-level init reads of builder properties, and top-level init calls of builder methods (braced sub-blocks removed). Problems -> exit 1; else clean with file count.",
+ "flags": [],
+ "units": [],
+ "deps": {}
+}

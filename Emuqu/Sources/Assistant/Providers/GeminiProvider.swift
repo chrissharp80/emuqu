@@ -8,24 +8,6 @@ import Foundation
 /// model replies with parts containing either `text` OR `functionCall`. We
 /// return results via parts with `functionResponse` blocks.
 final class GeminiProvider: AIProvider, Sendable {
-    /// Same tuned session pattern as
-    /// `OpenAICompatibleStreamer` and `AnthropicProvider`. Not
-    /// `URLSession.shared`, which fails fast on
-    /// cellular handoffs and surfaces "Gemini cannot connect" the
-    /// instant a tower hands the radio off.
-    private static let streamSession: URLSession = {
-        let config = URLSessionConfiguration.default
-        config.waitsForConnectivity = true
-        config.timeoutIntervalForRequest = 30
-        config.timeoutIntervalForResource = 180
-        config.allowsCellularAccess = true
-        config.allowsConstrainedNetworkAccess = true
-        config.allowsExpensiveNetworkAccess = true
-        config.httpMaximumConnectionsPerHost = 4
-        config.urlCache = nil
-        return URLSession(configuration: config)
-    }()
-
     /// Checked against ai.google.dev/gemini-api/docs/models, /pricing and
     /// /deprecations. `ProviderModelCatalogTests` pins this list.
     ///
@@ -210,7 +192,8 @@ final class GeminiProvider: AIProvider, Sendable {
 
     /// One tool round as the model/user pair every provider requires: a model
     /// turn carrying the function calls, then a user turn carrying the matching
-    /// responses.
+    /// responses. A result that is not JSON (a plain-text resolver error) is
+    /// sent as the text itself rather than dropped.
     private static func toolRoundContents(_ round: [ToolExchange]) -> [RequestBody.Content] {
         let callParts: [RequestBody.Part] = round.map { exchange in
             let argsObj = (try? JSONSerialization.jsonObject(with: Data(exchange.inputJSON.utf8))) as? [String: Any] ?? [:]
@@ -220,7 +203,7 @@ final class GeminiProvider: AIProvider, Sendable {
             )
         }
         let responseParts: [RequestBody.Part] = round.map { exchange in
-            let resultObj = (try? JSONSerialization.jsonObject(with: Data(exchange.resultJSON.utf8))) ?? [String: Any]()
+            let resultObj = (try? JSONSerialization.jsonObject(with: Data(exchange.resultJSON.utf8))) ?? exchange.resultJSON
             // Gemini wants `response: { ... }` — wrap the resolver's JSON
             // under a synthetic `result` key so Gemini's type checker
             // accepts it (functionResponse.response must be an object).
@@ -262,6 +245,12 @@ final class GeminiProvider: AIProvider, Sendable {
         return url
     }
 
+    /// The prompt is split on the cache marker so the stable prefix can live
+    /// in `systemInstruction` (byte-stable across turns, eligible for
+    /// Gemini's explicit caching API and for automatic prefix reuse) and the
+    /// variable suffix rides on the last user message instead, where per-turn
+    /// drift is already expected. A per-second `nowSnapshot` inside
+    /// `systemInstruction` breaks Gemini's prefix-reuse heuristics.
     private func stream(
         messages: [ChatTurn],
         model: ModelOption,
@@ -272,48 +261,24 @@ final class GeminiProvider: AIProvider, Sendable {
         continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
     ) async throws {
         guard let apiKey = AppDependencies.current.providers.apiKeyStore.key(for: .gemini) else { throw AIProviderError.missingKey(.gemini) }
-        let split = Self.splitOnCacheMarker(systemPrompt)
+        let split = ProviderHTTP.splitOnCacheMarker(systemPrompt)
         let body = RequestBody(
             systemInstruction: .init(parts: [.init(text: split.stable)]),
             contents: buildContents(
                 messages: messages,
                 toolRounds: toolRounds,
-                liveStateBlock: Self.liveStateBlock(variableSystem: split.variable, contextRendered: contextRendered)
+                liveStateBlock: ProviderHTTP.liveStateEnvelope(variableSystem: split.variable, contextRendered: contextRendered)
             ),
             tools: Self.toolDeclarations(for: tools)
         )
         let request = try Self.makeRequest(url: Self.streamEndpoint(for: model), apiKey: apiKey, body: body)
-        let (bytes, response) = try await Self.streamSession.bytes(for: request)
+        let (bytes, response) = try await ProviderHTTP.streamSession.bytes(for: request)
         try Task.checkCancellation()
         if let http = response as? HTTPURLResponse, !(200 ... 299).contains(http.statusCode) {
             try await Self.throwForStatus(http.statusCode, bytes: bytes)
         }
         try await Self.consumeSSE(bytes, continuation: continuation)
         continuation.yield(.done)
-    }
-
-    /// Split on the cache marker so the stable prefix
-    /// can live in `systemInstruction` (byte-stable across turns,
-    /// eligible for Gemini's explicit caching API and for any
-    /// automatic prefix reuse within a conversation) and the
-    /// variable suffix rides on the last user message instead,
-    /// where per-turn drift is already expected. Same pattern as
-    /// AnthropicProvider's `<live_state>` splice and
-    /// OpenAICompatibleStreamer. A per-second `nowSnapshot` inside
-    /// `systemInstruction` breaks Gemini's prefix-reuse heuristics on
-    /// every send.
-    private static func splitOnCacheMarker(_ systemPrompt: String) -> (stable: String, variable: String) {
-        let marker = AssistantSystemPrompt.Composed.cacheSplitMarker
-        let parts = systemPrompt.components(separatedBy: marker)
-        let variable = parts.count > 1 ? parts.dropFirst().joined(separator: marker) : ""
-        return (parts.first ?? systemPrompt, variable)
-    }
-
-    /// The `<live_state>` envelope appended to the last user message, or an
-    /// empty string when there's nothing per-turn to carry.
-    private static func liveStateBlock(variableSystem: String, contextRendered: String) -> String {
-        let body = [variableSystem, contextRendered].filter { !$0.isEmpty }.joined(separator: "\n\n")
-        return body.isEmpty ? "" : "\n\n<live_state>\n\(body)\n</live_state>"
     }
 
     private static func toolDeclarations(for tools: [ToolSpec]) -> [RequestBody.Tool]? {
@@ -359,12 +324,22 @@ final class GeminiProvider: AIProvider, Sendable {
             guard !payload.isEmpty, let data = payload.data(using: .utf8),
                   let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
             else { continue }
+            if let failure = ProviderHTTP.streamFailure(in: json) ?? blockedPrompt(in: json) { throw failure }
             for part in Self.contentParts(in: json) {
                 yieldPart(part, counter: &toolUseCounter, continuation: continuation)
             }
             lastUsage = json["usageMetadata"] as? [String: Any] ?? lastUsage
         }
         yieldUsage(lastUsage, to: continuation)
+    }
+
+    /// A chunk that says the prompt was blocked (`promptFeedback.blockReason`
+    /// with no candidates) as an error, so a blocked reply does not end as an
+    /// empty success. Nil for any other chunk.
+    private static func blockedPrompt(in json: [String: Any]) -> AIProviderError? {
+        guard json["candidates"] == nil,
+              let reason = (json["promptFeedback"] as? [String: Any])?["blockReason"] as? String else { return nil }
+        return .invalidResponse("Gemini blocked the request (\(reason))")
     }
 
     /// The `candidates[0].content.parts` array, or empty when the chunk
@@ -400,6 +375,8 @@ final class GeminiProvider: AIProvider, Sendable {
     /// `promptTokenCount` already includes the cached tokens, while
     /// `.usage`'s `inputTokens` is the uncached part (Anthropic's shape, which
     /// the cache-hit ratio assumes), so the cached count is taken out.
+    /// Output is the reply plus the thinking tokens, which Gemini reports
+    /// separately (`thoughtsTokenCount`) and bills as output.
     private static func yieldUsage(
         _ usage: [String: Any]?,
         to continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
@@ -407,7 +384,7 @@ final class GeminiProvider: AIProvider, Sendable {
         guard let usage else { return }
         let cachedCount = usage["cachedContentTokenCount"] as? Int ?? 0
         let input = max(0, (usage["promptTokenCount"] as? Int ?? 0) - cachedCount)
-        let output = usage["candidatesTokenCount"] as? Int ?? 0
+        let output = (usage["candidatesTokenCount"] as? Int ?? 0) + (usage["thoughtsTokenCount"] as? Int ?? 0)
         let cached = cachedCount
         guard input > 0 || output > 0 || cached > 0 else { return }
         continuation.yield(.usage(
@@ -416,47 +393,21 @@ final class GeminiProvider: AIProvider, Sendable {
         ))
     }
 
+    /// Gemini answers a bad API key with HTTP 400 (`INVALID_ARGUMENT`, reason
+    /// `API_KEY_INVALID`), not 401, so that case is read from the body before
+    /// the status mapping.
     private static func throwForStatus(_ status: Int, bytes: URLSession.AsyncBytes) async throws -> Never {
-        var collected = Data()
-        for try await byte in bytes {
-            collected.append(byte)
-            if collected.count >= 4096 { break }
-        }
+        let collected = try await ProviderHTTP.errorBody(bytes)
         let bodyText = redactAPIKeys(String(data: collected, encoding: .utf8) ?? "")
         if ProviderAccountReply.isCreditExhausted(status: status, body: bodyText) {
             throw AIProviderError.outOfCredit(.gemini)
         }
-        throw statusError(status, message: errorMessage(from: collected) ?? String(bodyText.prefix(300)))
-    }
-
-    /// Maps an HTTP failure to the error the chat banner shows. 5xx are
-    /// transient on Google's side (503 UNAVAILABLE is the usual overload),
-    /// so the user gets a plain "try again" instead of a status dump.
-    private static func statusError(_ status: Int, message: String) -> AIProviderError {
-        switch status {
-        case 401, 403: return .authFailed
-        case 429: return .rateLimited
-        case 404: return .modelUnavailable(message)
-        case 500...599:
-            return .modelUnavailable(String(
-                localized: "Gemini is overloaded right now. Try again in a moment.",
-                bundle: LanguageManager.appBundle
-            ))
-        default: return .invalidResponse("HTTP \(status): \(message)")
-        }
-    }
-
-    /// Pulls `error.message` out of Gemini's JSON error envelope
-    /// (`{"error":{"code":400,"message":"...","status":"..."}}`) so the
-    /// banner shows one readable sentence instead of raw JSON.
-    private static func errorMessage(from data: Data) -> String? {
-        let object: Any
-        do { object = try JSONSerialization.jsonObject(with: data) } catch { return nil }
-        guard let json = object as? [String: Any],
-              let error = json["error"] as? [String: Any],
-              let message = error["message"] as? String, !message.isEmpty
-        else { return nil }
-        return redactAPIKeys(message)
+        if status == 400, bodyText.contains("API_KEY_INVALID") { throw AIProviderError.authFailed }
+        throw ProviderHTTP.statusError(
+            status,
+            message: ProviderHTTP.errorMessage(from: collected) ?? String(bodyText.prefix(300)),
+            overloaded: String(localized: "Gemini is overloaded right now. Try again in a moment.", bundle: LanguageManager.appBundle)
+        )
     }
 }
 

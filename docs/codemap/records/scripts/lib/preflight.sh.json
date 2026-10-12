@@ -1,0 +1,198 @@
+{
+ "file": "scripts/lib/preflight.sh",
+ "hash": "f6462e79608176da",
+ "role": "Sourced library for gates: fail-closed temp file/dir creation, a fail-closed non-empty-input assertion, and a working-tree mutation lock taken by verify_gates_fail.sh / verify_tests_fail.sh and checked only by simulate_ci.sh.",
+ "types": [],
+ "state": [
+  "env:GATE_TREE_LOCK (default <git-dir>/emuqu-tree-mutation.lock, or $TMPDIR//tmp if not a repo)",
+  "file:<lock>/owner, <lock>/pid"
+ ],
+ "toplevel": "On source: runs `git rev-parse --git-dir` (errors swallowed) and sets GATE_TREE_LOCK. git-dir is relative ('.git') when run from the repo root, so the lock path is relative to the caller's cwd. No `set` options are changed.",
+ "flags": [],
+ "units": [
+  {
+   "key": "fn gate_mktemp",
+   "hash": "09dffc97641d2d3f",
+   "does": "Creates $TMPDIR(or /tmp)/<label>.XXXXXX via mktemp with an explicit template, verifies it is writable, prints its path; on failure prints FATAL and exits 70 (only the $( ) subshell — callers must `|| exit $?`).",
+   "entry": null,
+   "calls": [
+    "ext:mktemp"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "mktemp failed or returned empty",
+     "effect": "FATAL to stderr, exit 70"
+    },
+    {
+     "at": "+13",
+     "cond": "path not writable",
+     "effect": "FATAL, exit 70; else print path"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "fn gate_require_nonempty",
+   "hash": "830b4c48d9a29736",
+   "does": "Exits 70 with a FATAL message if the given path is missing or empty. Must be called directly (not in $( )) so the exit ends the caller; check_thread_sanitizer.sh calls it on its xcodebuild log.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "! -s path",
+     "effect": "FATAL, exit 70; else return 0"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "fn gate_mktemp_dir",
+   "hash": "80b9c6fdaa311dce",
+   "does": "Creates $TMPDIR(or /tmp)/<label>.XXXXXX with `mktemp -d` and an explicit template (works on GNU and BSD mktemp) and prints it; exits 70 on failure (only the $( ) subshell - callers must `|| exit $?`).",
+   "entry": null,
+   "calls": [
+    "ext:mktemp"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "mktemp failed or path not a dir",
+     "effect": "FATAL, exit 70; else print path"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "scripts/lib/preflight.sh::fn gate_mktemp": "2bf9e9cec64b1ffe"
+   }
+  },
+  {
+   "key": "fn _gate_lock_holder_pid",
+   "hash": "e630f0f87778f422",
+   "does": "Prints the pid in <lock>/pid, retrying every 0.1 s up to 20 times while the lock dir exists but the pid file is still missing/empty (the holder may be between mkdir and its pid write); prints 0 when there is none.",
+   "entry": null,
+   "calls": [
+    "ext:cat",
+    "ext:sleep"
+   ],
+   "reads": [
+    "file:<lock>/pid"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "loop: fewer than 20 tries",
+     "effect": "read pid"
+    },
+    {
+     "at": "+5",
+     "cond": "pid non-empty or lock dir gone",
+     "effect": "stop waiting"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "fn gate_acquire_tree_lock",
+   "hash": "e4360264e9f5483e",
+   "does": "Takes the tree-mutation lock with atomic mkdir; if it exists, reads the holder pid via _gate_lock_holder_pid (which waits up to 2 s for a holder still writing its pid): live pid -> exit 75; dead or absent -> warns, removes and re-creates it (exit 70 if that fails). Then writes pid ($$) first, then owner.",
+   "entry": null,
+   "calls": [
+    "scripts/lib/preflight.sh::fn _gate_lock_holder_pid"
+   ],
+   "reads": [
+    "file:<lock>/owner",
+    "file:<lock>/pid"
+   ],
+   "writes": [
+    "file:<lock> dir, owner, pid"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "mkdir fails (lock exists)",
+     "effect": "inspect holder"
+    },
+    {
+     "at": "+6",
+     "cond": "pid non-zero and kill -0 succeeds",
+     "effect": "FATAL, exit 75; otherwise treat as stale: warn, rm -rf, mkdir (exit 70 on failure)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "scripts/lib/preflight.sh::fn _gate_lock_holder_pid": "f17cd95e79a7f4fd"
+   }
+  },
+  {
+   "key": "fn gate_release_tree_lock",
+   "hash": "c44b0ad8b790918b",
+   "does": "Removes the lock directory if present; always returns 0.",
+   "entry": "EXIT/INT/TERM/HUP trap in verify_gates_fail.sh and verify_tests_fail.sh",
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "file:<lock> (rm)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "lock dir exists",
+     "effect": "rm -rf; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "fn gate_require_unmutated_tree",
+   "hash": "e14f1f4bc6ae9901",
+   "does": "For readers (only simulate_ci.sh calls it; individual gates do not, as the lock comment now says): no lock -> return 0; holder pid (via _gate_lock_holder_pid) alive -> FATAL exit 75; otherwise warns about a stale lock, removes it and returns 0.",
+   "entry": null,
+   "calls": [
+    "scripts/lib/preflight.sh::fn _gate_lock_holder_pid"
+   ],
+   "reads": [
+    "file:<lock>/owner",
+    "file:<lock>/pid"
+   ],
+   "writes": [
+    "file:<lock> (rm when stale)"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "no lock dir",
+     "effect": "return 0"
+    },
+    {
+     "at": "+6",
+     "cond": "holder pid alive",
+     "effect": "FATAL, exit 75; else warn, remove lock, return 0 (the leaked mutation is not checked, only a hint printed)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "scripts/lib/preflight.sh::fn _gate_lock_holder_pid": "f17cd95e79a7f4fd"
+   }
+  }
+ ],
+ "deps": {
+  "scripts/lib/preflight.sh::fn gate_acquire_tree_lock": "8261ba2c532e1783",
+  "scripts/lib/preflight.sh::fn gate_mktemp": "2bf9e9cec64b1ffe",
+  "scripts/lib/preflight.sh::fn gate_mktemp_dir": "9f63eab3fc268bc7",
+  "scripts/lib/preflight.sh::fn gate_release_tree_lock": "7a8e2c68b3650dea",
+  "scripts/lib/preflight.sh::fn gate_require_unmutated_tree": "de19fe67d79d4de5"
+ }
+}

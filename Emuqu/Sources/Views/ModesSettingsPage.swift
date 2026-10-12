@@ -8,7 +8,6 @@ import SwiftUI
 struct ModesSettingsPage: View {
     @Environment(\.dependencies) var dependencies
     @Bindable var settingsManager: SettingsManager = AppDependencies.current.app.settingsManager
-    @State private var showOverreachDatePicker = false
 
     var body: some View {
         Form {
@@ -103,14 +102,7 @@ struct ModesSettingsPage: View {
         let active = settingsManager.settings.isComebackModeActive
         let bind = Binding<Bool>(
             get: { active },
-            set: { newValue in
-                if newValue {
-                    settingsManager.settings.comebackModeStartDate = Date()
-                    dependencies.services.validationTelemetry.recordModeActivation(.comeback)
-                } else {
-                    settingsManager.settings.comebackModeStartDate = nil
-                }
-            }
+            set: { TrainingModeSwitches.setComeback($0, settings: settingsManager, telemetry: dependencies.services.validationTelemetry) }
         )
         return VStack(alignment: .leading, spacing: 6) {
             Toggle(isOn: bind) {
@@ -162,22 +154,8 @@ struct ModesSettingsPage: View {
         settingsManager.settings.isIntentionalOverreachInEffect
     }
 
-    /// Turning the mode on saves the end date the picker shows (a week from
-    /// today); turning it off clears it.
     private func setOverreach(_ on: Bool) {
-        settingsManager.settings.intentionalOverreachActive = on
-        guard on else {
-            settingsManager.settings.intentionalOverreachEndDate = nil
-            return
-        }
-        settingsManager.settings.intentionalOverreachEndDate = Self.defaultOverreachEnd
-        dependencies.services.validationTelemetry.recordModeActivation(.intentionalOverreach)
-    }
-
-    private static var defaultOverreachEnd: Date {
-        let calendar = Calendar.current
-        let today = calendar.startOfDay(for: Date())
-        return calendar.date(byAdding: .day, value: 7, to: today) ?? today.addingTimeInterval(7 * 24 * 3600)
+        TrainingModeSwitches.setOverreach(on, settings: settingsManager, telemetry: dependencies.services.validationTelemetry)
     }
 
     /// Tomorrow: an end date of today would switch the mode off at once.
@@ -195,9 +173,24 @@ struct ModesSettingsPage: View {
         return String(localized: "Active. Tap below to set an end date.", bundle: LanguageManager.appBundle)
     }
 
+    /// With no end date saved (a block switched on open-ended before both
+    /// switches shared `TrainingModeSwitches`), the row is a button that
+    /// saves the default end date, not a picker showing a date that is not
+    /// saved; the caption above asks for exactly that tap.
+    @ViewBuilder
     private var overreachEndDateRow: some View {
+        if let end = settingsManager.settings.intentionalOverreachEndDate {
+            overreachEndDatePicker(end)
+        } else {
+            Button(String(localized: "Auto-deactivate on", bundle: LanguageManager.appBundle)) {
+                settingsManager.settings.intentionalOverreachEndDate = TrainingModeSwitches.defaultOverreachEnd
+            }
+        }
+    }
+
+    private func overreachEndDatePicker(_ end: Date) -> some View {
         let bind = Binding<Date>(
-            get: { settingsManager.settings.intentionalOverreachEndDate ?? Self.defaultOverreachEnd },
+            get: { end },
             set: { settingsManager.settings.intentionalOverreachEndDate = Calendar.current.startOfDay(for: $0) }
         )
         return DatePicker(
@@ -206,5 +199,35 @@ struct ModesSettingsPage: View {
             in: Self.earliestOverreachEnd...,
             displayedComponents: .date
         )
+    }
+}
+
+/// The Comeback and Intentional overreach switches, one implementation for
+/// Settings → Modes and the Load & Trajectory screen, so a mode behaves the
+/// same whichever screen turned it on: overreach always gets an end date a
+/// week out (it never stays on open-ended), and every switch-on is counted
+/// in the mode-activation telemetry.
+@MainActor
+enum TrainingModeSwitches {
+    static func setComeback(_ on: Bool, settings: SettingsManager, telemetry: ValidationTelemetry) {
+        settings.settings.comebackModeStartDate = on ? Date() : nil
+        if on { telemetry.recordModeActivation(.comeback) }
+    }
+
+    /// On saves the default end date (a week from today); off clears it.
+    static func setOverreach(_ on: Bool, settings: SettingsManager, telemetry: ValidationTelemetry) {
+        settings.settings.intentionalOverreachActive = on
+        guard on else {
+            settings.settings.intentionalOverreachEndDate = nil
+            return
+        }
+        settings.settings.intentionalOverreachEndDate = defaultOverreachEnd
+        telemetry.recordModeActivation(.intentionalOverreach)
+    }
+
+    static var defaultOverreachEnd: Date {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        return calendar.date(byAdding: .day, value: 7, to: today) ?? today.addingTimeInterval(7 * 24 * 3600)
     }
 }

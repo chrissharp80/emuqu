@@ -1,0 +1,475 @@
+{
+ "file": "EmuquTests/DFAReferenceValidationTests.swift",
+ "hash": "8531c787842a6d2c",
+ "role": "Reference-value tests for DFAAnalyzer against processes with analytic scaling exponents (white 0.5, pink 1.0, Brownian 1.5) on 4096 seeded samples, plus offset/amplitude invariance, ramp finiteness and bit-exact determinism. Declares SeededGenerator (SplitMix64), also used by DFAAnalysisTests.",
+ "types": [
+  "DFAReferenceValidationTests: class (XCTestCase)",
+  "DFAReferenceValidationTests.SeededGenerator: struct (RandomNumberGenerator) — SplitMix64 PRNG"
+ ],
+ "state": [
+  "sampleCount = 4096",
+  "shortScaleTolerance = 0.15",
+  "asymptoticTolerance = 0.10"
+ ],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Header says DFAAnalysisTests 'uses Double.random, which cannot say that', but DFAAnalysisTests now draws from this file's SeededGenerator (seeds 0xD1/0xD2); the comment is stale.",
+   "evidence": [
+    "EmuquTests/DFAReferenceValidationTests.swift:26",
+    "EmuquTests/DFAAnalysisTests.swift:21",
+    "EmuquTests/DFAAnalysisTests.swift:29"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Doc comment says the α2 assertions 'hold to 0.10', but testPinkNoiseScalesAtOne checks α2 with accuracy 0.15.",
+   "evidence": [
+    "EmuquTests/DFAReferenceValidationTests.swift:49",
+    "EmuquTests/DFAReferenceValidationTests.swift:72"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func DFAReferenceValidationTests.testUncorrelatedNoiseScalesAtOneHalf()",
+   "hash": "a26c013a88d5d120",
+   "does": "White Gaussian noise (seed 0x5EED0001): asserts α1 = 0.5 ± 0.15 and α2 = 0.5 ± 0.10.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.integratedSeries(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.detrendedSumOfSquares(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.leastSquaresLine(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:beatCount:)",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.uncorrelatedNoise()",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.gaussianSamples(count:seed:)",
+    "EmuquTests/DFAReferenceValidationTests.swift::init DFAReferenceValidationTests.SeededGenerator(seed:)",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.SeededGenerator.next()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:beatCount:)": "ff10fadb59725343",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "3401262883b38a4b",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:)": "5e2d210eaaa5ec53",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.detrendedSumOfSquares(_:)": "568750a21fdeea90",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.integratedSeries(_:)": "2016475f9338aaaf",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.leastSquaresLine(_:)": "29cd50667ce25e0a",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)": "40d4e06584f15088",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)": "6da94147dc9db2eb",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)": "0849ec6ef37bc3ef",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.SeededGenerator.next()": "80a4dd34e7ac09ba",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.gaussianSamples(count:seed:)": "6394fe8e27f29d54",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.uncorrelatedNoise()": "f042f8e295a31b2f",
+    "EmuquTests/DFAReferenceValidationTests.swift::init DFAReferenceValidationTests.SeededGenerator(seed:)": "df012a011701b266"
+   }
+  },
+  {
+   "key": "func DFAReferenceValidationTests.testPinkNoiseScalesAtOne()",
+   "hash": "a6f24fbe1678ffbb",
+   "does": "Voss–McCartney pink noise: asserts α1 = 1.0 ± 0.15 and α2 = 1.0 ± 0.15.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.integratedSeries(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.detrendedSumOfSquares(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.leastSquaresLine(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:beatCount:)",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.pinkNoise()",
+    "EmuquTests/DFAReferenceValidationTests.swift::init DFAReferenceValidationTests.SeededGenerator(seed:)",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.SeededGenerator.next()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:beatCount:)": "ff10fadb59725343",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "3401262883b38a4b",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:)": "5e2d210eaaa5ec53",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.detrendedSumOfSquares(_:)": "568750a21fdeea90",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.integratedSeries(_:)": "2016475f9338aaaf",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.leastSquaresLine(_:)": "29cd50667ce25e0a",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)": "40d4e06584f15088",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)": "6da94147dc9db2eb",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)": "0849ec6ef37bc3ef",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.SeededGenerator.next()": "80a4dd34e7ac09ba",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.pinkNoise()": "87cf8c219159c20b",
+    "EmuquTests/DFAReferenceValidationTests.swift::init DFAReferenceValidationTests.SeededGenerator(seed:)": "df012a011701b266"
+   }
+  },
+  {
+   "key": "func DFAReferenceValidationTests.testBrownianMotionScalesAtThreeHalves()",
+   "hash": "a6801cb12e534be0",
+   "does": "Re-centred random walk: asserts α1 = 1.5 ± 0.15 and α2 = 1.5 ± 0.10.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.integratedSeries(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.detrendedSumOfSquares(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.leastSquaresLine(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:beatCount:)",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.brownianMotion()",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.gaussianSamples(count:seed:)",
+    "EmuquTests/DFAReferenceValidationTests.swift::init DFAReferenceValidationTests.SeededGenerator(seed:)",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.SeededGenerator.next()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:beatCount:)": "ff10fadb59725343",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "3401262883b38a4b",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:)": "5e2d210eaaa5ec53",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.detrendedSumOfSquares(_:)": "568750a21fdeea90",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.integratedSeries(_:)": "2016475f9338aaaf",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.leastSquaresLine(_:)": "29cd50667ce25e0a",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)": "40d4e06584f15088",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)": "6da94147dc9db2eb",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)": "0849ec6ef37bc3ef",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.SeededGenerator.next()": "80a4dd34e7ac09ba",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.brownianMotion()": "d5a266f9e9930fd3",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.gaussianSamples(count:seed:)": "6394fe8e27f29d54",
+    "EmuquTests/DFAReferenceValidationTests.swift::init DFAReferenceValidationTests.SeededGenerator(seed:)": "df012a011701b266"
+   }
+  },
+  {
+   "key": "func DFAReferenceValidationTests.testExponentsSeparateTheThreeProcesses()",
+   "hash": "4e0143f7789cab3d",
+   "does": "Asserts α1(white)+0.2 < α1(pink) and α1(pink)+0.2 < α1(brown).",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.integratedSeries(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.detrendedSumOfSquares(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.leastSquaresLine(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:beatCount:)",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.uncorrelatedNoise()",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.brownianMotion()",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.pinkNoise()",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.gaussianSamples(count:seed:)",
+    "EmuquTests/DFAReferenceValidationTests.swift::init DFAReferenceValidationTests.SeededGenerator(seed:)",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.SeededGenerator.next()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:beatCount:)": "ff10fadb59725343",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "3401262883b38a4b",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:)": "5e2d210eaaa5ec53",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.detrendedSumOfSquares(_:)": "568750a21fdeea90",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.integratedSeries(_:)": "2016475f9338aaaf",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.leastSquaresLine(_:)": "29cd50667ce25e0a",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)": "40d4e06584f15088",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)": "6da94147dc9db2eb",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)": "0849ec6ef37bc3ef",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.SeededGenerator.next()": "80a4dd34e7ac09ba",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.brownianMotion()": "d5a266f9e9930fd3",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.gaussianSamples(count:seed:)": "6394fe8e27f29d54",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.pinkNoise()": "87cf8c219159c20b",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.uncorrelatedNoise()": "f042f8e295a31b2f",
+    "EmuquTests/DFAReferenceValidationTests.swift::init DFAReferenceValidationTests.SeededGenerator(seed:)": "df012a011701b266"
+   }
+  },
+  {
+   "key": "func DFAReferenceValidationTests.testExponentIsUnchangedByAConstantOffset()",
+   "hash": "531f7f5672740e87",
+   "does": "Asserts α1 of pink noise is unchanged (1e-9) by adding 250 ms to every sample.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.integratedSeries(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.detrendedSumOfSquares(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.leastSquaresLine(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:beatCount:)",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.pinkNoise()",
+    "EmuquTests/DFAReferenceValidationTests.swift::init DFAReferenceValidationTests.SeededGenerator(seed:)",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.SeededGenerator.next()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:beatCount:)": "ff10fadb59725343",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "3401262883b38a4b",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:)": "5e2d210eaaa5ec53",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.detrendedSumOfSquares(_:)": "568750a21fdeea90",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.integratedSeries(_:)": "2016475f9338aaaf",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.leastSquaresLine(_:)": "29cd50667ce25e0a",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)": "40d4e06584f15088",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)": "6da94147dc9db2eb",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)": "0849ec6ef37bc3ef",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.SeededGenerator.next()": "80a4dd34e7ac09ba",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.pinkNoise()": "87cf8c219159c20b",
+    "EmuquTests/DFAReferenceValidationTests.swift::init DFAReferenceValidationTests.SeededGenerator(seed:)": "df012a011701b266"
+   }
+  },
+  {
+   "key": "func DFAReferenceValidationTests.testExponentIsUnchangedByAmplitudeScaling()",
+   "hash": "239142bbdf2d1ad3",
+   "does": "Asserts α1 of pink noise is unchanged (1e-9) when deviations from 850 are scaled ×3.5.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.integratedSeries(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.detrendedSumOfSquares(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.leastSquaresLine(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:beatCount:)",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.pinkNoise()",
+    "EmuquTests/DFAReferenceValidationTests.swift::init DFAReferenceValidationTests.SeededGenerator(seed:)",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.SeededGenerator.next()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:beatCount:)": "ff10fadb59725343",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "3401262883b38a4b",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:)": "5e2d210eaaa5ec53",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.detrendedSumOfSquares(_:)": "568750a21fdeea90",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.integratedSeries(_:)": "2016475f9338aaaf",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.leastSquaresLine(_:)": "29cd50667ce25e0a",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)": "40d4e06584f15088",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)": "6da94147dc9db2eb",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)": "0849ec6ef37bc3ef",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.SeededGenerator.next()": "80a4dd34e7ac09ba",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.pinkNoise()": "87cf8c219159c20b",
+    "EmuquTests/DFAReferenceValidationTests.swift::init DFAReferenceValidationTests.SeededGenerator(seed:)": "df012a011701b266"
+   }
+  },
+  {
+   "key": "func DFAReferenceValidationTests.testAPureLinearRampProducesAFiniteExponent()",
+   "hash": "afbb271c23275442",
+   "does": "4096-sample linear ramp 800 + 0.05 i: asserts α1 is finite and not NaN.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.integratedSeries(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.detrendedSumOfSquares(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.leastSquaresLine(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:beatCount:)",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "The comment says a ramp's residuals are zero so the fluctuation collapses to the log(0) guard; but DFA integrates the mean-removed series first, turning the ramp into a parabola whose per-box linear residuals are non-zero (F(n) grows as n^2). The test only asserts finiteness, so the stated premise is never checked and neither is the value of α1.",
+     "evidence": [
+      "EmuquTests/DFAReferenceValidationTests.swift:124",
+      "Emuqu/Sources/Analysis/DFAAnalysis.swift:57",
+      "Emuqu/Sources/Analysis/DFAAnalysis.swift:125"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:beatCount:)": "ff10fadb59725343",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "3401262883b38a4b",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:)": "5e2d210eaaa5ec53",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.detrendedSumOfSquares(_:)": "568750a21fdeea90",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.integratedSeries(_:)": "2016475f9338aaaf",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.leastSquaresLine(_:)": "29cd50667ce25e0a",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)": "40d4e06584f15088",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)": "6da94147dc9db2eb",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)": "0849ec6ef37bc3ef"
+   }
+  },
+  {
+   "key": "func DFAReferenceValidationTests.testTheSameSeriesGivesTheSameExponent()",
+   "hash": "ec5230d00db59e57",
+   "does": "Computes pink noise twice and asserts α1 and α2 are exactly equal.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.integratedSeries(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.detrendedSumOfSquares(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.leastSquaresLine(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:beatCount:)",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.pinkNoise()",
+    "EmuquTests/DFAReferenceValidationTests.swift::init DFAReferenceValidationTests.SeededGenerator(seed:)",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.SeededGenerator.next()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:beatCount:)": "ff10fadb59725343",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "3401262883b38a4b",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:)": "5e2d210eaaa5ec53",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.detrendedSumOfSquares(_:)": "568750a21fdeea90",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.integratedSeries(_:)": "2016475f9338aaaf",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.leastSquaresLine(_:)": "29cd50667ce25e0a",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)": "40d4e06584f15088",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)": "6da94147dc9db2eb",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)": "0849ec6ef37bc3ef",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.SeededGenerator.next()": "80a4dd34e7ac09ba",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.pinkNoise()": "87cf8c219159c20b",
+    "EmuquTests/DFAReferenceValidationTests.swift::init DFAReferenceValidationTests.SeededGenerator(seed:)": "df012a011701b266"
+   }
+  },
+  {
+   "key": "init DFAReferenceValidationTests.SeededGenerator(seed:)",
+   "hash": "eb0e8850d2da6c48",
+   "does": "Stores the seed as the SplitMix64 state.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func DFAReferenceValidationTests.SeededGenerator.next()",
+   "hash": "3f7066a44a47cf83",
+   "does": "SplitMix64 step: state += golden-ratio constant, then two xor-shift-multiply rounds and a final xor-shift; returns the 64-bit output.",
+   "entry": "RandomNumberGenerator protocol witness, called by Double.random(in:using:)",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func DFAReferenceValidationTests.gaussianSamples(count:seed:)",
+   "hash": "a6f29a59eb5333cc",
+   "does": "Box–Muller: draws pairs of uniforms from SeededGenerator(seed) and appends cos and sin normal deviates until count values exist.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/DFAReferenceValidationTests.swift::init DFAReferenceValidationTests.SeededGenerator(seed:)",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.SeededGenerator.next()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "out.count < count",
+     "effect": "true: draw another pair; false: return"
+    },
+    {
+     "at": "+9",
+     "cond": "out.count < count after the cos value",
+     "effect": "true: also append the sin value; false: drop it (odd count)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.SeededGenerator.next()": "80a4dd34e7ac09ba",
+    "EmuquTests/DFAReferenceValidationTests.swift::init DFAReferenceValidationTests.SeededGenerator(seed:)": "df012a011701b266"
+   }
+  },
+  {
+   "key": "func DFAReferenceValidationTests.uncorrelatedNoise()",
+   "hash": "70f8d4b90831f81c",
+   "does": "Returns 4096 Gaussian samples (seed 0x5EED0001) scaled to 850 ± 40·z.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.gaussianSamples(count:seed:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.gaussianSamples(count:seed:)": "6394fe8e27f29d54"
+   }
+  },
+  {
+   "key": "func DFAReferenceValidationTests.brownianMotion()",
+   "hash": "758b665ac5e44cfa",
+   "does": "Cumulative sum of 4096 Gaussian steps (seed 0x5EED0002), mean-removed, scaled ×2 and offset to 850.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.gaussianSamples(count:seed:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.gaussianSamples(count:seed:)": "6394fe8e27f29d54"
+   }
+  },
+  {
+   "key": "func DFAReferenceValidationTests.pinkNoise()",
+   "hash": "fb2a4cf14d45a9c6",
+   "does": "Voss–McCartney 1/f noise: 12 uniform sources, source k redrawn every 2^k samples; output 850 + 12·sum.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/DFAReferenceValidationTests.swift::init DFAReferenceValidationTests.SeededGenerator(seed:)",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.SeededGenerator.next()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "for each of 4096 indices",
+     "effect": "produces one sample"
+    },
+    {
+     "at": "+7",
+     "cond": "index % 2^octave == 0",
+     "effect": "true: redraw that octave's source; false: keep it"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.SeededGenerator.next()": "80a4dd34e7ac09ba",
+    "EmuquTests/DFAReferenceValidationTests.swift::init DFAReferenceValidationTests.SeededGenerator(seed:)": "df012a011701b266"
+   }
+  }
+ ],
+ "deps": {}
+}

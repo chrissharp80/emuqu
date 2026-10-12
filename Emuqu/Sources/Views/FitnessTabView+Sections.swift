@@ -147,10 +147,18 @@ extension FitnessTabView {
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(AppTheme.textSecondary)
             Spacer()
-            Text(String(localized: "last 7 days · phone + watch", bundle: LanguageManager.appBundle))
+            Text(dailyActivitySourceCaption)
                 .font(.caption2)
                 .foregroundStyle(AppTheme.textTertiary)
         }
+    }
+
+    /// "phone + watch" only when the numbers are HealthKit's all-source
+    /// totals; the pedometer fallback is this phone alone.
+    private var dailyActivitySourceCaption: String {
+        dailyActivity.isEmpty || dailyActivityFromPedometer
+            ? String(localized: "last 7 days", bundle: LanguageManager.appBundle)
+            : String(localized: "last 7 days · phone + watch", bundle: LanguageManager.appBundle)
     }
 
     private var dailyActivityLegend: some View {
@@ -216,9 +224,9 @@ extension FitnessTabView {
         let passive = max(0, todayDistanceTotal - workoutDist)
         return breakdownStat(
             label: String(localized: "Distance", bundle: LanguageManager.appBundle),
-            total: unitsPreference.formatDistance(meters: todayDistanceTotal),
-            workout: String(localized: "\(unitsPreference.formatDistance(meters: workoutDist)) workout", bundle: LanguageManager.appBundle),
-            passive: String(localized: "\(unitsPreference.formatDistance(meters: passive)) passive", bundle: LanguageManager.appBundle)
+            total: units.formatDistance(meters: todayDistanceTotal),
+            workout: String(localized: "\(units.formatDistance(meters: workoutDist)) workout", bundle: LanguageManager.appBundle),
+            passive: String(localized: "\(units.formatDistance(meters: passive)) passive", bundle: LanguageManager.appBundle)
         )
     }
 
@@ -331,11 +339,8 @@ extension FitnessTabView {
     func dayLabel(_ date: Date) -> String {
         var calendar = Calendar.current
         calendar.locale = LanguageManager.appLocale
-        let f = DateFormatter()
-        f.locale = LanguageManager.appLocale
-        f.calendar = calendar
         let weekday = calendar.component(.weekday, from: date)
-        return f.veryShortStandaloneWeekdaySymbols[weekday - 1]
+        return calendar.veryShortStandaloneWeekdaySymbols[weekday - 1]
     }
 
     /// Sum elevation gain from today's and the past 7 days' recorded
@@ -361,8 +366,9 @@ extension FitnessTabView {
         let todaysWorkouts = workouts.filter { $0.startDate >= today }
         applyElevationTotals(workouts: workouts, todaysWorkouts: todaysWorkouts, weekAgo: weekAgo)
         applyCachedMeanHRR(workouts: workouts, archive: archive)
-        dailyActivity = await activityTask
-        await applyWorkoutAttribution(todaysWorkouts: todaysWorkouts)
+        let healthKitActivity = await activityTask
+        applyDailyActivity(healthKit: healthKitActivity)
+        await applyWorkoutAttribution(workouts: workouts, since: today)
         cacheFitnessDisplayState()
         logFitnessLoadTiming(count: weekWorkoutIds.count, startedAt: startedAt)
     }
@@ -399,19 +405,31 @@ extension FitnessTabView {
         meanHRR1m7d = drops.isEmpty ? nil : Double(drops.reduce(0, +)) / Double(drops.count)
     }
 
-    /// Workout-attribution split: for each recorded workout today, query HK for
-    /// the steps/distance/flights inside its [start, end] window. Sum across
-    /// today's workouts. The pill then shows "TOTAL · workout X / passive Y"
+    /// HealthKit's daily totals, or the phone pedometer's days when HealthKit
+    /// reported no steps for the whole week while the pedometer counted some.
+    /// HealthKit answers a denied read with an empty result, so all-zero days
+    /// are what a denied step/distance/flights read looks like; without this
+    /// the card showed 0 steps instead of the pedometer fallback.
+    @MainActor
+    private func applyDailyActivity(healthKit: [HealthKitManager.DailyActivity]) {
+        let healthKitIsEmpty = healthKit.allSatisfy { $0.stepCount == 0 }
+        let useFallback = healthKitIsEmpty && passiveSteps.contains { $0.stepCount > 0 }
+        dailyActivityFromPedometer = useFallback
+        dailyActivity = useFallback ? passiveSteps.map(dailyActivityFromPedometerDay) : healthKit
+    }
+
+    /// Workout-attribution split: query HK for the steps/distance/flights
+    /// inside each part of today covered by a recorded workout — a workout
+    /// that began before midnight counts from midnight, and overlapping
+    /// workouts (an import duplicating a recording) are merged so no minute
+    /// counts twice. The pill then shows "TOTAL · workout X / passive Y"
     /// where Y = total − X.
     @MainActor
-    private func applyWorkoutAttribution(todaysWorkouts: [HRVSession]) async {
+    private func applyWorkoutAttribution(workouts: [HRVSession], since dayStart: Date) async {
         var attribSteps = 0
         var attribDistance: Double = 0
         var attribFlights = 0
-        for workout in todaysWorkouts {
-            let start = workout.startDate
-            let end = workout.endDate ?? Date()
-            guard end > start else { continue }
+        for (start, end) in mergedWorkoutWindows(workouts, since: dayStart, now: Date()) {
             async let s = collector.healthKit.fetchSumSteps(from: start, to: end)
             async let d = collector.healthKit.fetchSumDistance(from: start, to: end)
             async let f = collector.healthKit.fetchSumFlights(from: start, to: end)
@@ -452,6 +470,36 @@ private func weekWorkoutSessionIds(archive: SessionArchive, since weekAgo: Date)
     archive.entries
         .filter { $0.sessionType == .workout && $0.date >= weekAgo }
         .map { $0.sessionId }
+}
+
+/// The pedometer's day as a daily-activity total (floors ascended stand in
+/// for HealthKit's flights climbed).
+private func dailyActivityFromPedometerDay(_ day: PedometerHistoryImporter.DailySteps) -> HealthKitManager.DailyActivity {
+    HealthKitManager.DailyActivity(
+        date: day.date,
+        stepCount: day.stepCount,
+        distanceMeters: day.distanceMeters,
+        flightsClimbed: day.floorsAscended
+    )
+}
+
+/// The workouts' [start, end] windows clipped to start no earlier than
+/// `dayStart`, sorted and with overlapping windows merged. A workout still
+/// open (no end date) runs to `now`; empty windows are dropped.
+private func mergedWorkoutWindows(_ workouts: [HRVSession], since dayStart: Date, now: Date) -> [(Date, Date)] {
+    let clipped = workouts
+        .map { (max($0.startDate, dayStart), $0.endDate ?? now) }
+        .filter { $0.1 > $0.0 }
+        .sorted { $0.0 < $1.0 }
+    var merged: [(Date, Date)] = []
+    for window in clipped {
+        if let last = merged.last, window.0 <= last.1 {
+            merged[merged.count - 1].1 = max(last.1, window.1)
+        } else {
+            merged.append(window)
+        }
+    }
+    return merged
 }
 
 private func logFitnessLoadTiming(count: Int, startedAt: Date) {

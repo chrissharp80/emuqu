@@ -1,0 +1,15 @@
+{
+ "file": "scripts/check_no_orphan_swift.sh",
+ "hash": "0cf30ff36bc0371b",
+ "role": "CI gate: every .swift file under Emuqu, EmuquTests, EmuquUITests and the watch app is compiled by some target's Sources build phase (resolved by path through the group tree) or lives in a synchronized root group, and no path is listed twice in the same Sources phase.",
+ "types": [],
+ "state": [
+  "file:Emuqu.xcodeproj/project.pbxproj"
+ ],
+ "toplevel": "set -euo pipefail; cd to repo root. PROJECT=$1 or Emuqu.xcodeproj/project.pbxproj (missing -> 2); roots = remaining args or four defaults (missing -> 2). Python parses every object (brace-matched), builds child->group parents, resolves each file reference's full path (sourceTree SOURCE_ROOT or root group = its own path, else parent path + path), collects paths compiled by each PBXSourcesBuildPhase (duplicate within one phase recorded) and PBXFileSystemSynchronizedRootGroup paths. No Swift files or no compiled paths -> 2. A disk file not under a synced root and not compiled -> exit 1; duplicates in one phase -> exit 1 (one file in two targets is fine). Else clean with counts.",
+ "flags": [],
+ "units": [],
+ "deps": {
+  "scripts/add_swift_file.py::": "9aff6d0528ef62d2"
+ }
+}

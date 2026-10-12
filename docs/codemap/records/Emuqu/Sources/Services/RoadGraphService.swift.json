@@ -1,0 +1,323 @@
+{
+ "file": "Emuqu/Sources/Services/RoadGraphService.swift",
+ "hash": "e3474f54f860c8f7",
+ "role": "Actor that fetches and caches OSM road-graph tiles (250 m cells, 800 m Overpass radius) for road awareness, cross-street lookup and saved-route naming.",
+ "types": [
+  "RoadGraphService: actor — OSM tile cache",
+  "RoadSegment: struct",
+  "GraphNode: struct",
+  "Tile: struct",
+  "Point: struct",
+  "GridCell: struct",
+  "OverpassEnvelope/OverpassElement/OverpassGeom: struct — Decodable reply shape"
+ ],
+ "state": [
+  "mem:RoadGraphService.cache (≤64 tiles)",
+  "mem:RoadGraphService.inflight",
+  "constants: 250 m cell, 800 m radius, 6 h TTL, 10 min empty TTL, 8 s timeout (request spacing is OverpassClient's 1.1 s)",
+  "overpass: OverpassClient (shared with TrailDiscoveryService; instance created in AppDependencies.swift:635)"
+ ],
+ "toplevel": "Header comment documents the throttle policy; the Overpass decodable structs use synthesized Codable.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var RoadGraphService.GraphNode.isIntersection",
+   "hash": "40ca7ac808710fd0",
+   "does": "True when ≥2 ways include the node.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var RoadGraphService.GraphNode.isRoundabout",
+   "hash": "b1b421a997d0c582",
+   "does": "True when the node is on a roundabout/circular way or tagged highway=mini_roundabout.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "init RoadGraphService(overpass:)",
+   "hash": "6170e41976162f10",
+   "does": "Stores the shared OverpassClient.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RoadGraphService.tile(for:)",
+   "hash": "059a658861b80ec6",
+   "does": "Returns the road-graph tile for the 250 m cell containing a coordinate: a cached tile within TTL (6 h, or 10 min if empty); else joins an in-flight fetch for the cell; else fetches (waiting its turn in OverpassClient, which spaces requests 1.1 s apart), coalescing via inflight. Nil when the fetch fails or the reply is incomplete.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/RoadGraphService.swift::func RoadGraphService.cellKey(latitude:longitude:)",
+    "Emuqu/Sources/Services/RoadGraphService.swift::func RoadGraphService.fetchTile(cellKey:centerLat:centerLon:cellLatIndex:cellLonIndex:)"
+   ],
+   "reads": [
+    "mem:RoadGraphService.cache",
+    "mem:RoadGraphService.inflight"
+   ],
+   "writes": [
+    "mem:RoadGraphService.inflight",
+    "net:Overpass"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "cached tile exists",
+     "effect": "check age; else continue"
+    },
+    {
+     "at": "+3",
+     "cond": "tile younger than TTL (empty→10 min, else 6 h)",
+     "effect": "return cached; else continue to refetch"
+    },
+    {
+     "at": "+6",
+     "cond": "fetch for this cell already in flight",
+     "effect": "await and return its result"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.segments(fromStages:splitGapMinutes:)": "428ceef7932431a2",
+    "Emuqu/Sources/Services/RoadGraphService.swift::func RoadGraphService.cellKey(latitude:longitude:)": "825f6c17037e0691",
+    "Emuqu/Sources/Services/RoadGraphService.swift::func RoadGraphService.fetchTile(cellKey:centerLat:centerLon:cellLatIndex:cellLonIndex:)": "fd9137d5197e68d3"
+   }
+  },
+  {
+   "key": "func RoadGraphService.evictOldestTilesIfNeeded()",
+   "hash": "c9e7ed0a58da44e0",
+   "does": "When the cache exceeds 64 tiles, removes the oldest by fetchedAt until it is at 64.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:RoadGraphService.cache"
+   ],
+   "writes": [
+    "mem:RoadGraphService.cache"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "cache.count <= 64",
+     "effect": "return"
+    },
+    {
+     "at": "+7",
+     "cond": "for each overflow key",
+     "effect": "remove it"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RoadGraphService.cellKey(latitude:longitude:)",
+   "hash": "e64d0d1f4c5f33e8",
+   "does": "Quantises lat/lon to a 250 m grid: lat index from floor(lat/step), longitude step scaled by 1/cos(cell-centre lat) (clamped 0.1), returns key 'lat,lon' indices and cell centre.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RoadGraphService.fetchTile(cellKey:centerLat:centerLon:cellLatIndex:cellLonIndex:)",
+   "hash": "6cf0f916c60af50f",
+   "does": "POSTs the Overpass query (800 m around the cell centre, 8 s timeout) via OverpassClient; on error logs and returns nil; parses; caches a parsed tile, evicts overflow, logs and returns it.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/RoadGraphService.swift::func RoadGraphService.buildQuery(centerLat:centerLon:radiusMeters:)",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.post(query:timeout:cacheFor:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Services/RoadGraphService.swift::func RoadGraphService.parse(data:cellLatIndex:cellLonIndex:centerLat:centerLon:)",
+    "Emuqu/Sources/Services/RoadGraphService.swift::func RoadGraphService.evictOldestTilesIfNeeded()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:RoadGraphService.cache",
+    "net:Overpass (overpass.private.coffee / overpass-api.de)"
+   ],
+   "branches": [
+    {
+     "at": "+12",
+     "cond": "overpass.post throws (catch)",
+     "effect": "error logged, nil returned; nothing cached so the next call refetches"
+    },
+    {
+     "at": "+16",
+     "cond": "parse returns nil (decode error / remark)",
+     "effect": "return nil, nothing cached"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.segments(fromStages:splitGapMinutes:)": "428ceef7932431a2",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.post(query:timeout:cacheFor:)": "1e42ef5fe163e390",
+    "Emuqu/Sources/Services/RoadGraphService.swift::func RoadGraphService.buildQuery(centerLat:centerLon:radiusMeters:)": "dd35c218602d5bd8",
+    "Emuqu/Sources/Services/RoadGraphService.swift::func RoadGraphService.cellKey(latitude:longitude:)": "825f6c17037e0691",
+    "Emuqu/Sources/Services/RoadGraphService.swift::func RoadGraphService.evictOldestTilesIfNeeded()": "4175882ec5c7c5a5",
+    "Emuqu/Sources/Services/RoadGraphService.swift::func RoadGraphService.parse(data:cellLatIndex:cellLonIndex:centerLat:centerLon:)": "ebce40fdb89adbfb",
+    "Emuqu/Sources/Services/RoadGraphService.swift::func RoadGraphService.tile(for:)": "fd87f5d717cc65f4",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func RoadGraphService.buildQuery(centerLat:centerLon:radiusMeters:)",
+   "hash": "eea819012b17ed18",
+   "does": "Builds Overpass QL: ways with highway in primary..steps (no motorway/trunk) around radius of the centre, 'out body geom; >; out body;'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RoadGraphService.parse(data:cellLatIndex:cellLonIndex:centerLat:centerLon:)",
+   "hash": "df6ee79b3607e25c",
+   "does": "Decodes the envelope, builds segments + node→ways map, collects roundabout/circular way ids, builds nodes, returns a Tile stamped now.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/RoadGraphService.swift::func RoadGraphService.completeEnvelope(from:)",
+    "Emuqu/Sources/Services/RoadGraphService.swift::func RoadGraphService.parseWays(_:)",
+    "Emuqu/Sources/Services/RoadGraphService.swift::func RoadGraphService.parseNodes(_:nodeToWays:roundaboutWays:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "envelope missing (decode failure or remark)",
+     "effect": "return nil"
+    },
+    {
+     "at": "+10",
+     "cond": "way's junction tag ?? \"\" is roundabout/circular",
+     "effect": "way id added to roundaboutWays; '' when no tag"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadGraphService.swift::func RoadGraphService.completeEnvelope(from:)": "ddda49942e5ad85d",
+    "Emuqu/Sources/Services/RoadGraphService.swift::func RoadGraphService.parseNodes(_:nodeToWays:roundaboutWays:)": "12d80b11e6d3f3d3",
+    "Emuqu/Sources/Services/RoadGraphService.swift::func RoadGraphService.parseWays(_:)": "dccb364c9564e52b"
+   }
+  },
+  {
+   "key": "func RoadGraphService.completeEnvelope(from:)",
+   "hash": "d5362836ca082a66",
+   "does": "JSON-decodes the Overpass envelope; nil (logged) on decode error or when a 'remark' (runtime error/timeout) is present.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "decode throws (catch)",
+     "effect": "logged, nil returned"
+    },
+    {
+     "at": "+8",
+     "cond": "remark present",
+     "effect": "logged, nil (partial reply not cached)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func RoadGraphService.parseWays(_:)",
+   "hash": "7f0fa388475bede0",
+   "does": "Turns every way element with non-empty, equal-length geometry and node lists and a highway tag into a RoadSegment (name, ref, oneway yes/1, oneway:foot) and records node→way membership.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "element type == way (for-where)",
+     "effect": "only ways processed"
+    },
+    {
+     "at": "+6",
+     "cond": "geometry/nodes missing, empty, mismatched, or no highway tag",
+     "effect": "skip way (continue)"
+    },
+    {
+     "at": "+11",
+     "cond": "el.tags ?? [:]",
+     "effect": "empty tag dict when none"
+    },
+    {
+     "at": "+18",
+     "cond": "for each node id",
+     "effect": "append way id to nodeToWays"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RoadGraphService.parseNodes(_:nodeToWays:roundaboutWays:)",
+   "hash": "14b7ecc24af01289",
+   "does": "Builds GraphNode for every node element with lat/lon that belongs to ≥1 parsed way; marks onRoundaboutWay when any of its ways is a roundabout.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "element type == node",
+     "effect": "only nodes processed"
+    },
+    {
+     "at": "+5",
+     "cond": "lat or lon missing",
+     "effect": "skip"
+    },
+    {
+     "at": "+6",
+     "cond": "nodeToWays[id] ?? []",
+     "effect": "empty when node is in no way"
+    },
+    {
+     "at": "+7",
+     "cond": "wayIds empty",
+     "effect": "skip standalone node"
+    },
+    {
+     "at": "+12",
+     "cond": "el.tags ?? [:]",
+     "effect": "empty tag dict when none"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

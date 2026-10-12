@@ -36,9 +36,6 @@ struct AssistantEmailDraft: Equatable, Identifiable {
     /// component as the filename.
     let attachmentURL: URL?
 
-    /// The first `to:` recipient, or nil when there is none.
-    var recipient: String? { recipients.first }
-
     init(subject: String, body: String, recipients: [String], ccRecipients: [String] = [], attachmentURL: URL? = nil) {
         self.subject = subject
         self.body = body

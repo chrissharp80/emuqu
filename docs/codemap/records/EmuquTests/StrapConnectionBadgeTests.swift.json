@@ -1,0 +1,121 @@
+{
+ "file": "EmuquTests/StrapConnectionBadgeTests.swift",
+ "hash": "bacdafa00bb4d52c",
+ "role": "Tests for what the strap connection badge shows: feed status goes live on the first beat, and ConnectionStatusBadge.content maps link state + feed health to colour/text.",
+ "types": [
+  "StrapConnectionBadgeTests: class — @MainActor XCTestCase for PolarManager feed status and ConnectionStatusBadge"
+ ],
+ "state": [
+  "deviceId = \"H10-BADGE\""
+ ],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func StrapConnectionBadgeTests.connectedManager()",
+   "hash": "6f7a422256a8579b",
+   "does": "Creates a PolarManager with a FakeStrapRadio and applies a .connected link event for H10-BADGE.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "b9f281895be22d44",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "de045b193f014cc0"
+   }
+  },
+  {
+   "key": "func StrapConnectionBadgeTests.testTheFirstBeatTurnsTheFeedLive()",
+   "hash": "4ec8b0a5379f7a29",
+   "does": "Asserts a connected manager reports feedStatus .settingUp until ingestHeartRate delivers a 58 bpm sample, then .live with currentHeartRate 58.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StrapConnectionBadgeTests.swift::func StrapConnectionBadgeTests.connectedManager()",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.ingestHeartRate(_:receivedAt:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.ingestHeartRate(_:receivedAt:)": "a4128b4165979968",
+    "EmuquTests/StrapConnectionBadgeTests.swift::func StrapConnectionBadgeTests.connectedManager()": "ea0d90ebbb0635e8"
+   }
+  },
+  {
+   "key": "func StrapConnectionBadgeTests.testALinkStillSettingUpIsNotShownAsConnected()",
+   "hash": "a5de1a563406a245",
+   "does": "Asserts connected + settingUp shows orange 'Setting up'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::func ConnectionStatusBadge.content(state:feed:heartRate:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::func ConnectionStatusBadge.content(state:feed:heartRate:)": "a77b7c306fd36c01"
+   }
+  },
+  {
+   "key": "func StrapConnectionBadgeTests.testALiveFeedShowsTheHeartRate()",
+   "hash": "066d199c4565e539",
+   "does": "Asserts connected + live + 62 shows green '62 bpm'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::func ConnectionStatusBadge.content(state:feed:heartRate:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::func ConnectionStatusBadge.content(state:feed:heartRate:)": "a77b7c306fd36c01"
+   }
+  },
+  {
+   "key": "func StrapConnectionBadgeTests.testAStalledFeedIsNotShownAsConnected()",
+   "hash": "ef3ab5babffbbf7d",
+   "does": "Asserts connected + stalled shows orange 'No heart rate from strap'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::func ConnectionStatusBadge.content(state:feed:heartRate:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::func ConnectionStatusBadge.content(state:feed:heartRate:)": "a77b7c306fd36c01"
+   }
+  },
+  {
+   "key": "func StrapConnectionBadgeTests.testNoLinkIsShownAsDisconnectedWhateverTheFeedLastSaid()",
+   "hash": "d1ad805a1df15e0e",
+   "does": "Asserts disconnected shows gray 'Disconnected' even if the feed was live.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::func ConnectionStatusBadge.content(state:feed:heartRate:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::func ConnectionStatusBadge.content(state:feed:heartRate:)": "a77b7c306fd36c01"
+   }
+  }
+ ],
+ "deps": {}
+}

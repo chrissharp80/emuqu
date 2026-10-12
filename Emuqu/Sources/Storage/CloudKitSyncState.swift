@@ -30,7 +30,8 @@ struct CloudKitSyncState {
     /// of every push, so each is examined once rather than on every cycle.
     var localOnlySessionIds: Set<UUID> = []
 
-    /// Consecutive failures per session for exponential backoff
+    /// Consecutive failures per session for exponential backoff. In memory
+    /// only: a relaunch starts every session's backoff over.
     var uploadFailureCounts: [UUID: Int] = [:]
 
     /// False until `loadAll` has read the files (or `resetAll` emptied
@@ -38,6 +39,13 @@ struct CloudKitSyncState {
     /// in-memory sets replaced `sync_state.json`, and the load that followed
     /// re-pushed the whole archive.
     private(set) var isLoaded = false
+
+    /// Ids taken out of the uploaded / pending sets before `loadAll`. The
+    /// merge with the files must not put them back: a re-upload request
+    /// (`markRemoved`) made during launch migrations would otherwise be
+    /// re-marked uploaded from `sync_state.json` and never pushed.
+    private var uploadedRemovedBeforeLoad: Set<UUID> = []
+    private var pendingRemovedBeforeLoad: Set<UUID> = []
 
     private let syncStateURL: URL
     private var pendingQueueURL: URL {
@@ -59,13 +67,17 @@ struct CloudKitSyncState {
     // MARK: - Load
 
     /// Merges what is on disk into the in-memory sets, so a mark made before
-    /// the load (an upload, a re-upload request) is kept rather than replaced.
+    /// the load (an upload, a re-upload request, a deletion) is kept rather
+    /// than replaced: ids added before the load stay, and ids removed before
+    /// it are not read back from the files.
     mutating func loadAll() {
         loadSyncState()
         loadPendingQueue()
         loadQuarantineQueue()
         localOnlySessionIds.formUnion(Self.readUUIDs(at: localOnlyURL, label: "local-only list"))
         isLoaded = true
+        uploadedRemovedBeforeLoad.removeAll()
+        pendingRemovedBeforeLoad.removeAll()
         // Clean up any change-token blob left over from an earlier revision —
         // the field is gone, so wipe the UserDefaults value so it doesn't
         // accumulate as orphan bytes on legacy installs.
@@ -77,7 +89,7 @@ struct CloudKitSyncState {
         do {
             let data = try Data(contentsOf: syncStateURL)
             let uuidStrings = try JSONDecoder().decode([String].self, from: data)
-            uploadedSessionIds.formUnion(uuidStrings.compactMap { UUID(uuidString: $0) })
+            uploadedSessionIds.formUnion(Set(uuidStrings.compactMap { UUID(uuidString: $0) }).subtracting(uploadedRemovedBeforeLoad))
             debugLog("[CloudKit] Loaded sync state: \(uploadedSessionIds.count) uploaded sessions")
         } catch {
             debugLog("[CloudKit] Failed to load sync state: \(error)")
@@ -89,7 +101,7 @@ struct CloudKitSyncState {
         do {
             let data = try Data(contentsOf: pendingQueueURL)
             let uuidStrings = try JSONDecoder().decode([String].self, from: data)
-            pendingUploadIds.formUnion(uuidStrings.compactMap { UUID(uuidString: $0) })
+            pendingUploadIds.formUnion(Set(uuidStrings.compactMap { UUID(uuidString: $0) }).subtracting(pendingRemovedBeforeLoad))
             debugLog("[CloudKit] Loaded pending queue: \(pendingUploadIds.count) sessions awaiting retry")
         } catch {
             debugLog("[CloudKit] Failed to load pending queue: \(error)")
@@ -201,8 +213,20 @@ struct CloudKitSyncState {
 
     mutating func markUploaded(_ sessionId: UUID) {
         _ = uploadedSessionIds.insert(sessionId)
-        _ = pendingUploadIds.remove(sessionId)
+        removePending(sessionId)
         uploadFailureCounts.removeValue(forKey: sessionId)
+    }
+
+    /// Out of the uploaded set, and kept out of the load's merge.
+    private mutating func removeUploaded(_ sessionId: UUID) {
+        _ = uploadedSessionIds.remove(sessionId)
+        if !isLoaded { uploadedRemovedBeforeLoad.insert(sessionId) }
+    }
+
+    /// Out of the pending set, and kept out of the load's merge.
+    private mutating func removePending(_ sessionId: UUID) {
+        _ = pendingUploadIds.remove(sessionId)
+        if !isLoaded { pendingRemovedBeforeLoad.insert(sessionId) }
     }
 
     mutating func markFailed(_ sessionId: UUID) {
@@ -222,7 +246,7 @@ struct CloudKitSyncState {
     /// the sync every cycle; the file on disk is left intact (reversible).
     mutating func markQuarantined(_ sessionId: UUID) {
         _ = quarantinedSessionIds.insert(sessionId)
-        _ = pendingUploadIds.remove(sessionId)
+        removePending(sessionId)
         uploadFailureCounts.removeValue(forKey: sessionId)
     }
 
@@ -242,7 +266,7 @@ struct CloudKitSyncState {
     /// pending flag is how the pull tells the two apart, and without it edits
     /// queued behind the 25-per-cycle push limit never left the device.
     mutating func markRemoved(_ sessionId: UUID) {
-        _ = uploadedSessionIds.remove(sessionId)
+        removeUploaded(sessionId)
         _ = pendingUploadIds.insert(sessionId)
     }
 
@@ -250,8 +274,8 @@ struct CloudKitSyncState {
     /// does not count as uploaded.
     mutating func markLocalOnly(_ sessionId: UUID) {
         _ = localOnlySessionIds.insert(sessionId)
-        _ = uploadedSessionIds.remove(sessionId)
-        _ = pendingUploadIds.remove(sessionId)
+        removeUploaded(sessionId)
+        removePending(sessionId)
         uploadFailureCounts.removeValue(forKey: sessionId)
     }
 
@@ -260,8 +284,8 @@ struct CloudKitSyncState {
     /// to push: a pending id for a deleted session would be retried, fail to
     /// retrieve, and be retried again on every cycle.
     mutating func markDeleted(_ sessionId: UUID) {
-        _ = uploadedSessionIds.remove(sessionId)
-        _ = pendingUploadIds.remove(sessionId)
+        removeUploaded(sessionId)
+        removePending(sessionId)
         uploadFailureCounts.removeValue(forKey: sessionId)
     }
 
@@ -276,6 +300,8 @@ struct CloudKitSyncState {
         quarantinedSessionIds.removeAll()
         localOnlySessionIds.removeAll()
         uploadFailureCounts.removeAll()
+        uploadedRemovedBeforeLoad.removeAll()
+        pendingRemovedBeforeLoad.removeAll()
         UserDefaults.standard.removeObject(forKey: UserDefaultsKeys.cloudKitChangeToken)
         let fm = FileManager.default
         _ = attempt("CloudKitSyncState.remove") { try fm.removeItem(at: syncStateURL) }

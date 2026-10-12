@@ -1,0 +1,103 @@
+{
+ "file": "Tools/validation/swift_rng.py",
+ "hash": "31c18c26656a1608",
+ "role": "Bit-exact Python re-implementations of the deterministic random sources used by Emuqu unit tests at e028039 (SplitMix64, Swift Double.random(in: ClosedRange, using:) with Lemire next(upperBound:), the classifier tests' LCG deterministicOffset) so test_ports.py can regenerate their fixtures.",
+ "types": [
+  "SplitMix64: class — 64-bit SplitMix generator mirroring DFAReferenceValidationTests.SeededGenerator"
+ ],
+ "state": [
+  "M64 = 2^64-1 mask (line 7)"
+ ],
+ "toplevel": "Defines M64 constant.",
+ "flags": [],
+ "units": [
+  {
+   "key": "def SplitMix64.__init__",
+   "hash": "676107d4b4a46c48",
+   "does": "SplitMix64 constructor: stores seed masked to 64 bits as state.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def SplitMix64.next",
+   "hash": "ab5cefca70458f8f",
+   "does": "Advances state by 0x9E3779B97F4A7C15 and returns the SplitMix64-mixed 64-bit output.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def SplitMix64.next_upper_bound",
+   "hash": "af12b05e1ebc0e3d",
+   "does": "Lemire unbiased bounded integer in [0, upper): multiplies a 64-bit draw by upper, rejects while low word < (2^64-upper) % upper, returns the high word (Swift RandomNumberGenerator.next(upperBound:)).",
+   "entry": null,
+   "calls": [
+    "Tools/validation/swift_rng.py::def SplitMix64.next"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "low word < upper",
+     "effect": "computes threshold t and redraws while low < t; otherwise returns high immediately"
+    },
+    {
+     "at": "+6",
+     "cond": "while low < t",
+     "effect": "redraw"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Tools/validation/swift_rng.py::def SplitMix64.next": "9058db9bc48ef3a0"
+   }
+  },
+  {
+   "key": "def SplitMix64.double_closed",
+   "hash": "00c889fab2daa2b6",
+   "does": "Swift Double.random(in: lo...hi): draws r in [0, 2^53] inclusive; r == 2^53 returns hi exactly, else returns lo + (hi-lo) * r * ulp/2.",
+   "entry": null,
+   "calls": [
+    "Tools/validation/swift_rng.py::def SplitMix64.next_upper_bound"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "draw equals 2^53",
+     "effect": "returns hi; else scaled value"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Tools/validation/swift_rng.py::def SplitMix64.next_upper_bound": "e02686d8ced641e4"
+   }
+  },
+  {
+   "key": "def deterministic_offset",
+   "hash": "46c33a53805810a9",
+   "does": "LCG used by HRVSleepStageClassifierTests.deterministicOffset: lo + ((step*1103515245+12345) & 0x7FFFFFFF) % (hi-lo+1).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {
+  "Tools/validation/swift_rng.py::def SplitMix64.next": "9058db9bc48ef3a0"
+ }
+}

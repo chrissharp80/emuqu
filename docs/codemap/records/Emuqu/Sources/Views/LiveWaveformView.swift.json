@@ -1,0 +1,520 @@
+{
+ "file": "Emuqu/Sources/Views/LiveWaveformView.swift",
+ "hash": "f5e9750d6658651b",
+ "role": "Live RR-interval waveform (last N beats, grid, current-beat marker, HR/RR readouts) and a live stats card (RMSSD/SDNN/avg HR over the last 30 beats with artifacts masked) shown during streaming recordings.",
+ "types": [
+  "LiveWaveformView: struct (View) — RR waveform canvas",
+  "LiveStatsCard: struct (View) — RMSSD/SDNN/mean HR tiles",
+  "StatItem: private struct (View) — one labelled value tile"
+ ],
+ "state": [
+  "mem:LiveStatsCard.artifactDetector (static let ArtifactDetector())",
+  "mem:LiveStatsCard.liveSeriesId (static let UUID placeholder)"
+ ],
+ "toplevel": "#Preview builds 50 random RR points around 800 ms and renders both views. Used by StreamingLiveView.waveformAndStats (StreamingLiveView.swift:249,255) only when recentRRPoints.count > 10, and by CardSnapshotTests.",
+ "flags": [],
+ "units": [
+  {
+   "key": "init LiveWaveformView(rrPoints:maxPoints:showGrid:accentColor:)",
+   "hash": "086772b0c38d4ffe",
+   "does": "Memberwise init with defaults maxPoints 60, showGrid true, accent green.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var LiveWaveformView.displayPoints",
+   "hash": "e146a84649a49eee",
+   "does": "Last maxPoints RR points.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "rrPoints.count <= maxPoints",
+     "effect": "all points; else suffix(maxPoints)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var LiveWaveformView.yRange",
+   "hash": "82fbd2a11e9283e5",
+   "does": "Y-axis range: min/max of displayed RR with 10% padding, clamped to [300, 2000] ms and forced to a span of at least 1 ms.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.displayPoints",
+    "Emuqu/Sources/Views/LiveWaveformView.swift::func LiveWaveformView.nonDegenerateSpan(lo:hi:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "no displayed values",
+     "effect": "return fixed (400, 1200)"
+    },
+    {
+     "at": "+4",
+     "cond": "values.max()/min() ?? 1200/400",
+     "effect": "fallbacks never used (values non-empty here)"
+    },
+    {
+     "at": "+5",
+     "cond": "values.min() ?? 400",
+     "effect": "fallback unused; lo = max(300, min - padding)"
+    },
+    {
+     "at": "+6",
+     "cond": "values.max() ?? 1200",
+     "effect": "fallback unused; hi = min(2000, max + padding)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/LiveWaveformView.swift::func LiveWaveformView.nonDegenerateSpan(lo:hi:)": "3f42a4db6125ad75",
+    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.displayPoints": "83bed0e00d38c71b"
+   }
+  },
+  {
+   "key": "func LiveWaveformView.nonDegenerateSpan(lo:hi:)",
+   "hash": "7744304462ad3a64",
+   "does": "Returns (lo, hi) unless the span is under 1 ms, then a 1 ms span around the midpoint (prevents divide-by-zero NaN geometry for flat or inverted ranges).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "hi - lo >= 1",
+     "effect": "return (lo, hi); else (mid-0.5, mid+0.5)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var LiveWaveformView.currentHR",
+   "hash": "cd0cbf05448a3091",
+   "does": "Instant HR = 60000 / last RR (bpm), from the last raw point (artifacts not excluded).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.displayPoints"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no last point or rr_ms <= 0",
+     "effect": "nil (HR readout hidden); else Int(60000/rr)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.displayPoints": "83bed0e00d38c71b"
+   }
+  },
+  {
+   "key": "var LiveWaveformView.currentRR",
+   "hash": "5587ebd351e12443",
+   "does": "rr_ms of the last displayed point, or nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.displayPoints"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.displayPoints": "83bed0e00d38c71b"
+   }
+  },
+  {
+   "key": "var LiveWaveformView.body",
+   "hash": "f307d4625b719c8f",
+   "does": "VStack of the header readouts, the waveform canvas and a 'RR (ms) min–max' caption.",
+   "entry": "SwiftUI body.",
+   "calls": [
+    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.waveformHeader",
+    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.waveformCanvas",
+    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.yRange",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.waveformCanvas": "f45aaf6c67042f75",
+    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.waveformHeader": "7d11a0b69eb1ff1b",
+    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.yRange": "f080e12343198016",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var LiveWaveformView.waveformHeader",
+   "hash": "78e370803da889a4",
+   "does": "HStack with HR readout left and RR readout right.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.currentHRReadout",
+    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.currentRRReadout"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.currentHRReadout": "cc329806437d11ca",
+    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.currentRRReadout": "f1536753ba23432d"
+   }
+  },
+  {
+   "key": "var LiveWaveformView.currentHRReadout",
+   "hash": "7948aa96b3917c74",
+   "does": "Heart icon + current HR + 'bpm' with an accessibility label.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.currentHR",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "currentHR non-nil",
+     "effect": "show readout; nil: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.currentHR": "d4522605cf306e80",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var LiveWaveformView.currentRRReadout",
+   "hash": "700713d125d8acb5",
+   "does": "Current RR value + 'ms' with an accessibility label.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.currentRR",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "currentRR non-nil",
+     "effect": "show readout; nil: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.currentRR": "0d4b8ac21df71f55",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func LiveWaveformView.waveformLayers(size:)",
+   "hash": "9c98707cf894d0b3",
+   "does": "ZStack of optional grid, the stroked waveform path, and the current-beat marker.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/LiveWaveformView.swift::func LiveWaveformView.gridView(size:)",
+    "Emuqu/Sources/Views/LiveWaveformView.swift::func LiveWaveformView.waveformPath(size:)",
+    "Emuqu/Sources/Views/LiveWaveformView.swift::func LiveWaveformView.currentMarker(size:)",
+    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.displayPoints"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "showGrid",
+     "effect": "draw gridView; false: no grid"
+    },
+    {
+     "at": "+7",
+     "cond": "displayPoints non-empty",
+     "effect": "draw currentMarker; empty: no marker (avoids index -1)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/LiveWaveformView.swift::func LiveWaveformView.currentMarker(size:)": "3485ef9f960e514a",
+    "Emuqu/Sources/Views/LiveWaveformView.swift::func LiveWaveformView.gridView(size:)": "7bc21857c28ef933",
+    "Emuqu/Sources/Views/LiveWaveformView.swift::func LiveWaveformView.waveformPath(size:)": "a70badc444fb6f64",
+    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.displayPoints": "83bed0e00d38c71b"
+   }
+  },
+  {
+   "key": "var LiveWaveformView.waveformCanvas",
+   "hash": "a3367d9d9e577ad9",
+   "does": "150 pt GeometryReader hosting waveformLayers with background, rounded corners and one accessibility label giving point count and range.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/LiveWaveformView.swift::func LiveWaveformView.waveformLayers(size:)",
+    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.displayPoints",
+    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.yRange",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/LiveWaveformView.swift::func LiveWaveformView.waveformLayers(size:)": "52275980b8726bf7",
+    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.displayPoints": "83bed0e00d38c71b",
+    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.yRange": "f080e12343198016"
+   }
+  },
+  {
+   "key": "func LiveWaveformView.gridView(size:)",
+   "hash": "a911b5aa904857b4",
+   "does": "Canvas drawing 5 horizontal and 7 vertical faint grid lines.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/LiveWaveformView.swift::func LiveWaveformView.strokeGridLine(_:from:to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for i in 0...4",
+     "effect": "horizontal line at height*i/4 per iteration"
+    },
+    {
+     "at": "+6",
+     "cond": "for i in 0...6",
+     "effect": "vertical line at width*i/6 per iteration"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/LiveWaveformView.swift::func LiveWaveformView.strokeGridLine(_:from:to:)": "17ff9d83ec72842e"
+   }
+  },
+  {
+   "key": "func LiveWaveformView.strokeGridLine(_:from:to:)",
+   "hash": "b5f57e75e2ed1296",
+   "does": "Strokes one 0.5 pt grey line between two points.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func LiveWaveformView.waveformPath(size:)",
+   "hash": "3b6bbb29e72e22bc",
+   "does": "Builds the waveform Path through plotPoint for every displayed beat (right-aligned when fewer than maxPoints, out-of-range beats pinned to the edge).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.displayPoints",
+    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.yRange",
+    "Emuqu/Sources/Views/LiveWaveformView.swift::func LiveWaveformView.plotPoint(_:of:count:size:range:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "fewer than 2 points",
+     "effect": "return empty path"
+    },
+    {
+     "at": "+5",
+     "cond": "for each displayed point",
+     "effect": "position from plotPoint"
+    },
+    {
+     "at": "+7",
+     "cond": "index == 0",
+     "effect": "move(to:) first point; else addLine(to:)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/LiveWaveformView.swift::func LiveWaveformView.plotPoint(_:of:count:size:range:)": "287ead76fc7e5b51",
+    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.displayPoints": "83bed0e00d38c71b",
+    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.yRange": "f080e12343198016"
+   }
+  },
+  {
+   "key": "func LiveWaveformView.plotPoint(_:of:count:size:range:)",
+   "hash": "b1b10dfee076869a",
+   "does": "Maps one beat to canvas coordinates: x = right-align offset (maxPoints − count) × xStep + index × xStep with xStep = width/(maxPoints−1); y from the RR clamped into the plotted range, so a beat outside it is pinned to the nearer edge instead of drawn outside the frame. Shared by the line and the marker.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func LiveWaveformView.currentMarker(size:)",
+   "hash": "6813d57ee8b316e6",
+   "does": "8 pt accent circle with glow at plotPoint of the last displayed beat (the same mapping as the line).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.displayPoints",
+    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.yRange",
+    "Emuqu/Sources/Views/LiveWaveformView.swift::func LiveWaveformView.plotPoint(_:of:count:size:range:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/LiveWaveformView.swift::func LiveWaveformView.plotPoint(_:of:count:size:range:)": "287ead76fc7e5b51",
+    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.displayPoints": "83bed0e00d38c71b",
+    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.yRange": "f080e12343198016",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var LiveStatsCard.stats",
+   "hash": "ae179a828ea09cd2",
+   "does": "Over the last 30 RR points (needs >= 10): runs ArtifactDetector on a throwaway RRSeries, keeps non-artifact beats, returns masked RMSSD (TimeDomainAnalyzer.rmssd with recording-break skipping; nil when no clean adjacent pair is left), sample SDNN of clean beats and 60000/mean clean RR as HR.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rmssd(points:range:isValid:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "rrPoints.count < 10",
+     "effect": "nil ('Collecting data...')"
+    },
+    {
+     "at": "+8",
+     "cond": "fewer than 2 clean beats",
+     "effect": "nil"
+    },
+    {
+     "at": "+11",
+     "cond": "masked estimator returns nil",
+     "effect": "rmssd nil (no valid adjacent pair, e.g. every pair touches an artifact or a recording break); SDNN/HR still returned"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)": "7033ee2115866c44",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rmssd(points:range:isValid:)": "23d4a3e47ba4d2c5"
+   }
+  },
+  {
+   "key": "var LiveStatsCard.msUnit",
+   "hash": "419c111617ab1de4",
+   "does": "Localized 'ms' unit string.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func LiveStatsCard.rmssdText(_:)",
+   "hash": "227e35631effa271",
+   "does": "RMSSD formatted '%.0f' in the app locale, or '—' when nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "rmssd nil",
+     "effect": "returns '—'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "var LiveStatsCard.body",
+   "hash": "9c74132829e0eb8a",
+   "does": "HStack of RMSSD (rmssdText: '%.0f' or '—'), SDNN and Avg HR StatItems formatted '%.0f' in the app locale, or 'Collecting data...' when stats is nil.",
+   "entry": "SwiftUI body.",
+   "calls": [
+    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveStatsCard.stats",
+    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveStatsCard.msUnit",
+    "Emuqu/Sources/Views/LiveWaveformView.swift::func LiveStatsCard.rmssdText(_:)",
+    "Emuqu/Sources/Views/LiveWaveformView.swift::var StatItem.body",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "stats non-nil",
+     "effect": "three StatItems; nil: 'Collecting data...' caption"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/LiveWaveformView.swift::func LiveStatsCard.rmssdText(_:)": "efa188f7dac35f01",
+    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveStatsCard.msUnit": "ee0c47d42f994e72",
+    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveStatsCard.stats": "df852f2e0cde4939",
+    "Emuqu/Sources/Views/LiveWaveformView.swift::var StatItem.body": "9c810db2456ad257",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var StatItem.body",
+   "hash": "6e91395c7aaaf780",
+   "does": "Caption label over a bold value + unit, combined into one accessibility element '<label>: <value> <unit>'.",
+   "entry": "SwiftUI body.",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  }
+ ],
+ "deps": {}
+}

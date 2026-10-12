@@ -280,7 +280,7 @@ struct OvernightHRChartCanvas: View {
             yRange = range.max - range.min
             firstMs = stats.chartStartMs
             totalDurationMs = stats.chartEndMs - stats.chartStartMs
-            let window = Self.windowBounds(stats: stats, size: size, totalPoints: points.count, firstMs: firstMs, totalDurationMs: totalDurationMs)
+            let window = Self.windowBounds(stats: stats, size: size, points: points, firstMs: firstMs, totalDurationMs: totalDurationMs)
             windowStartX = window.startX
             windowEndX = window.endX
             windowIsFullRecording = window.isFull
@@ -302,31 +302,29 @@ struct OvernightHRChartCanvas: View {
             return (lo - 5, hi + 5)
         }
 
-        /// The analysis window's horizontal bounds, preferring wall-clock
-        /// positioning and falling back to point indices. A crash-recovered
-        /// HK-only session has neither, so the highlight is skipped entirely.
+        /// The analysis window's horizontal bounds, from its ms bounds, else
+        /// from the `t_ms` of its first and last beats: the x axis is a time
+        /// viewport (widened by HealthKit sleep, gappy on merged nights), so
+        /// beat indices are not proportional to x. A crash-recovered HK-only
+        /// session has no beats, so the highlight is skipped entirely.
         private static func windowBounds(
             stats: OvernightStats,
             size: CGSize,
-            totalPoints: Int,
+            points: [RRPoint],
             firstMs: Int64,
             totalDurationMs: Int64
         ) -> (startX: CGFloat, endX: CGFloat, isFull: Bool) {
-            if totalDurationMs > 0, stats.windowStartMs != stats.windowEndMs {
-                let startFraction = CGFloat(stats.windowStartMs - firstMs) / CGFloat(totalDurationMs)
-                let endFraction = CGFloat(stats.windowEndMs - firstMs) / CGFloat(totalDurationMs)
-                return (
-                    max(0, startFraction) * size.width,
-                    min(1, endFraction) * size.width,
-                    (endFraction - startFraction) > 0.8
-                )
-            }
-            guard totalPoints > 0 else { return (0, 0, true) }
-            let indexFraction = CGFloat(stats.windowEndIndex - stats.windowStartIndex) / CGFloat(totalPoints)
+            guard totalDurationMs > 0, !points.isEmpty else { return (0, 0, true) }
+            let last = points.count - 1
+            let (startMs, endMs) = stats.windowStartMs != stats.windowEndMs
+                ? (stats.windowStartMs, stats.windowEndMs)
+                : (points[min(max(stats.windowStartIndex, 0), last)].t_ms, points[min(max(stats.windowEndIndex - 1, 0), last)].t_ms)
+            let startFraction = CGFloat(startMs - firstMs) / CGFloat(totalDurationMs)
+            let endFraction = CGFloat(endMs - firstMs) / CGFloat(totalDurationMs)
             return (
-                CGFloat(stats.windowStartIndex) / CGFloat(totalPoints) * size.width,
-                CGFloat(stats.windowEndIndex) / CGFloat(totalPoints) * size.width,
-                indexFraction > 0.8
+                max(0, startFraction) * size.width,
+                min(1, endFraction) * size.width,
+                (endFraction - startFraction) > OvernightChartDrawing.fullRecordingWindowFraction
             )
         }
 

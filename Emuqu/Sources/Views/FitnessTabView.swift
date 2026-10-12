@@ -10,8 +10,10 @@ import SwiftUI
 /// active it routes to FitnessRecordingView. When a session just ended it
 /// routes to FitnessPostSummaryView.
 ///
-/// Owns the WorkoutRecorder as a @State so the recorder lives only while
-/// the tab is on screen (matches the LazyView pattern used by other tabs).
+/// The WorkoutRecorder is not owned here: it lives in the app-wide
+/// `RecorderBox` (`dependencies.app.recorderBox`), so it outlives the tab and
+/// the app-level Watch listeners drive the same recorder.
+///
 /// Single presentation item for the workout-summary sheet, so there's exactly
 /// ONE `.sheet(item:)` (two stacked ones dropped the second — see FitnessTabView).
 /// `isJustCompleted` distinguishes the post-recording flow (which acknowledges
@@ -94,9 +96,11 @@ struct FitnessTabView: View {
     /// `loadWorkoutElevationTotals` so the grid body doesn't re-decrypt a
     /// week of workouts on every render.
     @State var meanHRR1m7d: Double?
+    /// True when `dailyActivity` holds the phone pedometer's days because
+    /// HealthKit returned no steps for the week (reads denied or unavailable).
+    @State var dailyActivityFromPedometer = false
     @State var lastCompletedSession: HRVSession?
     @State var selectedHistorySession: HRVSession?
-    @State var unitsPreference: UnitsPreference = UnitsPreferenceStore.current
     // Get Me Back state. Disclaimer modal fires on first
     // engage of the session; sheet routes to `GetMeBackView`. Persisted
     // "user has seen the disclaimer" lives in UserDefaults so we don't
@@ -114,11 +118,12 @@ struct FitnessTabView: View {
     /// without the user having to close and reopen the tab.
     @State var latestWorkoutSession: HRVSession?
     @State var latestWorkoutLoadFailed = false
+    /// A tapped Recent workout couldn't be read; drives the load-failure alert.
+    @State var recentWorkoutLoadFailed = false
 
-    /// Unit preference shortcut. The @State copy above is used for
-    /// refresh triggering; this computed form is what views actually
-    /// call into for formatting, so updates to UnitsPreferenceStore
-    /// propagate instantly without needing a restart.
+    /// Unit preference shortcut, read from UnitsPreferenceStore on every
+    /// access. Every distance on the tab formats through this, so a km/mi
+    /// switch in Settings shows on the next render without a restart.
     var units: UnitsPreference { UnitsPreferenceStore.current }
 
     @ViewBuilder
@@ -197,10 +202,14 @@ struct FitnessTabView: View {
             return nil
         },
         set: { newValue in
-            if newValue == nil {
-                lastCompletedSession = nil
-                selectedHistorySession = nil
-            }
+            guard newValue == nil else { return }
+            // A swipe-down dismissal lands here, not in `dismissSummary`, so
+            // it must acknowledge the finished recorder too; otherwise the
+            // lifecycle stays `.finished` and the next Start is refused.
+            let wasJustCompleted = lastCompletedSession != nil
+            lastCompletedSession = nil
+            selectedHistorySession = nil
+            if wasJustCompleted { recorderBox.recorder?.acknowledgeFinished() }
         }
         )
     }
@@ -255,14 +264,9 @@ struct FitnessTabView: View {
         lastCompletedSession = newSession
     }
 
-    /// Wrapper that observes the recorder's `lifecycle` so phase
-    /// transitions trigger an IMMEDIATE re-render. Without this wrapper
-    /// the FitnessTabView reads `recorder.phase` (a computed forwarder
-    /// to `lifecycle.phase`) but doesn't observe the lifecycle —
-    /// SwiftUI only re-evaluates the switch when something ELSE causes
-    /// the body to refresh, leaving a 100ms-to-multi-second gap between
-    /// `lifecycle.phase = .recording` and the FitnessRecordingView
-    /// actually rendering.
+    /// Routes to the recording or default body on the recorder's phase,
+    /// through `PhaseObservingStateBody`, which reads `lifecycle.phase` in
+    /// its own small body so a phase flip re-evaluates only that switch.
     @ViewBuilder
     func stateBody(for recorder: WorkoutRecorder) -> some View {
         PhaseObservingStateBody(
@@ -347,13 +351,15 @@ struct FitnessTabView: View {
         // Above the hero deliberately: the hero shows the most recent workout,
         // and after a crash the most recent workout IS the one-second stub the
         // card is about. Explaining it under the thing it explains is backwards.
+        // One filter + sort of the archive per render, shared by all three.
+        let entries = recentWorkoutEntries()
         interruptedRecordingCard
-        heroCard(latest: recentWorkoutEntries().first)
+        heroCard(latest: entries.first)
         trajectoryLinkCard
-        summaryTileGrid(entries: recentWorkoutEntries())
+        summaryTileGrid(entries: entries)
         heatAcclimationCard
         dailyActivitySurfaces
-        recentWorkoutsList(entries: recentWorkoutEntries())
+        recentWorkoutsList(entries: entries)
     }
 
     /// Heat acclimatization — a rolling adaptation state that
@@ -377,7 +383,8 @@ struct FitnessTabView: View {
         getMeBackCard
     }
 
-    /// Title, accessibility handle, toolbar, and the two tab-lifecycle hooks.
+    /// Title, accessibility handle, toolbar, the two tab-lifecycle hooks, and
+    /// the alert for a Recent workout that couldn't be read.
     private func withFitnessChrome(_ content: some View) -> some View {
         content
             .sheet(isPresented: Bindable(planModel).sensorSheetPresented) { sensorSheet }
@@ -385,6 +392,9 @@ struct FitnessTabView: View {
             .navigationTitle(String(localized: "Fitness", bundle: LanguageManager.appBundle))
             .accessibilityIdentifier("fitness.root")
             .toolbar { fitnessToolbar }
+            .alert(String(localized: "Couldn't load this workout.", bundle: LanguageManager.appBundle), isPresented: $recentWorkoutLoadFailed) {
+                Button(String(localized: "OK", bundle: LanguageManager.appBundle), role: .cancel) { recentWorkoutLoadFailed = false }
+            }
     }
 
     /// Sensor-management sheet — opens when the user taps the
@@ -463,14 +473,14 @@ struct FitnessTabView: View {
 
     private func withGPXSheets(_ content: some View) -> some View {
         content
-            .sheet(isPresented: $gpxSharePresented) { gpxShareSheet }
+            .sheet(isPresented: gpxShareBinding, onDismiss: { gpxShareURL = nil }) { gpxShareSheet }
             // GPX preview sheet (user-requested
             // "I'm not able to preview first"). Shows the decoded route
             // on a map + summary stats; "Send" inside the sheet opens
             // the system share. Dismissing without tapping Send keeps
             // the temp .gpx file on disk for next time (cleaned up by
             // the OS on temp-dir purge).
-            .sheet(item: $gpxPreviewPayload) { gpxPreviewSheet($0) }
+            .sheet(item: $gpxPreviewPayload, onDismiss: { presentPendingGPXShare() }) { gpxPreviewSheet($0) }
             .alert(String(localized: "Export", bundle: LanguageManager.appBundle), isPresented: Binding(
                 get: { exportMessage != nil },
                 set: { if !$0 { exportMessage = nil } }
@@ -479,6 +489,15 @@ struct FitnessTabView: View {
             } message: {
                 if let m = exportMessage { Text(m) }
             }
+    }
+
+    /// Presented only while there is a URL to share, so the sheet can never
+    /// come up empty.
+    private var gpxShareBinding: Binding<Bool> {
+        Binding(
+            get: { gpxSharePresented && gpxShareURL != nil },
+            set: { gpxSharePresented = $0 }
+        )
     }
 
     @ViewBuilder
@@ -492,16 +511,18 @@ struct FitnessTabView: View {
         GPXPreviewSheet(payload: payload) { shareGPXAfterPreview(payload) }
     }
 
-    /// Dismiss the preview, then share the URL — with a slight delay so the
-    /// preview sheet finishes its dismissal animation before the share sheet
-    /// pops.
+    /// Send tapped: remember the URL and dismiss the preview. The share sheet
+    /// is presented from the preview's `onDismiss`, once its dismissal has
+    /// finished, rather than after a guessed delay.
     private func shareGPXAfterPreview(_ payload: GPXPreviewPayload) {
-        gpxPreviewPayload = nil
         gpxShareURL = payload.url
-        Task { @MainActor in
-            await sleepQuietly(300_000_000, context: "defaultStateBody")
-            gpxSharePresented = true
-        }
+        gpxPreviewPayload = nil
+    }
+
+    /// Preview dismissed: share if Send set a URL; a plain dismissal leaves
+    /// none (the share sheet's own dismissal clears it).
+    private func presentPendingGPXShare() {
+        if gpxShareURL != nil { gpxSharePresented = true }
     }
 
     private func withFitnessImports(_ content: some View) -> some View {
@@ -710,13 +731,14 @@ struct FitnessTabView: View {
         }
         // Set target zone BEFORE start() so the first tick's context build
         // already has the target populated and zone-drift rules can
-        // immediately start their elapsed-time gates.
+        // immediately start their elapsed-time gates; put the old one back
+        // if start() refuses, so a failed start leaves the recorder as it was.
+        let previousZone = recorder.targetZone
         recorder.targetZone = targetZone
         do {
             try recorder.start(sport: sport, source: source, intervalPlan: plan, thresholds: thresholds, route: route)
-        } catch let error as WorkoutRecorderError {
-            startError = error.errorDescription
         } catch {
+            recorder.targetZone = previousZone
             startError = error.localizedDescription
         }
     }
@@ -724,14 +746,11 @@ struct FitnessTabView: View {
 
 // MARK: - PhaseObservingStateBody
 //
-// The body wrapper that explicitly observes `recorder.lifecycle` so a
-// `lifecycle.phase` change triggers an immediate re-render.
+// The body wrapper that switches on `recorder.lifecycle.phase`.
 //
-// The `recorder` itself isn't enough — it has zero `@Published`
-// properties (the comment in `WorkoutLifecycle.swift` calls this
-// out). All published state lives
-// on `lifecycle`, `motion`, `workoutHR`. To switch the FitnessTab's
-// body the moment phase flips, we have to observe `lifecycle`.
+// WorkoutRecorder and WorkoutLifecycle are both `@Observable`, so the phase
+// read is tracked wherever it happens; keeping the switch in this small view
+// means a phase flip re-evaluates only this body, not the whole tab.
 //
 // Generic over the two body builders so the parent's @State + @Environment
 // captured by the trailing closures aren't lost (which would happen if

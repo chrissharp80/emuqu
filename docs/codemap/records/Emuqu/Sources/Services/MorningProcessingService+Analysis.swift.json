@@ -1,0 +1,144 @@
+{
+ "file": "Emuqu/Sources/Services/MorningProcessingService+Analysis.swift",
+ "hash": "931d55f42e3c39b4",
+ "role": "Static helpers for the morning processing pipeline: mapping fetched/estimated sleep into SleepPollResult, and running artifact detection/verification and window selection on detached tasks with timing logs.",
+ "types": [
+  "MorningProcessingService: extension — sleep-boundary mapping and off-actor analysis passes"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func MorningProcessingService.pollResult(fromFetched:effectiveStartDate:)",
+   "hash": "50d2dfd74afa5efc",
+   "does": "Maps fetched SleepData to a SleepPollResult: sleep start/wake as signed ms offsets from effectiveStartDate (MillisecondOffset.between, fallback 0 only when the interval is not representable, i.e. beyond a century; negative offsets are kept), the boundary source, per-segment offsets only when there is more than one segment, and the fetched data itself.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/MorningProcessingService+Analysis.swift::func MorningProcessingService.offsetMs(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+11",
+     "cond": "segments.count > 1 ?:",
+     "effect": "map segments to SleepSegmentMs; else nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.segments(fromStages:splitGapMinutes:)": "428ceef7932431a2",
+    "Emuqu/Sources/Services/MorningProcessingService+Analysis.swift::func MorningProcessingService.offsetMs(_:)": "2e884dcc905733ba"
+   }
+  },
+  {
+   "key": "func MorningProcessingService.offsetMs(_:)",
+   "hash": "53d1299bc9600288",
+   "does": "Nested in pollResult: signed ms offset of a date from effectiveStartDate (MillisecondOffset.between, fallback 0).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "6d761b0522590a2a"
+   }
+  },
+  {
+   "key": "func MorningProcessingService.applyEstimate(_:source:effectiveStartDate:to:)",
+   "hash": "314882e6b8ef3e01",
+   "does": "When the estimate has both a sleep start and end, writes their ms offsets from effectiveStartDate into the result, sets the boundary source label and fetchedSleepData; an estimate missing either is not applied at all.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "estimate lacks sleepStart or sleepEnd",
+     "effect": "return, result unchanged"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "6d761b0522590a2a"
+   }
+  },
+  {
+   "key": "func MorningProcessingService.detectArtifacts(in:)",
+   "hash": "0a4249ee8ef35809",
+   "does": "Runs ArtifactDetector().detectArtifacts and Verification().verify on a detached userInitiated task and logs elapsed ms; returns (flags, verification).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::init ArtifactDetector(config:)",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)",
+    "Emuqu/Sources/Analysis/Verification.swift::init Verification(config:)",
+    "Emuqu/Sources/Analysis/Verification.swift::func Verification.verify(_:flags:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)": "603a4d925fb360fb",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::init ArtifactDetector(config:)": "b781aa85db54b975",
+    "Emuqu/Sources/Analysis/Verification.swift::func Verification.verify(_:flags:)": "2f614f09191c6c2d",
+    "Emuqu/Sources/Analysis/Verification.swift::init Verification(config:)": "369483ff74f9e96b",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func MorningProcessingService.selectWindow(in:flags:sleepResult:baselineStats:)",
+   "hash": "1e568c8d8502534d",
+   "does": "On a detached task runs a fresh default WindowSelector's findBestWindowWithCapacity with sleep bounds and baseline, and returns its result together with that selector's lastOrganizedZones; logs elapsed ms.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindowWithCapacity(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Analysis/WindowSelection.swift::var WindowSelector.lastOrganizedZones"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindowWithCapacity(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "2cf7b6aef935e6fd",
+    "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)": "c6fe89367e88ef08",
+    "Emuqu/Sources/Analysis/WindowSelection.swift::var WindowSelector.lastOrganizedZones": "7927a6b2a9e957c3",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func MorningProcessingService.withOrganizedZones(_:on:)",
+   "hash": "9bf7bf8c64bd0f4e",
+   "does": "Returns the analysis result with organizedRecoveryZones set to the zones (nil when empty); nil stays nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "result nil",
+     "effect": "nil"
+    },
+    {
+     "at": "+4",
+     "cond": "zones empty",
+     "effect": "organizedRecoveryZones = nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

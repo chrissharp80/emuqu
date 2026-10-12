@@ -1,0 +1,380 @@
+{
+ "file": "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift",
+ "hash": "b810e9641af252a0",
+ "role": "CauseDetectionStrategy that maps user-selected reading tags (alcohol, poor sleep, late meal, caffeine, travel, stressed, post-exercise, illness, menstrual) to DetectedCause entries, weighting some by HRV metrics.",
+ "types": [
+  "TagBasedCauseDetector: class — tag-domain CauseDetectionStrategy",
+  "extension Set where Element == ReadingTag — containsSystemTag(_:)"
+ ],
+ "state": [],
+ "toplevel": "Conforms to CauseDetectionStrategy; instantiated by CauseDetector.init (CauseDetector.swift:116) and EmuquTests/CauseDetectorTests.swift.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func TagBasedCauseDetector.detectCauses(in:)",
+   "hash": "90aaf6b1d50dcc98",
+   "does": "Strategy entry: returns [] for good/excellent readings; otherwise concatenates alcohol, sleep, diet, lifestyle and health tag causes for context.selectedTags.",
+   "entry": "dyn:CauseDetectionStrategy.detectCauses called by CauseDetector.detectCauses (CauseDetector.swift:140)",
+   "calls": [
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func TagBasedCauseDetector.detectAlcoholCause(tags:context:)",
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func TagBasedCauseDetector.detectSleepTags(tags:context:)",
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func TagBasedCauseDetector.detectDietTags(tags:context:)",
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func TagBasedCauseDetector.detectLifestyleTags(tags:context:)",
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func TagBasedCauseDetector.detectHealthTags(tags:context:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "isGoodReading || isExcellentReading",
+     "effect": "true: returns []; false: runs tag detectors"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.isGoodReading(rmssd:)": "a553c84c2cc0efa5",
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func TagBasedCauseDetector.detectAlcoholCause(tags:context:)": "5c27f490cbc65c12",
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func TagBasedCauseDetector.detectDietTags(tags:context:)": "45c45c6efb535997",
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func TagBasedCauseDetector.detectHealthTags(tags:context:)": "b3447fb19c262850",
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func TagBasedCauseDetector.detectLifestyleTags(tags:context:)": "80d0f7d115f89239",
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func TagBasedCauseDetector.detectSleepTags(tags:context:)": "21e7b099323212d0"
+   }
+  },
+  {
+   "key": "func TagBasedCauseDetector.detectAlcoholCause(tags:context:)",
+   "hash": "e774751067777eb6",
+   "does": "Emits 'Alcohol Consumption' when the alcohol tag is selected: veryHigh/0.95 if RMSSD < HRVThresholds.rmssdReduced (25 ms), else high/0.85.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func Set.containsSystemTag(_:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "tags contains alcohol (system tag: isSystem + storage name)",
+     "effect": "true: builds cause; false: returns []"
+    },
+    {
+     "at": "+5",
+     "cond": "isLowHRV (rmssd<25) ?:",
+     "effect": "true: .veryHigh; false: .high"
+    },
+    {
+     "at": "+6",
+     "cond": "isLowHRV ?:",
+     "effect": "true: 0.95; false: 0.85"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func Set.containsSystemTag(_:)": "162913d7968f4344",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "func TagBasedCauseDetector.detectSleepTags(tags:context:)",
+   "hash": "0b88deeb64e41bdd",
+   "does": "Emits 'Poor Sleep Quality' when the poorSleep tag is selected; if DFA alpha1 > 1.15 (dfaAlpha1HighVariability) it is veryHigh/0.92 with extra 'reduced recovery' copy, else high/0.82.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func Set.containsSystemTag(_:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "tags contains the system poorSleep tag (containsSystemTag)",
+     "effect": "true: builds cause; false: returns []"
+    },
+    {
+     "at": "+5",
+     "cond": "hasFatigueSignal (alpha1>1.15) ?:",
+     "effect": "true: .veryHigh; false: .high"
+    },
+    {
+     "at": "+6",
+     "cond": "hasFatigueSignal ?:",
+     "effect": "true: 0.92; false: 0.82"
+    },
+    {
+     "at": "+8",
+     "cond": "hasFatigueSignal ?: explanation",
+     "effect": "true: copy adds rhythm-pattern sentence; false: base copy"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func Set.containsSystemTag(_:)": "162913d7968f4344",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "func TagBasedCauseDetector.detectDietTags(tags:context:)",
+   "hash": "973f51e1a90fc78a",
+   "does": "Concatenates late-meal and caffeine tag causes.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func TagBasedCauseDetector.lateMealTagCause(tags:context:)",
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func TagBasedCauseDetector.caffeineTagCause(tags:context:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func TagBasedCauseDetector.caffeineTagCause(tags:context:)": "f1f545edf636496d",
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func TagBasedCauseDetector.lateMealTagCause(tags:context:)": "386680bd0fc1d80d"
+   }
+  },
+  {
+   "key": "func TagBasedCauseDetector.lateMealTagCause(tags:context:)",
+   "hash": "063c81b130077dbd",
+   "does": "Emits 'Late Night Eating' (moderateHigh, 0.7) when the lateMeal tag is selected.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func Set.containsSystemTag(_:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "tags contains the system lateMeal tag (containsSystemTag)",
+     "effect": "true: appends cause; false: []"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func Set.containsSystemTag(_:)": "162913d7968f4344",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "func TagBasedCauseDetector.caffeineTagCause(tags:context:)",
+   "hash": "ba73d377c64c899c",
+   "does": "Emits 'Caffeine Effect' (moderate, 0.6) when the caffeine tag is selected.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func Set.containsSystemTag(_:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "tags contains the system caffeine tag (containsSystemTag)",
+     "effect": "true: appends cause; false: []"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func Set.containsSystemTag(_:)": "162913d7968f4344",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "func TagBasedCauseDetector.detectLifestyleTags(tags:context:)",
+   "hash": "22dc636409b96b48",
+   "does": "Concatenates travel, stressed and post-exercise tag causes.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func TagBasedCauseDetector.travelTagCause(tags:context:)",
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func TagBasedCauseDetector.stressedTagCause(tags:context:)",
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func TagBasedCauseDetector.postExerciseTagCause(tags:context:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func TagBasedCauseDetector.postExerciseTagCause(tags:context:)": "81ba96d1afd47e2f",
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func TagBasedCauseDetector.stressedTagCause(tags:context:)": "0fa0d7dfda7f43d1",
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func TagBasedCauseDetector.travelTagCause(tags:context:)": "e4bcbec9c5098bc0"
+   }
+  },
+  {
+   "key": "func TagBasedCauseDetector.travelTagCause(tags:context:)",
+   "hash": "f57e48572e4e067f",
+   "does": "Emits 'Travel Stress / Jet Lag' (moderateHigh, 0.75) when the travel tag is selected.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func Set.containsSystemTag(_:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "tags contains the system travel tag (containsSystemTag)",
+     "effect": "true: appends cause; false: []"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func Set.containsSystemTag(_:)": "162913d7968f4344",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "func TagBasedCauseDetector.stressedTagCause(tags:context:)",
+   "hash": "46e9898d326b1662",
+   "does": "Emits 'Psychological Stress' when the stressed tag is selected; if LF/HF > 3.0 (lfHfModerateSympatheticUpper) veryHigh/0.9 with LF/HF copy, else high/0.8.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func Set.containsSystemTag(_:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "tags contains the system stressed tag (containsSystemTag)",
+     "effect": "true: builds cause; false: []"
+    },
+    {
+     "at": "+4",
+     "cond": "hasRaisedLFHF ?:",
+     "effect": "true: .veryHigh; false: .high"
+    },
+    {
+     "at": "+5",
+     "cond": "hasRaisedLFHF ?:",
+     "effect": "true: 0.9; false: 0.8"
+    },
+    {
+     "at": "+6",
+     "cond": "hasRaisedLFHF ?: explanation",
+     "effect": "true: copy mentions raised LF/HF and breathing caveat; false: base copy"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func Set.containsSystemTag(_:)": "162913d7968f4344",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "func TagBasedCauseDetector.postExerciseTagCause(tags:context:)",
+   "hash": "9bf3007503d58e99",
+   "does": "Emits 'Exercise Recovery' when the postExercise tag is selected: high/0.85 if RMSSD < 25 ms, else moderate/0.65.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func Set.containsSystemTag(_:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "tags contains the system postExercise tag (containsSystemTag)",
+     "effect": "true: builds cause; false: []"
+    },
+    {
+     "at": "+4",
+     "cond": "isLowHRV ?:",
+     "effect": "true: .high; false: .moderate"
+    },
+    {
+     "at": "+5",
+     "cond": "isLowHRV ?:",
+     "effect": "true: 0.85; false: 0.65"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func Set.containsSystemTag(_:)": "162913d7968f4344",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "func TagBasedCauseDetector.detectHealthTags(tags:context:)",
+   "hash": "2fbf8b20727054c9",
+   "does": "Concatenates illness and menstrual tag causes.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func TagBasedCauseDetector.illnessTagCause(tags:context:)",
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func TagBasedCauseDetector.menstrualTagCause(tags:context:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func TagBasedCauseDetector.illnessTagCause(tags:context:)": "918bdba299af4652",
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func TagBasedCauseDetector.menstrualTagCause(tags:context:)": "5c3bea89424f511f"
+   }
+  },
+  {
+   "key": "func TagBasedCauseDetector.illnessTagCause(tags:context:)",
+   "hash": "52d67ee1eae1719a",
+   "does": "Emits 'Active Illness' (veryHigh, 0.98) when the illness tag is selected.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func Set.containsSystemTag(_:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "tags contains the system illness tag (containsSystemTag)",
+     "effect": "true: appends cause; false: []"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func Set.containsSystemTag(_:)": "162913d7968f4344",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "func TagBasedCauseDetector.menstrualTagCause(tags:context:)",
+   "hash": "a1883091d9186d23",
+   "does": "Emits 'Menstrual Cycle Phase' (moderate, 0.6) when the menstrual tag is selected.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func Set.containsSystemTag(_:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "tags contains the system menstrual tag (containsSystemTag)",
+     "effect": "true: appends cause; false: []"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func Set.containsSystemTag(_:)": "162913d7968f4344",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "func Set.containsSystemTag(_:)",
+   "hash": "262c9f52446cfc2f",
+   "does": "True when the set holds a tag flagged isSystem whose name equals the given system tag's English storage name; a user-created tag with the same name does not match. Used by every tag check in the cause detectors.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

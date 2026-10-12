@@ -1,0 +1,974 @@
+{
+ "file": "Emuqu/Sources/Views/DashboardV2View+Cards.swift",
+ "hash": "75a4848634351ab2",
+ "role": "DashboardV2View extension with the score-changed and HealthKit banners, hero ring + context menu, verdict row, Day-1 checklist, Today's Loop card and morning-feeling chip/save.",
+ "types": [
+  "DashboardV2View: extension — banner/hero/loop/feeling sections",
+  "DashboardV2View.ScoreBannerChrome: struct (ViewModifier) — tinted or opaque rounded banner chrome"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "hack",
+   "sev": "low",
+   "text": "Today's Loop building-baseline copy hardcodes \"of 14\" in the localized string instead of ScoreAppearancePolicy.scoreShownNights, and shows \"Day 0 of 14\" when the archive has sessions (daysCollected > 0) but no baseline nights (e.g. only quick or workout readings).",
+   "evidence": [
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift:401",
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift:403",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift:336",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift:401"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func DashboardV2View.scoreChangedBanner(_:)",
+   "hash": "d42f703bc2342912",
+   "does": "Banner for a pending score change: up/down arrow tinted primary or orange, caption, dismiss button, ScoreBannerChrome (opaque under Reduce Transparency).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::func DashboardV2View.scoreChangeCaption(_:)",
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::var DashboardV2View.dismissScoreChangeButton",
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::func DashboardV2View.ScoreBannerChrome.body(content:)",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "delta >= 0",
+     "effect": "tint primary; else orange"
+    },
+    {
+     "at": "+5",
+     "cond": "delta >= 0",
+     "effect": "arrow.up.right; else arrow.down.right"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::func DashboardV2View.ScoreBannerChrome.body(content:)": "6ad27085ec078fa2",
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::func DashboardV2View.scoreChangeCaption(_:)": "fc0d07f2022721d4",
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::var DashboardV2View.dismissScoreChangeButton": "3e73c76f4113a4d8",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+   }
+  },
+  {
+   "key": "func DashboardV2View.ScoreBannerChrome.body(content:)",
+   "hash": "cdd508d2653ef224",
+   "does": "Applies opaque card background or 8% tint wash plus a 25% tint stroke.",
+   "entry": "ViewModifier.body called by SwiftUI",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "opaque (Reduce Transparency)",
+     "effect": "AppTheme.cardBackground; else tint.opacity(0.08)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e"
+   }
+  },
+  {
+   "key": "func DashboardV2View.scoreChangeCaption(_:)",
+   "hash": "2c187896c9192853",
+   "does": "Two-line caption: \"<reason> — score updated\" and \"prior → new\" on the 0-100 display scale.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)",
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::func DashboardV2View.scoreChangeReason(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)": "243c4d1d41c669f4",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::func DashboardV2View.scoreChangeReason(_:)": "7de18d3618eba408",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func DashboardV2View.scoreChangeReason(_:)",
+   "hash": "4fa0f2a0e7ba4e93",
+   "does": "Localized reason text for a rescore reason key.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "reason == \"sleep\"",
+     "effect": "\"Sleep data finished syncing\""
+    },
+    {
+     "at": "+3",
+     "cond": "reason == \"training\"",
+     "effect": "\"Training context refreshed\""
+    },
+    {
+     "at": "+4",
+     "cond": "any other reason",
+     "effect": "\"New data arrived\""
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var DashboardV2View.dismissScoreChangeButton",
+   "hash": "ca75d982e162bbe1",
+   "does": "xmark button: clears pendingScoreChange (animated unless Reduce Motion) and removes the stored entry from UserDefaults.",
+   "entry": "Button tap",
+   "calls": [
+    "Emuqu/Sources/Utilities/PendingScoreChange.swift::func PendingScoreChange.clear()",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:PendingScoreChange.v1"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "reduceMotion",
+     "effect": "no animation; else easeOut 0.2"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Utilities/PendingScoreChange.swift::func PendingScoreChange.clear()": "8fbaff62da395806",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var DashboardV2View.healthKitDeniedBanner",
+   "hash": "b4df9531ab106c07",
+   "does": "Orange-tinted (or opaque under Reduce Transparency) banner around healthKitDeniedRow.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::var DashboardV2View.healthKitDeniedRow"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "reduceTransparency",
+     "effect": "cardBackground; else orange 10%"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::var DashboardV2View.healthKitDeniedRow": "756e38674153b761",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e"
+   }
+  },
+  {
+   "key": "var DashboardV2View.healthKitDeniedRow",
+   "hash": "f2f09ec7c8128797",
+   "does": "HStack of heart icon, copy and dismiss button.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::var DashboardV2View.healthKitDeniedCopy",
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::var DashboardV2View.healthKitDismissButton",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::var DashboardV2View.healthKitDeniedCopy": "ff9a23a4078de799",
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::var DashboardV2View.healthKitDismissButton": "7ad6dfa11a82afa2",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059"
+   }
+  },
+  {
+   "key": "var DashboardV2View.healthKitDeniedCopy",
+   "hash": "8f11de3df81e2896",
+   "does": "\"No sleep or HRV from Apple Health\" headline, explanation and Open Settings button.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::var DashboardV2View.openSettingsButton",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::var DashboardV2View.openSettingsButton": "90eea47f49ed52a1",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var DashboardV2View.healthKitDismissButton",
+   "hash": "d7ac0fbe524b885a",
+   "does": "Dismiss: persists healthNoDataNoticeDismissed=true and clears the HealthKit manager's inferred-denial flag.",
+   "entry": "Button tap",
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.clearInferredDenial()",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:dashboard.healthNoDataNoticeDismissed",
+    "mem:HealthKitManager.inferredAuthorizationDenied"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.clearInferredDenial()": "2910579a9c33d244",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.healthKit": "f61a7a679f5280dd",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var DashboardV2View.openSettingsButton",
+   "hash": "e812c41ebb4dfd5f",
+   "does": "Opens the app's iOS Settings page and clears the inferred-denial flag.",
+   "entry": "Button tap",
+   "calls": [
+    "ext:UIApplication.shared.open(openSettingsURLString)",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.clearInferredDenial()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:HealthKitManager.inferredAuthorizationDenied"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "URL(string: openSettingsURLString) non-nil",
+     "effect": "open Settings; else skip (flag still cleared)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.clearInferredDenial()": "2910579a9c33d244",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.healthKit": "f61a7a679f5280dd"
+   }
+  },
+  {
+   "key": "var DashboardV2View.heroSection",
+   "hash": "fcf4b1c7d880fc6c",
+   "does": "Hero ring with the Day-14 particle bloom overlay (tint = verdict colour or primary) above the verdict row and the hero age caption.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::var DashboardV2View.heroRing",
+    "Emuqu/Sources/Views/DashboardV2View+Chips.swift::var Day14ParticleBloom.body",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.color",
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::var DashboardV2View.verdictRow",
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::var DashboardV2View.heroAgeCaption"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "verdict nil",
+     "effect": "bloom tint falls back to AppTheme.primary; else verdict colour"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.color": "dc2f3b06b79e333d",
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::var DashboardV2View.heroAgeCaption": "deb0899dd6305bd6",
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::var DashboardV2View.heroRing": "62259fac85aa7357",
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::var DashboardV2View.verdictRow": "238c35452c57a517",
+    "Emuqu/Sources/Views/DashboardV2View+Chips.swift::var Day14ParticleBloom.body": "6768fbaaf0c729fd",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.verdict": "3ae168b82fc438b5",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+   }
+  },
+  {
+   "key": "var DashboardV2View.heroAgeCaption",
+   "hash": "f353d6dab05fe465",
+   "does": "Caption under the verdict with nightAgeLabel of the hero overnight, shown only when the score is shown, latestOvernightComplete carries a recovery/readiness score, and that night did not end today.",
+   "entry": "SwiftUI view builder",
+   "calls": [
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func ScoreAppearancePolicy.showsScore(baselineNights:)",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.latestOvernightComplete",
+    "Emuqu/Sources/Views/DashboardV2View.swift::func nightAgeLabel(for:now:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "showsScore AND scored latestOvernightComplete AND age label non-nil",
+     "effect": "tertiary caption; otherwise nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func ScoreAppearancePolicy.showsScore(baselineNights:)": "1a88ccd14afefff8",
+    "Emuqu/Sources/Views/DashboardV2View.swift::func nightAgeLabel(for:now:)": "2d1b8ce31b042aa9",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.baselineNights": "bf5bdd7b8c73498e",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.latestOvernightComplete": "f41743b582b9e9d4",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var DashboardV2View.day1Checklist",
+   "hash": "b3c4458b46ca84fd",
+   "does": "Card with header and three rows: pair device, connect Apple Health, first reading.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::var DashboardV2View.day1Header",
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::var DashboardV2View.pairDeviceRow",
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::var DashboardV2View.connectHealthRow",
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::var DashboardV2View.firstReadingRow"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::var DashboardV2View.connectHealthRow": "a3c2fa1b28f3041e",
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::var DashboardV2View.day1Header": "f4f14115b8e1ebce",
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::var DashboardV2View.firstReadingRow": "6dd87c88d7096ef5",
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::var DashboardV2View.pairDeviceRow": "73c9e2571af6c265",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var DashboardV2View.day1Header",
+   "hash": "c939f2509e642758",
+   "does": "\"Get started\" heading and \"Three quick steps…\" subheading at @ScaledMetric sizes.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var DashboardV2View.pairDeviceRow",
+   "hash": "3b63a2e7fe8c1330",
+   "does": "Pair-device row: done when PolarManager has any known device; tap starts recording (pairing lives on Record tab).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::func DashboardV2View.day1Row(done:glyph:title:subtitle:action:)",
+    "closure:onStartRecording — MainTabView startRecording()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:PolarManager.knownDevices"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "strapPaired",
+     "effect": "subtitle \"Paired\"; else \"Polar H10 or Verity Sense\""
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::func DashboardV2View.day1Row(done:glyph:title:subtitle:action:)": "49f5b5b06c08c8ab"
+   }
+  },
+  {
+   "key": "var DashboardV2View.connectHealthRow",
+   "hash": "e076394d3453f7d5",
+   "does": "Connect-Health row: done once authorization was requested this process; tap runs requestHealthAccess (failure logged and toasted).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::func DashboardV2View.day1Row(done:glyph:title:subtitle:action:)",
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::func DashboardV2View.requestHealthAccess()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:HealthKitManager.authorizationRequested"
+   ],
+   "writes": [
+    "ud:healthAccessSkipped (removed inside requestAuthorization)"
+   ],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "healthRequested",
+     "effect": "subtitle \"Access requested\"; else \"For sleep + vitals\""
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::func DashboardV2View.day1Row(done:glyph:title:subtitle:action:)": "49f5b5b06c08c8ab",
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::func DashboardV2View.requestHealthAccess()": "d05aa3467a2b5669",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.healthKit": "f61a7a679f5280dd"
+   }
+  },
+  {
+   "key": "func DashboardV2View.requestHealthAccess()",
+   "hash": "6351a3f9f2fcaffd",
+   "does": "Awaits HealthKitManager.requestAuthorization(); on error logs a warning and shows an 'Apple Health authorization failed: <error>' toast.",
+   "entry": "Connect Apple Health checklist row tap",
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.requestAuthorization()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:DashboardV2View.toast @State",
+    "hk:authorization request"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "requestAuthorization throws",
+     "effect": "warning log + alert-tinted toast"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.requestAuthorization()": "0554c5246dd39562",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.healthKit": "f61a7a679f5280dd"
+   }
+  },
+  {
+   "key": "var DashboardV2View.firstReadingRow",
+   "hash": "a3d7930b61f3828b",
+   "does": "First-reading row, never done; tap starts recording.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::func DashboardV2View.day1Row(done:glyph:title:subtitle:action:)",
+    "closure:onStartRecording — MainTabView startRecording()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::func DashboardV2View.day1Row(done:glyph:title:subtitle:action:)": "49f5b5b06c08c8ab"
+   }
+  },
+  {
+   "key": "func DashboardV2View.day1Row(done:glyph:title:subtitle:action:)",
+   "hash": "5df0540cdf60b0f9",
+   "does": "Plain Button running action around day1RowContent; disabled when done.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::func DashboardV2View.day1RowContent(done:glyph:title:subtitle:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::func DashboardV2View.day1RowContent(done:glyph:title:subtitle:)": "57d3d27fd6119898"
+   }
+  },
+  {
+   "key": "func DashboardV2View.day1RowContent(done:glyph:title:subtitle:)",
+   "hash": "134f30f0a41c8547",
+   "does": "Row: done/pending circle, glyph, caption, chevron.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::func DashboardV2View.day1RowCaption(title:subtitle:)",
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::func DashboardV2View.day1RowChevron(done:)",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "done",
+     "effect": "checkmark.circle.fill; else circle"
+    },
+    {
+     "at": "+4",
+     "cond": "done",
+     "effect": "wongOptimal colour; else tertiary"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::func DashboardV2View.day1RowCaption(title:subtitle:)": "9eb46ea727638e79",
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::func DashboardV2View.day1RowChevron(done:)": "eb9d69a18dd23f26",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "func DashboardV2View.day1RowChevron(done:)",
+   "hash": "5a623ee2f19a58f0",
+   "does": "Chevron only for pending rows.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "!done",
+     "effect": "show chevron; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "func DashboardV2View.day1RowCaption(title:subtitle:)",
+   "hash": "6d244823dadb33f3",
+   "does": "Title and subtitle texts at scaled sizes.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var DashboardV2View.heroRing",
+   "hash": "335eb35199da4bef",
+   "does": "Hero ScoreRing state: noData (empty archive), buildingBaseline (<14 nights), scored ring with tap→morning report and long-press context menu, else loading.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func ScoreAppearancePolicy.showsScore(baselineNights:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func ScoreAppearancePolicy.stage(baselineNights:)",
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::func DashboardV2View.openMorningReport()",
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::var DashboardV2View.heroContextMenu",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.displayedScore",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.verdict"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "daysCollected == 0",
+     "effect": ".noData ring"
+    },
+    {
+     "at": "+4",
+     "cond": "!showsScore(baselineNights)",
+     "effect": ".buildingBaseline(day: baselineNights, target 14)"
+    },
+    {
+     "at": "+6",
+     "cond": "displayedScore and verdict non-nil",
+     "effect": "scored ring, snappy when stage .full, tappable + context menu; else .loading ring (persists indefinitely when no overnight score exists — see displayedScore flag)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func ScoreAppearancePolicy.showsScore(baselineNights:)": "1a88ccd14afefff8",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func ScoreAppearancePolicy.stage(baselineNights:)": "ea31274f980b20bf",
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::func DashboardV2View.openMorningReport()": "4b81827917696cd5",
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::var DashboardV2View.heroContextMenu": "d8438f8f40a9638b",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.baselineNights": "bf5bdd7b8c73498e",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.daysCollected": "06a2354ea1f359d2",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.displayedScore": "01657452d21bf419",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.verdict": "3ae168b82fc438b5"
+   }
+  },
+  {
+   "key": "func DashboardV2View.openMorningReport()",
+   "hash": "5730353dd659798e",
+   "does": "Opens the morning report for the overnight session if there is one.",
+   "entry": "hero onTapGesture",
+   "calls": [
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.latestOvernightComplete",
+    "closure:onViewReport — MainTabView sets selectedReportSession"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "latestOvernightComplete != nil",
+     "effect": "onViewReport(session); else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.latestOvernightComplete": "f41743b582b9e9d4"
+   }
+  },
+  {
+   "key": "var DashboardV2View.heroContextMenu",
+   "hash": "65a486e9bfa82ac7",
+   "does": "Context menu: share, re-analyze, copy.",
+   "entry": "contextMenu on long-press",
+   "calls": [
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::var DashboardV2View.shareRecoveryCardButton",
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::var DashboardV2View.reAnalyzeButton",
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::var DashboardV2View.copyDataButton"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::var DashboardV2View.copyDataButton": "72a8aeda4d45435f",
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::var DashboardV2View.reAnalyzeButton": "5e6de4d883db0211",
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::var DashboardV2View.shareRecoveryCardButton": "8ab5b9ca479b78ef"
+   }
+  },
+  {
+   "key": "var DashboardV2View.shareRecoveryCardButton",
+   "hash": "9e1ad919823bd012",
+   "does": "Menu button running shareRecapCard.",
+   "entry": "context menu tap",
+   "calls": [
+    "Emuqu/Sources/Views/DashboardV2View+Chips.swift::func DashboardV2View.shareRecapCard()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/DashboardV2View+Chips.swift::func DashboardV2View.shareRecapCard()": "48e7f111b0f5fade"
+   }
+  },
+  {
+   "key": "var DashboardV2View.reAnalyzeButton",
+   "hash": "13f9d2c6a915fc81",
+   "does": "Menu button running reanalyzeFromHero in a Task.",
+   "entry": "context menu tap",
+   "calls": [
+    "Emuqu/Sources/Views/DashboardV2View+Chips.swift::func DashboardV2View.reanalyzeFromHero()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/DashboardV2View+Chips.swift::func DashboardV2View.reanalyzeFromHero()": "03016aa43b024cae"
+   }
+  },
+  {
+   "key": "var DashboardV2View.copyDataButton",
+   "hash": "74c07f784f6a1532",
+   "does": "Menu button running copyHeroDataToClipboard.",
+   "entry": "context menu tap",
+   "calls": [
+    "Emuqu/Sources/Views/DashboardV2View+Chips.swift::func DashboardV2View.copyHeroDataToClipboard()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/DashboardV2View+Chips.swift::func DashboardV2View.copyHeroDataToClipboard()": "e4212e70d6d67158"
+   }
+  },
+  {
+   "key": "var DashboardV2View.verdictRow",
+   "hash": "10c2d0f5f51baa9b",
+   "does": "Verdict word + ConfidencePip when scored; \"Building your baseline\" + progress/sample offer when under 14 nights; else nothing.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func ScoreAppearancePolicy.showsScore(baselineNights:)",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.localizedWord",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.textColor",
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::var DashboardV2View.baselineProgressOrSampleOffer",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "verdict non-nil AND showsScore",
+     "effect": "verdict row"
+    },
+    {
+     "at": "+10",
+     "cond": "!showsScore",
+     "effect": "building-baseline block; else (scored but verdict nil) nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func ScoreAppearancePolicy.showsScore(baselineNights:)": "1a88ccd14afefff8",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.localizedWord": "36e143abcc4cadb1",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.textColor": "d1b20461dd94a948",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::var DashboardV2View.baselineProgressOrSampleOffer": "5cfb508b549133bc",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.baselineNights": "bf5bdd7b8c73498e",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.verdict": "3ae168b82fc438b5",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var DashboardV2View.baselineProgressOrSampleOffer",
+   "hash": "d85fe098be7026c3",
+   "does": "SampleDataOfferRow when archive empty, else ConfidencePip(baselineNights).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "daysCollected == 0",
+     "effect": "SampleDataOfferRow; else ConfidencePip"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.baselineNights": "bf5bdd7b8c73498e",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.daysCollected": "06a2354ea1f359d2"
+   }
+  },
+  {
+   "key": "var DashboardV2View.todaysLoopSection",
+   "hash": "4ef8222a1cf3d093",
+   "does": "Today's Loop: scored → mainLoopCard with verdict colour; building baseline with sessions → \"Day N of 14\" NarrativeCard; else nothing.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func ScoreAppearancePolicy.showsScore(baselineNights:)",
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::func DashboardV2View.mainLoopCard(accent:)",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.color",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "showsScore AND verdict non-nil",
+     "effect": "mainLoopCard"
+    },
+    {
+     "at": "+4",
+     "cond": "daysCollected > 0 AND !showsScore",
+     "effect": "building NarrativeCard; else nothing (scored but no verdict, or empty archive)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func ScoreAppearancePolicy.showsScore(baselineNights:)": "1a88ccd14afefff8",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.color": "dc2f3b06b79e333d",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::func DashboardV2View.mainLoopCard(accent:)": "95eb2c89edeb428b",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.baselineNights": "bf5bdd7b8c73498e",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.daysCollected": "06a2354ea1f359d2",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.verdict": "3ae168b82fc438b5"
+   }
+  },
+  {
+   "key": "func DashboardV2View.mainLoopCard(accent:)",
+   "hash": "4d4c6581fe316414",
+   "does": "Loop card, tappable to the readiness breakdown only when liveReadiness has loopCardText.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.liveReadiness",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::var LiveReadiness.loopCardText",
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::func DashboardV2View.loopCard(accent:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "liveReadiness?.loopCardText != nil",
+     "effect": "Button setting navTarget = .readiness; else static card"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::var LiveReadiness.loopCardText": "45abb941b9d7ec24",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::func DashboardV2View.loopCard(accent:)": "82ff3d764ca8f706",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.liveReadiness": "2c2e92a0bdd7344a"
+   }
+  },
+  {
+   "key": "func DashboardV2View.loopCard(accent:)",
+   "hash": "06a4019b528ea27f",
+   "does": "NarrativeCard with todaysLoopText.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::func DashboardV2View.todaysLoopText()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::func DashboardV2View.todaysLoopText()": "82dfe337fc6229c1"
+   }
+  },
+  {
+   "key": "func DashboardV2View.todaysLoopText()",
+   "hash": "a11e8cd398c46450",
+   "does": "Loop text: LiveReadiness contextual sentence, else verdict subverdict, else \"\".",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.liveReadiness",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::var LiveReadiness.loopCardText",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.verdict",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.localizedSubverdict"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "loopCardText non-nil",
+     "effect": "return it"
+    },
+    {
+     "at": "+7",
+     "cond": "verdict nil",
+     "effect": "return \"\"; else localizedSubverdict"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::var LiveReadiness.loopCardText": "45abb941b9d7ec24",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.localizedSubverdict": "faf1dbfaddf2ced8",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.liveReadiness": "2c2e92a0bdd7344a",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.verdict": "3ae168b82fc438b5"
+   }
+  },
+  {
+   "key": "var DashboardV2View.feedbackChipSection",
+   "hash": "71b5616b48ed9fad",
+   "does": "DashboardMorningFeelingChip for the overnight session whose selection calls applyMorningFeeling.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.latestOvernightComplete",
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::func DashboardV2View.applyMorningFeeling(value:tags:session:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "latestOvernightComplete != nil",
+     "effect": "show chip; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::func DashboardV2View.applyMorningFeeling(value:tags:session:)": "8bb858eefdd1cb53",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.latestOvernightComplete": "f41743b582b9e9d4"
+   }
+  },
+  {
+   "key": "func DashboardV2View.applyMorningFeeling(value:tags:session:)",
+   "hash": "40633fa351e6436d",
+   "does": "Writes feeling (and tags, nil when empty) to the archived session off-main via a detached task; on failure shows a \"Couldn't save how you felt\" toast.",
+   "entry": "DashboardMorningFeelingChip onSelect",
+   "calls": [
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::func DashboardV2View.storeMorningFeeling(_:tags:id:archive:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [
+    "archive:SessionArchive.update morningFeeling/morningFeelingTags"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "tags.isEmpty",
+     "effect": "store nil tags; else tags"
+    },
+    {
+     "at": "+8",
+     "cond": "saved",
+     "effect": "return silently (archive change notification reloads the dashboard); else failure toast"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::func DashboardV2View.storeMorningFeeling(_:tags:id:archive:)": "f7b8f3af79215952"
+   }
+  },
+  {
+   "key": "func DashboardV2View.storeMorningFeeling(_:tags:id:archive:)",
+   "hash": "517067ce1e45f456",
+   "does": "SessionArchive.update(id) setting morningFeeling and morningFeelingTags; returns true, or logs and returns false on throw.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "archive:SessionArchive.update",
+    "notif:flowRecoveryArchiveChanged (posted by update)",
+    "notif:flowRecoveryArchiveSessionsNeedReupload"
+   ],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "archive.update throws",
+     "effect": "debugLog warning, return false (caller toasts)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "e021c7f17b266931",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -41,15 +41,7 @@ enum DashboardSessionPolicy {
     /// input type, transient use) rather than a shared generic — the two never
     /// need to change together beyond the gate list mirrored above.
     static func latestOvernightScore(inEntries entries: [SessionArchiveEntry], calendar: Calendar) -> Int? {
-        let candidates = entries.filter {
-            $0.sessionType == .overnight && $0.isReliableForHRVAggregates && $0.recoveryScore != nil
-        }
-        guard !candidates.isEmpty else { return nil }
-        let byNight = Dictionary(grouping: candidates) { calendar.startOfDay(for: entryDay(of: $0)) }
-        guard let latestNight = byNight.keys.max() else { return nil }
-        let entryDuration: (SessionArchiveEntry) -> TimeInterval = { ($0.endDate ?? $0.date).timeIntervalSince($0.date) }
-        guard let winner = byNight[latestNight]?.max(by: { entryDuration($0) < entryDuration($1) }),
-              let score = winner.recoveryScore else { return nil }
+        guard let score = latestScoredOvernightEntry(in: entries, calendar: calendar)?.recoveryScore else { return nil }
         return ScoreVerdict.safeDisplayScore(score * 10)
     }
 
@@ -74,8 +66,9 @@ enum DashboardSessionPolicy {
         )
     }
 
-    /// Same gate + selection as `latestOvernightScore`: the latest night's
-    /// longest-duration reliable overnight that carries a frozen score.
+    /// The gate + selection `latestOvernightScore` and the summary seed share:
+    /// the latest night's longest-duration reliable overnight that carries a
+    /// frozen score.
     private static func latestScoredOvernightEntry(
         in entries: [SessionArchiveEntry], calendar: Calendar
     ) -> SessionArchiveEntry? {
@@ -101,11 +94,12 @@ enum DashboardSessionPolicy {
 
     /// Index-mirror of `recentDays(from:today:calendar:)` for the cold-start
     /// seed, with the same day rules as `sessionForDay` (no workouts, no
-    /// unreliable HRV, an overnight on its wake day, overnight preferred, then
-    /// the longest) so the strip does not move when the full sessions load.
-    /// Uses the per-day `recoveryScore` the index carries; a day whose only
-    /// reading predates score-persistence shows "—" until the full sessions
-    /// load (the `readinessScore` fallback needs the full session).
+    /// unreliable HRV, a reading that was analysed or scored, an overnight on
+    /// its wake day, overnight preferred, then the longest) so the strip picks
+    /// the same reading when the full sessions load. Uses the per-day
+    /// `recoveryScore` the index carries; when the picked reading predates
+    /// score-persistence its cell shows "—" until the full sessions load (the
+    /// `readinessScore` fallback needs the full session).
     static func recentDays(fromEntries entries: [SessionArchiveEntry], today: Date, calendar: Calendar) -> [RecentDay] {
         let todayStart = calendar.startOfDay(for: today)
         var days: [RecentDay] = []
@@ -119,11 +113,13 @@ enum DashboardSessionPolicy {
         return days
     }
 
-    /// `sessionForDay` on the index: overnight first, then the longest.
+    /// `sessionForDay` on the index: `isDayCandidate`'s gate (the index's
+    /// `meanRMSSD` is present exactly when the session had an analysis
+    /// result), overnight first, then the longest.
     private static func entryForDay(_ date: Date, in entries: [SessionArchiveEntry], calendar: Calendar) -> SessionArchiveEntry? {
         let candidates = entries.filter {
-            $0.sessionType != .workout && $0.recoveryScore != nil && $0.isReliableForHRVAggregates
-                && calendar.isDate(entryDay(of: $0), inSameDayAs: date)
+            $0.sessionType != .workout && ($0.meanRMSSD != nil || $0.recoveryScore != nil)
+                && $0.isReliableForHRVAggregates && calendar.isDate(entryDay(of: $0), inSameDayAs: date)
         }
         let overnights = candidates.filter { $0.sessionType == .overnight }
         if let best = overnights.max(by: { entryDuration($0) < entryDuration($1) }) { return best }
@@ -330,8 +326,6 @@ enum DashboardSessionPolicy {
 ///   its verdict; before that they show "Building your baseline".
 /// - From night 28: the baseline counts as mature ("Full algorithm").
 enum ScoreAppearancePolicy {
-    /// Night the score first compares the user with their own baseline.
-    static let personalBaselineNights = BaselineTracker.RecoveryBaselineStats.minimumDays
     /// Night the Dashboard and score detail first show the score.
     static let scoreShownNights = 14
     /// Night the baseline counts as mature.

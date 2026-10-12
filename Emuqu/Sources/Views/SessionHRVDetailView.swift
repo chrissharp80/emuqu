@@ -1,13 +1,19 @@
 import Charts
 import SwiftUI
 
-/// Detailed single-session HRV analysis — drills in from HRV card on Dashboard and Recovery Report.
+/// Detailed single-session HRV analysis — drills in from the HRV card on the
+/// morning results screen.
 /// Shows heart rate stats, peak capacity, trend comparison, charts (tachogram, Poincaré, frequency),
 /// and full Kubios-style technical metrics.
 struct SessionHRVDetailView: View {
     let session: HRVSession
     let result: HRVAnalysisResult
     var recentSessions: [HRVSession] = []
+    /// The scoring baseline the morning HRV card rates against. When given,
+    /// the hero rates RMSSD against it and the trend rows compare with it, so
+    /// this screen says what the card that opened it said; without it, fixed
+    /// cut-offs and the prior nights' plain average stand in.
+    var baselineStats: BaselineTracker.RecoveryBaselineStats?
 
     // MARK: - Body
 
@@ -83,11 +89,16 @@ struct SessionHRVDetailView: View {
         .cornerRadius(16)
     }
 
+    /// The RMSSD baseline (geometric mean of the scoring window), or nil.
+    var hrvBaseline: Double? {
+        baselineStats.map { exp($0.lnRmssdMean) }
+    }
+
     private var heroRMSSDValue: some View {
         HStack(alignment: .lastTextBaseline, spacing: 4) {
             Text(String(format: "%.0f", locale: LanguageManager.appLocale, result.timeDomain.rmssd))
                 .scaledFont(size: 56, weight: .bold)
-                .foregroundColor(AppTheme.hrvTextColor(result.timeDomain.rmssd))
+                .foregroundColor(AppTheme.hrvTextColor(result.timeDomain.rmssd, baseline: hrvBaseline))
             Text(String(localized: "ms", bundle: LanguageManager.appBundle))
                 .font(.title3)
                 .foregroundColor(AppTheme.textTertiary)
@@ -102,12 +113,12 @@ struct SessionHRVDetailView: View {
     }
 
     private var heroHRVLabel: some View {
-        Text(AppTheme.hrvLabel(result.timeDomain.rmssd))
+        Text(AppTheme.hrvLabel(result.timeDomain.rmssd, baseline: hrvBaseline))
             .font(.subheadline.weight(.medium))
-            .foregroundColor(AppTheme.hrvTextColor(result.timeDomain.rmssd))
+            .foregroundColor(AppTheme.hrvTextColor(result.timeDomain.rmssd, baseline: hrvBaseline))
             .padding(.horizontal, 12)
             .padding(.vertical, 4)
-            .background(AppTheme.hrvColor(result.timeDomain.rmssd).opacity(0.15))
+            .background(AppTheme.hrvColor(result.timeDomain.rmssd, baseline: hrvBaseline).opacity(0.15))
             .cornerRadius(12)
     }
 
@@ -151,7 +162,7 @@ struct SessionHRVDetailView: View {
                     .font(.headline)
                     .foregroundColor(AppTheme.textPrimary)
                 Spacer()
-                Text(String(localized: "\(Int(result.timeDomain.minHR))-\(Int(result.timeDomain.maxHR)) bpm", bundle: LanguageManager.appBundle))
+                Text(String(localized: "\(minHRRounded)-\(maxHRRounded) bpm", bundle: LanguageManager.appBundle))
                     .font(.caption.bold())
                     .foregroundColor(AppTheme.terracottaText)
             }
@@ -161,10 +172,20 @@ struct SessionHRVDetailView: View {
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel(String(localized: "Heart rate over time chart", bundle: LanguageManager.appBundle))
                 .accessibilityValue(String(
-                    localized: "Range \(Int(result.timeDomain.minHR)) to \(Int(result.timeDomain.maxHR)) beats per minute, mean \(Int(result.timeDomain.meanHR))", bundle: LanguageManager.appBundle
+                    localized: "Range \(minHRRounded) to \(maxHRRounded) beats per minute, mean \(Int(result.timeDomain.meanHR.rounded()))", bundle: LanguageManager.appBundle
                 ))
         }
         .zenCard()
+    }
+
+    /// Rounded like the stat tiles and the metrics grid ("%.0f"), so the
+    /// same screen never shows 54 here and 55 there.
+    private var minHRRounded: Int {
+        Int(result.timeDomain.minHR.rounded())
+    }
+
+    private var maxHRRounded: Int {
+        Int(result.timeDomain.maxHR.rounded())
     }
 
     // MARK: - Tachogram

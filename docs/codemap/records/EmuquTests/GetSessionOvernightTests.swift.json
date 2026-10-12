@@ -1,0 +1,337 @@
+{
+ "file": "EmuquTests/GetSessionOvernightTests.swift",
+ "hash": "75b8b589901e9311",
+ "role": "@MainActor XCTest suite proving the Flo get_session compact tool resolves overnight sessions only: latest reliable night, by_date on midpoint day, ordinals over overnights, by_id rejects workout ids pointing to get_workout, workout-only archive yields notRecorded, and the tool description says overnight.",
+ "types": [
+  "GetSessionOvernightTests: class — @MainActor XCTestCase for CompactToolRouter get_session",
+  "GetSessionOvernightTests.Fixture: struct — registry plus the four archived sessions"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func GetSessionOvernightTests.temporaryDirectory()",
+   "hash": "25d6cee29679b4e7",
+   "does": "Test helper: returns a unique temp directory URL and registers a teardown that removes it, ignoring removal errors.",
+   "entry": null,
+   "calls": [
+    "ext:FileManager.removeItem"
+   ],
+   "reads": [],
+   "writes": [
+    "file:tmp/GetSessionOvernightTests-<uuid>"
+   ],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "catch on removeItem",
+     "effect": "error swallowed (directory may not exist)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func GetSessionOvernightTests.makeArchive(includeOvernights:)",
+   "hash": "3fe565bca88c3ea7",
+   "does": "Test helper: archives (skipSameNightMerge) a 5 Oct 00:05 6 h night, a 5 Oct 22:40 8 h night, a 6 Oct 21:00 0.4 h preSleep partial and a 5 Oct 17:30 run (or only the run), then builds a FactResolverRegistry over that SessionArchive with default UserSettings.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()",
+    "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.session(_:start:hours:quality:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func AppFactResolverFactory.build(archive:settings:)",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()"
+   ],
+   "reads": [],
+   "writes": [
+    "archive:SessionArchive.archive (temp directory)"
+   ],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "includeOvernights",
+     "effect": "true: stores 3 overnights + run; false: run only"
+    },
+    {
+     "at": "+11",
+     "cond": "for each stored session",
+     "effect": "archives it, rethrowing errors"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func AppFactResolverFactory.build(archive:settings:)": "608c160d07cbda8d",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "fc9f14bb70664847",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "eb772ae55676de35",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)": "e1a5ccaab9fa4e3e",
+    "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)": "a892db29af7907c0",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.session(_:start:hours:quality:)": "3f6331295c06d4f9",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4"
+   }
+  },
+  {
+   "key": "func GetSessionOvernightTests.session(_:start:hours:quality:)",
+   "hash": "f1bc066583c2832a",
+   "does": "Test helper: builds a complete HRVSession of the given type starting at 2026-10-<day> hour:minute local time, lasting `hours`, with hrvDataQuality; overnights get recoveryScore 7.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "Calendar date from components",
+     "effect": "nil: falls back to Date() (now)"
+    },
+    {
+     "at": "+7",
+     "cond": "type == .overnight",
+     "effect": "sets recoveryScore 7; workouts get none"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5"
+   }
+  },
+  {
+   "key": "func GetSessionOvernightTests.getSession(_:_:)",
+   "hash": "873127b0551d4ed4",
+   "does": "Test helper: resolves the get_session tool through a CompactToolRouter over the registry.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.resolveTool(name:argsJSON:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.resolveTool(name:argsJSON:)": "fa79c3bca0f486d3"
+   }
+  },
+  {
+   "key": "func GetSessionOvernightTests.fields(_:file:line:)",
+   "hash": "ebb1640a37e2a610",
+   "does": "Test helper: unwraps a .record's fields or XCTFails and returns [:].",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "value is .record",
+     "effect": "false: XCTFail, returns empty dict"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func GetSessionOvernightTests.id(_:)",
+   "hash": "c6fd32a9fd7d3a8a",
+   "does": "Test helper: returns the 'id' string field of a record, else nil.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.fields(_:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "id field is .string",
+     "effect": "false: nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.fields(_:file:line:)": "1be42a6277aacc4a"
+   }
+  },
+  {
+   "key": "func GetSessionOvernightTests.testLatestIsTheHeadlineNightNotTheRun()",
+   "hash": "d89546a91e9d3ea6",
+   "does": "Asserts get_session {} returns the evening night (not the later partial or the run) with session_type overnight, nested hrv/recovery/sleep/vitals, no sport field, and overnights_that_day == 2.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.makeArchive(includeOvernights:)",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.getSession(_:_:)",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.id(_:)",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.fields(_:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "session_type is .string('overnight')",
+     "effect": "false: XCTFail"
+    },
+    {
+     "at": "+6",
+     "cond": "for each nested key",
+     "effect": "asserts present"
+    },
+    {
+     "at": "+10",
+     "cond": "overnights_that_day == 2",
+     "effect": "false: XCTFail"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.fields(_:file:line:)": "1be42a6277aacc4a",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.getSession(_:_:)": "aa97be368a7e5b55",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.id(_:)": "fae3c8625fedd515",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.makeArchive(includeOvernights:)": "3d038e8f360e1181"
+   }
+  },
+  {
+   "key": "func GetSessionOvernightTests.testByDateUsesTheMidpointDayAndNeverReturnsTheRun()",
+   "hash": "fe0161b11033ce66",
+   "does": "Asserts by_date 2026-10-05 returns the morning night and 2026-10-06 the evening night (midpoint day, main recording before partial), and recovery.score.by_date(2026-10-05) is dated at the morning night's start.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.makeArchive(includeOvernights:)",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.getSession(_:_:)",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.id(_:)",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolveAsync(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "recovery fact is a record with a .date field",
+     "effect": "false: XCTFail"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolveAsync(_:)": "67e3ca45fab7d9e6",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.getSession(_:_:)": "aa97be368a7e5b55",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.id(_:)": "fae3c8625fedd515",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.makeArchive(includeOvernights:)": "3d038e8f360e1181"
+   }
+  },
+  {
+   "key": "func GetSessionOvernightTests.testOrdinalsWalkOvernightsOnly()",
+   "hash": "e5c1499e3a345e3e",
+   "does": "Asserts by_ordinal 0,1,2 return evening night, partial, morning night and ordinal 3 is .missing(.notRecorded).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.makeArchive(includeOvernights:)",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.getSession(_:_:)",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.id(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each expected ordinal",
+     "effect": "asserts id"
+    },
+    {
+     "at": "+8",
+     "cond": "ordinal 3 is .missing(.notRecorded)",
+     "effect": "false: XCTFail"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.getSession(_:_:)": "aa97be368a7e5b55",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.id(_:)": "fae3c8625fedd515",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.makeArchive(includeOvernights:)": "3d038e8f360e1181"
+   }
+  },
+  {
+   "key": "func GetSessionOvernightTests.testIdLookupChecksTheSessionType()",
+   "hash": "2a26642e4e01d385",
+   "does": "Asserts by_id returns an overnight by id, rejects the run's id with .invalidParameter naming get_workout, and session.by_id(<id>).session_type resolves to 'overnight'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.makeArchive(includeOvernights:)",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.getSession(_:_:)",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.id(_:)",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolveAsync(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "run lookup is .missing(.invalidParameter)",
+     "effect": "false: XCTFail"
+    },
+    {
+     "at": "+6",
+     "cond": "detail?.contains('get_workout') == true",
+     "effect": "nil detail fails"
+    },
+    {
+     "at": "+8",
+     "cond": "tail resolves to .string('overnight')",
+     "effect": "false: XCTFail"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolveAsync(_:)": "67e3ca45fab7d9e6",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.getSession(_:_:)": "aa97be368a7e5b55",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.id(_:)": "fae3c8625fedd515",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.makeArchive(includeOvernights:)": "3d038e8f360e1181"
+   }
+  },
+  {
+   "key": "func GetSessionOvernightTests.testAWorkoutOnlyArchiveHasNoSession()",
+   "hash": "9f7c11aebcf4843f",
+   "does": "Asserts get_session {} over a run-only archive is .missing(.notRecorded).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.makeArchive(includeOvernights:)",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.getSession(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "value is .missing(.notRecorded)",
+     "effect": "false: XCTFail"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.getSession(_:_:)": "aa97be368a7e5b55",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.makeArchive(includeOvernights:)": "3d038e8f360e1181"
+   }
+  },
+  {
+   "key": "func GetSessionOvernightTests.testTheToolDescriptionSaysOvernight()",
+   "hash": "5b17c7f3650c0c28",
+   "does": "Asserts CompactToolRouter.readTools() has a get_session spec whose description mentions 'overnight' and 'get_workout'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.readTools()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.readTools()": "bcdfe76edb3db08e"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -1,0 +1,1241 @@
+{
+ "file": "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift",
+ "hash": "acbb01a832c65896",
+ "role": "TroubleshootingPage struct: consumer problem/crash read-outs, and (behind Advanced Diagnostics) keyboard capture, archive read health, AI cache telemetry, prompt audit, pre-score and usage telemetry; plus the reanalysis/repair worker methods.",
+ "types": [
+  "TroubleshootingPage: struct (View) — Settings › Troubleshooting"
+ ],
+ "state": [
+  "ud:debugModeEnabled (@AppStorage, default false)",
+  "mem:TroubleshootingPage @State: logCopiedConfirmation, crashReportCleared, showingTrainingRepairAlert, showingTrainingRepairConfirm, trainingRepairMessage, isRepairingTraining, isRebuildingLoad, trainingRepairProgress/Total, isReanalyzing, reanalyzeMessage, showingReanalyzeAlert, reanalyzeStopped, reanalyzeProgress/Total, reanalyzeTask, showingReanalyzeConfirm, reanalyzeDateRange, reanalyzeFromDate (now − 2 weeks), reanalyzeToDate (now)"
+ ],
+ "toplevel": "@State initializers: reanalyzeFromDate = now minus 2 weeks (?? now), reanalyzeToDate = now, evaluated when the view value is created. reanalyzeTask is not cancelled when the page is dismissed, so a running reanalysis continues in the background.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var TroubleshootingPage.logger",
+   "hash": "8d064f77ddab37ed",
+   "does": "Accessor: dependencies.app.debugLogger.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.debugLogger"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies": "b0514085566dc374",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.debugLogger": "8c13bd0b7a08fefd"
+   }
+  },
+  {
+   "key": "var TroubleshootingPage.preScoreTelemetry",
+   "hash": "4ef0a06f8fd5dfa1",
+   "does": "Accessor: dependencies.services.preScorePromptTelemetry.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppServices.preScorePromptTelemetry"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "8f71f3de23c47a6a",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppServices.preScorePromptTelemetry": "0ddfda1c60bf1207",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies": "b0514085566dc374"
+   }
+  },
+  {
+   "key": "var TroubleshootingPage.validationTelemetry",
+   "hash": "7ea60257f330b2c2",
+   "does": "Accessor: dependencies.services.validationTelemetry.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppServices.validationTelemetry"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "8f71f3de23c47a6a",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppServices.validationTelemetry": "bc555877026a986a",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies": "b0514085566dc374"
+   }
+  },
+  {
+   "key": "var TroubleshootingPage.cacheTelemetry",
+   "hash": "790631f55d2faa68",
+   "does": "Accessor: dependencies.providers.llmCacheTelemetry.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.llmCacheTelemetry"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "3848c612cbdb11bc",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies": "b0514085566dc374",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.llmCacheTelemetry": "895c0d12053bbca0"
+   }
+  },
+  {
+   "key": "var TroubleshootingPage.body",
+   "hash": "e50278390af1ba6b",
+   "does": "List of diagnosticsSections with zen background, title \"Troubleshooting\", and the \"Log copied\" alert.",
+   "entry": "SwiftUI renders View.body when the view is pushed/updated (pushed from SettingsView.swift:386, SettingsSearchIndex.swift:289)",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenFormBackground()",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.diagnosticsSections",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.logCopiedAction",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.logCopiedMessage"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.diagnosticsSections": "9d0cecc4a2d12a25",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.logCopiedAction": "80bbf2a9483b1bf6",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.logCopiedMessage": "9fa833baf8536e58",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenFormBackground()": "fde01388fd5e4e8c"
+   }
+  },
+  {
+   "key": "var TroubleshootingPage.diagnosticsSections",
+   "hash": "72e3292554126d8d",
+   "does": "Order: developerSections, No-Problems card, sessions held back from iCloud (quarantinedUploadsSection), recent problems, crash report, actionSections.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.actionSections",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.developerSections",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.problemsSection",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.recentProblemsSection",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.crashReportSection",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.quarantinedUploadsSection"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.actionSections": "32d71f549d9c6f8c",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.crashReportSection": "8f24768d8399c700",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.developerSections": "828616a191fb03e5",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.problemsSection": "75d36b9e1c9cfdb7",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.quarantinedUploadsSection": "b8d87ddffc509f19",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.recentProblemsSection": "1e02f77b53162fa0"
+   }
+  },
+  {
+   "key": "var TroubleshootingPage.developerSections",
+   "hash": "aad962800535d8ab",
+   "does": "Engineering read-outs only when Advanced Diagnostics is on.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.keyboardCaptureSection",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.archiveReadHealthSection",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.aiCacheHealthSection",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.aiPromptAuditSection",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.preScoreTelemetrySection",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.rolloutTelemetrySection"
+   ],
+   "reads": [
+    "ud:debugModeEnabled (@AppStorage)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "debugModeEnabled",
+     "effect": "keyboard capture, archive read health, AI cache, prompt audit, pre-score, usage counts sections; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.aiCacheHealthSection": "c19d01104282f524",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.aiPromptAuditSection": "08eb3b53bcf6c126",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.archiveReadHealthSection": "27f837cb0c816c25",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.keyboardCaptureSection": "90b700da5a41c135",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.preScoreTelemetrySection": "0c498c79f8debc57",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.rolloutTelemetrySection": "30367b408aa564ce"
+   }
+  },
+  {
+   "key": "var TroubleshootingPage.logCopiedAction",
+   "hash": "1cb14ca2ddc2d8ec",
+   "does": "OK cancel button for the Log copied alert.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var TroubleshootingPage.logCopiedMessage",
+   "hash": "ba3f485067254ecf",
+   "does": "Text: log is on the clipboard.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var TroubleshootingPage.keyboardCaptureSection",
+   "hash": "60fe7f98804378fb",
+   "does": "Section with NavigationLink to KeyboardCaptureView and explanation (max 10 minutes).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Same KeyboardCaptureView entry also lives in ArchiveDiagnosticsView.captureKeyboardPerformanceProfileSection; two entry points to one tool.",
+     "evidence": [
+      "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift:90",
+      "Emuqu/Sources/Views/ExportAndArchiveViews.swift:941"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var TroubleshootingPage.archiveReadHealthSection",
+   "hash": "d4dcaac4c9dd4188",
+   "does": "Section \"Archive read health\" shown only when SessionArchive.hasReadHealthIssue (>10 EPERM failures and >50% failure rate).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.sessionArchive",
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.hasReadHealthIssue",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.archiveReadHealthBody"
+   ],
+   "reads": [
+    "mem:SessionArchive.permissionDeniedReadFailures",
+    "mem:SessionArchive.totalReadAttempts"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "sessionArchive.hasReadHealthIssue",
+     "effect": "section shown; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.hasReadHealthIssue": "a01ee868ed25feb9",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies": "4fcad23c55561141",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.sessionArchive": "2c8002649ba22b7f",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.archiveReadHealthBody": "a27adcd34faba22d"
+   }
+  },
+  {
+   "key": "var TroubleshootingPage.archiveReadHealthBody",
+   "hash": "24a1d1d609bcf496",
+   "does": "Warning label, \"X of Y\" denied-reads sentence from a locked counter pair, advice text and reset button.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.sessionArchive",
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.readHealthCounters",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.resetReadHealthButton"
+   ],
+   "reads": [
+    "mem:SessionArchive.permissionDeniedReadFailures",
+    "mem:SessionArchive.totalReadAttempts"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.readHealthCounters": "4a0464075888503d",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies": "b0514085566dc374",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.sessionArchive": "2c8002649ba22b7f",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.resetReadHealthButton": "4acd7ef075cf14fd",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
+    "EmuquTests/CloudRetryProgressTests.swift::func CloudRetryProgressTests.attempts(failCount:)": "996d210a1b353bb7"
+   }
+  },
+  {
+   "key": "var TroubleshootingPage.resetReadHealthButton",
+   "hash": "4ef020153087ac0b",
+   "does": "Button that zeroes SessionArchive read-health counters (under archiveLock). Counters are not observable, so the card does not disappear until the page re-renders.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.sessionArchive",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.resetReadHealthCounters()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:SessionArchive.totalReadAttempts",
+    "mem:SessionArchive.permissionDeniedReadFailures"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.resetReadHealthCounters()": "591e07ca81320f48",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies": "b0514085566dc374",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.sessionArchive": "2c8002649ba22b7f"
+   }
+  },
+  {
+   "key": "var TroubleshootingPage.aiCacheHealthSection",
+   "hash": "11d3675ef863d867",
+   "does": "Section \"AI cache health\" with cacheHealthBody and footer (≥75% target).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.cacheHealthBody"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.cacheHealthBody": "6c015708d30efbe3"
+   }
+  },
+  {
+   "key": "var TroubleshootingPage.cacheHealthBody",
+   "hash": "e5d810a65dab8bc9",
+   "does": "Empty-state text when no AI turns recorded, else ratio/turn/token/provider rows and reset button.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::var LLMCacheTelemetry.totalTurns",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.cacheTelemetry",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.hitRatioRows",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.perProviderRows",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.resetTelemetryButton",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.turnCountRow",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.tokenCountRow"
+   ],
+   "reads": [
+    "mem:LLMCacheTelemetry.totals"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "cacheTelemetry.totalTurns == 0",
+     "effect": "\"No turns recorded yet\" text; else all rows"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::var LLMCacheTelemetry.totalTurns": "cff0eea845a1ec32",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.cacheTelemetry": "8fe61f4798040489",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.hitRatioRows": "8434b6ca2e780cbb",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.perProviderRows": "62cc4bcc66feaceb",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.resetTelemetryButton": "4575bc2ce7d1a138",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.tokenCountRow": "a638b931badb0704",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.turnCountRow": "da4abb0e7674fede",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var TroubleshootingPage.hitRatioRows",
+   "hash": "f9eba4dc1993a90f",
+   "does": "Cumulative hit % (green ≥75 else caution colour) and last-10-turn hit %.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::var LLMCacheTelemetry.cumulativeHitRatio",
+    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::func LLMCacheTelemetry.recentHitRatio(turns:)",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.cacheTelemetry",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::func TroubleshootingPage.cumulativeHitRow(_:color:)",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::func TroubleshootingPage.recentHitRow(_:)"
+   ],
+   "reads": [
+    "mem:LLMCacheTelemetry.totals",
+    "mem:LLMCacheTelemetry.recent"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "cumulative >= 75",
+     "effect": "wongOptimal colour; else wongCaution"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::func LLMCacheTelemetry.recentHitRatio(turns:)": "5be1d23804d6795a",
+    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::var LLMCacheTelemetry.cumulativeHitRatio": "6a65acdd9382e0bb",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::func TroubleshootingPage.cumulativeHitRow(_:color:)": "63f9686427fd9fdc",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::func TroubleshootingPage.recentHitRow(_:)": "78fd5d2affdfba56",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.cacheTelemetry": "8fe61f4798040489"
+   }
+  },
+  {
+   "key": "var TroubleshootingPage.perProviderRows",
+   "hash": "63e7bcb615882376",
+   "does": "Per-provider rows only when more than one provider appears in recent turns.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::func LLMCacheTelemetry.perProviderSummary()",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.cacheTelemetry",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::func TroubleshootingPage.perProviderRow(_:)"
+   ],
+   "reads": [
+    "mem:LLMCacheTelemetry.recent"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "perProvider.count > 1",
+     "effect": "divider + one row per provider; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::func LLMCacheTelemetry.perProviderSummary()": "88bb6c6496ef3fde",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::func TroubleshootingPage.perProviderRow(_:)": "4ada431c07a25280",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.cacheTelemetry": "8fe61f4798040489"
+   }
+  },
+  {
+   "key": "var TroubleshootingPage.resetTelemetryButton",
+   "hash": "67075fbd9dd8af70",
+   "does": "Destructive button resetting LLMCacheTelemetry totals and recent.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::func LLMCacheTelemetry.reset()",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.cacheTelemetry"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:LLMCacheTelemetry.totals",
+    "mem:LLMCacheTelemetry.recent"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::func LLMCacheTelemetry.reset()": "f332977010dbd513",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.cacheTelemetry": "8fe61f4798040489"
+   }
+  },
+  {
+   "key": "func TroubleshootingPage.cumulativeHitRow(_:color:)",
+   "hash": "205222c20bdad1a2",
+   "does": "Row \"Cumulative hit ratio\" N% in the given colour.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.body": "44bc1195e604c1ba"
+   }
+  },
+  {
+   "key": "func TroubleshootingPage.recentHitRow(_:)",
+   "hash": "4f56a1911beb0016",
+   "does": "Row \"Last 10 turns\" N%.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.body": "44bc1195e604c1ba",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var TroubleshootingPage.turnCountRow",
+   "hash": "39a8cad9b16c63d2",
+   "does": "Row \"Total turns\".",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::var LLMCacheTelemetry.totalTurns",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.cacheTelemetry"
+   ],
+   "reads": [
+    "mem:LLMCacheTelemetry.totals"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::var LLMCacheTelemetry.totalTurns": "cff0eea845a1ec32",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.body": "44bc1195e604c1ba",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.cacheTelemetry": "8fe61f4798040489",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var TroubleshootingPage.tokenCountRow",
+   "hash": "e6b90a8bf8bb942e",
+   "does": "Row \"Tokens cached / new\" = totalCachedReadTokens / totalInputTokens.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::var LLMCacheTelemetry.totalCachedReadTokens",
+    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::var LLMCacheTelemetry.totalInputTokens",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.cacheTelemetry"
+   ],
+   "reads": [
+    "mem:LLMCacheTelemetry.totals"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::var LLMCacheTelemetry.totalCachedReadTokens": "92a0a2ca961b6aeb",
+    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::var LLMCacheTelemetry.totalInputTokens": "5ab0ae44dfa8191b",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.body": "44bc1195e604c1ba",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.cacheTelemetry": "8fe61f4798040489",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func TroubleshootingPage.perProviderRow(_:)",
+   "hash": "391df49d554a849f",
+   "does": "Row provider name + \"Turns: n · h%\".",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::var LLMCacheTelemetry.TurnRecord.hitRatio": "25bed2eb08f1d8e4",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var TroubleshootingPage.aiPromptAuditSection",
+   "hash": "d4d1208fd8726819",
+   "does": "Section \"AI prompt audit\" with link and footer (last 10 turns, in memory).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.promptAuditLink"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.promptAuditLink": "290adabca8f3d93b"
+   }
+  },
+  {
+   "key": "var TroubleshootingPage.promptAuditLink",
+   "hash": "644625f29aeae4a0",
+   "does": "NavigationLink to LLMPromptAuditView.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.promptAuditLabel"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.promptAuditLabel": "3ade609f7c10f3c2"
+   }
+  },
+  {
+   "key": "var TroubleshootingPage.promptAuditLabel",
+   "hash": "30d3786f7576835a",
+   "does": "Label with LLMRequestAudit entries count.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.llmRequestAudit"
+   ],
+   "reads": [
+    "mem:LLMRequestAudit.entries"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "3848c612cbdb11bc",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies": "b0514085566dc374",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.llmRequestAudit": "dd4275b8cd4159d3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var TroubleshootingPage.preScoreTelemetrySection",
+   "hash": "f4b28e8200cedb48",
+   "does": "Section \"Pre-score prompt\": diagnosticsSummary text and reset button.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Services/PreScorePromptTelemetry.swift::var PreScorePromptTelemetry.diagnosticsSummary",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.preScoreTelemetry",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.resetPreScoreButton"
+   ],
+   "reads": [
+    "ud:preScorePrompt.telemetry.* (via PreScorePromptTelemetry counters)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/PreScorePromptTelemetry.swift::var PreScorePromptTelemetry.diagnosticsSummary": "1d16d0c6ea48984e",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.preScoreTelemetry": "3193ca3013ff80c3",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.resetPreScoreButton": "472c0d7fd8c1b362",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var TroubleshootingPage.resetPreScoreButton",
+   "hash": "68083f76fa2abad2",
+   "does": "Destructive reset button, only when the prompt has been shown.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Services/PreScorePromptTelemetry.swift::func PreScorePromptTelemetry.reset()",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.preScoreTelemetry"
+   ],
+   "reads": [
+    "mem:PreScorePromptTelemetry.shownCount"
+   ],
+   "writes": [
+    "ud:preScorePrompt.telemetry.shownCount",
+    "ud:preScorePrompt.telemetry.completedCount",
+    "ud:preScorePrompt.telemetry.skippedCount",
+    "ud:preScorePrompt.telemetry.firstSeen"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "preScoreTelemetry.shownCount > 0",
+     "effect": "button shown; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/PreScorePromptTelemetry.swift::func PreScorePromptTelemetry.reset()": "564e529b336f877c",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.preScoreTelemetry": "3193ca3013ff80c3"
+   }
+  },
+  {
+   "key": "var TroubleshootingPage.rolloutTelemetrySection",
+   "hash": "6ea6cd571a126bf2",
+   "does": "Section \"Usage counts\": ValidationTelemetry summary and a destructive reset.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)",
+    "Emuqu/Sources/Services/ValidationTelemetry.swift::func ValidationTelemetry.reset()",
+    "Emuqu/Sources/Services/ValidationTelemetry.swift::var ValidationTelemetry.diagnosticsSummary",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.validationTelemetry"
+   ],
+   "reads": [
+    "mem:ValidationTelemetry counters"
+   ],
+   "writes": [
+    "ud:ValidationTelemetry.Keys.* (dashboardOpenCount, lastDashboardOpen, chipDrillIns, trajectoryVisits, lastTrajectoryVisit, modeActivations, methodologyViews)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/ValidationTelemetry.swift::func ValidationTelemetry.reset()": "1fb72a7f10d13d33",
+    "Emuqu/Sources/Services/ValidationTelemetry.swift::var ValidationTelemetry.diagnosticsSummary": "62c0f71a29798372",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.validationTelemetry": "7b7f2d4d5ac577d1",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var TroubleshootingPage.hasCrashReport",
+   "hash": "111faa1af895229e",
+   "does": "True when previous_crash.txt exists and the report has not been cleared from this page (crashReportCleared).",
+   "entry": "SwiftUI evaluates it as part of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.crashLogManager",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.hasPreviousCrash"
+   ],
+   "reads": [
+    "file:previous_crash.txt",
+    "mem:TroubleshootingPage.crashReportCleared"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies": "4fcad23c55561141",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.crashLogManager": "1b529e89fe88d675",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.hasPreviousCrash": "9a2b5d78578e55cc"
+   }
+  },
+  {
+   "key": "var TroubleshootingPage.problemsSection",
+   "hash": "8a3421f41626ff7c",
+   "does": "\"No Problems Found\" card when (catalog empty OR Advanced Diagnostics off) AND hasCrashReport is false.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.logger",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.noProblemsSection",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.hasCrashReport"
+   ],
+   "reads": [
+    "mem:DebugLogger.errorCatalog",
+    "ud:debugModeEnabled (@AppStorage)",
+    "file:previous_crash.txt",
+    "mem:TroubleshootingPage.crashReportCleared"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "(catalog empty || Advanced off) && !hasCrashReport",
+     "effect": "noProblemsSection; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies": "4fcad23c55561141",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.hasCrashReport": "136203def1d3033a",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.logger": "2e176c615c703f2b",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.noProblemsSection": "f41e93dc33b6f80e"
+   }
+  },
+  {
+   "key": "var TroubleshootingPage.quarantinedUploadsSection",
+   "hash": "9fddf6aad54a5fd0",
+   "does": "Shown only while iCloud sync holds sessions back after a permanent preparation error (CloudKitSyncManager.quarantinedCount > 0; the files on disk are untouched): the quarantinedUploadsBody section.",
+   "entry": "SwiftUI view builder (via diagnosticsSections)",
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.cloudKitSyncManager",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.quarantinedCount",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::func TroubleshootingPage.quarantinedUploadsBody(_:)"
+   ],
+   "reads": [
+    "mem:CloudKitSyncState.quarantinedSessionIds"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "quarantinedCount > 0",
+     "effect": "section shown; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.quarantinedCount": "449c2fb5263531f7",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.cloudKitSyncManager": "b2c1f986e338fb12",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::func TroubleshootingPage.quarantinedUploadsBody(_:)": "74517004109515fc"
+   }
+  },
+  {
+   "key": "func TroubleshootingPage.quarantinedUploadsBody(_:)",
+   "hash": "ac408d93b0f3671b",
+   "does": "'iCloud' section with the 'Not uploaded' count row and a 'Try again' button that clears the quarantine for every held-back session (retryQuarantined(nil), persisted) so the next sync re-attempts them; the section then disappears.",
+   "entry": "Try again tap; SwiftUI view builder",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::func TroubleshootingPage.quarantinedCountRow(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.quarantinedCount",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.retryQuarantined(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:CloudKitSyncState.quarantinedSessionIds"
+   ],
+   "writes": [
+    "mem:CloudKitSyncState.quarantinedSessionIds (cleared on Try again)",
+    "file:CloudKit quarantine queue (saveQuarantineQueue)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.retryQuarantined(_:)": "086a60a95f1c28fa",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.quarantinedCount": "449c2fb5263531f7",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::func TroubleshootingPage.quarantinedCountRow(_:)": "76e31659bd33bbcb"
+   }
+  },
+  {
+   "key": "func TroubleshootingPage.quarantinedCountRow(_:)",
+   "hash": "a4a419e560dc358f",
+   "does": "Row 'Not uploaded' (icloud.slash) with the count right-aligned, read by VoiceOver as one element.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var TroubleshootingPage.noProblemsSection",
+   "hash": "77a57a772ed3d2ee",
+   "does": "Green checkmark \"No Problems Found / Everything is running smoothly\" section.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var TroubleshootingPage.recentProblemsSection",
+   "hash": "42e723f8dbf66c75",
+   "does": "Recent problems section when catalog non-empty and Advanced Diagnostics on.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.logger",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.recentProblemsHeader",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.recentProblemRows"
+   ],
+   "reads": [
+    "mem:DebugLogger.errorCatalog",
+    "ud:debugModeEnabled (@AppStorage)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "!errorCatalog.isEmpty && debugModeEnabled",
+     "effect": "section shown; else nothing"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "USERS_MANUAL lists \"Recent Errors: Shows recent error log with count badge\" as a Troubleshooting item, but the section only renders with Advanced Diagnostics on.",
+     "evidence": [
+      "docs/USERS_MANUAL.md:1574",
+      "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift:384"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.logger": "2e176c615c703f2b",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.recentProblemRows": "ec5271c3042be50e",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.recentProblemsHeader": "f64e1113b5253d9c"
+   }
+  },
+  {
+   "key": "var TroubleshootingPage.recentProblemsHeader",
+   "hash": "4618be0bb32a1048",
+   "does": "Header \"Recent Problems\" + \"N total\".",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.logger"
+   ],
+   "reads": [
+    "mem:DebugLogger.errorCatalog"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.logger": "2e176c615c703f2b",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var TroubleshootingPage.recentProblemRows",
+   "hash": "086e49b3252781ef",
+   "does": "Last 20 catalog entries, newest first, as problemRow.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.logger",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::func TroubleshootingPage.problemRow(_:)"
+   ],
+   "reads": [
+    "mem:DebugLogger.errorCatalog"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::func TroubleshootingPage.problemRow(_:)": "791ebdaa3ebe2714",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.logger": "2e176c615c703f2b"
+   }
+  },
+  {
+   "key": "func TroubleshootingPage.problemRow(_:)",
+   "hash": "646b33c766b8a6f7",
+   "does": "Row: header + message (monospaced, 2 lines).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::func TroubleshootingPage.problemRowHeader(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::func TroubleshootingPage.problemRowHeader(_:)": "364599c0dd3f228a"
+   }
+  },
+  {
+   "key": "func TroubleshootingPage.problemRowHeader(_:)",
+   "hash": "327bcbd949a31c70",
+   "does": "Row header: category in red + relative timestamp.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.category(_:caller:file:line:)": "315f6413360002af",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var TroubleshootingPage.crashReportSection",
+   "hash": "c2a640fd504aa6d1",
+   "does": "Crash Report section with link while hasCrashReport.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.crashReportLink",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.hasCrashReport"
+   ],
+   "reads": [
+    "file:previous_crash.txt",
+    "mem:TroubleshootingPage.crashReportCleared"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "report on file and not cleared",
+     "effect": "section shown; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies": "4fcad23c55561141",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.crashReportLink": "082f96111685ef66",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.hasCrashReport": "136203def1d3033a"
+   }
+  },
+  {
+   "key": "var TroubleshootingPage.crashReportLink",
+   "hash": "9da811dae1c2e457",
+   "does": "NavigationLink to CrashLogView.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.crashReportLabel"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.crashReportLabel": "5434e78e8d5689e4"
+   }
+  },
+  {
+   "key": "var TroubleshootingPage.crashReportLabel",
+   "hash": "6085fabd0fa4c0ac",
+   "does": "Label \"View Crash Report\" in alert colour.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func TroubleshootingPage.startReanalysis()",
+   "hash": "e9380e9493cce273",
+   "does": "Starts reanalysis: resets progress, computes from = start of From day and to = To date (ReanalysisService extends it to 23:59:59) when range on, stores a Task that awaits RRCollector.reanalyzeAllSessions with a progress callback, checks Task.isCancelled for Stop, then finishReanalysis on main.",
+   "entry": "Reanalyze confirmation dialog button (reanalyzeDialogActions)",
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.reanalyzeAllSessions(from:to:progress:)",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::func TroubleshootingPage.publishReanalyzeProgress(_:total:)",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::func TroubleshootingPage.finishReanalysis(_:stopped:)",
+    "ext:Task",
+    "ext:Calendar.startOfDay",
+    "closure:progress callback → Emuqu/Sources/Views/SettingsPages+Diagnostics.swift:469 set here, invoked by ReanalysisService.reanalyzeAllSessions"
+   ],
+   "reads": [
+    "archive:RRCollector.archivedSessions (all sessions loaded)"
+   ],
+   "writes": [
+    "archive:sessions rewritten by ReanalysisService.reanalyzeSession"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "reanalyzeDateRange",
+     "effect": "from = startOfDay(reanalyzeFromDate); else nil (all)"
+    },
+    {
+     "at": "+6",
+     "cond": "reanalyzeDateRange",
+     "effect": "to = reanalyzeToDate; else nil"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "race",
+     "sev": "low",
+     "text": "reanalyzeTask is never cancelled when the page is dismissed (no onDisappear) and isReanalyzing is per-view @State, so after leaving and re-entering Troubleshooting the user can start a second reanalysis over the same sessions while the first keeps running (ReanalysisService has no concurrency guard), and the first run's completion alert is delivered to a discarded view. repairTrainingSnapshots (:512) has the same shape.",
+     "evidence": [
+      "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift:29",
+      "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift:35",
+      "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift:460",
+      "Emuqu/Sources/Services/ReanalysisService.swift:704",
+      "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift:516"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.reanalyzeAllSessions(from:to:progress:)": "b2a9d06433933793",
+    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::func TroubleshootingPage.finishReanalysis(_:stopped:)": "f382c3fc41087643",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::func TroubleshootingPage.publishReanalyzeProgress(_:total:)": "b4d13cfaa3fe9d61"
+   }
+  },
+  {
+   "key": "func TroubleshootingPage.publishReanalyzeProgress(_:total:)",
+   "hash": "ee364c66742270c3",
+   "does": "Hops to MainActor to set reanalyzeProgress/Total from the service callback.",
+   "entry": "closure passed as ReanalysisService progress callback",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TroubleshootingPage.finishReanalysis(_:stopped:)",
+   "hash": "bdd1c7080713b809",
+   "does": "Clears isReanalyzing, records stopped, builds message, shows the alert.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::func TroubleshootingPage.reanalysisMessage(_:stopped:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::func TroubleshootingPage.reanalysisMessage(_:stopped:)": "d5eeb4de7334711b"
+   }
+  },
+  {
+   "key": "func TroubleshootingPage.reanalysisMessage(_:stopped:)",
+   "hash": "4b0beba791ad928a",
+   "does": "Alert text for reanalysis result.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "stopped",
+     "effect": "\"Stopped early. Sessions updated: N.\""
+    },
+    {
+     "at": "+5",
+     "cond": "result.skipped > 0",
+     "effect": "\"Reanalyzed N sessions. M with manual windows preserved.\"; else \"Reanalyzed N sessions with updated scoring.\""
+    }
+   ],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "low",
+     "text": "Sessions whose reanalysis returns nil are counted in neither `updated` nor `skipped`, and the alert (\"Reanalyzed N sessions with updated scoring.\") never mentions them, so failed sessions keep their old scores silently.",
+     "evidence": [
+      "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift:494",
+      "Emuqu/Sources/Services/ReanalysisService.swift:708"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func TroubleshootingPage.repairTrainingSnapshots()",
+   "hash": "7a6cc94e26aed477",
+   "does": "Resets progress, awaits RRCollector.repairTrainingSnapshots (recomputes ATL/CTL/TSB + readiness snapshots on every archived session) with progress callback, then finishTrainingRepair on main.",
+   "entry": "\"Repair All Sessions\" confirmation button (trainingRepairDialogActions)",
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.repairTrainingSnapshots(progress:)",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::func TroubleshootingPage.publishTrainingRepairProgress(_:total:)",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::func TroubleshootingPage.finishTrainingRepair(_:)",
+    "closure:progress callback → Emuqu/Sources/Views/SettingsPages+Diagnostics.swift:524 set here, invoked by ReanalysisService.repairTrainingSnapshots"
+   ],
+   "reads": [
+    "archive:all sessions",
+    "hk:training-load data (via ReanalysisService.repairTrainingSnapshots)"
+   ],
+   "writes": [
+    "archive:session training snapshots rewritten"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.repairTrainingSnapshots(progress:)": "59e73856b9059ce8",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::func TroubleshootingPage.finishTrainingRepair(_:)": "f0807a276d74df62",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::func TroubleshootingPage.publishTrainingRepairProgress(_:total:)": "b1209983a5d25a8c"
+   }
+  },
+  {
+   "key": "func TroubleshootingPage.publishTrainingRepairProgress(_:total:)",
+   "hash": "8e4c26b690bc4bb7",
+   "does": "Hops to MainActor to set trainingRepairProgress/Total.",
+   "entry": "closure passed as repair progress callback",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TroubleshootingPage.finishTrainingRepair(_:)",
+   "hash": "9703ef968e954a59",
+   "does": "Clears isRepairingTraining, sets message from trainingRepairSummary, shows alert.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::func TroubleshootingPage.trainingRepairSummary(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::func TroubleshootingPage.trainingRepairSummary(_:)": "adb3920c7e246447"
+   }
+  },
+  {
+   "key": "func TroubleshootingPage.trainingRepairSummary(_:)",
+   "hash": "765b9a4a7f4b020d",
+   "does": "Static unlocalized summary \"T sessions, C eligible, R updated\" with optional no-metrics, errors and sample log.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "r.nilContext > 0",
+     "effect": "appends \", N no metrics\""
+    },
+    {
+     "at": "+3",
+     "cond": "r.errors > 0",
+     "effect": "appends \", N errors\""
+    },
+    {
+     "at": "+4",
+     "cond": "sampleLog non-empty",
+     "effect": "appends blank line + sampleLog"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

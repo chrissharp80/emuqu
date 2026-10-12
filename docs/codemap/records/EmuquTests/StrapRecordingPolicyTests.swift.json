@@ -1,0 +1,652 @@
+{
+ "file": "EmuquTests/StrapRecordingPolicyTests.swift",
+ "hash": "bd13a9dd87127601",
+ "role": "XCTest suite for the pure StrapRecordingPolicy decisions: start preconditions and refusal order, status-reading outcomes, H10 stop at session end, morning quick-fetch, transfer budgets and retry steps, recording-to-session attribution, Recover-card offering, arming refusals/battery retry and the low-battery warning.",
+ "types": [
+  "StrapRecordingPolicyTests: class — XCTestCase over StrapRecordingPolicy static functions and constants"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func StrapRecordingPolicyTests.decision(hasAPI:hasDeviceId:connection:recording:onDevice:device:)",
+   "hash": "bcaf5a1dec0bc82a",
+   "does": "Test helper: calls StrapRecordingPolicy.startDecision with defaults hasAPI true, hasDeviceId true, .connected, .idle, not recording on device, device .h10, overridable per argument.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.startDecision(hasAPI:hasDeviceId:connectionState:recordingState:isRecordingOnDevice:deviceType:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.startDecision(hasAPI:hasDeviceId:connectionState:recordingState:isRecordingOnDevice:deviceType:)": "cc46efce58872485"
+   }
+  },
+  {
+   "key": "func StrapRecordingPolicyTests.testAConnectedIdleH10Starts()",
+   "hash": "3a1631e3feb0116e",
+   "does": "Asserts the default connected idle H10 yields .startH10.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StrapRecordingPolicyTests.swift::func StrapRecordingPolicyTests.decision(hasAPI:hasDeviceId:connection:recording:onDevice:device:)",
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.startDecision(hasAPI:hasDeviceId:connectionState:recordingState:isRecordingOnDevice:deviceType:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.startDecision(hasAPI:hasDeviceId:connectionState:recordingState:isRecordingOnDevice:deviceType:)": "cc46efce58872485",
+    "EmuquTests/StrapRecordingPolicyTests.swift::func StrapRecordingPolicyTests.decision(hasAPI:hasDeviceId:connection:recording:onDevice:device:)": "9c442808a3b13c7f"
+   }
+  },
+  {
+   "key": "func StrapRecordingPolicyTests.testAConnectedIdleVeritySenseTakesTheOfflinePath()",
+   "hash": "b8b9bffaca3ab3af",
+   "does": "Asserts a connected idle Verity Sense yields .startVeritySense.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StrapRecordingPolicyTests.swift::func StrapRecordingPolicyTests.decision(hasAPI:hasDeviceId:connection:recording:onDevice:device:)",
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.startDecision(hasAPI:hasDeviceId:connectionState:recordingState:isRecordingOnDevice:deviceType:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.startDecision(hasAPI:hasDeviceId:connectionState:recordingState:isRecordingOnDevice:deviceType:)": "cc46efce58872485",
+    "EmuquTests/StrapRecordingPolicyTests.swift::func StrapRecordingPolicyTests.decision(hasAPI:hasDeviceId:connection:recording:onDevice:device:)": "9c442808a3b13c7f"
+   }
+  },
+  {
+   "key": "func StrapRecordingPolicyTests.testEachMissingPieceOfTheLinkRefuses()",
+   "hash": "283718b0b5b17d7d",
+   "does": "Asserts .notConnected when hasAPI false, hasDeviceId false, or connection .disconnected/.connecting/.scanning.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StrapRecordingPolicyTests.swift::func StrapRecordingPolicyTests.decision(hasAPI:hasDeviceId:connection:recording:onDevice:device:)",
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.startDecision(hasAPI:hasDeviceId:connectionState:recordingState:isRecordingOnDevice:deviceType:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.startDecision(hasAPI:hasDeviceId:connectionState:recordingState:isRecordingOnDevice:deviceType:)": "cc46efce58872485",
+    "EmuquTests/StrapRecordingPolicyTests.swift::func StrapRecordingPolicyTests.decision(hasAPI:hasDeviceId:connection:recording:onDevice:device:)": "9c442808a3b13c7f"
+   }
+  },
+  {
+   "key": "func StrapRecordingPolicyTests.testNotConnectedOutranksAlreadyRecording()",
+   "hash": "0b19b4424b91fd89",
+   "does": "Asserts disconnected + app .recording + onDevice true yields .notConnected (connection guard precedes the recording guard).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StrapRecordingPolicyTests.swift::func StrapRecordingPolicyTests.decision(hasAPI:hasDeviceId:connection:recording:onDevice:device:)",
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.startDecision(hasAPI:hasDeviceId:connectionState:recordingState:isRecordingOnDevice:deviceType:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.startDecision(hasAPI:hasDeviceId:connectionState:recordingState:isRecordingOnDevice:deviceType:)": "cc46efce58872485",
+    "EmuquTests/StrapRecordingPolicyTests.swift::func StrapRecordingPolicyTests.decision(hasAPI:hasDeviceId:connection:recording:onDevice:device:)": "9c442808a3b13c7f"
+   }
+  },
+  {
+   "key": "func StrapRecordingPolicyTests.testAStrapAlreadyRecordingRefuses()",
+   "hash": "5b64d3db76599f83",
+   "does": "Asserts onDevice true yields .alreadyRecording for both H10 and Verity Sense.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StrapRecordingPolicyTests.swift::func StrapRecordingPolicyTests.decision(hasAPI:hasDeviceId:connection:recording:onDevice:device:)",
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.startDecision(hasAPI:hasDeviceId:connectionState:recordingState:isRecordingOnDevice:deviceType:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.startDecision(hasAPI:hasDeviceId:connectionState:recordingState:isRecordingOnDevice:deviceType:)": "cc46efce58872485",
+    "EmuquTests/StrapRecordingPolicyTests.swift::func StrapRecordingPolicyTests.decision(hasAPI:hasDeviceId:connection:recording:onDevice:device:)": "9c442808a3b13c7f"
+   }
+  },
+  {
+   "key": "func StrapRecordingPolicyTests.testANonIdleAppStateRefuses()",
+   "hash": "de9ae77b2654dd66",
+   "does": "Asserts every non-idle app RecordingState (.starting, .recording, .stopping, .fetching) yields .alreadyRecording.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StrapRecordingPolicyTests.swift::func StrapRecordingPolicyTests.decision(hasAPI:hasDeviceId:connection:recording:onDevice:device:)",
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.startDecision(hasAPI:hasDeviceId:connectionState:recordingState:isRecordingOnDevice:deviceType:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each of the four non-idle states",
+     "effect": "asserts .alreadyRecording with the state in the message"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.startDecision(hasAPI:hasDeviceId:connectionState:recordingState:isRecordingOnDevice:deviceType:)": "cc46efce58872485",
+    "EmuquTests/StrapRecordingPolicyTests.swift::func StrapRecordingPolicyTests.decision(hasAPI:hasDeviceId:connection:recording:onDevice:device:)": "9c442808a3b13c7f"
+   }
+  },
+  {
+   "key": "func StrapRecordingPolicyTests.testAnIdleAppStillRefusesWhenTheStrapSaysItIsRecording()",
+   "hash": "ad06a7804a9c5769",
+   "does": "Asserts app .idle with strap onDevice true still yields .alreadyRecording.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StrapRecordingPolicyTests.swift::func StrapRecordingPolicyTests.decision(hasAPI:hasDeviceId:connection:recording:onDevice:device:)",
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.startDecision(hasAPI:hasDeviceId:connectionState:recordingState:isRecordingOnDevice:deviceType:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.startDecision(hasAPI:hasDeviceId:connectionState:recordingState:isRecordingOnDevice:deviceType:)": "cc46efce58872485",
+    "EmuquTests/StrapRecordingPolicyTests.swift::func StrapRecordingPolicyTests.decision(hasAPI:hasDeviceId:connection:recording:onDevice:device:)": "9c442808a3b13c7f"
+   }
+  },
+  {
+   "key": "func StrapRecordingPolicyTests.testAnUnknownDeviceTypeUsesTheH10Path()",
+   "hash": "0252b1f28c8828a0",
+   "does": "Asserts deviceType nil yields .startH10 (unknown device treated as H10).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StrapRecordingPolicyTests.swift::func StrapRecordingPolicyTests.decision(hasAPI:hasDeviceId:connection:recording:onDevice:device:)",
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.startDecision(hasAPI:hasDeviceId:connectionState:recordingState:isRecordingOnDevice:deviceType:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.startDecision(hasAPI:hasDeviceId:connectionState:recordingState:isRecordingOnDevice:deviceType:)": "cc46efce58872485",
+    "EmuquTests/StrapRecordingPolicyTests.swift::func StrapRecordingPolicyTests.decision(hasAPI:hasDeviceId:connection:recording:onDevice:device:)": "9c442808a3b13c7f"
+   }
+  },
+  {
+   "key": "func StrapRecordingPolicyTests.testAnOngoingRecordingMovesTheAppToRecording()",
+   "hash": "957669f39d5607da",
+   "does": "Asserts statusOutcome(ongoing: true, current: .idle) returns isRecordingOnDevice true and recordingState .recording.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.statusOutcome(ongoing:current:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "80cfea9a213f0e16",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.recordingState": "34578c85458fe930",
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.statusOutcome(ongoing:current:)": "a5be9584cb9f737d"
+   }
+  },
+  {
+   "key": "func StrapRecordingPolicyTests.testANegativeReadingLeavesATransitionalStateAlone()",
+   "hash": "6ab73b281a50eac8",
+   "does": "Asserts statusOutcome(ongoing: false) for .starting/.stopping/.fetching/.idle sets isRecordingOnDevice false and recordingState nil (state left alone).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.statusOutcome(ongoing:current:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each of .starting, .stopping, .fetching, .idle",
+     "effect": "asserts flag false and nil state"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "80cfea9a213f0e16",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.recordingState": "34578c85458fe930",
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.statusOutcome(ongoing:current:)": "a5be9584cb9f737d"
+   }
+  },
+  {
+   "key": "func StrapRecordingPolicyTests.testASettledRecordingTheStrapDeniesReturnsToIdle()",
+   "hash": "d3516df671a10213",
+   "does": "Regression (dfa-strap Bug 4): asserts statusOutcome(ongoing: false, current: .recording) returns flag false and state .idle, and that feeding it into startDecision yields .startH10.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.statusOutcome(ongoing:current:)",
+    "EmuquTests/StrapRecordingPolicyTests.swift::func StrapRecordingPolicyTests.decision(hasAPI:hasDeviceId:connection:recording:onDevice:device:)",
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.startDecision(hasAPI:hasDeviceId:connectionState:recordingState:isRecordingOnDevice:deviceType:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "outcome.recordingState ?? .recording",
+     "effect": "nil would fall back to .recording (which would make the decision .alreadyRecording and fail the assertion); here it is .idle so the fallback is unused"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "80cfea9a213f0e16",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.recordingState": "34578c85458fe930",
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.startDecision(hasAPI:hasDeviceId:connectionState:recordingState:isRecordingOnDevice:deviceType:)": "cc46efce58872485",
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.statusOutcome(ongoing:current:)": "a5be9584cb9f737d",
+    "EmuquTests/StrapRecordingPolicyTests.swift::func StrapRecordingPolicyTests.decision(hasAPI:hasDeviceId:connection:recording:onDevice:device:)": "9c442808a3b13c7f"
+   }
+  },
+  {
+   "key": "func StrapRecordingPolicyTests.testAnH10ThatIsRecordingMustBeStopped()",
+   "hash": "efddeea47277469d",
+   "does": "Asserts shouldStopDeviceRecording is true for a linked H10 recording on device.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.shouldStopDeviceRecording(deviceType:hasAPI:hasDeviceId:isRecordingOnDevice:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.shouldStopDeviceRecording(deviceType:hasAPI:hasDeviceId:isRecordingOnDevice:)": "2f63916a61328330"
+   }
+  },
+  {
+   "key": "func StrapRecordingPolicyTests.testAVeritySenseIsNeverStoppedThisWay()",
+   "hash": "f63edea574303d09",
+   "does": "Asserts shouldStopDeviceRecording is false for a Verity Sense even when linked and recording.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.shouldStopDeviceRecording(deviceType:hasAPI:hasDeviceId:isRecordingOnDevice:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.shouldStopDeviceRecording(deviceType:hasAPI:hasDeviceId:isRecordingOnDevice:)": "2f63916a61328330"
+   }
+  },
+  {
+   "key": "func StrapRecordingPolicyTests.testNothingToStopWhenTheStrapIsNotRecording()",
+   "hash": "47e98309c9ad4a8d",
+   "does": "Asserts shouldStopDeviceRecording is false for an H10 not recording on device.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.shouldStopDeviceRecording(deviceType:hasAPI:hasDeviceId:isRecordingOnDevice:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.shouldStopDeviceRecording(deviceType:hasAPI:hasDeviceId:isRecordingOnDevice:)": "2f63916a61328330"
+   }
+  },
+  {
+   "key": "func StrapRecordingPolicyTests.testNothingToStopWithoutALink()",
+   "hash": "4e8c54ff172a6872",
+   "does": "Asserts shouldStopDeviceRecording is false with hasAPI false or hasDeviceId false.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.shouldStopDeviceRecording(deviceType:hasAPI:hasDeviceId:isRecordingOnDevice:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.shouldStopDeviceRecording(deviceType:hasAPI:hasDeviceId:isRecordingOnDevice:)": "2f63916a61328330"
+   }
+  },
+  {
+   "key": "func StrapRecordingPolicyTests.testAnUnknownDeviceTypeIsStopped()",
+   "hash": "d722a07bb87c2998",
+   "does": "Asserts shouldStopDeviceRecording is true for an unknown (nil) device type that is linked and recording.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.shouldStopDeviceRecording(deviceType:hasAPI:hasDeviceId:isRecordingOnDevice:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.shouldStopDeviceRecording(deviceType:hasAPI:hasDeviceId:isRecordingOnDevice:)": "2f63916a61328330"
+   }
+  },
+  {
+   "key": "func StrapRecordingPolicyTests.testAnyStartedH10RecordingIsAlsoStoppable()",
+   "hash": "7655de906ed0cde2",
+   "does": "Loops over the single connection state .connected; when the start decision is .startH10, asserts shouldStopDeviceRecording(h10, linked, recording) is true.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StrapRecordingPolicyTests.swift::func StrapRecordingPolicyTests.decision(hasAPI:hasDeviceId:connection:recording:onDevice:device:)",
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.startDecision(hasAPI:hasDeviceId:connectionState:recordingState:isRecordingOnDevice:deviceType:)",
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.shouldStopDeviceRecording(deviceType:hasAPI:hasDeviceId:isRecordingOnDevice:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for connection in [.connected]",
+     "effect": "one iteration only"
+    },
+    {
+     "at": "+3",
+     "cond": "started == .startH10",
+     "effect": "true: asserts stop is allowed; false: continue (skips the assertion silently)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Comment claims the property is 'stated across the whole input space', but the loop has one element (.connected) and the stop assertion uses hard-coded arguments unrelated to `started`, so it re-asserts testAnH10ThatIsRecordingMustBeStopped; if startDecision stopped returning .startH10 the guard `continue`s and the test passes with no assertion.",
+     "evidence": [
+      "EmuquTests/StrapRecordingPolicyTests.swift:162",
+      "EmuquTests/StrapRecordingPolicyTests.swift:164",
+      "EmuquTests/StrapRecordingPolicyTests.swift:166",
+      "EmuquTests/StrapRecordingPolicyTests.swift:169"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.shouldStopDeviceRecording(deviceType:hasAPI:hasDeviceId:isRecordingOnDevice:)": "2f63916a61328330",
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.startDecision(hasAPI:hasDeviceId:connectionState:recordingState:isRecordingOnDevice:deviceType:)": "cc46efce58872485",
+    "EmuquTests/StrapRecordingPolicyTests.swift::func StrapRecordingPolicyTests.decision(hasAPI:hasDeviceId:connection:recording:onDevice:device:)": "9c442808a3b13c7f"
+   }
+  },
+  {
+   "key": "func StrapRecordingPolicyTests.testAConnectedH10IsAskedForItsFileEvenWhenTheFlagIsOff()",
+   "hash": "a1f206901842f027",
+   "does": "Asserts quickFetchDecision for a linked H10 is .fetchH10 whether isRecordingOnDevice is false or true.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.quickFetchDecision(hasAPI:hasDeviceId:isRecordingOnDevice:deviceType:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.quickFetchDecision(hasAPI:hasDeviceId:isRecordingOnDevice:deviceType:)": "0820d2a0ef5b3319"
+   }
+  },
+  {
+   "key": "func StrapRecordingPolicyTests.testAVeritySenseIsOnlyAskedWhenItsOfflineRecordingRuns()",
+   "hash": "fc73df522b1fccd6",
+   "does": "Asserts a linked Verity Sense yields .fetchVeritySense when recording on device and .skipVeritySenseNotRecording when not.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.quickFetchDecision(hasAPI:hasDeviceId:isRecordingOnDevice:deviceType:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.quickFetchDecision(hasAPI:hasDeviceId:isRecordingOnDevice:deviceType:)": "0820d2a0ef5b3319"
+   }
+  },
+  {
+   "key": "func StrapRecordingPolicyTests.testNoLinkMeansNoDownload()",
+   "hash": "273d76ecbeab1419",
+   "does": "Asserts quickFetchDecision is .notConnected with hasAPI false or hasDeviceId false.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.quickFetchDecision(hasAPI:hasDeviceId:isRecordingOnDevice:deviceType:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.quickFetchDecision(hasAPI:hasDeviceId:isRecordingOnDevice:deviceType:)": "0820d2a0ef5b3319"
+   }
+  },
+  {
+   "key": "func StrapRecordingPolicyTests.testTheMorningReconnectWindowIsAtLeastAMinute()",
+   "hash": "606f7c6b37efe198",
+   "does": "Asserts morningReconnectWindowSeconds >= 60 (constant is 60).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func StrapRecordingPolicyTests.testEveryTransferBudgetIsBounded()",
+   "hash": "a722217ddc64d3e0",
+   "does": "Asserts both TransferBudget.attended and .unattended have 0 < stopSeconds <= 60 and 120 <= downloadSeconds <= 300, attended shows progress, unattended does not.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each of attended, unattended",
+     "effect": "asserts the four bounds"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func StrapRecordingPolicyTests.testRetriesPauseBrieflyThenResetTheLink()",
+   "hash": "4bb6121b306948cb",
+   "does": "Asserts retryStep(.transient, justStopped: true) for attempts 1..8 is pause(500) x3, pause(1000) x3, then resetLink, and at attempt maxDownloadAttempts (9) is .giveUp.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.retryStep(after:attempt:justStopped:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.retryStep(after:attempt:justStopped:)": "0a984f71e36de087"
+   }
+  },
+  {
+   "key": "func StrapRecordingPolicyTests.testARecordingFromAnotherSessionIsNotRetried()",
+   "hash": "fec24670e8f3d01a",
+   "does": "Asserts retryStep(.deterministic, attempt 1) is .giveUp.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.retryStep(after:attempt:justStopped:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.retryStep(after:attempt:justStopped:)": "0a984f71e36de087"
+   }
+  },
+  {
+   "key": "func StrapRecordingPolicyTests.testAnEmptyListingIsRetriedOnlyAfterAStop()",
+   "hash": "f8126020b3c7701a",
+   "does": "Asserts retryStep(.nothingListed, attempt 1) is pause(500) when justStopped and .giveUp when not.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.retryStep(after:attempt:justStopped:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.retryStep(after:attempt:justStopped:)": "0a984f71e36de087"
+   }
+  },
+  {
+   "key": "func StrapRecordingPolicyTests.testOnlyARecordingStartedDuringTheSessionBelongsToIt()",
+   "hash": "9fd339e05a7831ba",
+   "does": "Asserts recording(startedAt:belongsToSessionStartedAt:) rejects a start 24 h earlier, accepts +90 s, accepts -1 s (within the 2 s idStampToleranceSeconds) and rejects +30 h (beyond sessionSpanLimitSeconds 24 h).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.recording(startedAt:belongsToSessionStartedAt:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.recording(startedAt:belongsToSessionStartedAt:)": "560f6c23efe28ae7"
+   }
+  },
+  {
+   "key": "func StrapRecordingPolicyTests.testADownloadedRecordingIsNotOfferedAgain()",
+   "hash": "59ee2f7f04dae9cf",
+   "does": "Asserts a stored dated recording already downloaded is not unrecovered, and one never downloaded is.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StrapRecordingPolicyTests.swift::func StrapRecordingPolicyTests.unrecovered(downloaded:predates:archived:)",
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.holdsUnrecoveredRecording(hasStoredRecording:storedRecordingStart:alreadyDownloaded:predatesDownloadRecord:archiveHasSessionNearStart:)",
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.recordingIsSaved(alreadyDownloaded:predatesDownloadRecord:archiveHasSessionNearStart:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.holdsUnrecoveredRecording(hasStoredRecording:storedRecordingStart:alreadyDownloaded:predatesDownloadRecord:archiveHasSessionNearStart:)": "6e9dcc448daadbab",
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.recordingIsSaved(alreadyDownloaded:predatesDownloadRecord:archiveHasSessionNearStart:)": "04da97b766e0278d",
+    "EmuquTests/StrapRecordingPolicyTests.swift::func StrapRecordingPolicyTests.unrecovered(downloaded:predates:archived:)": "ebd99838bcbc25e7"
+   }
+  },
+  {
+   "key": "func StrapRecordingPolicyTests.testARecordingOlderThanTheRecordFallsBackToTheArchive()",
+   "hash": "62a0f26437df99e9",
+   "does": "Asserts a pre-record recording is not offered when the archive has a session near its start, and is offered when it does not.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StrapRecordingPolicyTests.swift::func StrapRecordingPolicyTests.unrecovered(downloaded:predates:archived:)",
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.holdsUnrecoveredRecording(hasStoredRecording:storedRecordingStart:alreadyDownloaded:predatesDownloadRecord:archiveHasSessionNearStart:)",
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.recordingIsSaved(alreadyDownloaded:predatesDownloadRecord:archiveHasSessionNearStart:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.holdsUnrecoveredRecording(hasStoredRecording:storedRecordingStart:alreadyDownloaded:predatesDownloadRecord:archiveHasSessionNearStart:)": "6e9dcc448daadbab",
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.recordingIsSaved(alreadyDownloaded:predatesDownloadRecord:archiveHasSessionNearStart:)": "04da97b766e0278d",
+    "EmuquTests/StrapRecordingPolicyTests.swift::func StrapRecordingPolicyTests.unrecovered(downloaded:predates:archived:)": "ebd99838bcbc25e7"
+   }
+  },
+  {
+   "key": "func StrapRecordingPolicyTests.testNothingStoredOrUndatedIsNotOffered()",
+   "hash": "efdbc0ce2f858431",
+   "does": "Asserts holdsUnrecoveredRecording is false with no stored recording, and false for a stored recording with nil start date.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.holdsUnrecoveredRecording(hasStoredRecording:storedRecordingStart:alreadyDownloaded:predatesDownloadRecord:archiveHasSessionNearStart:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.holdsUnrecoveredRecording(hasStoredRecording:storedRecordingStart:alreadyDownloaded:predatesDownloadRecord:archiveHasSessionNearStart:)": "6e9dcc448daadbab"
+   }
+  },
+  {
+   "key": "func StrapRecordingPolicyTests.unrecovered(downloaded:predates:archived:)",
+   "hash": "ce6de8e5c5e477db",
+   "does": "Test helper: holdsUnrecoveredRecording with hasStoredRecording true, start Date(), and the given downloaded/predates/archived flags.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.holdsUnrecoveredRecording(hasStoredRecording:storedRecordingStart:alreadyDownloaded:predatesDownloadRecord:archiveHasSessionNearStart:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.holdsUnrecoveredRecording(hasStoredRecording:storedRecordingStart:alreadyDownloaded:predatesDownloadRecord:archiveHasSessionNearStart:)": "6e9dcc448daadbab"
+   }
+  },
+  {
+   "key": "func StrapRecordingPolicyTests.testABatteryRefusalIsTerminalAndOthersCanClearUp()",
+   "hash": "0acddf9f90e48977",
+   "does": "Asserts startRefusal maps strapBatteryTooLow → .batteryTooLow, strapHoldsUndownloadedRecording → .undownloadedRecordingOnStrap, featureNotReady and CancellationError → .retryable.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.startRefusal(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.startRefusal(for:)": "dbec95e92c154b09"
+   }
+  },
+  {
+   "key": "func StrapRecordingPolicyTests.testArmingIsRetriedOnlyOnceTheBatteryRises()",
+   "hash": "96fe66e5a6bbe59b",
+   "does": "Asserts mayRetryArming: refused at 10 → false for now 10, 9 or nil, true for 100; refused at nil → false for 15, true for 80 (threshold lowBatteryWarningPercent 20).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.mayRetryArming(afterBatteryRefusalAt:batteryNow:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.mayRetryArming(afterBatteryRefusalAt:batteryNow:)": "9910f8f0876231c4"
+   }
+  },
+  {
+   "key": "func StrapRecordingPolicyTests.testALowH10IsWarnedAboutBeforeTheNight()",
+   "hash": "3205fb4ebb6fa37f",
+   "does": "Asserts strapMayRefuseToRecord true for H10 at 10 and 20, false at 21, false for Verity Sense at 10, false for nil battery.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.strapMayRefuseToRecord(batteryLevel:deviceType:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.strapMayRefuseToRecord(batteryLevel:deviceType:)": "057d29d2220bf7a3"
+   }
+  },
+  {
+   "key": "func StrapRecordingPolicyTests.testOnlyASavedRecordingMayBeCleared()",
+   "hash": "d8d5235cbe1b09be",
+   "does": "Asserts recordingIsSaved is true when downloaded, or predates the record AND archive has a nearby session; false for either of those alone.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.recordingIsSaved(alreadyDownloaded:predatesDownloadRecord:archiveHasSessionNearStart:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.recordingIsSaved(alreadyDownloaded:predatesDownloadRecord:archiveHasSessionNearStart:)": "04da97b766e0278d"
+   }
+  }
+ ],
+ "deps": {}
+}

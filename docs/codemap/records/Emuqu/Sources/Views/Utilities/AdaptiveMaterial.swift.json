@@ -1,0 +1,86 @@
+{
+ "file": "Emuqu/Sources/Views/Utilities/AdaptiveMaterial.swift",
+ "hash": "9fdc0bb4081dbdaf",
+ "role": "Maps material backgrounds to opaque theme fills when Reduce Transparency is on; callers pass the environment flag.",
+ "types": [
+  "AdaptiveMaterial: enum — static material helpers"
+ ],
+ "state": [],
+ "toplevel": "Doc says every material in the app goes through here; grep finds ultraThin 5 call sites, thin 1, regular 1.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func AdaptiveMaterial.ultraThin(_:)",
+   "hash": "356dbab528dd2d1b",
+   "does": "Returns AppTheme.cardElevated when reduceTransparency, else .ultraThinMaterial, as AnyShapeStyle.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardElevated"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.appearanceTheme"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "reduceTransparency",
+     "effect": "opaque cardElevated; else ultraThinMaterial"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardElevated": "d8e990dc733dd00d"
+   }
+  },
+  {
+   "key": "func AdaptiveMaterial.thin(_:)",
+   "hash": "2d66cfab3b4b92bb",
+   "does": "Returns cardElevated when reduceTransparency, else .thinMaterial.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardElevated"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.appearanceTheme"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "reduceTransparency",
+     "effect": "cardElevated; else thinMaterial"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardElevated": "d8e990dc733dd00d"
+   }
+  },
+  {
+   "key": "func AdaptiveMaterial.regular(_:)",
+   "hash": "78b04fda96ff150e",
+   "does": "Returns cardBackground when reduceTransparency, else .regularMaterial.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.appearanceTheme"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "reduceTransparency",
+     "effect": "cardBackground; else regularMaterial"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e"
+   }
+  }
+ ],
+ "deps": {}
+}

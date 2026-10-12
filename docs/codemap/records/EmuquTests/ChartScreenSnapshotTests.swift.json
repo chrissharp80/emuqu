@@ -1,0 +1,276 @@
+{
+ "file": "EmuquTests/ChartScreenSnapshotTests.swift",
+ "hash": "78bab531eed87411",
+ "role": "Snapshot tests for LoadTrajectoryView (normal and all warning flags), DashboardV2View (6 sessions and empty), ReportsListView, PaywallView and MetricInfoSheet.",
+ "types": [
+  "ChartScreenSnapshotTests: class — @MainActor XCTestCase snapshotting chart and information screens"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "test-defect",
+   "sev": "low",
+   "text": "The harness renders with ImageRenderer, which does not run .onAppear/.task; ReportsListView loads its list in .onAppear(perform: load) and PaywallView loads products in .task, so 'screen-reports-list' and 'screen-paywall' only pin the pre-load placeholder states, not any report rows or product prices.",
+   "evidence": [
+    "EmuquTests/SnapshotTesting.swift:67",
+    "Emuqu/Sources/Views/ReportsListView.swift:51",
+    "Emuqu/Sources/Views/PaywallView.swift:88",
+    "EmuquTests/ChartScreenSnapshotTests.swift:153",
+    "EmuquTests/ChartScreenSnapshotTests.swift:157"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "test-defect",
+   "sev": "low",
+   "text": "hosted() injects StoreKitManager.shared and SettingsManager.shared plus an RRCollector built from AppDependencies.current singletons, so paywall/dashboard snapshots depend on whatever entitlement/settings state the host app process holds.",
+   "evidence": [
+    "EmuquTests/ChartScreenSnapshotTests.swift:17",
+    "EmuquTests/ChartScreenSnapshotTests.swift:18"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func ChartScreenSnapshotTests.hosted(_:)",
+   "hash": "0bb2940f0cdeb99c",
+   "does": "Wraps a view in NavigationStack and injects RRCollector(), SettingsManager.shared, StoreKitManager.shared, ArchiveSignal() and MorningCoordination().",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()",
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::init ArchiveSignal(center:)"
+   ],
+   "reads": [
+    "mem:SettingsManager.shared",
+    "mem:StoreKitManager.shared",
+    "mem:AppDependencies.current"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::init ArchiveSignal(center:)": "649db20a5b80e648",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()": "cee8619a3d38e814",
+    "EmuquTests/BigScreenSnapshotTests.swift::func BigScreenSnapshotTests.environment(_:)": "fe0869f551e25b93"
+   }
+  },
+  {
+   "key": "func ChartScreenSnapshotTests.samples(days:)",
+   "hash": "f32d22f0e1ceadfe",
+   "does": "Generates `days` (default 42) deterministic LoadTrajectoryView.DailySample values ending at the fixture anchor: CTL ramps 30→55, ATL = CTL + 12·sin(i/3), TSB = CTL−ATL, TRIMP 0 every 7th day else 60+30·cos(i/2).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each day index 0..<days",
+     "effect": "appends one sample"
+    },
+    {
+     "at": "+8",
+     "cond": "i % 7 == 0",
+     "effect": "true: trimp 0 (rest day); false: 60 + 30·cos(i/2)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ChartScreenSnapshotTests.workoutId(_:)",
+   "hash": "5eec6b6f1e81b854",
+   "does": "Returns a UUID '00000000-0000-0000-0000-<12-digit index>' for the index, or a random UUID if the string fails to parse.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "UUID(uuidString:) returns nil",
+     "effect": "falls back to a random UUID() (never happens for indices with <=12 digits)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ChartScreenSnapshotTests.recentWorkouts()",
+   "hash": "f9cde0c77e2167be",
+   "does": "Builds 4 RecentWorkout rows (run, one per day back from anchor, 40/45/50/55 min, TRIMP 80/74/68/62, nil loadSource).",
+   "entry": null,
+   "calls": [
+    "EmuquTests/ChartScreenSnapshotTests.swift::func ChartScreenSnapshotTests.workoutId(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for i in 0..<4",
+     "effect": "appends one RecentWorkout"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/ChartScreenSnapshotTests.swift::func ChartScreenSnapshotTests.workoutId(_:)": "04b0a10c03aa8584"
+   }
+  },
+  {
+   "key": "func ChartScreenSnapshotTests.testLoadTrajectoryRenders()",
+   "hash": "38d3bd40be0b5201",
+   "does": "Snapshots LoadTrajectoryView with 42 days of samples, weekly TRIMP 420 (+35), ramp 4.2 and no flags as 'chart-load-trajectory'.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ChartScreenSnapshotTests.swift::func ChartScreenSnapshotTests.hosted(_:)",
+    "EmuquTests/ChartScreenSnapshotTests.swift::func ChartScreenSnapshotTests.samples(days:)",
+    "EmuquTests/ChartScreenSnapshotTests.swift::func ChartScreenSnapshotTests.recentWorkouts()",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.body",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.body": "15421ecf02b1afdd",
+    "EmuquTests/ChartScreenSnapshotTests.swift::func ChartScreenSnapshotTests.hosted(_:)": "4a82acd5af9f7b28",
+    "EmuquTests/ChartScreenSnapshotTests.swift::func ChartScreenSnapshotTests.recentWorkouts()": "cf4613c7731f7227",
+    "EmuquTests/ChartScreenSnapshotTests.swift::func ChartScreenSnapshotTests.samples(days:)": "8c810fb5ebcd92b8",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  },
+  {
+   "key": "func ChartScreenSnapshotTests.testLoadTrajectoryWithAllFlagsRenders()",
+   "hash": "849ecd863a6289ea",
+   "does": "Snapshots LoadTrajectoryView with weekly TRIMP 720 (+180), ramp 12.5 and comeback/peaking/overreach/monotony flags all true as 'chart-load-trajectory-flagged'.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ChartScreenSnapshotTests.swift::func ChartScreenSnapshotTests.hosted(_:)",
+    "EmuquTests/ChartScreenSnapshotTests.swift::func ChartScreenSnapshotTests.samples(days:)",
+    "EmuquTests/ChartScreenSnapshotTests.swift::func ChartScreenSnapshotTests.recentWorkouts()",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.body",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.body": "15421ecf02b1afdd",
+    "EmuquTests/ChartScreenSnapshotTests.swift::func ChartScreenSnapshotTests.hosted(_:)": "4a82acd5af9f7b28",
+    "EmuquTests/ChartScreenSnapshotTests.swift::func ChartScreenSnapshotTests.recentWorkouts()": "cf4613c7731f7227",
+    "EmuquTests/ChartScreenSnapshotTests.swift::func ChartScreenSnapshotTests.samples(days:)": "8c810fb5ebcd92b8",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  },
+  {
+   "key": "func ChartScreenSnapshotTests.testDashboardRenders()",
+   "hash": "1b006f3af705e14f",
+   "does": "Snapshots DashboardV2View with 6 fixture overnight sessions as 'screen-dashboard'.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.overnightSession(dayOffset:)",
+    "EmuquTests/ChartScreenSnapshotTests.swift::func ChartScreenSnapshotTests.hosted(_:)",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.body",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.body": "775f940c958a68c5",
+    "EmuquTests/ChartScreenSnapshotTests.swift::func ChartScreenSnapshotTests.hosted(_:)": "4a82acd5af9f7b28",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.overnightSession(dayOffset:)": "3121b86335aa9ee5",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  },
+  {
+   "key": "func ChartScreenSnapshotTests.testDashboardEmptyRenders()",
+   "hash": "6916700e4c47c9b9",
+   "does": "Snapshots DashboardV2View with no sessions as 'screen-dashboard-empty'.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ChartScreenSnapshotTests.swift::func ChartScreenSnapshotTests.hosted(_:)",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.body",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.body": "775f940c958a68c5",
+    "EmuquTests/ChartScreenSnapshotTests.swift::func ChartScreenSnapshotTests.hosted(_:)": "4a82acd5af9f7b28",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  },
+  {
+   "key": "func ChartScreenSnapshotTests.testReportsListRenders()",
+   "hash": "8f5ae9f5adfd2f1b",
+   "does": "Snapshots ReportsListView() as 'screen-reports-list'.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ChartScreenSnapshotTests.swift::func ChartScreenSnapshotTests.hosted(_:)",
+    "Emuqu/Sources/Views/ReportsListView.swift::var ReportsListView.body",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ReportsListView.swift::var ReportsListView.body": "bcab6725109ea321",
+    "EmuquTests/ChartScreenSnapshotTests.swift::func ChartScreenSnapshotTests.hosted(_:)": "4a82acd5af9f7b28",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  },
+  {
+   "key": "func ChartScreenSnapshotTests.testPaywallRenders()",
+   "hash": "dd486e5c10982d64",
+   "does": "Snapshots PaywallView() as 'screen-paywall'.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ChartScreenSnapshotTests.swift::func ChartScreenSnapshotTests.hosted(_:)",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.body",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)"
+   ],
+   "reads": [
+    "mem:StoreKitManager.shared"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.body": "2fb7c7ea6f946bfd",
+    "EmuquTests/ChartScreenSnapshotTests.swift::func ChartScreenSnapshotTests.hosted(_:)": "4a82acd5af9f7b28",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  },
+  {
+   "key": "func ChartScreenSnapshotTests.testMetricInfoSheetRenders()",
+   "hash": "27907a140b315589",
+   "does": "Snapshots MetricInfoSheet(metricLabel: 'RMSSD') as 'sheet-metric-info'.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ChartScreenSnapshotTests.swift::func ChartScreenSnapshotTests.hosted(_:)",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::var MetricInfoSheet.body",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::var MetricInfoSheet.body": "aac5c42610d5917d",
+    "EmuquTests/ChartScreenSnapshotTests.swift::func ChartScreenSnapshotTests.hosted(_:)": "4a82acd5af9f7b28",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  }
+ ],
+ "deps": {}
+}

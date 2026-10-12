@@ -1,0 +1,327 @@
+{
+ "file": "EmuquTests/SessionRecoveryPatchActionTests.swift",
+ "hash": "4e6ae3d3b36d0b04",
+ "role": "Tests SessionRecoveryService.patchAction, which decides what a recovery import does to an existing session: add missing data, replace with different data, reanalyze (missing result/flags), or throw dataAlreadyExists; includes the 1-second timestamp tolerance.",
+ "types": [
+  "SessionRecoveryPatchActionTests: class (@MainActor) — XCTestCase for SessionRecoveryService.patchAction"
+ ],
+ "state": [
+  "mem:SessionRecoveryPatchActionTests.sessionId (UUID per instance)",
+  "mem:SessionRecoveryPatchActionTests.start (fixed Date 1_700_000_000)"
+ ],
+ "toplevel": "Private stored sessionId and start for fixture series.",
+ "flags": [
+  {
+   "kind": "test-defect",
+   "sev": "med",
+   "text": "Every test in this file exercises SessionRecoveryService.patchAction, which has no production caller: grep across the repo finds patchAction/PatchAction only in its declaration (SessionRecoveryService.swift:15,74), docs/API_REFERENCE.md:1549-1574 and this test file; no recovery import path consults it. The suite therefore guards dead code, and the documented decision (replace vs reanalyze vs dataAlreadyExists) is not what the live recovery flow does. It also never tests the destructive case its own header warns about: a shorter incoming series (e.g. 250 existing, 100 incoming) also returns .replaceWithNewData.",
+   "evidence": [
+    "EmuquTests/SessionRecoveryPatchActionTests.swift:8",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift:74",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift:86",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift:87",
+    "docs/API_REFERENCE.md:1569"
+   ],
+   "found": "second read"
+  }
+ ],
+ "units": [
+  {
+   "key": "func SessionRecoveryPatchActionTests.points(count:startMs:rrMs:)",
+   "hash": "73b3d2833b1283b7",
+   "does": "Builds `count` RR points (HR 60, no wall clock) of rrMs from startMs.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "1ad44fdc2c485550"
+   }
+  },
+  {
+   "key": "func SessionRecoveryPatchActionTests.series(_:)",
+   "hash": "316119506bce82e5",
+   "does": "Wraps points in an RRSeries with the fixture id and start.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SessionRecoveryPatchActionTests.testNoExistingSeriesAddsMissingData()",
+   "hash": "3db58d38f1e7ca2a",
+   "does": "Asserts nil existing series → .addMissingData.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.points(count:startMs:rrMs:)",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.patchAction(existingRR:incomingPoints:hasAnalysisResult:hasArtifactFlags:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "action is not .addMissingData",
+     "effect": "XCTFail with the actual action and return; otherwise the test passes (plus any count assertions)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.patchAction(existingRR:incomingPoints:hasAnalysisResult:hasArtifactFlags:)": "2e232693ef3fa299",
+    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.points(count:startMs:rrMs:)": "68b63c59ab487f1c"
+   }
+  },
+  {
+   "key": "func SessionRecoveryPatchActionTests.testEmptyExistingSeriesAddsMissingData()",
+   "hash": "59d29c52fa1a8245",
+   "does": "Asserts an empty existing series → .addMissingData.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.points(count:startMs:rrMs:)",
+    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.series(_:)",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.patchAction(existingRR:incomingPoints:hasAnalysisResult:hasArtifactFlags:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "action is not .addMissingData",
+     "effect": "XCTFail with the actual action and return; otherwise the test passes (plus any count assertions)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.patchAction(existingRR:incomingPoints:hasAnalysisResult:hasArtifactFlags:)": "2e232693ef3fa299",
+    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.points(count:startMs:rrMs:)": "68b63c59ab487f1c",
+    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.series(_:)": "6e3c55a87aa79407"
+   }
+  },
+  {
+   "key": "func SessionRecoveryPatchActionTests.testDifferentBeatCountReplacesWithNewData()",
+   "hash": "d5441883b1e8ff83",
+   "does": "Asserts 100 existing vs 250 incoming beats → .replaceWithNewData(100, 250).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.points(count:startMs:rrMs:)",
+    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.series(_:)",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.patchAction(existingRR:incomingPoints:hasAnalysisResult:hasArtifactFlags:)",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.isSameData(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "action is not .replaceWithNewData",
+     "effect": "XCTFail with the actual action and return; otherwise the test passes (plus any count assertions)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.isSameData(_:_:)": "3320fed3e6b197fd",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.patchAction(existingRR:incomingPoints:hasAnalysisResult:hasArtifactFlags:)": "2e232693ef3fa299",
+    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.points(count:startMs:rrMs:)": "68b63c59ab487f1c",
+    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.series(_:)": "6e3c55a87aa79407"
+   }
+  },
+  {
+   "key": "func SessionRecoveryPatchActionTests.testSameCountButShiftedTimestampsReplacesWithNewData()",
+   "hash": "914cacda2443cd61",
+   "does": "Asserts same count but incoming shifted by 1 h → .replaceWithNewData.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.points(count:startMs:rrMs:)",
+    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.series(_:)",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.patchAction(existingRR:incomingPoints:hasAnalysisResult:hasArtifactFlags:)",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.isSameData(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "action is not .replaceWithNewData",
+     "effect": "XCTFail with the actual action and return; otherwise the test passes (plus any count assertions)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.isSameData(_:_:)": "3320fed3e6b197fd",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.patchAction(existingRR:incomingPoints:hasAnalysisResult:hasArtifactFlags:)": "2e232693ef3fa299",
+    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.points(count:startMs:rrMs:)": "68b63c59ab487f1c",
+    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.series(_:)": "6e3c55a87aa79407"
+   }
+  },
+  {
+   "key": "func SessionRecoveryPatchActionTests.testSameDataMissingAnalysisTriggersReanalysis()",
+   "hash": "7d4e2319940c2785",
+   "does": "Asserts identical data with no analysis result → .reanalyzeNoResult.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.points(count:startMs:rrMs:)",
+    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.series(_:)",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.patchAction(existingRR:incomingPoints:hasAnalysisResult:hasArtifactFlags:)",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.isSameData(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "action is not .reanalyzeNoResult",
+     "effect": "XCTFail with the actual action and return; otherwise the test passes (plus any count assertions)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.isSameData(_:_:)": "3320fed3e6b197fd",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.patchAction(existingRR:incomingPoints:hasAnalysisResult:hasArtifactFlags:)": "2e232693ef3fa299",
+    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.points(count:startMs:rrMs:)": "68b63c59ab487f1c",
+    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.series(_:)": "6e3c55a87aa79407"
+   }
+  },
+  {
+   "key": "func SessionRecoveryPatchActionTests.testSameDataMissingFlagsTriggersReanalysis()",
+   "hash": "534d793636d8016a",
+   "does": "Asserts identical data with result but no flags → .reanalyzeNoFlags.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.points(count:startMs:rrMs:)",
+    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.series(_:)",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.patchAction(existingRR:incomingPoints:hasAnalysisResult:hasArtifactFlags:)",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.isSameData(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "action is not .reanalyzeNoFlags",
+     "effect": "XCTFail with the actual action and return; otherwise the test passes (plus any count assertions)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.isSameData(_:_:)": "3320fed3e6b197fd",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.patchAction(existingRR:incomingPoints:hasAnalysisResult:hasArtifactFlags:)": "2e232693ef3fa299",
+    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.points(count:startMs:rrMs:)": "68b63c59ab487f1c",
+    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.series(_:)": "6e3c55a87aa79407"
+   }
+  },
+  {
+   "key": "func SessionRecoveryPatchActionTests.testMissingResultTakesPriorityOverMissingFlags()",
+   "hash": "dd718569bf1746eb",
+   "does": "Asserts identical data with neither result nor flags → .reanalyzeNoResult (result checked first).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.points(count:startMs:rrMs:)",
+    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.series(_:)",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.patchAction(existingRR:incomingPoints:hasAnalysisResult:hasArtifactFlags:)",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.isSameData(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "action is not .reanalyzeNoResult",
+     "effect": "XCTFail with the actual action and return; otherwise the test passes (plus any count assertions)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.isSameData(_:_:)": "3320fed3e6b197fd",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.patchAction(existingRR:incomingPoints:hasAnalysisResult:hasArtifactFlags:)": "2e232693ef3fa299",
+    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.points(count:startMs:rrMs:)": "68b63c59ab487f1c",
+    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.series(_:)": "6e3c55a87aa79407"
+   }
+  },
+  {
+   "key": "func SessionRecoveryPatchActionTests.testSameDataWithNothingMissingIsRejected()",
+   "hash": "8a253e2bf93db48c",
+   "does": "Asserts identical data with nothing missing throws RRCollector.CollectorError.dataAlreadyExists.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.points(count:startMs:rrMs:)",
+    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.series(_:)",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.patchAction(existingRR:incomingPoints:hasAnalysisResult:hasArtifactFlags:)",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.isSameData(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.isSameData(_:_:)": "3320fed3e6b197fd",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.patchAction(existingRR:incomingPoints:hasAnalysisResult:hasArtifactFlags:)": "2e232693ef3fa299",
+    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.points(count:startMs:rrMs:)": "68b63c59ab487f1c",
+    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.series(_:)": "6e3c55a87aa79407"
+   }
+  },
+  {
+   "key": "func SessionRecoveryPatchActionTests.testTimestampsWithinOneSecondCountAsTheSameData()",
+   "hash": "0abfb176939bd097",
+   "does": "Asserts incoming shifted by 900 ms counts as the same data (→ .reanalyzeNoResult).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.points(count:startMs:rrMs:)",
+    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.series(_:)",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.patchAction(existingRR:incomingPoints:hasAnalysisResult:hasArtifactFlags:)",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.isSameData(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "action is not .reanalyzeNoResult",
+     "effect": "XCTFail with the actual action and return; otherwise the test passes (plus any count assertions)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.isSameData(_:_:)": "3320fed3e6b197fd",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.patchAction(existingRR:incomingPoints:hasAnalysisResult:hasArtifactFlags:)": "2e232693ef3fa299",
+    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.points(count:startMs:rrMs:)": "68b63c59ab487f1c",
+    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.series(_:)": "6e3c55a87aa79407"
+   }
+  },
+  {
+   "key": "func SessionRecoveryPatchActionTests.testTimestampsBeyondOneSecondCountAsDifferentData()",
+   "hash": "d36f13501b83da2a",
+   "does": "Asserts incoming shifted by 1,100 ms counts as different data (→ .replaceWithNewData).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.points(count:startMs:rrMs:)",
+    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.series(_:)",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.patchAction(existingRR:incomingPoints:hasAnalysisResult:hasArtifactFlags:)",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.isSameData(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "action is not .replaceWithNewData",
+     "effect": "XCTFail with the actual action and return; otherwise the test passes (plus any count assertions)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.isSameData(_:_:)": "3320fed3e6b197fd",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.patchAction(existingRR:incomingPoints:hasAnalysisResult:hasArtifactFlags:)": "2e232693ef3fa299",
+    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.points(count:startMs:rrMs:)": "68b63c59ab487f1c",
+    "EmuquTests/SessionRecoveryPatchActionTests.swift::func SessionRecoveryPatchActionTests.series(_:)": "6e3c55a87aa79407"
+   }
+  }
+ ],
+ "deps": {}
+}

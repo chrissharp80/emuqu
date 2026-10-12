@@ -1,0 +1,80 @@
+{
+ "file": "Emuqu/Sources/Assistant/Providers/OpenAIProvider.swift",
+ "hash": "f600c4a543e946a9",
+ "role": "OpenAI AIProvider: model catalog and reasoning setting; delegates streaming to OpenAICompatibleStreamer.",
+ "types": [
+  "OpenAIProvider: class — AIProvider for OpenAI"
+ ],
+ "state": [
+  "mem:OpenAIProvider.models (gpt-6-luna, gpt-5.4-mini default, gpt-5.4) OpenAIProvider.swift:16",
+  "mem:OpenAIProvider.reasoning = .effortNone OpenAIProvider.swift:56",
+  "kc:com.chrissharp.flowrecovery.assistant.apikey account openai (via APIKeyStore)"
+ ],
+ "toplevel": "Static catalog pinned by ProviderModelCatalogTests; id .openai.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var OpenAIProvider.availableModels",
+   "hash": "761626cd7f4ea4b6",
+   "does": "Returns OpenAIProvider.models.",
+   "entry": "Reached through the AIProvider protocol (dyn:AIProvider.*) from ProviderRegistry, TierProviderMapper, AssistantViewModel routing/tools and settings views.",
+   "calls": [],
+   "reads": [
+    "mem:OpenAIProvider.models"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var OpenAIProvider.requiresKey",
+   "hash": "e9238caebf755141",
+   "does": "Always true.",
+   "entry": "Reached through the AIProvider protocol (dyn:AIProvider.*) from ProviderRegistry, TierProviderMapper, AssistantViewModel routing/tools and settings views.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var OpenAIProvider.isAvailable",
+   "hash": "179a759834c71118",
+   "does": "True when the Keychain holds an OpenAI key.",
+   "entry": "Reached through the AIProvider protocol (dyn:AIProvider.*) from ProviderRegistry, TierProviderMapper, AssistantViewModel routing/tools and settings views.",
+   "calls": [
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.hasKey(for:)"
+   ],
+   "reads": [
+    "kc:com.chrissharp.flowrecovery.assistant.apikey:openai"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.hasKey(for:)": "227ac15ee3157ece",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "3848c612cbdb11bc"
+   }
+  },
+  {
+   "key": "func OpenAIProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)",
+   "hash": "49c61d8a9a6ca374",
+   "does": "Sends via OpenAICompatibleStreamer.send with providerID .openai, the api.openai.com endpoint and reasoning_effort \"none\".",
+   "entry": "AIProvider.send protocol witness called by the assistant tool loop.",
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.send(providerID:endpoint:reasoning:messages:model:contextRendered:systemPrompt:tools:toolRounds:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.send(providerID:endpoint:reasoning:messages:model:contextRendered:systemPrompt:tools:toolRounds:)": "5d45cd0a0c7df49b"
+   }
+  }
+ ],
+ "deps": {}
+}

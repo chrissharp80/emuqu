@@ -1,0 +1,21 @@
+{
+ "file": "Emuqu/Sources/Collection/StreamingLifecycle.swift",
+ "hash": "68448cbc6e48f357",
+ "role": "@Observable holder of streaming-mode and pause/resume state split out of RRCollector so views observing it do not re-render on unrelated collector changes; injected into the SwiftUI environment and read by Record views.",
+ "types": [
+  "StreamingLifecycle: class (@MainActor @Observable final) — streaming/paused state"
+ ],
+ "state": [
+  "mem:StreamingLifecycle.isStreamingMode (false)",
+  "mem:StreamingLifecycle.streamingTargetSeconds (180)",
+  "mem:StreamingLifecycle.streamingElapsedSeconds (0)",
+  "mem:StreamingLifecycle.isOvernightStreaming (false)",
+  "mem:StreamingLifecycle.isPaused (false)",
+  "mem:StreamingLifecycle.pausedSession (nil)",
+  "mem:StreamingLifecycle.pausedBeatCount (0)"
+ ],
+ "toplevel": "Seven observable stored properties with default initialisers; no methods. Owned by RRCollector (RRCollector.swift:187, created at 703) and read through @Environment(StreamingLifecycle.self) in RecordView and passed to StreamingLiveView/RecordingStatusViews/RecordPanels.",
+ "flags": [],
+ "units": [],
+ "deps": {}
+}

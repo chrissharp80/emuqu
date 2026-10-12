@@ -1,0 +1,107 @@
+{
+ "file": "Emuqu/Sources/Views/WorkoutPlanModel.swift",
+ "hash": "6e67b298f8976c3b",
+ "role": "@Observable @MainActor state for the Fitness tab pre-flight surface (sport, route, coaching options, HR source, sensor sheet, start-in-progress), owned by FitnessTabView and injected via environment.",
+ "types": [
+  "WorkoutPlanModel: class (@Observable @MainActor) — plan picker state + start gating helpers"
+ ],
+ "state": [
+  "mem:WorkoutPlanModel.selectedSport (default .walk)",
+  "mem:WorkoutPlanModel.selectedRoute",
+  "mem:WorkoutPlanModel.routeExpanded",
+  "mem:WorkoutPlanModel.coachingExpanded",
+  "mem:WorkoutPlanModel.selectedThresholds",
+  "mem:WorkoutPlanModel.selectedPlan",
+  "mem:WorkoutPlanModel.selectedTargetZone",
+  "mem:WorkoutPlanModel.sensorSheetPresented"
+ ],
+ "toplevel": "Stored-property defaults only; instance created as @State in FitnessTabView.swift:46.",
+ "flags": [
+  {
+   "kind": "untested",
+   "sev": "low",
+   "text": "resolvedSource and canStart have no unit tests (grep of EmuquTests finds none).",
+   "evidence": [
+    "Emuqu/Sources/Views/WorkoutPlanModel.swift:76",
+    "Emuqu/Sources/Views/WorkoutPlanModel.swift:84"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func WorkoutPlanModel.resolvedSource(strapConnected:hasKnownStrap:)",
+   "hash": "6bb34a41c73eb9f5",
+   "does": "HR source the next start uses (no user control): strap if connected or a strap is known, else watch.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:WorkoutPlanModel.explicitHRSource"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "strapConnected || hasKnownStrap",
+     "effect": ".strap, else .watch"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "med",
+     "text": "USERS_MANUAL step 2 tells the user to pick an HR source (Strap / Apple Watch / None), but the preflight has no HR-source control: explicitHRSource is never assigned, so the source is always derived (strap if known/connected, else watch) and None cannot be chosen.",
+     "evidence": [
+      "docs/USERS_MANUAL.md:1041",
+      "Emuqu/Sources/Views/WorkoutPlanModel.swift:77",
+      "Emuqu/Sources/Views/WorkoutPreflightView.swift:338"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutPlanModel.canStart(recorderPhase:)",
+   "hash": "fa7d6a746b35486f",
+   "does": "True iff the recorder phase exists and is idle, finished or failed (the phase is the double-tap gate).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "phase nil",
+     "effect": "false"
+    },
+    {
+     "at": "+2",
+     "cond": "switch phase",
+     "effect": "idle/finished/failed true; recording/finalizing false"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutPlanModel.clearPerWorkoutPicks()",
+   "hash": "3ae63cb24b49dc0a",
+   "does": "Clears selectedRoute, routeExpanded, selectedPlan, selectedTargetZone and selectedThresholds; keeps selectedSport.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:WorkoutPlanModel.selectedRoute",
+    "mem:WorkoutPlanModel.routeExpanded",
+    "mem:WorkoutPlanModel.selectedPlan",
+    "mem:WorkoutPlanModel.selectedTargetZone",
+    "mem:WorkoutPlanModel.selectedThresholds"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

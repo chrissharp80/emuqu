@@ -10,7 +10,9 @@ import Foundation
 //
 // Deliberately separate from WorkoutRecorder so the interval logic is easy
 // to test in isolation. Owns only the plan + cursor; the recorder is the
-// source of truth for elapsed time and HR.
+// source of truth for elapsed time and HR: a step's time is counted in the
+// recorder's ticks (one per second of recording, none while paused), not in
+// wall-clock time, so a pause neither runs a step down nor advances it.
 
 @Observable
 
@@ -21,8 +23,9 @@ final class IntervalController {
     /// 0-based index into the FLATTENED step list (plan.steps × repeatCount).
     /// Nil when no plan is active.
     private(set) var currentStepIndex: Int?
-    /// Time since the current step began (monotonic increment while the
-    /// plan is active; resets on step advance).
+    /// Seconds of recording since the current step began: one per tick, so
+    /// time spent paused (when the recorder does not tick the plan) is not
+    /// counted. Resets on step advance.
     private(set) var stepElapsedSec: Int = 0
     /// True once the last step of the last repeat has finished.
     private(set) var isFinished: Bool = false
@@ -32,7 +35,6 @@ final class IntervalController {
     private var plan: IntervalPlan?
     /// Flattened step list — repeats materialised for easy indexing.
     private var flatSteps: [IntervalStep] = []
-    private var stepStartAt: Date?
     /// Workout distance when the current step began, captured on the step's
     /// first tick. Distance steps measure from here, not from the start of
     /// the workout.
@@ -47,8 +49,9 @@ final class IntervalController {
     // MARK: - Public
 
     /// Attach a plan and cue the first step. Idempotent: calling with the
-    /// same plan twice just resets the cursor.
-    func load(plan: IntervalPlan, startAt: Date = Date()) {
+    /// same plan twice just resets the cursor. The start time is not used:
+    /// steps are timed in ticks from the moment the plan is loaded.
+    func load(plan: IntervalPlan, startAt _: Date = Date()) {
         self.plan = plan
         flatSteps = []
         for _ in 0 ..< max(1, plan.repeatCount) {
@@ -56,7 +59,6 @@ final class IntervalController {
         }
         currentStepIndex = flatSteps.isEmpty ? nil : 0
         stepElapsedSec = 0
-        stepStartAt = startAt
         stepStartDistanceMeters = nil
         isFinished = false
         if let first = flatSteps.first {
@@ -70,27 +72,24 @@ final class IntervalController {
         flatSteps = []
         currentStepIndex = nil
         stepElapsedSec = 0
-        stepStartAt = nil
         stepStartDistanceMeters = nil
         isFinished = false
     }
 
-    /// Per-second tick from the recorder. Decides whether to advance the step.
-    /// Returns the active step so the recorder can feed it into the voice
-    /// coach's context for zone-drift rules.
+    /// Per-second tick from the recorder: one second of recording (the
+    /// recorder does not tick the plan while paused). Decides whether to
+    /// advance the step. Returns the active step so the recorder can feed it
+    /// into the voice coach's context for zone-drift rules.
     @discardableResult
     func tick(totalDistanceMeters: Double = 0) -> IntervalStep? {
         guard !isFinished, let idx = currentStepIndex, idx < flatSteps.count else { return nil }
         let step = flatSteps[idx]
-        let now = Date()
-        if let startAt = stepStartAt {
-            stepElapsedSec = Int(now.timeIntervalSince(startAt))
-        }
+        stepElapsedSec += 1
         let stepStartDistance = stepStartDistanceMeters ?? totalDistanceMeters
         stepStartDistanceMeters = stepStartDistance
         let stepDistance = totalDistanceMeters - stepStartDistance
         if Self.isComplete(step, elapsedSec: stepElapsedSec, stepDistanceMeters: stepDistance) {
-            advance(at: now)
+            advance()
         }
         return currentStep
     }
@@ -105,7 +104,7 @@ final class IntervalController {
 
     /// User-tapped "skip" — advance immediately.
     func skip() {
-        advance(at: Date())
+        advance()
     }
 
     // MARK: - Derived
@@ -139,20 +138,18 @@ final class IntervalController {
 
     // MARK: - Private
 
-    private func advance(at date: Date) {
+    private func advance() {
         guard let idx = currentStepIndex else { return }
         let next = idx + 1
         if next >= flatSteps.count {
             isFinished = true
             currentStepIndex = nil
             stepElapsedSec = 0
-            stepStartAt = nil
             onFinish?()
             return
         }
         currentStepIndex = next
         stepElapsedSec = 0
-        stepStartAt = date
         stepStartDistanceMeters = nil
         let step = flatSteps[next]
         onStepChange?(step, next + 1, flatSteps.count)

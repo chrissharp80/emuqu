@@ -53,11 +53,6 @@ struct RRPoint: Codable, Equatable {
         t_ms + Int64(rr_ms)
     }
 
-    /// Midpoint timestamp for interpolation
-    var midpointMs: Double {
-        Double(t_ms) + Double(rr_ms) / 2.0
-    }
-
     /// Gap between wall-clock time and cumulative RR time (indicates dropped data)
     /// Positive value = wall clock is ahead = data was likely dropped
     /// Only meaningful for streaming data with wallClockMs populated
@@ -129,11 +124,6 @@ struct RRSeries: Codable {
         return (currWall - prevWall) - Int64(points[i - 1].rr_ms)
     }
 
-    /// Total time lost to gaps (useful for adjusting sleep calculations)
-    var totalGapDurationMs: Int64 {
-        detectGaps().reduce(0) { $0 + $1.gapDurationMs }
-    }
-
     /// Get the absolute timestamp for a point at a given index
     /// Uses cumulative RR time (t_ms) - accurate for H10 internal recording
     /// For streaming mode with gaps, use absoluteTimeWallClock() instead
@@ -157,15 +147,6 @@ struct RRSeries: Codable {
             return startDate.addingTimeInterval(TimeInterval(wallClock) / 1000.0)
         }
         return startDate.addingTimeInterval(TimeInterval(point.t_ms) / 1000.0)
-    }
-
-    /// Get the absolute timestamp for a point's midpoint (useful for interpolation)
-    /// - Parameter index: Index of the RR point
-    /// - Returns: Absolute Date for the midpoint of this RR interval
-    func absoluteMidpoint(at index: Int) -> Date? {
-        guard index >= 0, index < points.count else { return nil }
-        let point = points[index]
-        return startDate.addingTimeInterval(point.midpointMs / 1000.0)
     }
 
     /// Get absolute timestamp for a relative millisecond offset
@@ -215,12 +196,15 @@ struct RRSeries: Codable {
 
     /// Find the RR point index closest to a given absolute time using wall-clock timestamps
     /// This is useful for aligning streaming data with Apple Sleep boundaries
-    /// Falls back to cumulative RR time if wall-clock not available
+    /// Falls back to cumulative RR time unless EVERY point has a wall clock:
+    /// the binary search needs one ordered key, and a series with wall clocks
+    /// on only some points (internal + streamed merged) mixing the two is not.
     /// - Parameter date: The target absolute Date
     /// - Returns: Index of the closest RR point, or nil if series is empty
     func indexClosestToWallClock(_ date: Date) -> Int? {
         guard !points.isEmpty else { return nil }
         let targetMs = MillisecondOffset.between(date, and: startDate, fallback: 0)
+        guard points.allSatisfy({ $0.wallClockMs != nil }) else { return closestIndex(to: targetMs) { $0.t_ms } }
         return closestIndex(to: targetMs) { $0.wallClockMs ?? $0.t_ms }
     }
 
@@ -296,10 +280,15 @@ struct TimeDomainMetrics: Codable {
     let maxHR: Double
     /// HRV Triangular Index (N / max histogram bin)
     let triangularIndex: Double?
+    /// True when `minHR`/`maxHR` are mean ± SD stand-ins rather than
+    /// measured: a result saved before they were stored, or one built with
+    /// the fixture initializer. Encoded only when true, so the marker
+    /// survives a re-save.
+    let hrRangeIsApproximate: Bool
 
     /// Convenience initializer for fixtures: min/max HR are approximated as
-    /// mean ± SD, not measured. Production analysis passes measured values
-    /// through the full initializer below.
+    /// mean ± SD, not measured (`hrRangeIsApproximate`). Production analysis
+    /// passes measured values through the full initializer below.
     init(
         meanRR: Double,
         sdnn: Double,
@@ -320,6 +309,7 @@ struct TimeDomainMetrics: Codable {
         minHR = meanHR - sdHR // Approximate from SD
         maxHR = meanHR + sdHR
         self.triangularIndex = triangularIndex
+        hrRangeIsApproximate = true
     }
 
     /// Full initializer with min/max HR
@@ -345,11 +335,13 @@ struct TimeDomainMetrics: Codable {
         self.minHR = minHR
         self.maxHR = maxHR
         self.triangularIndex = triangularIndex
+        hrRangeIsApproximate = false
     }
 
     private enum CodingKeys: String, CodingKey {
         case schemaVersion
         case meanRR, sdnn, rmssd, pnn50, sdsd, meanHR, sdHR, minHR, maxHR, triangularIndex
+        case hrRangeIsApproximate
     }
 
     /// Codable with defaults for missing fields
@@ -365,9 +357,14 @@ struct TimeDomainMetrics: Codable {
         meanHR = try container.decode(Double.self, forKey: .meanHR)
         sdHR = try container.decode(Double.self, forKey: .sdHR)
         triangularIndex = try container.decodeIfPresent(Double.self, forKey: .triangularIndex)
-        // Default min/max from SD if not present (backwards compatibility)
-        minHR = try container.decodeIfPresent(Double.self, forKey: .minHR) ?? (meanHR - sdHR)
-        maxHR = try container.decodeIfPresent(Double.self, forKey: .maxHR) ?? (meanHR + sdHR)
+        // Default min/max from SD if not present (backwards compatibility),
+        // and say so.
+        let storedMin = try container.decodeIfPresent(Double.self, forKey: .minHR)
+        let storedMax = try container.decodeIfPresent(Double.self, forKey: .maxHR)
+        minHR = storedMin ?? (meanHR - sdHR)
+        maxHR = storedMax ?? (meanHR + sdHR)
+        hrRangeIsApproximate = try container.decodeIfPresent(Bool.self, forKey: .hrRangeIsApproximate)
+            ?? (storedMin == nil || storedMax == nil)
     }
 
     func encode(to encoder: Encoder) throws {
@@ -383,6 +380,7 @@ struct TimeDomainMetrics: Codable {
         try container.encode(minHR, forKey: .minHR)
         try container.encode(maxHR, forKey: .maxHR)
         try container.encodeIfPresent(triangularIndex, forKey: .triangularIndex)
+        if hrRangeIsApproximate { try container.encode(true, forKey: .hrRangeIsApproximate) }
     }
 }
 
@@ -491,7 +489,8 @@ struct TrainingContext: Codable, Sendable {
     var vo2Max: Double?
     /// Days since last hard workout
     let daysSinceHardWorkout: Int?
-    /// Recent workout summary (last 3 days for context)
+    /// The five most recent workouts of the training load's list (its last
+    /// 14 days), for context
     let recentWorkouts: [WorkoutSnapshot]?
 
     init(atl: Double, ctl: Double, tsb: Double, yesterdayTrimp: Double, vo2Max: Double?, daysSinceHardWorkout: Int?, recentWorkouts: [WorkoutSnapshot]?) {
@@ -564,10 +563,6 @@ struct TrainingContext: Codable, Sendable {
         }
     }
 
-    static let empty = TrainingContext(
-        atl: 0, ctl: 0, tsb: 0, yesterdayTrimp: 0,
-        vo2Max: nil, daysSinceHardWorkout: nil, recentWorkouts: nil
-    )
 }
 
 /// Lightweight workout snapshot for storing with session
@@ -575,6 +570,8 @@ struct WorkoutSnapshot: Codable {
     let date: Date
     let type: String
     let durationMinutes: Double
+    /// The workout's load on the user's scale (`userScaledLoad`), stored
+    /// under its original name.
     let trimp: Double
 }
 
@@ -693,7 +690,7 @@ enum WindowSelectionReasonText {
         if stored.hasPrefix("Manual selection at "), let n = numbers(in: stored, valueAfter: "(RMSSD ") {
             return String(localized: "Manual selection at \(n.position)% of the recording (RMSSD \(n.value) ms, α1 \(n.alpha1), HR CV \(n.cv)%)", bundle: b)
         }
-        if stored.hasPrefix("Peak "), let metric = field(stored, after: "Peak ", before: " ("),
+        if stored.hasPrefix("Peak "), let metric = peakMetric(in: stored),
            let n = numbers(in: stored, valueAfter: nil) {
             return String(localized: "Peak \(metric) at \(n.position)% of the recording (\(n.value) ms, α1 \(n.alpha1), HR CV \(n.cv)%)", bundle: b)
         }
@@ -719,6 +716,17 @@ enum WindowSelectionReasonText {
         }
         guard let at = stored.range(of: ") at ", options: .backwards) else { return nil }
         return Int(stored[at.upperBound...].dropLast())
+    }
+
+    /// The metric named after "Peak ", up to the bracket that opens the
+    /// numbers: "SDNN", "RMSSD", or "SDNN (Total Power proxy)" with its
+    /// qualifier kept.
+    private static func peakMetric(in stored: String) -> String? {
+        guard let start = stored.range(of: "Peak "), let end = stored.range(of: " ms, α1="),
+              start.upperBound <= end.lowerBound,
+              let open = stored.range(of: " (", options: .backwards, range: start.upperBound ..< end.lowerBound)
+        else { return nil }
+        return String(stored[start.upperBound ..< open.lowerBound])
     }
 
     private static func bracketedValue(in stored: String) -> String? {
