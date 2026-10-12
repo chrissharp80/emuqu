@@ -334,11 +334,11 @@ struct PrivacyPolicyView: View {
     /// screen about the user's rights cannot be the one that crashes.
     @ViewBuilder
     private var contactLink: some View {
-        if let mail = URL(string: "mailto:chrissharp80@gmail.com?subject=Emuqu%20Privacy") {
-            Link("chrissharp80@gmail.com", destination: mail)
+        if let mail = AppConfig.contactMailURL(subject: "Emuqu Privacy") {
+            Link(AppConfig.contactEmail, destination: mail)
                 .font(.subheadline)
         } else {
-            Text(verbatim: "chrissharp80@gmail.com")
+            Text(verbatim: AppConfig.contactEmail)
                 .font(.subheadline)
         }
     }

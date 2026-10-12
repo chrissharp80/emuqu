@@ -574,7 +574,8 @@ enum SleepScienceAnalyzer {
             deepSleepMinutes: original.deepSleepMinutes != nil ? total.deep : nil,
             remSleepMinutes: original.remSleepMinutes != nil ? total.rem : nil,
             awakeMinutes: total.awake,
-            sleepEfficiency: inBedMinutes > 0 ? Double(totalSleepMinutes) / Double(inBedMinutes) * 100.0 : original.sleepEfficiency,
+            sleepEfficiency: inBedMinutes > 0
+                ? SleepData.efficiencyPercent(sleep: totalSleepMinutes, inBed: inBedMinutes) : original.sleepEfficiency,
             boundarySource: original.boundarySource, segments: adjustedSegments,
             stageIntervals: allIntervals, boundaryValidation: original.boundaryValidation,
             hrSleepQuality: original.hrSleepQuality,
