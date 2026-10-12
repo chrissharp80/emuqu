@@ -313,26 +313,60 @@
   },
   {
    "key": "func StrapArmingTests.testAnUndownloadedRecordingIsRescuedBeforeTheClear()",
-   "hash": "87ed7049dd09c6b1",
-   "does": "Puts an undownloaded 700-beat exercise from 20 h ago on the fake strap: asserts startFreshRecording rescues all 700 points via onUnrecoveredDataRescued and fetches the exercise before removing it.",
+   "hash": "3d6cd8203c3a64a8",
+   "does": "Puts an undownloaded 700-beat exercise from 20 h ago on the fake strap: asserts startFreshRecording rescues all 700 points via onUnrecoveredDataRescued (the test's closure reports the backup as written) and fetches the exercise before removing it.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.addExercise(entryId:path:date:rrMs:)",
     "EmuquTests/StrapArmingTests.swift::func StrapArmingTests.exerciseId(_:)",
     "EmuquTests/StrapArmingTests.swift::func StrapArmingTests.linkedManager(_:)",
     "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.startFreshRecording(while:)",
-    "closure:onUnrecoveredDataRescued set by the test to capture points"
+    "closure:onUnrecoveredDataRescued set by the test to capture points and report success"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.startFreshRecording(while:)": "2791be1f170c0a52",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.startFreshRecording(while:)": "e2b633ac41152473",
     "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.addExercise(entryId:path:date:rrMs:)": "922c29ced26bff57",
     "EmuquTests/FakeStrapRadio.swift::var FakeStrapRadio.calls": "f3f360684b4dcac1",
     "EmuquTests/StrapArmingTests.swift::func StrapArmingTests.exerciseId(_:)": "d155a725c0ec620b",
     "EmuquTests/StrapArmingTests.swift::func StrapArmingTests.linkedManager(_:)": "78abe31ef10b58a3"
+   }
+  },
+  {
+   "key": "func StrapArmingTests.testAFailedRescueBackupStopsTheStartBeforeTheClear()",
+   "hash": "163435432710eda7",
+   "does": "Puts an undownloaded 700-beat exercise on the fake strap and a rescue callback that reports a failed backup: asserts startFreshRecording throws with startRefusal .undownloadedRecordingOnStrap, that the exercise was fetched but never removed, and that no recording was started.",
+   "entry": "XCTest",
+   "calls": [
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.addExercise(entryId:path:date:rrMs:)",
+    "EmuquTests/StrapArmingTests.swift::func StrapArmingTests.exerciseId(_:)",
+    "EmuquTests/StrapArmingTests.swift::func StrapArmingTests.linkedManager(_:)",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.startFreshRecording(while:)",
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.startRefusal(for:)",
+    "EmuquTests/StrapArmingTests.swift::func StrapArmingTests.starts(_:)",
+    "closure:onUnrecoveredDataRescued set by the test to return false"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "startFreshRecording does not throw",
+     "effect": "XCTFail"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.startFreshRecording(while:)": "e2b633ac41152473",
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.startRefusal(for:)": "dbec95e92c154b09",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.addExercise(entryId:path:date:rrMs:)": "922c29ced26bff57",
+    "EmuquTests/FakeStrapRadio.swift::var FakeStrapRadio.calls": "f3f360684b4dcac1",
+    "EmuquTests/StrapArmingTests.swift::func StrapArmingTests.exerciseId(_:)": "d155a725c0ec620b",
+    "EmuquTests/StrapArmingTests.swift::func StrapArmingTests.linkedManager(_:)": "78abe31ef10b58a3",
+    "EmuquTests/StrapArmingTests.swift::func StrapArmingTests.starts(_:)": "2bb2fd97f6e438a8"
    }
   },
   {

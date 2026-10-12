@@ -369,13 +369,15 @@ final class RRCollector {
 
     /// Whether the app holds the strap recording that began at `start`
     /// (`StrapRecordingPolicy.recordingIsSaved`). The strap's start sequence
-    /// asks the same question before it clears the strap.
+    /// asks the same question before it clears the strap. On disk: an
+    /// archived session or a rescue backup within 30 minutes of its start.
     func isStrapRecordingSaved(startedAt start: Date) -> Bool {
         let ledger = polarManager.downloadLedger
         return StrapRecordingPolicy.recordingIsSaved(
             alreadyDownloaded: ledger.wasDownloaded(recordingStartedAt: start),
             predatesDownloadRecord: ledger.predatesRecord(start),
-            archiveHasSessionNearStart: archive.hasSessionNear(date: start, toleranceMinutes: 30)
+            heldOnDisk: archive.hasSessionNear(date: start, toleranceMinutes: 30)
+                || rawBackup.holdsBackup(capturedWithin: 30 * 60, of: start)
         )
     }
 

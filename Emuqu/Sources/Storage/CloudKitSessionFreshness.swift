@@ -174,6 +174,24 @@ enum CloudKitSessionFreshness {
         return merged
     }
 
+    /// Replaces the archived copy with `remote` only if `remote` is still the
+    /// newer one when the write happens. The check and the write run inside
+    /// one `SessionArchive.update`, under the archive's lock, so an edit saved
+    /// while the iCloud copy was downloading is seen and kept. Nil when the
+    /// local copy is now as new or newer; the archive is then rewritten
+    /// unchanged.
+    static func replaceIfStillNewer(
+        _ sessionId: UUID, with remote: HRVSession, in archive: SessionArchive
+    ) throws -> HRVSession? {
+        var replacement: HRVSession?
+        try archive.update(sessionId, requestingReupload: false) { session in
+            guard decide(localModifiedAt: session.modifiedAt, remoteModifiedAt: remote.modifiedAt) == .importRemote else { return }
+            session = replacing(session, with: remote)
+            replacement = session
+        }
+        return replacement
+    }
+
     private static func keepSleep(of local: HRVSession, in merged: inout HRVSession) {
         merged.sleepStartMs = local.sleepStartMs
         merged.sleepEndMs = local.sleepEndMs
@@ -207,6 +225,12 @@ extension CloudPullCoordinator {
     /// Written without a re-upload request and marked uploaded: the copy came
     /// from iCloud, and sending it back would start a loop. A pending local
     /// upload is dropped with it — it was older.
+    ///
+    /// The newer-copy decision was made before the download. An edit saved
+    /// here while it ran is newer than the iCloud copy, so the decision is
+    /// made again where the replacement is written
+    /// (`CloudKitSessionFreshness.replaceIfStillNewer`); the edit, and its
+    /// pending upload, are then kept.
     private func replaceLocalCopy(from assetURL: URL, sessionId: UUID, remoteModifiedAt: Date?) async -> RecordOutcome {
         do {
             var remote = try await Task.detached(priority: .utility) {
@@ -214,12 +238,16 @@ extension CloudPullCoordinator {
             }.value
             // The record's date is the one the next pull compares against.
             remote.modifiedAt = remoteModifiedAt
-            guard let local = try manager.archive.retrieveLightweight(sessionId) else { return RecordOutcome() }
-            let replacement = CloudKitSessionFreshness.replacing(local, with: remote)
-            try manager.archive.archive(replacement, skipSameNightMerge: true)
+            guard let replacement = try CloudKitSessionFreshness.replaceIfStillNewer(sessionId, with: remote, in: manager.archive) else {
+                debugLog("[CloudKit] Pull: kept \(sessionId.uuidString.prefix(8)) — it was edited here while the iCloud copy downloaded")
+                return RecordOutcome()
+            }
             manager.state.markUploaded(sessionId)
             debugLog("[CloudKit] Pull: replaced \(sessionId.uuidString.prefix(8)) with the newer copy from iCloud")
             return RecordOutcome(backfillId: replacement.sleepSnapshot == nil ? sessionId : nil, refreshed: 1)
+        } catch SessionArchive.ArchiveError.fileNotFound {
+            // Deleted here while the iCloud copy downloaded: nothing to replace.
+            return RecordOutcome()
         } catch {
             return importFailure(error, sessionIdString: sessionId.uuidString)
         }

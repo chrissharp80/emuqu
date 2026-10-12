@@ -146,7 +146,7 @@ final class StrapArmingTests: XCTestCase {
         radio.addExercise(entryId: exerciseId(lastNight), date: lastNight, rrMs: Array(repeating: 900, count: 700))
         let manager = linkedManager(radio)
         var rescued: [RRPoint] = []
-        manager.onUnrecoveredDataRescued = { rescued = $0.points }
+        manager.onUnrecoveredDataRescued = { rescued = $0.points; return true }
 
         try await manager.recording.startFreshRecording()
 
@@ -155,6 +155,26 @@ final class StrapArmingTests: XCTestCase {
         let fetchIndex = try XCTUnwrap(radio.calls.firstIndex(of: .fetchExercise(entryId: id)))
         let removeIndex = try XCTUnwrap(radio.calls.firstIndex(of: .removeExercise(entryId: id)))
         XCTAssertLessThan(fetchIndex, removeIndex)
+    }
+
+    /// The download worked but the rescue backup did not: the strap's copy is
+    /// then the only one, so the start stops before the clear.
+    func testAFailedRescueBackupStopsTheStartBeforeTheClear() async {
+        let radio = FakeStrapRadio()
+        let lastNight = Date().addingTimeInterval(-20 * 3600)
+        radio.addExercise(entryId: exerciseId(lastNight), date: lastNight, rrMs: Array(repeating: 900, count: 700))
+        let manager = linkedManager(radio)
+        manager.onUnrecoveredDataRescued = { _ in false }
+
+        do {
+            try await manager.recording.startFreshRecording()
+            XCTFail("armed, and cleared, over a recording whose backup failed")
+        } catch {
+            XCTAssertEqual(StrapRecordingPolicy.startRefusal(for: error), .undownloadedRecordingOnStrap)
+        }
+        XCTAssertTrue(radio.calls.contains(.fetchExercise(entryId: exerciseId(lastNight))))
+        XCTAssertFalse(radio.calls.contains(.removeExercise(entryId: exerciseId(lastNight))))
+        XCTAssertEqual(starts(radio), 0)
     }
 
     /// A recording already downloaded is the strap's backup copy and is

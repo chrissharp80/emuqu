@@ -86,7 +86,7 @@ final class StrapTransferTests: XCTestCase {
         let night = Date(timeIntervalSince1970: (Date().timeIntervalSince1970 - 20 * 3600).rounded(.down))
         let manager = armedStrap(radio, start: night, beats: 3_000)
         var rescued: [RRPoint] = []
-        manager.onUnrecoveredDataRescued = { rescued = $0.points }
+        manager.onUnrecoveredDataRescued = { rescued = $0.points; return true }
 
         await manager.stopDeviceRecordingIfNeeded(streamHoldsIt: false)
         try await manager.recording.startFreshRecording()

@@ -1,13 +1,14 @@
 {
  "file": "Emuqu/Sources/Services/DataPurgeService.swift",
- "hash": "e3f5bbd124f345e3",
+ "hash": "9f33f37a98f94cc6",
  "role": "'Delete All My Data' orchestrator: awaits CloudKit zone deletion, sweeps every file in App Group/Application Support/Documents/Caches/tmp and every UserDefaults key (minus keep-lists), then resets named stores (archive dirs, keychain, AI stores, settings, breadcrumbs, caches, notifications) and returns a localized Report.",
  "types": [
   "DataPurgeService: enum (@MainActor) — static purge steps",
   "DataPurgeService.Report: struct — per-step booleans, residual counts, errors, localized text",
   "DataPurgeService.Report.Outcome: enum — removed|cleared|reset",
   "DataPurgeService.FallibleSteps: struct — debug/crash log outcomes",
-  "DataPurgeService.ReadBack: struct — the outcomes read back from the stores after the steps"
+  "DataPurgeService.ReadBack: struct — the outcomes read back from the stores after the steps",
+  "DataPurgeService.PurgeScope: struct (@MainActor) — where a purge sweeps files and preferences: App Group container, sandbox roots, preference suites; .device in production"
  ],
  "state": [
   "mem:DataPurgeService.keepList = ['user_settings.json'] (file names spared by the container sweep; the App Group root also spares 'Library')",
@@ -33,6 +34,25 @@
   }
  ],
  "units": [
+  {
+   "key": "var DataPurgeService.PurgeScope.device",
+   "hash": "d4566083e0269713",
+   "does": "The app's own purge scope: the App Group container, Application Support, Documents, Caches and the temporary directory (exports wait there for the share sheet), and the standard and App Group preference suites (deviceDefaultsDomains).",
+   "entry": "Default argument of purgeAllUserData; read by DataPurgeServiceTests to pin that it names every container and suite.",
+   "calls": [
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.deviceDefaultsDomains(errors:)"
+   ],
+   "reads": [
+    "file:App Group container, Application Support, Documents, Caches, tmp (URLs only)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.deviceDefaultsDomains(errors:)": "1a6a7328e784bf9d",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4"
+   }
+  },
   {
    "key": "var DataPurgeService.Report.summary",
    "hash": "00025a4f2c900597",
@@ -274,16 +294,16 @@
    }
   },
   {
-   "key": "func DataPurgeService.resetAppGroupDirectory(named:label:reportMissingContainer:errors:)",
-   "hash": "0c2331fe810af3ad",
-   "does": "Deletes and recreates <AppGroup>/<name>; returns success, appending a localized error on failure.",
+   "key": "func DataPurgeService.resetAppGroupDirectory(named:in:label:reportMissingContainer:errors:)",
+   "hash": "e0bc155c9cbd3abb",
+   "does": "Deletes and recreates <container>/<name>, where container is the scope's App Group container; returns success, appending a localized error on failure.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [],
    "writes": [
-    "file:<AppGroup>/<name> (HRVArchive or RRBackup)"
+    "file:<AppGroup container of the scope>/<name> (HRVArchive or RRBackup)"
    ],
    "branches": [
     {
@@ -313,15 +333,15 @@
    }
   },
   {
-   "key": "func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:deleteRemote:)",
-   "hash": "4d205483b7f8d933",
-   "does": "Runs the purge: remote CloudKit deletion (awaited), container file sweep + in-memory archive reset, UserDefaults sweep, named directory/store resets, debug/crash log purge, then reads back every store whose clear reports no failure (readBackClearedStores) and returns a Report whose per-step booleans are those results.",
+   "key": "func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:deleteRemote:scope:)",
+   "hash": "52c88d2ecd533377",
+   "does": "Runs the purge: remote CloudKit deletion (awaited), container file sweep + in-memory archive reset, UserDefaults sweep, named directory/store resets, debug/crash log purge, then reads back every store whose clear reports no failure (readBackClearedStores) and returns a Report whose per-step booleans are those results. The file and preference sweeps and the archive/backup directory resets run in `scope` (default .device, the app's own containers and suites; tests pass temporary ones); the keychain, assistant stores, settings, CloudKit local state, logs, breadcrumbs and workout track backups are always the app's own.",
    "entry": "Button task in DeleteAllDataPage.swift:207; DataPurgeServiceTests",
    "calls": [
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeRemote(cloudSync:deleteRemote:errors:)",
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweepAndForget(archive:rawBackup:errors:)",
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweepAllDefaults(errors:)",
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeDirectories(settingsManager:cloudSync:errors:)",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweepAndForget(archive:rawBackup:scope:errors:)",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweepAllDefaults(scope:errors:)",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeDirectories(settingsManager:cloudSync:scope:errors:)",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeFallibleStores(errors:)",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.readBackClearedStores(settingsManager:cloudSync:)"
    ],
@@ -330,12 +350,13 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeDirectories(settingsManager:cloudSync:errors:)": "a9167ea804ea5e3d",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeDirectories(settingsManager:cloudSync:scope:errors:)": "706ad09ec3bb4d5f",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeFallibleStores(errors:)": "241dc56a5d3c26e3",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeRemote(cloudSync:deleteRemote:errors:)": "d951b20451ad7ecc",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.readBackClearedStores(settingsManager:cloudSync:)": "e30110433925c2a2",
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweepAllDefaults(errors:)": "f7e516b009caba4b",
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweepAndForget(archive:rawBackup:errors:)": "952f885d4a2fa916"
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweepAllDefaults(scope:errors:)": "28c930f18251946f",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweepAndForget(archive:rawBackup:scope:errors:)": "f6cb542882007bd3",
+    "Emuqu/Sources/Services/DataPurgeService.swift::var DataPurgeService.PurgeScope.device": "5e68c2e6d80093c7"
    }
   },
   {
@@ -375,12 +396,12 @@
    }
   },
   {
-   "key": "func DataPurgeService.sweepAndForget(archive:rawBackup:errors:)",
-   "hash": "026f12a96a4d074c",
-   "does": "Sweeps all containers, then resets SessionArchive and RawRRBackup in-memory indexes and posts .flowRecoveryArchiveChanged.",
+   "key": "func DataPurgeService.sweepAndForget(archive:rawBackup:scope:errors:)",
+   "hash": "b8e61a51cf4d70ab",
+   "does": "Sweeps every container of the scope, then resets SessionArchive and RawRRBackup in-memory indexes and posts .flowRecoveryArchiveChanged.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweepAllContainers(errors:)",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweepAllContainers(scope:errors:)",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.resetInMemoryStateAfterPurge()",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.resetInMemoryStateAfterPurge()"
    ],
@@ -393,7 +414,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweepAllContainers(errors:)": "e3e929dd832dc1ea",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweepAllContainers(scope:errors:)": "762f16ab34da9ec2",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.resetInMemoryStateAfterPurge()": "680e37edf08e252a",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.resetInMemoryStateAfterPurge()": "ba690bfda53be674"
    }
@@ -464,9 +485,9 @@
    "deps": {}
   },
   {
-   "key": "func DataPurgeService.defaultsDomains(errors:)",
-   "hash": "7f3dfedf09cdb8f5",
-   "does": "Returns (name, store) for the standard suite (bundle id) and the App Group suite, appending an error for any unavailable.",
+   "key": "func DataPurgeService.deviceDefaultsDomains(errors:)",
+   "hash": "cf7c731ffc6bf93a",
+   "does": "The device's preference suites for PurgeScope.device: (name, store) for the standard suite (bundle id) and the App Group suite, appending an error for any unavailable.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
@@ -491,27 +512,25 @@
    }
   },
   {
-   "key": "func DataPurgeService.sweepAllDefaults(errors:)",
-   "hash": "9a969ec46ef3eafe",
-   "does": "Removes every purgeable key from the standard and App Group suites, returning the count removed.",
+   "key": "func DataPurgeService.sweepAllDefaults(scope:errors:)",
+   "hash": "a71fcff8504c2cab",
+   "does": "Removes every purgeable key from the scope's preference suites (the device's standard and App Group suites in production), returning the count removed.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.defaultsDomains(errors:)",
+    "closure:PurgeScope.defaultsDomains — DataPurgeService.deviceDefaultsDomains for .device",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.storedKeys(in:)",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.isPurgeable(defaultsKey:)"
    ],
    "reads": [
-    "ud:* (standard)",
-    "ud:* (App Group)"
+    "ud:* (the scope's suites; standard and App Group in production)"
    ],
    "writes": [
-    "ud:* (standard)",
-    "ud:* (App Group)"
+    "ud:* (the scope's suites; standard and App Group in production)"
    ],
    "branches": [
     {
      "at": "+2",
-     "cond": "for each domain",
+     "cond": "for each domain the scope lists",
      "effect": "iterates available suites"
     },
     {
@@ -522,7 +541,6 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.defaultsDomains(errors:)": "fd3d52e6eef18c92",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.isPurgeable(defaultsKey:)": "8af1332a5c1d43cd",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.storedKeys(in:)": "e874968fe0f57515"
    }
@@ -574,42 +592,35 @@
    "deps": {}
   },
   {
-   "key": "func DataPurgeService.purgeRoots()",
-   "hash": "f8e92d4909e2dccf",
-   "does": "Roots to sweep with the entry names each keeps: App Group container (if available; keepList plus 'Library', where iOS keeps the group suite's preferences plist and caches), Application Support, Documents, Caches, and the temporary directory (keepList).",
+   "key": "func DataPurgeService.purgeRoots(_:)",
+   "hash": "8b3cd2bb8176109c",
+   "does": "Roots to sweep with the entry names each keeps, from the scope: its App Group container (if any; keepList plus 'Library', where iOS keeps the group suite's preferences plist and caches) and its sandbox roots (Application Support, Documents, Caches and tmp in production; keepList).",
    "entry": null,
    "calls": [],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+3",
-     "cond": "App Group container URL available",
+     "at": "+2",
+     "cond": "scope has an App Group container",
      "effect": "appended; else skipped silently"
     },
     {
-     "at": "+6",
-     "cond": "for each search-path directory",
-     "effect": "iterates appSupport, documents, caches"
-    },
-    {
-     "at": "+7",
-     "cond": "url found",
-     "effect": "appended; else skipped"
+     "at": "+5",
+     "cond": "each sandbox root",
+     "effect": "appended with keepList"
     }
    ],
    "flags": [],
-   "deps": {
-    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4"
-   }
+   "deps": {}
   },
   {
-   "key": "func DataPurgeService.sweepAllContainers(errors:)",
-   "hash": "70446125f0655b1e",
-   "does": "Sweeps every root with its kept names and sums removed entries.",
+   "key": "func DataPurgeService.sweepAllContainers(scope:errors:)",
+   "hash": "23a058cbd48dc1c8",
+   "does": "Sweeps every root of the scope with its kept names and sums removed entries.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeRoots()",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeRoots(_:)",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweep(root:keeping:errors:)"
    ],
    "reads": [],
@@ -623,7 +634,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeRoots()": "b4c63f0ddce177b8",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeRoots(_:)": "4706910983ec6a6a",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweep(root:keeping:errors:)": "e68619a7818ab3c4"
    }
   },
@@ -666,12 +677,12 @@
    }
   },
   {
-   "key": "func DataPurgeService.purgeDirectories(settingsManager:cloudSync:errors:)",
-   "hash": "d46204d214417f78",
-   "does": "Recreates HRVArchive (reporting a missing container) and RRBackup (silently), purges non-file local stores, cancels morning notifications, and clears health caches.",
+   "key": "func DataPurgeService.purgeDirectories(settingsManager:cloudSync:scope:errors:)",
+   "hash": "6c81136a0272d048",
+   "does": "Recreates HRVArchive (reporting a missing container) and RRBackup (silently) in the scope's App Group container, purges non-file local stores, cancels morning notifications, and clears health caches.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.resetAppGroupDirectory(named:label:reportMissingContainer:errors:)",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.resetAppGroupDirectory(named:in:label:reportMissingContainer:errors:)",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeLocalStores(cloudSync:settingsManager:)",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.cancelMorningNotifications()",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeHealthCaches()",
@@ -685,7 +696,7 @@
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.cancelMorningNotifications()": "01cdfb69eff962eb",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeHealthCaches()": "ce90e6d1827a3bfc",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeLocalStores(cloudSync:settingsManager:)": "06e232958dd48433",
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.resetAppGroupDirectory(named:label:reportMissingContainer:errors:)": "fe08b105c1fd4c3e",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.resetAppGroupDirectory(named:in:label:reportMissingContainer:errors:)": "fd8d87b4a107f4b8",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }
   },

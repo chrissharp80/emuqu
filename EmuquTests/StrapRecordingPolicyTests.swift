@@ -283,32 +283,40 @@ final class StrapRecordingPolicyTests: XCTestCase {
     /// strap-copies Bug 9: the strap keeps every downloaded recording, and the
     /// Recover card offered the same, already-saved night on every connect.
     func testADownloadedRecordingIsNotOfferedAgain() {
-        XCTAssertFalse(unrecovered(downloaded: true))
+        XCTAssertFalse(unrecovered(downloaded: true, held: true))
         XCTAssertTrue(unrecovered(downloaded: false), "a recording never downloaded is the user's missing data")
+    }
+
+    /// A download is recorded when the beats arrive, before anything stores
+    /// them. One the device does not hold (the rescue backup failed, or the
+    /// app was killed before the night was saved) is still the user's
+    /// missing data, and is offered.
+    func testADownloadedRecordingNothingStoredIsStillOffered() {
+        XCTAssertTrue(unrecovered(downloaded: true, held: false))
     }
 
     /// Recordings from before the download record existed fall back to
     /// whether the archive has a session that close to them.
     func testARecordingOlderThanTheRecordFallsBackToTheArchive() {
-        XCTAssertFalse(unrecovered(downloaded: false, predates: true, archived: true))
-        XCTAssertTrue(unrecovered(downloaded: false, predates: true, archived: false))
+        XCTAssertFalse(unrecovered(downloaded: false, predates: true, held: true))
+        XCTAssertTrue(unrecovered(downloaded: false, predates: true, held: false))
     }
 
     func testNothingStoredOrUndatedIsNotOffered() {
         XCTAssertFalse(StrapRecordingPolicy.holdsUnrecoveredRecording(
             hasStoredRecording: false, storedRecordingStart: Date(), alreadyDownloaded: false,
-            predatesDownloadRecord: false, archiveHasSessionNearStart: false
+            predatesDownloadRecord: false, heldOnDisk: false
         ))
         XCTAssertFalse(StrapRecordingPolicy.holdsUnrecoveredRecording(
             hasStoredRecording: true, storedRecordingStart: nil, alreadyDownloaded: false,
-            predatesDownloadRecord: false, archiveHasSessionNearStart: false
+            predatesDownloadRecord: false, heldOnDisk: false
         ))
     }
 
-    private func unrecovered(downloaded: Bool, predates: Bool = false, archived: Bool = false) -> Bool {
+    private func unrecovered(downloaded: Bool, predates: Bool = false, held: Bool = false) -> Bool {
         StrapRecordingPolicy.holdsUnrecoveredRecording(
             hasStoredRecording: true, storedRecordingStart: Date(), alreadyDownloaded: downloaded,
-            predatesDownloadRecord: predates, archiveHasSessionNearStart: archived
+            predatesDownloadRecord: predates, heldOnDisk: held
         )
     }
 
@@ -347,9 +355,13 @@ final class StrapRecordingPolicyTests: XCTestCase {
 
     /// Only a recording the app holds may be cleared from the strap.
     func testOnlyASavedRecordingMayBeCleared() {
-        XCTAssertTrue(StrapRecordingPolicy.recordingIsSaved(alreadyDownloaded: true, predatesDownloadRecord: false, archiveHasSessionNearStart: false))
-        XCTAssertTrue(StrapRecordingPolicy.recordingIsSaved(alreadyDownloaded: false, predatesDownloadRecord: true, archiveHasSessionNearStart: true))
-        XCTAssertFalse(StrapRecordingPolicy.recordingIsSaved(alreadyDownloaded: false, predatesDownloadRecord: false, archiveHasSessionNearStart: true))
-        XCTAssertFalse(StrapRecordingPolicy.recordingIsSaved(alreadyDownloaded: false, predatesDownloadRecord: true, archiveHasSessionNearStart: false))
+        XCTAssertTrue(StrapRecordingPolicy.recordingIsSaved(alreadyDownloaded: true, predatesDownloadRecord: false, heldOnDisk: true))
+        XCTAssertTrue(StrapRecordingPolicy.recordingIsSaved(alreadyDownloaded: false, predatesDownloadRecord: true, heldOnDisk: true))
+        XCTAssertFalse(StrapRecordingPolicy.recordingIsSaved(alreadyDownloaded: false, predatesDownloadRecord: false, heldOnDisk: true))
+        XCTAssertFalse(StrapRecordingPolicy.recordingIsSaved(alreadyDownloaded: false, predatesDownloadRecord: true, heldOnDisk: false))
+        XCTAssertFalse(
+            StrapRecordingPolicy.recordingIsSaved(alreadyDownloaded: true, predatesDownloadRecord: false, heldOnDisk: false),
+            "downloaded but stored nowhere on the device: clearing it would lose it"
+        )
     }
 }

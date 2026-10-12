@@ -892,7 +892,8 @@ enum StressAnalyzer {
 enum RespirationAnalyzer {
     /// Spectral: FFT HF peak at 4 Hz resampling
     static func estimateRespirationRate(_ rr: [Double], fs: Double = 4.0) -> Double?
-    // Requires >= 60 RR intervals. Sanity check: 6-40 breaths/min
+    // Requires >= 60 RR intervals and an HF peak that is breathing, not noise or leakage
+    // (isBreathingPeak); nil otherwise. Sanity check: 6-40 breaths/min
 }
 ```
 

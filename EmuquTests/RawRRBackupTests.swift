@@ -34,6 +34,35 @@ final class RawRRBackupTests: XCTestCase {
         return points
     }
 
+    // MARK: - Switching a one-shot backup to the streaming format
+
+    /// The switch writes the header and starts the points file before any
+    /// point is in it. Interrupted there (a crash, a failed write), the
+    /// one-shot backup is still the copy the index names, and still reads.
+    func testAnInterruptedFormatSwitchLeavesTheOneShotBackupReadable() throws {
+        let sessionId = UUID()
+        try backup.backup(points: makePoints(count: 100), sessionId: sessionId)
+        let oneShot = try XCTUnwrap(backup.index.first { $0.id == sessionId })
+
+        try backup.startAppendFormat(sessionId: sessionId, deviceId: nil, existingEntry: oneShot)
+
+        let fileName = try XCTUnwrap(oneShot.fileName)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: backup.backupDirectory.appendingPathComponent(fileName).path))
+        XCTAssertEqual(try backup.retrieve(sessionId)?.points.count, 100, "the switch destroyed the backup before replacing it")
+    }
+
+    /// Completed, the switch holds every point and removes the one-shot file.
+    func testACompletedFormatSwitchKeepsEveryPointAndRemovesTheOneShotFile() throws {
+        let sessionId = UUID()
+        try backup.backup(points: makePoints(count: 100), sessionId: sessionId)
+        let fileName = try XCTUnwrap(backup.index.first { $0.id == sessionId }?.fileName)
+
+        try backup.appendBackup(points: makePoints(count: 150), sessionId: sessionId)
+
+        XCTAssertEqual(try backup.retrieve(sessionId)?.points.count, 150)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: backup.backupDirectory.appendingPathComponent(fileName).path))
+    }
+
     // MARK: - Backup and Retrieve
 
     func testBackupAndRetrieve() throws {
