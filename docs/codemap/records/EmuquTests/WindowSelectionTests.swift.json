@@ -106,16 +106,16 @@
   },
   {
    "key": "func WindowSelectionTests.testOrganizedRecoveryDetection()",
-   "hash": "a1ccb036ec35604a",
-   "does": "Builds a stable 1500-beat night at 900 ms and, if selectRecoveryWindow returns a window, asserts its qualityScore > 0.",
+   "hash": "cb1c23f24fe6244b",
+   "does": "Builds a 1500-beat night at 900 ms with ±20 ms sawtooth jitter (DFA α1 ≈ 0.93, HR CV ≈ 1.3%) and requires selectRecoveryWindow to return a window that is organized recovery (isOrganizedRecovery, classification .organizedRecovery) with qualityScore > 0.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)",
     "EmuquTests/WindowSelectionTests.swift::func WindowSelectionTests.createSessionWithPattern(avgRR:rmssdRange:variationPattern:)",
     "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.selectRecoveryWindow(series:flags:wakeTimeMs:)",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.searchBand(points:sleepStartMs:wakeTimeMs:)",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanBandWithArtifactFallback(series:flags:band:boundaries:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.searchBand(points:sleepStartMs:wakeTimeMs:verbose:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanBandWithArtifactFallback(series:flags:band:boundaries:requireOrganized:)",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectOrganizedWindow(from:baselineStats:)"
    ],
    "reads": [],
@@ -128,199 +128,141 @@
     },
     {
      "at": "+22",
-     "cond": "a window was selected",
-     "effect": "assert positive quality; nil passes silently"
+     "cond": "no window selected",
+     "effect": "XCTUnwrap throws: the test fails"
     }
    ],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "med",
-     "text": "The assertion sits inside `if let w = window`; when selectRecoveryWindow returns nil (which the test's own comment says is valid for this synthetic data) the test asserts nothing and passes, so it cannot detect the behaviour its name claims.",
-     "evidence": [
-      "EmuquTests/WindowSelectionTests.swift:72",
-      "EmuquTests/WindowSelectionTests.swift:94"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.isOrganizedRecovery": "fd8e1c85787a7675",
     "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.selectRecoveryWindow(series:flags:wakeTimeMs:)": "92c857108522e7cb",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "80f3df9ec13766e3",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanBandWithArtifactFallback(series:flags:band:boundaries:)": "59be8afe85fb26dc",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.searchBand(points:sleepStartMs:wakeTimeMs:)": "a97220d0ad2b4a93",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectOrganizedWindow(from:baselineStats:)": "fc73dede1bc69918",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "15efe5b42c0fbb9e",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanBandWithArtifactFallback(series:flags:band:boundaries:requireOrganized:)": "a79e24f84613958d",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.searchBand(points:sleepStartMs:wakeTimeMs:verbose:)": "0232f93dc178f77a",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectOrganizedWindow(from:baselineStats:)": "468913bd3621fba8",
     "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)": "c6fe89367e88ef08",
     "EmuquTests/WindowSelectionTests.swift::func WindowSelectionTests.createSessionWithPattern(avgRR:rmssdRange:variationPattern:)": "2838838f9f0fe945"
    }
   },
   {
    "key": "func WindowSelectionTests.testHighVariabilityDetection()",
-   "hash": "439dd01be887b8c7",
-   "does": "Builds a chaotic 1500-beat night and, if a window is selected, asserts qualityScore > 0.",
+   "hash": "7656ae73df98f338",
+   "does": "Builds a 1500-beat night at 800 ms with ±100 ms sawtooth jitter (DFA α1 ≈ 0.37 in every window) and asserts selectRecoveryWindow returns nil and the selector recorded no organized zones.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)",
     "EmuquTests/WindowSelectionTests.swift::func WindowSelectionTests.createSessionWithPattern(avgRR:rmssdRange:variationPattern:)",
     "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.selectRecoveryWindow(series:flags:wakeTimeMs:)",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.searchBand(points:sleepStartMs:wakeTimeMs:)",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanBandWithArtifactFallback(series:flags:band:boundaries:)",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectOrganizedWindow(from:baselineStats:)"
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.searchBand(points:sleepStartMs:wakeTimeMs:verbose:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanBandWithArtifactFallback(series:flags:band:boundaries:requireOrganized:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectOrganizedWindow(from:baselineStats:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.captureOrganizedZones(_:)"
    ],
-   "reads": [],
+   "reads": [
+    "mem:WindowSelector.lastOrganizedZones"
+   ],
    "writes": [],
    "branches": [
     {
      "at": "+8",
      "cond": "series or flags missing",
      "effect": "XCTFail and return"
-    },
-    {
-     "at": "+20",
-     "cond": "a window was selected",
-     "effect": "assert positive quality; nil passes silently"
     }
    ],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "med",
-     "text": "The assertion sits inside `if let w = window`; when selectRecoveryWindow returns nil (which the test's own comment says is valid for this synthetic data) the test asserts nothing and passes, so it cannot detect the behaviour its name claims.",
-     "evidence": [
-      "EmuquTests/WindowSelectionTests.swift:100",
-      "EmuquTests/WindowSelectionTests.swift:120"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.selectRecoveryWindow(series:flags:wakeTimeMs:)": "92c857108522e7cb",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "80f3df9ec13766e3",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanBandWithArtifactFallback(series:flags:band:boundaries:)": "59be8afe85fb26dc",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.searchBand(points:sleepStartMs:wakeTimeMs:)": "a97220d0ad2b4a93",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectOrganizedWindow(from:baselineStats:)": "fc73dede1bc69918",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.captureOrganizedZones(_:)": "39a183f513663890",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "15efe5b42c0fbb9e",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanBandWithArtifactFallback(series:flags:band:boundaries:requireOrganized:)": "a79e24f84613958d",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.searchBand(points:sleepStartMs:wakeTimeMs:verbose:)": "0232f93dc178f77a",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectOrganizedWindow(from:baselineStats:)": "468913bd3621fba8",
     "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)": "c6fe89367e88ef08",
+    "Emuqu/Sources/Analysis/WindowSelection.swift::var WindowSelector.lastOrganizedZones": "7927a6b2a9e957c3",
     "EmuquTests/WindowSelectionTests.swift::func WindowSelectionTests.createSessionWithPattern(avgRR:rmssdRange:variationPattern:)": "2838838f9f0fe945"
    }
   },
   {
    "key": "func WindowSelectionTests.testPeakCapacitySelection()",
-   "hash": "1d6f40f49715e70d",
-   "does": "Same input and assertion as testOrganizedRecoveryDetection (stable 900 ms night, qualityScore > 0 if a window is returned); it does not call any peak-capacity API.",
+   "hash": "0080285c2c51ebed",
+   "does": "On the organized 900 ms night, calls findBestWindowWithCapacity and requires both an organized recovery window and a peak capacity, with a positive peak-window duration and a peak RMSSD no lower than the recovery window's (qualityScore × 100, 0.01 ms tolerance).",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)",
     "EmuquTests/WindowSelectionTests.swift::func WindowSelectionTests.createSessionWithPattern(avgRR:rmssdRange:variationPattern:)",
-    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.selectRecoveryWindow(series:flags:wakeTimeMs:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindowWithCapacity(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.recoveryOrPeakFallback(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.searchBand(points:sleepStartMs:wakeTimeMs:)",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanBandWithArtifactFallback(series:flags:band:boundaries:)",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectOrganizedWindow(from:baselineStats:)"
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findPeakCapacity(in:flags:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.peakCapacity(from:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+7",
-     "cond": "series or flags missing",
-     "effect": "XCTFail and return"
-    },
-    {
-     "at": "+20",
-     "cond": "a window was selected",
-     "effect": "assert positive quality; nil passes silently"
+     "at": "+11",
+     "cond": "no result, recovery window or peak capacity",
+     "effect": "XCTUnwrap throws: the test fails"
     }
    ],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "med",
-     "text": "The assertion sits inside `if let w = window`; when selectRecoveryWindow returns nil (which the test's own comment says is valid for this synthetic data) the test asserts nothing and passes, so it cannot detect the behaviour its name claims.",
-     "evidence": [
-      "EmuquTests/WindowSelectionTests.swift:126",
-      "EmuquTests/WindowSelectionTests.swift:146"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Body is identical to testOrganizedRecoveryDetection; despite its name it never exercises findBestWindowWithCapacity/findPeakCapacity, as its own comment admits.",
-     "evidence": [
-      "EmuquTests/WindowSelectionTests.swift:126",
-      "EmuquTests/WindowSelectionTests.swift:72",
-      "EmuquTests/WindowSelectionTests.swift:144"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.selectRecoveryWindow(series:flags:wakeTimeMs:)": "92c857108522e7cb",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "80f3df9ec13766e3",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanBandWithArtifactFallback(series:flags:band:boundaries:)": "59be8afe85fb26dc",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.searchBand(points:sleepStartMs:wakeTimeMs:)": "a97220d0ad2b4a93",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectOrganizedWindow(from:baselineStats:)": "fc73dede1bc69918",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.isOrganizedRecovery": "fd8e1c85787a7675",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "15efe5b42c0fbb9e",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindowWithCapacity(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "2cf7b6aef935e6fd",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findPeakCapacity(in:flags:)": "dda47d3b587f6267",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.peakCapacity(from:)": "7f3278f31052cc1b",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.recoveryOrPeakFallback(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "3fbae8e0c12c91ce",
     "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)": "c6fe89367e88ef08",
     "EmuquTests/WindowSelectionTests.swift::func WindowSelectionTests.createSessionWithPattern(avgRR:rmssdRange:variationPattern:)": "2838838f9f0fe945"
    }
   },
   {
    "key": "func WindowSelectionTests.testArtifactFiltering()",
-   "hash": "a8255f1dfb7b7ba1",
-   "does": "Flags the first half of a stable night as technical artifacts and, if a window is selected, asserts it has under 10% artifacts.",
+   "hash": "eaa29ee2d461df6e",
+   "does": "Flags the first 600 beats of a stable 800 ms night as technical artifacts (the 30-70% band, beats 450-1049, starts inside them) and requires selectRecoveryWindow to return a window with under 10% artifacts.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)",
     "EmuquTests/WindowSelectionTests.swift::func WindowSelectionTests.createSessionWithPattern(avgRR:rmssdRange:variationPattern:)",
     "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.selectRecoveryWindow(series:flags:wakeTimeMs:)",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.searchBand(points:sleepStartMs:wakeTimeMs:)",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanBandWithArtifactFallback(series:flags:band:boundaries:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.searchBand(points:sleepStartMs:wakeTimeMs:verbose:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanBandWithArtifactFallback(series:flags:band:boundaries:requireOrganized:)",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectOrganizedWindow(from:baselineStats:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+4",
+     "at": "+5",
      "cond": "session has flags",
-     "effect": "mark first half as artifacts"
+     "effect": "flag beats 0..<600 as artifacts"
     },
     {
-     "at": "+5",
-     "cond": "for i in first half",
+     "at": "+6",
+     "cond": "for i in 0..<600",
      "effect": "set artifact flag"
     },
     {
-     "at": "+11",
+     "at": "+12",
      "cond": "series or flags missing",
      "effect": "XCTFail and return"
     },
     {
      "at": "+23",
-     "cond": "a window was selected",
-     "effect": "assert <10% artifacts; nil passes silently"
+     "cond": "no window selected",
+     "effect": "XCTUnwrap throws: the test fails"
     }
    ],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "med",
-     "text": "The assertion sits inside `if let w = window`; when selectRecoveryWindow returns nil (which the test's own comment says is valid for this synthetic data) the test asserts nothing and passes, so it cannot detect the behaviour its name claims.",
-     "evidence": [
-      "EmuquTests/WindowSelectionTests.swift:154",
-      "EmuquTests/WindowSelectionTests.swift:177"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.selectRecoveryWindow(series:flags:wakeTimeMs:)": "92c857108522e7cb",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "80f3df9ec13766e3",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanBandWithArtifactFallback(series:flags:band:boundaries:)": "59be8afe85fb26dc",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.searchBand(points:sleepStartMs:wakeTimeMs:)": "a97220d0ad2b4a93",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectOrganizedWindow(from:baselineStats:)": "fc73dede1bc69918",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "15efe5b42c0fbb9e",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanBandWithArtifactFallback(series:flags:band:boundaries:requireOrganized:)": "a79e24f84613958d",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.searchBand(points:sleepStartMs:wakeTimeMs:verbose:)": "0232f93dc178f77a",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectOrganizedWindow(from:baselineStats:)": "468913bd3621fba8",
     "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)": "c6fe89367e88ef08",
     "Emuqu/Sources/Models/RRModels.swift::init ArtifactFlags(isArtifact:type:confidence:)": "3914d257d1ae0b4d",
     "EmuquTests/WindowSelectionTests.swift::func WindowSelectionTests.createSessionWithPattern(avgRR:rmssdRange:variationPattern:)": "2838838f9f0fe945"
@@ -337,8 +279,8 @@
     "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)",
     "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.selectRecoveryWindow(series:flags:wakeTimeMs:)",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.searchBand(points:sleepStartMs:wakeTimeMs:)",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanBandWithArtifactFallback(series:flags:band:boundaries:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.searchBand(points:sleepStartMs:wakeTimeMs:verbose:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanBandWithArtifactFallback(series:flags:band:boundaries:requireOrganized:)",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectOrganizedWindow(from:baselineStats:)"
    ],
    "reads": [],
@@ -353,10 +295,10 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.selectRecoveryWindow(series:flags:wakeTimeMs:)": "92c857108522e7cb",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "80f3df9ec13766e3",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanBandWithArtifactFallback(series:flags:band:boundaries:)": "59be8afe85fb26dc",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.searchBand(points:sleepStartMs:wakeTimeMs:)": "a97220d0ad2b4a93",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectOrganizedWindow(from:baselineStats:)": "fc73dede1bc69918",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "15efe5b42c0fbb9e",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanBandWithArtifactFallback(series:flags:band:boundaries:requireOrganized:)": "a79e24f84613958d",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.searchBand(points:sleepStartMs:wakeTimeMs:verbose:)": "0232f93dc178f77a",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectOrganizedWindow(from:baselineStats:)": "468913bd3621fba8",
     "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)": "c6fe89367e88ef08",
     "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
     "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
@@ -365,18 +307,17 @@
   },
   {
    "key": "func WindowSelectionTests.testSpikeFiltering()",
-   "hash": "79a1f53e20508e11",
-   "does": "Builds 1500 beats with a high-jitter spike at 600–650 and, if a window is selected, asserts under 20% overlap with the spike.",
+   "hash": "b37ba919b4a1597a",
+   "does": "Builds a 1500-beat ±20 ms night with a ±100 ms spike at beats 600-649 and requires selectRecoveryWindow to return a window overlapping the spike by under 20%.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)",
-    "EmuquTests/WindowSelectionTests.swift::func WindowSelectionTests.createSession(points:)",
     "EmuquTests/WindowSelectionTests.swift::func WindowSelectionTests.deterministicJitter(index:amplitude:)",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)",
+    "EmuquTests/WindowSelectionTests.swift::func WindowSelectionTests.createSession(points:)",
     "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.selectRecoveryWindow(series:flags:wakeTimeMs:)",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.searchBand(points:sleepStartMs:wakeTimeMs:)",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanBandWithArtifactFallback(series:flags:band:boundaries:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.searchBand(points:sleepStartMs:wakeTimeMs:verbose:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanBandWithArtifactFallback(series:flags:band:boundaries:requireOrganized:)",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectOrganizedWindow(from:baselineStats:)"
    ],
    "reads": [],
@@ -393,98 +334,73 @@
      "effect": "XCTFail and return"
     },
     {
-     "at": "+26",
-     "cond": "a window was selected",
-     "effect": "assert <20% overlap; nil passes silently"
+     "at": "+27",
+     "cond": "no window selected",
+     "effect": "XCTUnwrap throws: the test fails"
     }
    ],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "med",
-     "text": "The assertion sits inside `if let w = window`; when selectRecoveryWindow returns nil (which the test's own comment says is valid for this synthetic data) the test asserts nothing and passes, so it cannot detect the behaviour its name claims.",
-     "evidence": [
-      "EmuquTests/WindowSelectionTests.swift:217",
-      "EmuquTests/WindowSelectionTests.swift:243"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.selectRecoveryWindow(series:flags:wakeTimeMs:)": "92c857108522e7cb",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "80f3df9ec13766e3",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanBandWithArtifactFallback(series:flags:band:boundaries:)": "59be8afe85fb26dc",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.searchBand(points:sleepStartMs:wakeTimeMs:)": "a97220d0ad2b4a93",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectOrganizedWindow(from:baselineStats:)": "fc73dede1bc69918",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "15efe5b42c0fbb9e",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanBandWithArtifactFallback(series:flags:band:boundaries:requireOrganized:)": "a79e24f84613958d",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.searchBand(points:sleepStartMs:wakeTimeMs:verbose:)": "0232f93dc178f77a",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectOrganizedWindow(from:baselineStats:)": "468913bd3621fba8",
     "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)": "c6fe89367e88ef08",
     "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
     "EmuquTests/WindowSelectionTests.swift::func WindowSelectionTests.createSession(points:)": "d11ff3b3aefd8917",
     "EmuquTests/WindowSelectionTests.swift::func WindowSelectionTests.deterministicJitter(index:amplitude:)": "ae6d6bd1374b0db1"
    }
   },
   {
    "key": "func WindowSelectionTests.testHRStabilityPreference()",
-   "hash": "ff7fc5038fac975c",
-   "does": "Builds a stable first half and variable second half and, if a window is selected, asserts its HR SD < 10 bpm.",
+   "hash": "ba4ddd964eb7dc99",
+   "does": "Builds a night of stable ±20 ms beats at 800 ms up to beat 900 (organized) and variable 667-1000 ms beats after it, and requires selectRecoveryWindow to return a window ending at or before beat 900 whose HR SD is under 3 bpm (the stable stretch is ~1.1, the variable one ~8.6).",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)",
-    "EmuquTests/WindowSelectionTests.swift::func WindowSelectionTests.createSession(points:)",
     "EmuquTests/WindowSelectionTests.swift::func WindowSelectionTests.deterministicJitter(index:amplitude:)",
-    "EmuquTests/WindowSelectionTests.swift::func WindowSelectionTests.standardDeviation(_:)",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)",
+    "EmuquTests/WindowSelectionTests.swift::func WindowSelectionTests.createSession(points:)",
     "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.selectRecoveryWindow(series:flags:wakeTimeMs:)",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.searchBand(points:sleepStartMs:wakeTimeMs:)",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanBandWithArtifactFallback(series:flags:band:boundaries:)",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectOrganizedWindow(from:baselineStats:)"
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.searchBand(points:sleepStartMs:wakeTimeMs:verbose:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanBandWithArtifactFallback(series:flags:band:boundaries:requireOrganized:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectOrganizedWindow(from:baselineStats:)",
+    "EmuquTests/WindowSelectionTests.swift::func WindowSelectionTests.standardDeviation(_:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+6",
-     "cond": "for i in 0..<750",
+     "at": "+4",
+     "cond": "for i in 0..<900",
      "effect": "stable beats"
     },
     {
-     "at": "+11",
-     "cond": "for i in 750..<1500",
+     "at": "+7",
+     "cond": "for i in 900..<1500",
      "effect": "variable beats 667–1000 ms"
     },
     {
-     "at": "+18",
+     "at": "+14",
      "cond": "series or flags missing",
      "effect": "XCTFail and return"
     },
     {
-     "at": "+30",
-     "cond": "a window was selected",
-     "effect": "assert HR SD <10; nil passes silently"
+     "at": "+26",
+     "cond": "no window selected",
+     "effect": "XCTUnwrap throws: the test fails"
     }
    ],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "med",
-     "text": "The assertion sits inside `if let w = window`; when selectRecoveryWindow returns nil (which the test's own comment says is valid for this synthetic data) the test asserts nothing and passes, so it cannot detect the behaviour its name claims.",
-     "evidence": [
-      "EmuquTests/WindowSelectionTests.swift:263",
-      "EmuquTests/WindowSelectionTests.swift:293"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.selectRecoveryWindow(series:flags:wakeTimeMs:)": "92c857108522e7cb",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "80f3df9ec13766e3",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanBandWithArtifactFallback(series:flags:band:boundaries:)": "59be8afe85fb26dc",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.searchBand(points:sleepStartMs:wakeTimeMs:)": "a97220d0ad2b4a93",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectOrganizedWindow(from:baselineStats:)": "fc73dede1bc69918",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "15efe5b42c0fbb9e",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanBandWithArtifactFallback(series:flags:band:boundaries:requireOrganized:)": "a79e24f84613958d",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.searchBand(points:sleepStartMs:wakeTimeMs:verbose:)": "0232f93dc178f77a",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectOrganizedWindow(from:baselineStats:)": "468913bd3621fba8",
     "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)": "c6fe89367e88ef08",
     "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
     "EmuquTests/WindowSelectionTests.swift::func WindowSelectionTests.createSession(points:)": "d11ff3b3aefd8917",
     "EmuquTests/WindowSelectionTests.swift::func WindowSelectionTests.deterministicJitter(index:amplitude:)": "ae6d6bd1374b0db1",
     "EmuquTests/WindowSelectionTests.swift::func WindowSelectionTests.standardDeviation(_:)": "3c37a26c2043d2a7"
@@ -500,8 +416,8 @@
     "EmuquTests/WindowSelectionTests.swift::func WindowSelectionTests.createSessionWithPattern(avgRR:rmssdRange:variationPattern:)",
     "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.selectRecoveryWindow(series:flags:wakeTimeMs:)",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.searchBand(points:sleepStartMs:wakeTimeMs:)",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanBandWithArtifactFallback(series:flags:band:boundaries:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.searchBand(points:sleepStartMs:wakeTimeMs:verbose:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanBandWithArtifactFallback(series:flags:band:boundaries:requireOrganized:)",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectOrganizedWindow(from:baselineStats:)"
    ],
    "reads": [],
@@ -526,10 +442,10 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.selectRecoveryWindow(series:flags:wakeTimeMs:)": "92c857108522e7cb",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "80f3df9ec13766e3",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanBandWithArtifactFallback(series:flags:band:boundaries:)": "59be8afe85fb26dc",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.searchBand(points:sleepStartMs:wakeTimeMs:)": "a97220d0ad2b4a93",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectOrganizedWindow(from:baselineStats:)": "fc73dede1bc69918",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "15efe5b42c0fbb9e",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanBandWithArtifactFallback(series:flags:band:boundaries:requireOrganized:)": "a79e24f84613958d",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.searchBand(points:sleepStartMs:wakeTimeMs:verbose:)": "0232f93dc178f77a",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectOrganizedWindow(from:baselineStats:)": "468913bd3621fba8",
     "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)": "c6fe89367e88ef08",
     "Emuqu/Sources/Models/RRModels.swift::init ArtifactFlags(isArtifact:type:confidence:)": "3914d257d1ae0b4d",
     "EmuquTests/WindowSelectionTests.swift::func WindowSelectionTests.createSessionWithPattern(avgRR:rmssdRange:variationPattern:)": "2838838f9f0fe945"
@@ -546,8 +462,8 @@
     "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)",
     "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.selectRecoveryWindow(series:flags:wakeTimeMs:)",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.searchBand(points:sleepStartMs:wakeTimeMs:)",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanBandWithArtifactFallback(series:flags:band:boundaries:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.searchBand(points:sleepStartMs:wakeTimeMs:verbose:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanBandWithArtifactFallback(series:flags:band:boundaries:requireOrganized:)",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectOrganizedWindow(from:baselineStats:)"
    ],
    "reads": [],
@@ -562,10 +478,10 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.selectRecoveryWindow(series:flags:wakeTimeMs:)": "92c857108522e7cb",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "80f3df9ec13766e3",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanBandWithArtifactFallback(series:flags:band:boundaries:)": "59be8afe85fb26dc",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.searchBand(points:sleepStartMs:wakeTimeMs:)": "a97220d0ad2b4a93",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectOrganizedWindow(from:baselineStats:)": "fc73dede1bc69918",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "15efe5b42c0fbb9e",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanBandWithArtifactFallback(series:flags:band:boundaries:requireOrganized:)": "a79e24f84613958d",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.searchBand(points:sleepStartMs:wakeTimeMs:verbose:)": "0232f93dc178f77a",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectOrganizedWindow(from:baselineStats:)": "468913bd3621fba8",
     "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)": "c6fe89367e88ef08",
     "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
     "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",

@@ -13,19 +13,7 @@
   "mem:AudioSessionCoordinator claim .dictation"
  ],
  "toplevel": "engine is a lazy AVAudioEngine created on first start().",
- "flags": [
-  {
-   "kind": "silent-failure",
-   "sev": "med",
-   "text": "A recognition error after start() now ends the recording and sets lastError (and start() refuses a recognizer without on-device support), but no view reads lastError (AssistantChatSupport.swift only reads isRecording/transcript), so the user sees the mic switch off with no message. Needs ChatInputBar to show lastError in its Voice input alert (handoff).",
-   "evidence": [
-    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift:71",
-    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift:164",
-    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift:246"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "init SpeechInputManager()",

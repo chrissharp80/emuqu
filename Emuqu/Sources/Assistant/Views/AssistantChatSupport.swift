@@ -230,7 +230,25 @@ struct ChatInputBar: View {
         .accessibilityHint(String(localized: "Send your question to the AI assistant", bundle: LanguageManager.appBundle))
     }
 
+    /// The dictation button plus the voice-error alert and the transcript /
+    /// recogniser-failure observers that feed the draft.
     private var micButton: some View {
+        micButtonCore
+            .alert(String(localized: "Voice input", bundle: LanguageManager.appBundle), isPresented: voiceErrorBinding) {
+                Button(String(localized: "OK", bundle: LanguageManager.appBundle), role: .cancel) {}
+            } message: {
+                Text(voiceErrorMessage ?? "")
+            }
+            .onChange(of: speech.transcript) { _, newValue in
+                if speech.isRecording { draft = Self.joined(draftBeforeDictation, newValue) }
+            }
+            .onChange(of: speech.lastError) { _, failure in
+                if let failure { voiceErrorMessage = failure }
+            }
+    }
+
+    /// The mic toggle itself: starts or stops dictation.
+    private var micButtonCore: some View {
         Button {
             toggleDictation()
         } label: {
@@ -242,17 +260,6 @@ struct ChatInputBar: View {
         }
         .accessibilityLabel(speech.isRecording ? String(localized: "Stop dictation", bundle: LanguageManager.appBundle) : String(localized: "Start dictation", bundle: LanguageManager.appBundle))
         .accessibilityHint(String(localized: "Use your voice to compose a question", bundle: LanguageManager.appBundle))
-        .alert(String(localized: "Voice input", bundle: LanguageManager.appBundle), isPresented: voiceErrorBinding) {
-            Button(String(localized: "OK", bundle: LanguageManager.appBundle), role: .cancel) {}
-        } message: {
-            Text(voiceErrorMessage ?? "")
-        }
-        .onChange(of: speech.transcript) { _, newValue in
-            if speech.isRecording { draft = Self.joined(draftBeforeDictation, newValue) }
-        }
-        .onChange(of: speech.lastError) { _, failure in
-            if let failure { voiceErrorMessage = failure }
-        }
     }
 
     /// `prefix` followed by `addition`, separated by a space unless either is

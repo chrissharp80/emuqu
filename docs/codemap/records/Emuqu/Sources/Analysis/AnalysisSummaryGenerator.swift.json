@@ -229,21 +229,6 @@
    ],
    "flags": [
     {
-     "kind": "fragile",
-     "sev": "med",
-     "text": "The PDF report paths pass the tracker's full baseline (every stored night, including the reported night itself and any later nights) as canonicalBaselineRMSSD/HR, so a report for a past night quotes a 'recent baseline' and bands hrvCategory/diagnostic score against a baseline containing that night and the nights after it, contradicting init's rule (lines 130-134) and differing from the frozen score, which was computed against the excluding baseline.",
-     "evidence": [
-      "Emuqu/Sources/Views/ReportsListView.swift:330",
-      "Emuqu/Sources/Views/ReportsListView.swift:458",
-      "Emuqu/Sources/Views/MainTabView+Tabs.swift:304",
-      "Emuqu/Sources/Views/MainTabView+Reports.swift:102",
-      "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift:90",
-      "Emuqu/Sources/Analysis/BaselineTracker.swift:184",
-      "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift:228"
-     ],
-     "found": "second read"
-    },
-    {
      "kind": "duplicate",
      "sev": "med",
      "text": "TrendComparisonCard.trendStats/trendAverages re-implement the same overnight filter, >=2 gate and averages, but diverge: without a canonical baseline the card's avgRMSSD is the ARITHMETIC mean while this unit uses the geometric mean, and the card's baselineRMSSD is the geometric baseline while the generator's is the 5-night (Morning-tagged) arithmetic average. Before the tracker has minimumDays nights the card and the summary/assistant quote different 'average' RMSSD for the same night.",

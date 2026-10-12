@@ -320,9 +320,11 @@ struct DashboardV2View: View {
         }
     }
 
-    /// Gate the banner spring on Reduce Motion.
+    /// Gate the banner spring on Reduce Motion. A notice for a session
+    /// other than the overnight the hero shows is not shown.
     private func applyPendingScoreChange(_ note: Notification) {
         guard let entry = note.object as? PendingScoreChange.Entry else { return }
+        guard latestOvernightComplete.map({ $0.id == entry.sessionId }) ?? true else { return }
         withAnimation(reduceMotion ? nil : .spring(response: 0.4, dampingFraction: 0.8)) {
             pendingScoreChange = entry
         }
@@ -479,13 +481,15 @@ struct DashboardV2View: View {
     }
 
     /// When this session has no sleep snapshot the view shows the latest
-    /// night that does, so an edit must be saved to that night, not this one.
+    /// night that does, and everything it reads (strap HR, vitals and their
+    /// refresh window, the editor's HealthKit refetch, where an edit is
+    /// saved) comes from that same night.
     private func sleepDetail(for session: HRVSession) -> some View {
         let source = session.sleepSnapshot == nil ? (latestWithSleep ?? session) : session
         return SleepDetailV2View(
-            session: session,
+            session: source,
             sleepData: source.sleepSnapshot,
-            recoveryVitals: session.vitalsSnapshot,
+            recoveryVitals: source.vitalsSnapshot,
             recentSessions: sessions,
             temperatureUnit: settingsManager.settings.temperatureUnit,
             typicalSleepHours: settingsManager.settings.typicalSleepHours,

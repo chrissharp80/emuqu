@@ -108,7 +108,7 @@ extension UserSettings {
         vo2MaxOverride = Self.optional(Double.self, .vo2MaxOverride, from: container)
         useHealthKitVO2Max = Self.decoded(Bool.self, .useHealthKitVO2Max, from: container, default: false)
         maxHR = Self.optional(Int.self, .maxHR, from: container)
-            .flatMap { $0 >= MaxHeartRate.minimumUserEntered ? min(240, $0) : nil }
+            .flatMap { $0 >= MaxHeartRate.minimumUserEntered ? min(MaxHeartRate.maximumUserEntered, $0) : nil }
         lactateThresholdHR = Self.optional(Int.self, .lactateThresholdHR, from: container)
         bodyWeightKg = Self.optional(Double.self, .bodyWeightKg, from: container)
         userRestingHR = Self.optional(Int.self, .userRestingHR, from: container)

@@ -362,6 +362,7 @@ extension RecordView {
             recentSessions: cachedRecentSessions,
             onDiscard: { dismissMorningReading() },
             onReanalyze: { await collector.reanalyzeSession($0, method: $1) },
+            onUpdateTags: { saveReportTags($0, notes: $1, sessionId: session.id) },
             onReanalyzeAt: { await collector.reanalyzeAtPosition(session, targetMs: $0) },
             onApplyManualResult: { await applyManualMorningResult($0, to: session) },
             onUpdateSleep: { collector.updateSessionSleepBoundaries(sessionId: session.id, sleepData: $0) },
@@ -423,6 +424,7 @@ extension RecordView {
             result: presentation.result,
             recentSessions: cachedRecentSessions,
             onDiscard: { discardQuickReading(session) },
+            onUpdateTags: { saveReportTags($0, notes: $1, sessionId: session.id) },
             onUpdateSleep: { collector.updateSessionSleepBoundaries(sessionId: session.id, sleepData: $0) }
         )
     }

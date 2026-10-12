@@ -22,10 +22,12 @@ likelihood:
   three-layer alignment contract.
 - **2.5.4 / 5.1.1** — background-mode minimality. *Most likely cause:*
   `UIBackgroundModes` declares `location` / `bluetooth-peripheral` / `audio`
-  but the app uses them outside an active user-visible session. Only
-  `WorkoutLocationManager` streams background location (a GPS workout's
-  route), and `BackgroundAudioManager` holds the audio session only while
-  a spoken cue plays.
+  but the app uses them outside an active user-visible session. Two
+  things stream background location, both with the blue location
+  indicator showing: `WorkoutLocationManager` (a GPS workout's route) and
+  `BreadcrumbRecorder` (a Get Me Back trail, while that mode is engaged).
+  `BackgroundAudioManager` holds the audio session only while a spoken
+  cue plays.
 - **1.4.1** — health & medical accuracy. *Most likely cause:* AI
   assistant copy crossed from wellness into diagnostic. See
   `MedicalQueryGuard` and the MEDICAL BOUNDARY block in

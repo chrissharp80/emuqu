@@ -15,8 +15,8 @@
  "units": [
   {
    "key": "var FitnessPostSummaryView.feelingSection",
-   "hash": "3cfdc03b0eddd95b",
-   "does": "Shows the WorkoutFeelingBadge when a rating is stored and not editing, otherwise the WorkoutFeelingPrompt. Rendered twice (top and footer) sharing feelingEditing.",
+   "hash": "229d335b555ccff6",
+   "does": "Shows the WorkoutFeelingBadge when a rating is stored and not editing; otherwise the WorkoutFeelingPrompt, except after Skip on an unrated workout (feelingSkipped), when it shows nothing. Rendered twice (top and footer) sharing feelingEditing/feelingSkipped.",
    "entry": "Rendered from summaryFeelingAndAlpha1 and summaryFooter.",
    "calls": [
     "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.feelingBadge(_:)",
@@ -24,14 +24,20 @@
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.session"
    ],
    "reads": [
-    "mem:FitnessPostSummaryView.feelingEditing"
+    "mem:FitnessPostSummaryView.feelingEditing",
+    "mem:FitnessPostSummaryView.feelingSkipped"
    ],
    "writes": [],
    "branches": [
     {
      "at": "+2",
      "cond": "stored workoutFeeling non-nil AND feelingEditing false",
-     "effect": "true: badge; false: prompt (unrated or editing)"
+     "effect": "badge"
+    },
+    {
+     "at": "+4",
+     "cond": "not skipped, or editing",
+     "effect": "prompt; skipped and unrated → nothing"
     }
    ],
    "flags": [],
@@ -57,23 +63,34 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.saveWorkoutFeeling(rating:note:)": "3197f80b7581d653",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.skipFeeling()": "a4d056ca781768d1",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.skipFeeling()": "7e4e4a7340d1f1b2",
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.session": "cc1e3419b78fc3c4"
    }
   },
   {
    "key": "func FitnessPostSummaryView.skipFeeling()",
-   "hash": "e9042a18f21cad32",
-   "does": "Sets feelingEditing = false (leaves an unrated session unrated, or cancels editing).",
+   "hash": "1654e79e05ea8a12",
+   "does": "Sets feelingSkipped when the workout is unrated (both prompts then hide for this visit) and feelingEditing = false (leaves an unrated session unrated, or cancels editing a rated one, whose badge returns).",
    "entry": "WorkoutFeelingPrompt onSkip.",
    "calls": [],
-   "reads": [],
+   "reads": [
+    "mem:HRVSession.workoutMetadata.workoutFeeling"
+   ],
    "writes": [
+    "mem:FitnessPostSummaryView.feelingSkipped",
     "mem:FitnessPostSummaryView.feelingEditing"
    ],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "workoutFeeling == nil",
+     "effect": "feelingSkipped = true; rated → false"
+    }
+   ],
    "flags": [],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.session": "cc1e3419b78fc3c4"
+   }
   },
   {
    "key": "func FitnessPostSummaryView.feelingBadge(_:)",
@@ -418,14 +435,15 @@
   },
   {
    "key": "var FitnessPostSummaryView.heroCard",
-   "hash": "1803fee8013c6ebd",
-   "does": "Shapes WorkoutHeroCard inputs: sport (default walk), formatted distance or '—', duration label, pace label, end date, the dominant α1 band and hero narrative from displayedAnalysis (stored fields — no per-render sample walk once a snapshot exists), route coordinates from the decoded track.",
+   "hash": "9a662f1e0c941665",
+   "does": "Shapes WorkoutHeroCard inputs: sport (default walk), formatted distance or '—', the active (un-paused) duration and average pace from WorkoutStatsCards (activeDurationDisplay or '—', avgPaceDisplay — so a paused workout's hero matches the recorder's clock), end date, the dominant α1 band and hero narrative from displayedAnalysis (stored fields — no per-render sample walk once a snapshot exists), route coordinates from the decoded track.",
    "entry": "Rendered from summaryHeroCards.",
    "calls": [
     "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::var FitnessPostSummaryView.units",
     "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::var FitnessPostSummaryView.heroDurationLabel",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.heroPaceLabel(distance:)",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+StatsForwarding.swift::var FitnessPostSummaryView.stats",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.activeDurationDisplay",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.avgPaceDisplay",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::var FitnessPostSummaryView.displayedAnalysis",
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.session",
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.track",
@@ -447,6 +465,11 @@
      "effect": "`??` '—'"
     },
     {
+     "at": "+5",
+     "cond": "no duration",
+     "effect": "`??` '—'"
+    },
+    {
      "at": "+8",
      "cond": "no analysis or unknown band raw value",
      "effect": "nil band"
@@ -460,64 +483,13 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)": "a36dafa82ad91f58",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.heroPaceLabel(distance:)": "b4ee2bc4e4269f61",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::var FitnessPostSummaryView.displayedAnalysis": "6179f2ecacb7fe9d",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::var FitnessPostSummaryView.heroDurationLabel": "7168ec784f44ad2d",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::var FitnessPostSummaryView.units": "88eb8ae49d3ff5bb",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+StatsForwarding.swift::var FitnessPostSummaryView.stats": "18abec93c15cf4e2",
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.session": "cc1e3419b78fc3c4",
-    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.track": "c1dc8df0f9c68727"
-   }
-  },
-  {
-   "key": "var FitnessPostSummaryView.heroDurationLabel",
-   "hash": "cf3514164fc106ea",
-   "does": "Formats session.duration as H:MM:SS or M:SS; '—' with no end date.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "session.duration present",
-     "effect": "false: '—'"
-    },
-    {
-     "at": "+4",
-     "cond": "hours > 0",
-     "effect": "true: H:MM:SS; false: M:SS"
-    }
-   ],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.session": "cc1e3419b78fc3c4"
-   }
-  },
-  {
-   "key": "func FitnessPostSummaryView.heroPaceLabel(distance:)",
-   "hash": "f9e6a5a97574fd9d",
-   "does": "Pace label for distance > 100 m and duration > 10 s via UnitsPreference.formatPace(elapsedSec:distanceMeters:); nil otherwise.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::var FitnessPostSummaryView.units",
-    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(elapsedSec:distanceMeters:)"
-   ],
-   "reads": [
-    "ud:fitness.unitsPreference (App Group)"
-   ],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "distance > 100 AND duration > 10",
-     "effect": "false: nil; true: formatted pace (elapsed, not moving, time)"
-    }
-   ],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(elapsedSec:distanceMeters:)": "10aef8a5289537eb",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::var FitnessPostSummaryView.units": "88eb8ae49d3ff5bb",
-    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.session": "cc1e3419b78fc3c4"
+    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.track": "c1dc8df0f9c68727",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.activeDurationDisplay": "4a93eb4e931acf72",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.avgPaceDisplay": "979c5895c105e318"
    }
   },
   {
@@ -779,9 +751,9 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.preferredTrainingLoad": "4c06ba92c36737df",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.preferredTrainingLoad": "83d7dba52bc503b9",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.loadTileLabel(_:)": "b83d1ff171a49890",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.loadTileSubtitle(_:meta:)": "72922df1f3a7665c",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.loadTileSubtitle(_:meta:)": "109fe694fc8b313c",
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::init FitnessPostSummaryView(session:onDone:onDelete:)": "0e4426ac20a743c7",
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.session": "cc1e3419b78fc3c4"
    }

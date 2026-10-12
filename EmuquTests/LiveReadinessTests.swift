@@ -97,15 +97,36 @@ final class LiveReadinessTests: XCTestCase {
     }
 
     /// A drift under 3 points either way is noise, not a story to tell: each
-    /// flag fires exactly when its side of the drift reaches 3.
+    /// flag fires exactly when its side of the drift from the morning anchor
+    /// (`morningReadiness`, the model at the frozen morning snapshot) reaches 3.
     func testFlagsFireOnlyAtAThreePointDrift() {
         let now = noonToday
         let session = makeSession(recoveryScore: 8.0, sessionEndAgoHours: 2, now: now)
         let metrics = makeMetrics(atl: 30, ctl: 32, todayTrimp: 0, recentWorkouts: [])
         let r = LiveReadiness.compute(recoveryScore: 80, morningSession: session, liveMetrics: metrics, now: now)
-        XCTAssertEqual(r.pulledDownByTodaysTraining, r.morningRecovery - r.score >= 3)
-        XCTAssertEqual(r.liftedByRecovery, r.score - r.morningRecovery >= 3)
+        XCTAssertEqual(r.pulledDownByTodaysTraining, r.morningReadiness - r.score >= 3)
+        XCTAssertEqual(r.liftedByRecovery, r.score - r.morningReadiness >= 3)
         XCTAssertFalse(r.pulledDownByTodaysTraining && r.liftedByRecovery)
+    }
+
+    /// A gap between the model and the recovery score that already existed at
+    /// the reading is not a change since the morning: at hour 0 with nothing
+    /// trained, the score sits ~14 points above the recovery score of 60 but
+    /// equals the morning anchor, so neither flag fires.
+    func testAGapPresentAtTheReadingIsNotDrift() {
+        let now = noonToday
+        let session = makeSession(
+            recoveryScore: 6.0,
+            sessionEndAgoHours: 0,
+            trainingSnapshot: makeContext(atl: 30, ctl: 40),
+            now: now
+        )
+        let metrics = makeMetrics(atl: 30, ctl: 40, todayTrimp: 0, recentWorkouts: [])
+        let r = LiveReadiness.compute(recoveryScore: 60, morningSession: session, liveMetrics: metrics, now: now)
+        XCTAssertGreaterThanOrEqual(r.score - r.morningRecovery, 3, "precondition: the model reads above the recovery score")
+        XCTAssertEqual(r.score, r.morningReadiness, accuracy: 0.01)
+        XCTAssertFalse(r.liftedByRecovery)
+        XCTAssertFalse(r.pulledDownByTodaysTraining)
     }
 
     // MARK: - Day fraction interpolation
@@ -154,18 +175,31 @@ final class LiveReadinessTests: XCTestCase {
         // Sanity: hours-since-morning matches the input (no nonsense
         // negative or zero values).
         XCTAssertGreaterThan(r.hoursSinceMorning, 24)
-        // Without the suppression, the 25-unit ATL gap would mint ~15 bonus
-        // points; with it, we should land near the unbiased calculator output.
-        XCTAssertLessThan(r.score, 100)
+        // Past a full day the interpolation has landed on the live ATL/CTL, so
+        // the score is the calculator's output for those with no freshness
+        // bonus at all.
+        let unbiased = RecoveryScoreCalculator.calculateReadiness(
+            recoveryScore: 70, todayTrimp: 0, ctl: 40, atl: 35,
+            morningATL: nil, acuteChronicRatio: 35.0 / 40.0
+        )
+        XCTAssertEqual(r.score, unbiased, accuracy: 0.01)
+        // Measured from yesterday's ATL of 60, the 25-unit drop would mint the
+        // capped bonus; the suppression is what keeps the score below that.
+        let withYesterdaysBonus = RecoveryScoreCalculator.calculateReadiness(
+            recoveryScore: 70, todayTrimp: 0, ctl: 40, atl: 35,
+            morningATL: 60, acuteChronicRatio: 35.0 / 40.0
+        )
+        XCTAssertLessThan(r.score, withYesterdaysBonus - 5, "the stale snapshot's ATL drop was rewarded")
     }
 
     // MARK: - Acute fatigue gating
 
     func testRestDayDoesNotDoubleCountYesterdayWorkout() {
         // Yesterday hard workout (still in recentWorkouts at -20h), no
-        // training today. The gate must skip the 24h-decayed acute fatigue
-        // term — ATL already carries the workout, double-counting would
-        // crush readiness on a rest day.
+        // training today. The workout is before the start of the morning
+        // reading's day (the anchor), so the frozen morning ATL already
+        // carries it and the 24h-decayed acute-fatigue term leaves it out —
+        // double-counting would crush readiness on a rest day.
         let now = noonToday
         let session = makeSession(recoveryScore: 8.0, sessionEndAgoHours: 6, now: now)
         let yesterdayWorkout = makeWorkout(hoursAgo: 20, durationMinutes: 60, avgHR: 165, now: now)
@@ -177,6 +211,20 @@ final class LiveReadinessTests: XCTestCase {
             rRest.score, rActive.score - 1,
             "Rest day must not be penalised more than an active day with the same lingering yesterday-workout fatigue"
         )
+    }
+
+    /// On a training day too, only workouts since the morning anchor feed the
+    /// acute-fatigue load: yesterday's run is in the morning ATL already.
+    func testTrainingDayAcuteFatigueLeavesOutYesterdayWorkout() {
+        let now = noonToday
+        let session = makeSession(recoveryScore: 8.0, sessionEndAgoHours: 6, now: now)
+        let yesterdayWorkout = makeWorkout(hoursAgo: 20, durationMinutes: 60, avgHR: 165, now: now)
+        let todayWorkout = makeWorkout(hoursAgo: 2, durationMinutes: 40, avgHR: 150, now: now)
+        let metrics = makeMetrics(atl: 35, ctl: 35, todayTrimp: 50, recentWorkouts: [yesterdayWorkout, todayWorkout])
+        let r = LiveReadiness.compute(recoveryScore: 80, morningSession: session, liveMetrics: metrics, now: now)
+        let todayOnly = todayWorkout.userScaledLoad * exp(-2.0 / RecoveryScoreConstants.Readiness.acuteFatigueTauHours)
+        XCTAssertGreaterThan(todayOnly, 0, "precondition: today's workout carries load")
+        XCTAssertEqual(r.acuteFatigueLoad, todayOnly, accuracy: 0.01)
     }
 
     // MARK: - Recent workout loads (72h filter)
@@ -283,12 +331,14 @@ final class LiveReadinessTests: XCTestCase {
         let session = makeSession(recoveryScore: 9.2, sessionEndAgoHours: 6, now: now)
         let metrics = makeMetrics(atl: 40, ctl: 35, todayTrimp: 110, recentWorkouts: [workout])
         let r = LiveReadiness.compute(recoveryScore: 92, morningSession: session, liveMetrics: metrics, now: now)
-        if r.pulledDownByTodaysTraining {
-            XCTAssertTrue(r.headline.contains("run"),
-                          "Headline must name the workout type when training pulled readiness down: got \(r.headline)")
-            XCTAssertTrue(r.headline.contains("min"),
-                          "Headline must include duration so the user knows which workout is being named")
-        }
+        // A hard run against a model anchored at no load pulls the score far
+        // below the morning anchor whatever the host's heart-rate settings.
+        XCTAssertTrue(r.pulledDownByTodaysTraining, "precondition: today's run pulled readiness down")
+        let headline = NarrativeLanguage.english { r.headline }
+        XCTAssertTrue(headline.contains("run"),
+                      "Headline must name the workout type when training pulled readiness down: got \(headline)")
+        XCTAssertTrue(headline.contains("min"),
+                      "Headline must include duration so the user knows which workout is being named")
     }
 
     func testLoopCardTextIsNilOnUnremarkableDays() {

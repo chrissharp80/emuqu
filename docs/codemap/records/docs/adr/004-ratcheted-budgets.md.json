@@ -59,46 +59,26 @@
   },
   {
    "key": "§ 004 — Debt is ratcheted, never waived > Decision",
-   "hash": "d8a9e891ec531d17",
-   "does": "Claims a ceiling may only move down: check_budget_monotonicity.sh fails on any increase lacking a 'budget-raise-ok:' trailer naming the file and reason; zero swiftlint:disable directives in Emuqu/Sources; refactor-spec gate counts justified exceptions separately. Verified: script header (check_budget_monotonicity.sh:14-29) implements the trailer and treats min_* files as floors; grep finds 0 swiftlint:disable in Emuqu/Sources; .ci/spec_justified_long_budget.txt (7) is separate from spec_long_functions_budget.txt (0).",
+   "hash": "948172d38264c10b",
+   "does": "Claims ceilings only move down and min_* floors only up: check_budget_monotonicity.sh compares every numeric (whole or decimal, read_number) .ci/*.txt with the baseline and fails on a loosening (raise, floor lowered, deleted or non-numeric budget) lacking a 'budget-raise-ok:' trailer in the compared range; baseline is the PR target or, on push, github.event.before so every pushed commit is in range, falling back to HEAD~1 with a message only when that tip is missing; zero swiftlint:disable in Emuqu/Sources; refactor-spec gate counts justified exceptions separately.",
    "entry": null,
    "calls": [
     "scripts/check_budget_monotonicity.sh::fn no_baseline",
     "scripts/check_budget_monotonicity.sh::fn is_allowed",
     "scripts/check_budget_monotonicity.sh::fn is_floor",
-    "scripts/check_budget_monotonicity.sh::fn read_int",
-    ".github/workflows/ci.yml::step lint-and-budgets/Debt budgets ratchet down only",
-    ".github/workflows/gates.yml::step script-gates/Debt budgets ratchet down only",
     "scripts/check_refactor_spec_conformance.sh::fn read_budget",
-    "scripts/check_refactor_spec_conformance.sh::fn measure_spec"
+    "scripts/check_refactor_spec_conformance.sh::fn measure_spec",
+    "scripts/check_budget_monotonicity.sh::fn read_number",
+    "scripts/check_budget_monotonicity.sh::fn loosens",
+    "scripts/check_budget_monotonicity.sh::fn report_loosened",
+    "scripts/check_budget_monotonicity.sh::fn budget_files",
+    ".github/workflows/ci.yml::step lint-and-budgets/Debt budgets ratchet down only",
+    ".github/workflows/gates.yml::step script-gates/Debt budgets ratchet down only"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "read_int accepts only integers and silently `continue`s past any other value, so the floor .ci/min_coverage_views.txt (43.5) is never compared: it can be lowered to any value without a budget-raise-ok trailer and the gate still prints 'clean'. The ADR's 'a ceiling may only move' guarantee does not hold for this file.",
-     "evidence": [
-      "docs/adr/004-ratcheted-budgets.md:15",
-      "scripts/check_budget_monotonicity.sh:129",
-      "scripts/check_budget_monotonicity.sh:143",
-      "scripts/check_budget_monotonicity.sh:148",
-      ".ci/min_coverage_views.txt"
-     ],
-     "found": "second read"
-    },
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "On a push to main, gates.yml compares the budgets only against HEAD~1, so in a multi-commit push a raise made in an earlier commit and left in place is invisible to the gate (it is already in HEAD~1). 'Fails the build on any increase' holds only per last commit.",
-     "evidence": [
-      "docs/adr/004-ratcheted-budgets.md:15",
-      ".github/workflows/gates.yml:82"
-     ],
-     "found": "second read"
-    },
     {
      "kind": "spec-mismatch",
      "sev": "low",
@@ -111,14 +91,17 @@
     }
    ],
    "deps": {
-    ".github/workflows/ci.yml::step lint-and-budgets/Debt budgets ratchet down only": "7123856c78189975",
-    ".github/workflows/gates.yml::step script-gates/Debt budgets ratchet down only": "4d1433bd1c0ca96c",
+    ".github/workflows/ci.yml::step lint-and-budgets/Debt budgets ratchet down only": "73c8ded96a9405ae",
+    ".github/workflows/gates.yml::step script-gates/Debt budgets ratchet down only": "6e090e3051ab2682",
+    "scripts/check_budget_monotonicity.sh::fn budget_files": "c70ca1ffaca60b15",
     "scripts/check_budget_monotonicity.sh::fn is_allowed": "a002d0e35987ee73",
     "scripts/check_budget_monotonicity.sh::fn is_floor": "313191d94c7788a1",
+    "scripts/check_budget_monotonicity.sh::fn loosens": "9da7cc84bf21dbde",
     "scripts/check_budget_monotonicity.sh::fn no_baseline": "4d98f6bae9009dcc",
-    "scripts/check_budget_monotonicity.sh::fn read_int": "f177c3dac57c9863",
+    "scripts/check_budget_monotonicity.sh::fn read_number": "d8d0aa6b0f8126bc",
+    "scripts/check_budget_monotonicity.sh::fn report_loosened": "005070da3ab1465d",
     "scripts/check_refactor_spec_conformance.sh::fn measure_spec": "509182b8a7724c89",
-    "scripts/check_refactor_spec_conformance.sh::fn read_budget": "5b0a58754128dcf2"
+    "scripts/check_refactor_spec_conformance.sh::fn read_budget": "0bb5b672bbc299cf"
    }
   },
   {

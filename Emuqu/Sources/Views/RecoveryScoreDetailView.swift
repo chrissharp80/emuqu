@@ -101,8 +101,9 @@ struct RecoveryScoreDetailView: View {
     /// Organized-recovery zones cached at view-load time
     /// from `result.organizedRecoveryZones`. When the field is nil
     /// (older sessions archived before the field existed), we
-    /// recompute from the rrSeries via `OrganizedZonesCache` so the
-    /// green overlay still appears. Loaded once per session (the
+    /// recompute from the rrSeries (`loadOrganizedZones`, through the
+    /// sleep-window-keyed `OrganizedZonesCache`) so the green overlay still
+    /// appears. Loaded once per session (the
     /// `.task(id: session.id)` pass): the zones describe the night, not
     /// the chosen window, so a reanalysis leaves them as they are.
     @State var organizedZoneRanges: [HRVAnalysisResult.TimeRange] = []
@@ -276,6 +277,9 @@ struct RecoveryScoreDetailView: View {
         .task(id: session.id) {
             await refreshVitalsAndCharts()
         }
+        .onChange(of: collector.morningCoordination.vitalsDataVersion) { _, _ in
+            Task { await refreshVitals(referenceDate: session.endDate ?? session.startDate) }
+        }
     }
 
     @ToolbarContentBuilder
@@ -358,7 +362,8 @@ struct RecoveryScoreDetailView: View {
     }
 
     /// Fresh vitals + strap-RHR override (none when the analysis did not
-    /// run, so a 0 never stands in for a heart rate).
+    /// run, so a 0 never stands in for a heart rate). Also re-run from `body`
+    /// when HealthKit delivers new vitals (`vitalsDataVersion`).
     @MainActor
     private func refreshVitals(referenceDate: Date) async {
         let fresh = await collector.healthKit
@@ -379,48 +384,11 @@ struct RecoveryScoreDetailView: View {
     /// (a dashboard refresh, a re-acceptance) is filled, not overwritten.
     @MainActor
     private func persistMergedVitals(_ fresh: RecoveryVitals) {
-        let merged = Self.mergeVitals(fresh: fresh, into: session)
-        guard Self.vitalsFieldCount(merged) > Self.vitalsFieldCount(session.vitalsSnapshot) else { return }
+        let merged = RecoveryVitalsBackfill.merge(fresh: fresh, into: session)
+        guard RecoveryVitalsBackfill.fieldCount(merged) > RecoveryVitalsBackfill.fieldCount(session.vitalsSnapshot) else { return }
         let id = session.id
         let archive = collector.archive
-        Task.detached { Self.storeMergedVitals(fresh, id: id, archive: archive) }
-    }
-
-    /// No re-upload request: iCloud payloads leave `vitalsSnapshot` out, so
-    /// a re-upload would carry none of this change.
-    nonisolated private static func storeMergedVitals(_ fresh: RecoveryVitals, id: UUID, archive: SessionArchive) {
-        do {
-            try archive.update(id, requestingReupload: false) { fillVitals(fresh, in: &$0) }
-        } catch {
-            debugLog("[RecoveryScoreDetail] Merged vitals not persisted for \(id.uuidString.prefix(8)): \(error.localizedDescription)", level: .warning)
-        }
-    }
-
-    /// The merge, redone on the archived copy, written only when it adds a
-    /// field.
-    nonisolated private static func fillVitals(_ fresh: RecoveryVitals, in stored: inout HRVSession) {
-        let merged = mergeVitals(fresh: fresh, into: stored)
-        guard vitalsFieldCount(merged) > vitalsFieldCount(stored.vitalsSnapshot) else { return }
-        stored.vitalsSnapshot = merged
-    }
-
-    /// Fills only the fields the session's stored snapshot lacks. A stored
-    /// value is what the score was frozen with at acceptance and is never
-    /// replaced. SpO₂ is not filled under a frozen score with no stored
-    /// breakdown: that snapshot is the only record of whether the score took
-    /// the SpO₂ penalty (`spo2Penalty`).
-    nonisolated private static func mergeVitals(fresh: RecoveryVitals, into session: HRVSession) -> RecoveryVitals {
-        let stored = session.vitalsSnapshot
-        let fillsSpO2 = session.recoveryScore == nil || session.scoreBreakdown != nil
-        return RecoveryVitals(
-            respiratoryRate: stored?.respiratoryRate ?? fresh.respiratoryRate,
-            respiratoryRateBaseline: stored?.respiratoryRateBaseline ?? fresh.respiratoryRateBaseline,
-            oxygenSaturation: stored?.oxygenSaturation ?? (fillsSpO2 ? fresh.oxygenSaturation : nil),
-            oxygenSaturationMin: stored?.oxygenSaturationMin ?? (fillsSpO2 ? fresh.oxygenSaturationMin : nil),
-            wristTemperature: stored?.wristTemperature ?? fresh.wristTemperature,
-            wristTemperatureBaseline: stored?.wristTemperatureBaseline ?? fresh.wristTemperatureBaseline,
-            restingHeartRate: stored?.restingHeartRate ?? fresh.restingHeartRate
-        )
+        Task.detached { RecoveryVitalsBackfill.store(fresh, id: id, archive: archive) }
     }
 
     /// Fallback HR samples for the overnight chart when the strap beat stream
@@ -512,9 +480,53 @@ struct RecoveryScoreDetailView: View {
         fullRRSeries ?? session.rrSeries
     }
 
+}
+
+
+/// The detail screen's vitals backfill (`persistMergedVitals`): fresh
+/// HealthKit vitals fill only the fields a session's stored snapshot lacks,
+/// and the archived copy is updated only when that adds a field.
+enum RecoveryVitalsBackfill {
+    /// No re-upload request: iCloud payloads leave `vitalsSnapshot` out, so
+    /// a re-upload would carry none of this change.
+    static func store(_ fresh: RecoveryVitals, id: UUID, archive: SessionArchive) {
+        do {
+            try archive.update(id, requestingReupload: false) { fill(fresh, in: &$0) }
+        } catch {
+            debugLog("[RecoveryScoreDetail] Merged vitals not persisted for \(id.uuidString.prefix(8)): \(error.localizedDescription)", level: .warning)
+        }
+    }
+
+    /// The merge, redone on the archived copy, written only when it adds a
+    /// field.
+    private static func fill(_ fresh: RecoveryVitals, in stored: inout HRVSession) {
+        let merged = merge(fresh: fresh, into: stored)
+        guard fieldCount(merged) > fieldCount(stored.vitalsSnapshot) else { return }
+        stored.vitalsSnapshot = merged
+    }
+
+    /// Fills only the fields the session's stored snapshot lacks. A stored
+    /// value is what the score was frozen with at acceptance and is never
+    /// replaced. SpO₂ is not filled under a frozen score with no stored
+    /// breakdown: that snapshot is the only record of whether the score took
+    /// the SpO₂ penalty (`RecoveryScoreDetailView.spo2Penalty`).
+    static func merge(fresh: RecoveryVitals, into session: HRVSession) -> RecoveryVitals {
+        let stored = session.vitalsSnapshot
+        let fillsSpO2 = session.recoveryScore == nil || session.scoreBreakdown != nil
+        return RecoveryVitals(
+            respiratoryRate: stored?.respiratoryRate ?? fresh.respiratoryRate,
+            respiratoryRateBaseline: stored?.respiratoryRateBaseline ?? fresh.respiratoryRateBaseline,
+            oxygenSaturation: stored?.oxygenSaturation ?? (fillsSpO2 ? fresh.oxygenSaturation : nil),
+            oxygenSaturationMin: stored?.oxygenSaturationMin ?? (fillsSpO2 ? fresh.oxygenSaturationMin : nil),
+            wristTemperature: stored?.wristTemperature ?? fresh.wristTemperature,
+            wristTemperatureBaseline: stored?.wristTemperatureBaseline ?? fresh.wristTemperatureBaseline,
+            restingHeartRate: stored?.restingHeartRate ?? fresh.restingHeartRate
+        )
+    }
+
     /// Every field a merge can fill counts, baselines and the SpO₂ minimum
     /// included, so a merge that adds only those is persisted too.
-    nonisolated static func vitalsFieldCount(_ v: RecoveryVitals?) -> Int {
+    static func fieldCount(_ v: RecoveryVitals?) -> Int {
         guard let v else { return 0 }
         let fields: [Double?] = [
             v.respiratoryRate, v.respiratoryRateBaseline, v.oxygenSaturation, v.oxygenSaturationMin,

@@ -205,21 +205,7 @@
      "effect": "return (nil, true) to abort retries; any other error → (nil, false) retry"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "The morning pass credits the prior day's nap (fetchDaytimeNapMinutes + withNapSleepMinutes) into the sleep it scores and snapshots, but acceptance overwrites sleepSnapshot with a fetch that adds no nap credit and re-scores from it, so the score shown on the results screen and the frozen accepted score use different 24 h sleep totals for the same night.",
-     "evidence": [
-      "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift:160",
-      "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift:161",
-      "Emuqu/Sources/Services/MorningProcessingService+Merging.swift:455",
-      "Emuqu/Sources/Services/SessionAcceptanceService.swift:161",
-      "Emuqu/Sources/Services/SessionAcceptanceService.swift:293"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "8e9dc5b9d24c750a",
     "Emuqu/Sources/Models/SleepData.swift::func SleepData.withNapSleepMinutes(_:)": "4d5c08b31b317a34",

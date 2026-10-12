@@ -171,8 +171,8 @@
   },
   {
    "key": "§ Emuqu > Requirements > Software",
-   "hash": "e351cd57b5c31051",
-   "does": "iOS 17.0 minimum (IPHONEOS_DEPLOYMENT_TARGET = 17.0 in project.pbxproj); iOS 26 for Apple Intelligence (AppleFoundationProvider gates on #available(iOS 26), AppleFoundationProvider.swift:45,61,90); claims iOS 18 on-device translation of narratives.",
+   "hash": "d9b216da91a8082f",
+   "does": "iOS 17.0 minimum (IPHONEOS_DEPLOYMENT_TARGET = 17.0 in project.pbxproj) for the app, sensors, scoring, BYOK providers and the narrative text in all 17 languages, built from translated catalogue sentences (no Translation framework is used; matches docs/FEATURES.md); iOS 26 for Apple Intelligence (AppleFoundationProvider gates on #available(iOS 26)); HealthKit access.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::var AppleFoundationProvider.isAvailable"
@@ -180,28 +180,15 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "Claims iOS 18+ provides on-device translation of the narrative text (and 'Translation for the narratives' in Technical notes, README.md:168), with earlier iOS showing English. No Swift file imports or uses the Translation framework (grep for 'import Translation', 'TranslationSession', 'translationTask' returns nothing), and docs/FEATURES.md:147 says narratives are built from translated catalogue sentences on every supported iOS version.",
-     "evidence": [
-      "README.md:152",
-      "README.md:153",
-      "README.md:168",
-      "docs/FEATURES.md:147"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::var AppleFoundationProvider.isAvailable": "d524ee87b19f78de"
    }
   },
   {
    "key": "§ Emuqu > Technical notes",
-   "hash": "9c3ba97804cf1f43",
-   "does": "SwiftUI/Concurrency; Polar BLE SDK plus direct BLE for Stryd/FTMS/PM5; HealthKit; Foundation Models, Speech, Translation; streaming HTTP/SSE for five cloud providers; encrypted archive, opt-in CloudKit with Apple Health data stripped (CloudSessionPayload.trainingWithoutHealthKitReadings / withoutHealthKitHR, CloudKitSyncSupport.swift:599-659); StoreKit 2 trial anchor surviving reinstalls (EntitlementAnchor synchronizable keychain).",
+   "hash": "a15b83e7ab68f10d",
+   "does": "SwiftUI/Concurrency; Polar BLE SDK plus direct BLE for Stryd/FTMS/PM5; HealthKit; Foundation Models and Speech as on-device frameworks; streaming HTTP/SSE for five cloud providers; encrypted archive, opt-in CloudKit with Apple Health data stripped (CloudSessionPayload.trainingWithoutHealthKitReadings / withoutHealthKitHR, CloudKitSyncSupport.swift); StoreKit 2 trial anchor surviving reinstalls (EntitlementAnchor synchronizable keychain).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.uploadable(_:)",
@@ -214,7 +201,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.saveToKeychain(_:)": "3529061e84a8ccd8",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.saveToKeychain(_:)": "7708c28ab0c2d552",
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.trainingWithoutHealthKitReadings(_:)": "6d8018ee6c5ae5f3",
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.uploadable(_:)": "f080778df155b85f",
     "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)": "8c3ad22f8d15e4b6"
@@ -364,8 +351,8 @@
   },
   {
    "key": "§ Emuqu > Privacy",
-   "hash": "3931a3274dba1831",
-   "does": "No server/accounts; iCloud sync off until enabled; table of third-party egress: CloudKit (encrypted, no HealthKit data), hosted AI (with consent; DeepSeek PRC disclosure in ProviderConsentSheet.swift:36), Apple speech, Tavily/Anthropic web search, MET Norway at ~1 km (WeatherService rounds to 2 decimals, WeatherService.swift:115-118,144-145), Overpass, Apple geocoder, OpenTopoData ~11 m, Hugging Face for WhisperKit model. API keys in Keychain ThisDeviceOnly, never synced (APIKeyStore.swift:65,174). Overpass requests carry a User-Agent with the author's email (OverpassClient.swift:66) — identifies the app to the operator, not data sent to the author.",
+   "hash": "cb9b3ea1342e3ee8",
+   "does": "No server/accounts; iCloud sync off until enabled; table of third-party egress: CloudKit (encrypted, no HealthKit data), hosted AI (with consent; on every turn the live-state block from AssistantContext.renderLiveStateForCloud; DeepSeek PRC disclosure in ProviderConsentSheet), Apple Intelligence row: Quick sends nothing beyond web search/map lookups; with a consented Grok or DeepSeek, Auto sends classifier-flagged turns and Deep every turn to it (TierProviderMapper.autoMapping/deepMapping, reached only while Apple is the selected provider) with the same data a hosted turn carries; in every tier mode voice turns and email/directions/web-search requests go to the first consented hosted provider (TurnRouter voice bypass and action-intent override). Then Apple speech, Tavily/Anthropic web search, MET Norway at ~1 km (WeatherService rounds to 2 decimals), Overpass, Apple geocoder, OpenTopoData ~11 m, Hugging Face for the WhisperKit model. The closing paragraph says Quick/Auto/Deep apply only with Apple selected and that Auto and Deep can send a turn to a consented Grok or DeepSeek. API keys in Keychain ThisDeviceOnly, never synced (APIKeyStore). Overpass requests carry a User-Agent with the author's email (OverpassClient) — identifies the app to the operator, not data sent to the author.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.rounded(_:)",
@@ -375,35 +362,26 @@
     "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)",
     "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.renderLiveStateForCloud(now:)",
     "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.setKey(_:for:)",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.medicalGuardRefused(_:)"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.medicalGuardRefused(_:)",
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.autoMapping(_:)",
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.deepMapping(_:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.makeTierStageInputs(mode:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "high",
-     "text": "Privacy table row 'AI assistant, Apple Intelligence' says nothing leaves the device apart from web search/map lookups and, in Quick/Auto/Deep, voice turns and email/directions/web-search requests. In Auto, reasoning turns (classifier flags >=1) go to consented Grok/DeepSeek; in Deep every turn goes to consented Grok/DeepSeek (TierProviderMapper.autoMapping/deepMapping), with their health live-state context. README:309-310 also implies only Quick-style hand-offs. The privacy table understates egress for Auto/Deep users.",
-     "evidence": [
-      "README.md:293",
-      "README.md:309",
-      "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift:80",
-      "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift:92",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift:107",
-      "Emuqu/Sources/Models/UserSettings.swift:113"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.openTopoDataURL(dataset:locations:)": "d6fedefde7c1fb29",
     "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.renderLiveStateForCloud(now:)": "cc6577a7f3dcdd80",
-    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.setKey(_:for:)": "b26556448903f9ff",
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.autoMapping(_:)": "b317efb1271b6fb2",
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.deepMapping(_:)": "14236e71b1e1036a",
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.setKey(_:for:)": "7253ac7abb336197",
     "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)": "b36a2b8ea48a5e61",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.makeTierStageInputs(mode:)": "076e446307c74397",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.medicalGuardRefused(_:)": "febc96bd0c0829d4",
-    "Emuqu/Sources/Services/RoadGraphService.swift::func RoadGraphService.fetchTile(cellKey:centerLat:centerLon:cellLatIndex:cellLonIndex:)": "83f74b14faa3ed8a",
-    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.request(at:ifModifiedSince:)": "29c68a4cf0ee9f26",
+    "Emuqu/Sources/Services/RoadGraphService.swift::func RoadGraphService.fetchTile(cellKey:centerLat:centerLon:cellLatIndex:cellLonIndex:)": "fd9137d5197e68d3",
+    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.request(at:ifModifiedSince:)": "2831fcfbb35cb020",
     "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.rounded(_:)": "a0643cefe3e7fc35"
    }
   },

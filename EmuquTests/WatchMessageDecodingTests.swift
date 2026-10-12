@@ -79,22 +79,51 @@ final class WatchMessageDecodingTests: XCTestCase {
         XCTAssertEqual(update, WatchMessageDecoding.StateUpdate())
     }
 
-    /// A wrong-typed value is treated as absent rather than coerced. The
-    /// payload crosses a process boundary from a separately-versioned iOS
+    /// A value of the wrong kind is treated as absent rather than coerced.
+    /// The payload crosses a process boundary from a separately-versioned iOS
     /// build; a type mismatch means the two sides disagree about the schema,
     /// and guessing there is how a stale field overwrites a good one.
-    func testWrongTypedValuesAreTreatedAsAbsent() {
-        let update = WatchMessageDecoding.decode([
+    ///
+    /// Checked on the dictionary as the Watch receives it (`overTheWire`), so
+    /// the values are the `NSString`s and `NSNumber`s WatchConnectivity
+    /// delivers, not Swift literals.
+    func testWrongTypedValuesAreTreatedAsAbsent() throws {
+        let update = WatchMessageDecoding.decode(try overTheWire([
             "heartRate": "142",          // String where Int expected
-            "distanceMeters": 5_012,     // Int where Double expected
-            "isRecording": 1,            // Int where Bool expected
-            "band": 4                    // Int where String expected
-        ])
+            "distanceMeters": "5012",    // String where Double expected
+            "isRecording": "true",       // String where Bool expected
+            "band": 4                    // Number where String expected
+        ]))
 
         XCTAssertNil(update.heartRate)
         XCTAssertNil(update.distanceMeters)
         XCTAssertNil(update.isRecording)
         XCTAssertNil(update.band)
+    }
+
+    /// Numbers are not checked by kind on the wire: a property-list number
+    /// arrives as an `NSNumber`, which bridges to any numeric Swift type it
+    /// fits exactly. An integer distance reads as 5012.0 and a whole-number
+    /// Double heart rate as 142; a fraction where an Int is expected does not
+    /// fit and stays absent.
+    func testNumbersBridgeBetweenIntAndDoubleOnTheWire() throws {
+        let update = WatchMessageDecoding.decode(try overTheWire([
+            "distanceMeters": 5_012,
+            "heartRate": 142.0,
+            "peakHR": 171.5
+        ]))
+
+        XCTAssertEqual(update.distanceMeters, 5_012)
+        XCTAssertEqual(update.heartRate, 142)
+        XCTAssertNil(update.peakHR)
+    }
+
+    /// The dictionary as WatchConnectivity hands it to the Watch: carried as a
+    /// property list, so it comes back built from Foundation objects.
+    private func overTheWire(_ message: [String: Any]) throws -> [String: Any] {
+        let data = try PropertyListSerialization.data(fromPropertyList: message, format: .binary, options: 0)
+        let decoded = try PropertyListSerialization.propertyList(from: data, options: [], format: nil)
+        return try XCTUnwrap(decoded as? [String: Any])
     }
 
     /// A `liveState` tick is a whole snapshot: iOS leaves out a metric it has

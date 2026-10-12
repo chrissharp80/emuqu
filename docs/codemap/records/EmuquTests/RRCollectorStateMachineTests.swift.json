@@ -1,6 +1,6 @@
 {
  "file": "EmuquTests/RRCollectorStateMachineTests.swift",
- "hash": "f160f40b9b75fae3",
+ "hash": "af1beb4d50e0d737",
  "role": "XCTest suite for RRCollector's idle state, transitions that must throw CollectorError while no strap is connected, HRVSession construction defaults, legacy persisted-recording-state recovery, hermetic SessionArchive round-trip/tag/notes, and BackgroundAudioManager idempotent stop.",
  "types": [
   "RRCollectorStateMachineTests: class — @MainActor XCTestCase for RRCollector state transitions and archive basics"
@@ -10,27 +10,68 @@
   "testArchiveDirectory: lazy temp dir RRCollectorStateMachineTests-<UUID>",
   "testArchive: lazy SessionArchive(directory: testArchiveDirectory)",
   "ud:RRCollector.activeRecordingStartTime / RRCollector.activeRecordingSessionId / RRCollector.activeRecordingSessionType (seeded by tests)",
-  "file:<tmp>/RRCollectorStateMachineTests-<UUID>/"
+  "file:<tmp>/RRCollectorStateMachineTests-<UUID>/",
+  "mem:RRCollectorStateMachineTests.recordingStateKeys (static [String]: every key PersistedRecordingState reads or writes; the dismissed-ids key copied literally because it is private)",
+  "mem:RRCollectorStateMachineTests.hostRecordingState ([String: Any], the host's values captured in setUp)"
  ],
- "toplevel": "Lazy properties: collector (RRCollector()), testArchiveDirectory (unique temp folder) and testArchive (hermetic SessionArchive). Long comment block documents that a default SessionArchive is the shared App Group store and why the archive tests are hermetic.",
- "flags": [
-  {
-   "kind": "test-defect",
-   "sev": "med",
-   "text": "There is no setUp clearing persisted recording state; testPersistedStateRecovery seeds only the legacy three keys and PersistedRecordingState.load() reads the modern atomic key first, so any modern-key state already in the app host's UserDefaults (left by the host app or a suite that does not clear it) makes the test read a different session id. tearDown clears only after the fact.",
-   "evidence": [
-    "EmuquTests/RRCollectorStateMachineTests.swift:34",
-    "EmuquTests/RRCollectorStateMachineTests.swift:200",
-    "Emuqu/Sources/Collection/PersistedRecordingState.swift:49"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "toplevel": "Lazy properties: collector (RRCollector()), testArchiveDirectory (unique temp folder) and testArchive (hermetic SessionArchive); recordingStateKeys lists the persisted-recording-state keys setUp clears and tearDown restores, hostRecordingState holds the host's values meanwhile. Long comment block documents that a default SessionArchive is the shared App Group store and why the archive tests are hermetic.",
+ "flags": [],
  "units": [
   {
+   "key": "func RRCollectorStateMachineTests.setUp()",
+   "hash": "05f19a80094e8f65",
+   "does": "setUp: saves the host's value of every persisted-recording-state key (modern atomic key, legacy trio, dismissed ids) into hostRecordingState and removes them, so each test starts with no recording state (a host modern-key state would otherwise win over the legacy keys a test seeds).",
+   "entry": "XCTest runner: setUp before each test",
+   "calls": [
+    "ext:UserDefaults.object(forKey:)",
+    "ext:UserDefaults.removeObject(forKey:)"
+   ],
+   "reads": [
+    "ud:RRCollector.persistedRecordingState, RRCollector.activeRecordingStartTime / SessionId / SessionType (legacy), RRCollector.dismissedInterruptedSessionIds (UserDefaults.standard, shared with the host app)"
+   ],
+   "writes": [
+    "ud:RRCollector.persistedRecordingState, RRCollector.activeRecordingStartTime / SessionId / SessionType (legacy), RRCollector.dismissedInterruptedSessionIds (UserDefaults.standard, shared with the host app)",
+    "mem:RRCollectorStateMachineTests.hostRecordingState"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each key",
+     "effect": "saves the value when present, then removes the key"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RRCollectorStateMachineTests.restoreHostRecordingState()",
+   "hash": "5e67c079a3f50976",
+   "does": "Writes back each persisted-recording-state key setUp found on the host, and removes the ones the host did not have (whatever a test left).",
+   "entry": "Called from tearDown().",
+   "calls": [
+    "ext:UserDefaults.set(_:forKey:)",
+    "ext:UserDefaults.removeObject(forKey:)"
+   ],
+   "reads": [
+    "mem:RRCollectorStateMachineTests.hostRecordingState"
+   ],
+   "writes": [
+    "ud:RRCollector.persistedRecordingState, RRCollector.activeRecordingStartTime / SessionId / SessionType (legacy), RRCollector.dismissedInterruptedSessionIds (UserDefaults.standard, shared with the host app)"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "the host had a value for the key",
+     "effect": "sets it back; else removes the key"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
    "key": "func RRCollectorStateMachineTests.tearDown()",
-   "hash": "f27631099093f72f",
-   "does": "tearDown: deletes the lazy collector's currentSession from collector.archive if set (try?), clears PersistedRecordingState (modern + legacy + dismissed keys), removes the temp archive directory (try?).",
+   "hash": "18c7875fe287907e",
+   "does": "tearDown: deletes the lazy collector's currentSession from collector.archive if set (try?), clears PersistedRecordingState (modern + legacy + dismissed keys), restores the host's recording-state keys (restoreHostRecordingState), removes the temp archive directory (try?).",
    "entry": "XCTest runner: tearDown after each test",
    "calls": [
     "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()",
@@ -39,9 +80,12 @@
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.wireCollaborators()",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)",
     "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.clear()",
-    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.clearLegacy()"
+    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.clearLegacy()",
+    "EmuquTests/RRCollectorStateMachineTests.swift::func RRCollectorStateMachineTests.restoreHostRecordingState()"
    ],
-   "reads": [],
+   "reads": [
+    "mem:RRCollectorStateMachineTests.hostRecordingState"
+   ],
    "writes": [
     "archive:SessionArchive.delete",
     "ud:UserDefaultsKeys.persistedRecordingState",
@@ -64,7 +108,8 @@
     "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()": "cee8619a3d38e814",
     "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)": "77db749d2e74b6b0",
     "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:backgroundAudioManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)": "ab46982b96b81c2c",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)": "cefef470ab858af7"
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)": "cefef470ab858af7",
+    "EmuquTests/RRCollectorStateMachineTests.swift::func RRCollectorStateMachineTests.restoreHostRecordingState()": "76e5478740415cd0"
    }
   },
   {

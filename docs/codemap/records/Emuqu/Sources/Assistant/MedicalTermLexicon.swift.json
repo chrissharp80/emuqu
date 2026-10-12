@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Assistant/MedicalTermLexicon.swift",
- "hash": "e1f9525287b692db",
+ "hash": "10881da36ccf581e",
  "role": "Shared regulated-language vocabulary: one Concept per regulated idea with latin (\\b-wrapped) and unbounded (substring) alternatives in 17 locales; groups for the input guard (refuseAsRhythm/Emergency/GeneralConcern/Symptom/BeforeSending), the output guard (scrubFromOutput), the static-copy linter (neverInStaticCopy) and the sync gate (all), plus the cached regex compiler.",
  "types": [
   "MedicalTermLexicon: enum — namespace of Concept constants and groups",
@@ -43,7 +43,7 @@
   "mem:MedicalTermLexicon.physiologicalCertainty",
   "mem:MedicalTermLexicon.all"
  ],
- "toplevel": "All content is static let Concept constants and [Concept] groups; refuseAsSymptom/refuseBeforeSending are unions read by MedicalQueryGuardTests and refuseBeforeSending/neverInStaticCopy are parsed by Tools/copy_linter/lint.py; scrubFromOutput is consumed by CoachVoiceGuard; all by tests and the perimeter sync gate. Apostrophes in the alternatives are written ['’] so model output and typed input with a typographic ’ match (can't breathe, m'inquiéter, d'une maladie, you're definitely, d'important); syncope matches 'faint' only as a verb form (fainted/faints/fainting/faintness) or after a feeling verb ('feel/felt/going to ... faint'), not the adjective ('a faint trace').",
+ "toplevel": "All content is static let Concept constants and [Concept] groups; refuseAsSymptom/refuseBeforeSending are unions read by MedicalQueryGuardTests and refuseBeforeSending/neverInStaticCopy are parsed by Tools/copy_linter/lint.py; scrubFromOutput is consumed by CoachVoiceGuard; all by tests and the perimeter sync gate. Apostrophes in the alternatives are written ['’] so model output and typed input with a typographic ’ match (can't breathe, m'inquiéter, d'une maladie, you're definitely, d'important); syncope matches 'faint' only as a verb form (fainted/faints/fainting/faintness) or after a feeling verb ('feel/felt/going to ... faint'), not the adjective ('a faint trace'). Every spelling the build-time prohibited_terms.json rules expand to is covered at runtime (check_perimeter_sync.sh): diagnosis includes 'undiagnosed', cure 'cur(e|es|ed|ing)' and 'curative', prescription 'prescrib(e|es|ed|ing)', pathology 'patholog(y|ies|ical|ically)', named cardiac conditions 'isch(a?e)mi[ac]' (ischemic/ischaemic/ischaemia), and physiological certainty allows a space before the apostrophe ('you 're definitely').",
  "flags": [
   {
    "kind": "broken",

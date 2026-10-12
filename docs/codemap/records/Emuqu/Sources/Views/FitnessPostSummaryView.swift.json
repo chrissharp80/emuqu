@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Views/FitnessPostSummaryView.swift",
- "hash": "c50f3db76a96487e",
+ "hash": "0fb5d288a1ea7750",
  "role": "The post-workout summary sheet (Fitness tab and History): owns all @State for the sheet, lays out the card stack, keeps the rendered session fresh from the archive (newest reload wins; an unchanged file is not re-processed), and pre-generates the GPX/CSV/TCX export files, decoded GPS track and resolved splits off the main thread once per real change of the archived copy.",
  "types": [
   "FitnessPostSummaryView: struct (View) — the post-summary sheet; extensions in +Feeling/+Share(FitnessSummaryCards)/+StatsForwarding/+SummaryForwarding/+ThresholdForwarding/+Alpha1Forwarding/+Cards",
@@ -9,6 +9,7 @@
  "state": [
   "mem:FitnessPostSummaryView.refreshedSession (@State, archive copy that overrides initialSession) MAIN:17",
   "@State showDeleteConfirm, cachedTrack, gpxURL, csvURL, tcxURL, exportsReady, exportGeneration, exportError, trackDecoded, reloadGeneration, loadedFileHash, summaryPrepared, pdfURL, pdfGenerating, recapImage, recapImageURL, recapGenerating, recapSharePresented, showSaveRouteSheet, newRouteName, savedRouteIDForThisSession, pdfSharePresented, pdfMailPresented, pdfMailError, reportShare (FitnessSummaryCards.ReportShareState), reanalyzing, reanalyzeError, elevResmoothing, elevResmoothPreview, elevResmoothError, routeHistory, routeHistoryGeneration, cachedSplits, feelingEditing, feelingSaveFailed",
+  "mem:FitnessPostSummaryView.feelingSkipped (@State; Skip on an unrated workout hides both feeling prompts for this visit)",
   "file:tmp/<GPX|CSV|TCX temp files> written by GPXExporter/CSVExporter/TCXExporter.writeToTempFile (MAIN:469-475)",
   "Environment: dependencies, SettingsManager, RRCollector, ArchiveSignal (lines 10, 38, 42, 43)"
  ],
@@ -175,7 +176,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::var FitnessPostSummaryView.heroCard": "ae3cd47c6d7a2b48",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::var FitnessPostSummaryView.heroCard": "9e7d0585e108f8ae",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::var FitnessPostSummaryView.keyStatsCard": "9ac0e6bcaaa2d6c2",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::var FitnessPostSummaryView.sessionAnalysisCard": "e0f2a4b03a91f4f9"
    }
@@ -273,7 +274,7 @@
    "deps": {
     "Emuqu/Sources/Views/FitnessPostSummaryView+Alpha1Forwarding.swift::func FitnessPostSummaryView.alpha1RouteColoredCard(track:)": "b1cb06205baa50a4",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Alpha1Forwarding.swift::var FitnessPostSummaryView.alpha1ReportCard": "28a3c3ded45f7cb9",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::var FitnessPostSummaryView.feelingSection": "8056c97b2cf08250",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::var FitnessPostSummaryView.feelingSection": "48253152d523893a",
     "Emuqu/Sources/Views/FitnessPostSummaryView+StatsForwarding.swift::var FitnessPostSummaryView.hrrCard": "a0667061d90e7d4b",
     "Emuqu/Sources/Views/FitnessPostSummaryView+ThresholdForwarding.swift::var FitnessPostSummaryView.alpha1CrossingsCard": "14497da3f385522c",
     "Emuqu/Sources/Views/FitnessPostSummaryView+ThresholdForwarding.swift::var FitnessPostSummaryView.alpha1LT1EstimateCard": "e9fdfe37e27d45e5",
@@ -433,7 +434,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::var FitnessPostSummaryView.feelingSection": "8056c97b2cf08250",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::var FitnessPostSummaryView.feelingSection": "48253152d523893a",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
    }
   },

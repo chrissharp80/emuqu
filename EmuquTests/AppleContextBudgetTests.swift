@@ -98,12 +98,13 @@ final class AppleContextBudgetTests: XCTestCase {
         XCTAssertEqual(allowance.admit(big), Compactor.ToolOutputAllowance.spentNote)
     }
 
-    /// A small result passes through whole and costs only what it is.
+    /// A small result passes through whole and costs its text plus the role
+    /// marker it sits under in the transcript.
     func testSmallResultPassesThroughWhole() {
         var allowance = Compactor.ToolOutputAllowance(remaining: 500, perCallCap: 300)
         let small = #"{"value":63,"confidence":"high"}"#
         XCTAssertEqual(allowance.admit(small), small)
-        XCTAssertEqual(allowance.remaining, 500 - Compactor.estimateTokens(small))
+        XCTAssertEqual(allowance.remaining, 500 - Compactor.estimateTokens(small) - Compactor.entryOverhead)
     }
 
     /// The tool calls and results an attempt took are counted, including the
@@ -116,7 +117,7 @@ final class AppleContextBudgetTests: XCTestCase {
         let result = allowance.admit(String(repeating: "y", count: 4000))
         let spentNote = allowance.admit("more")
         let expected = Compactor.estimateTokens(call) + Compactor.entryOverhead
-            + Compactor.estimateTokens(result)
+            + Compactor.estimateTokens(result) + Compactor.entryOverhead
             + Compactor.estimateTokens(spentNote) + Compactor.entryOverhead
         XCTAssertEqual(spentNote, Compactor.ToolOutputAllowance.spentNote)
         XCTAssertEqual(allowance.spent, expected)

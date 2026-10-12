@@ -1,10 +1,10 @@
 {
  "file": "Emuqu/Sources/Collection/RRCollector+Analysis.swift",
- "hash": "2bd68c9190478e53",
+ "hash": "d05df09657084c9c",
  "role": "MorningSessionPipeline extension: composite recovery-score computation for archival, scored with the acceptance path's inputs over the morning service's sleep/vitals snapshots, and the three analyze overloads that delegate to HRVAnalysisPipeline; declares RecoveryScoreOutcome.",
  "types": [
   "MorningSessionPipeline: extension — recovery score + analysis delegation",
-  "RecoveryScoreOutcome: struct — score (0-10), breakdown, sleep and vitals snapshots"
+  "RecoveryScoreOutcome: struct — score (0-10), breakdown, sleep and vitals snapshots, and the training context scored with"
  ],
  "state": [],
  "toplevel": "",
@@ -12,8 +12,8 @@
  "units": [
   {
    "key": "func MorningSessionPipeline.computeRecoveryScore(for:from:)",
-   "hash": "3ba171bbfbc14e51",
-   "does": "Computes the archival composite recovery score: sleep/vitals snapshots from MorningProcessingService.scoringHealthData (frozen when the session has them, else fresh sleep with the previous day's nap credited — a failed fetch logged — and vitals with the strap's nocturnal RHR), frozen-or-fetched training context, then scoreBreakdown (acceptance-path inputs); returns the 0-10 score, breakdown and the snapshots.",
+   "hash": "ab1f7486f1d0a095",
+   "does": "Computes the archival composite recovery score: sleep/vitals snapshots from MorningProcessingService.scoringHealthData (frozen when the session has them, else fresh sleep with the previous day's nap credited — a failed fetch logged — and vitals with the strap's nocturnal RHR), frozen-or-fetched training context, then scoreBreakdown (acceptance-path inputs); returns the 0-10 score, breakdown, the snapshots and the training context it scored with.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.scoringHealthData(for:result:)",

@@ -340,7 +340,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/DashboardV2View.swift::func DashboardV2View.applyPendingScoreChange(_:)": "4baf049e06e0c478",
+    "Emuqu/Sources/Views/DashboardV2View.swift::func DashboardV2View.applyPendingScoreChange(_:)": "0a0f03d0d3c0cd91",
     "Emuqu/Sources/Views/DashboardV2View.swift::func DashboardV2View.onDashboardAppear()": "5fb88344a78bf6fc"
    }
   },
@@ -447,14 +447,18 @@
   },
   {
    "key": "func DashboardV2View.applyPendingScoreChange(_:)",
-   "hash": "4448f453ffd41137",
-   "does": "Sets pendingScoreChange from the notification object (spring animation unless Reduce Motion).",
+   "hash": "fc35205830cf4343",
+   "does": "Sets pendingScoreChange from the notification object (spring animation unless Reduce Motion), unless the notice is for a session other than the overnight the hero shows (latestOvernightComplete).",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.latestOvernightComplete"
+   ],
    "reads": [
     "notif:pendingScoreChangeWritten"
    ],
-   "writes": [],
+   "writes": [
+    "mem:DashboardV2View.pendingScoreChange"
+   ],
    "branches": [
     {
      "at": "+1",
@@ -463,12 +467,19 @@
     },
     {
      "at": "+2",
+     "cond": "a hero overnight exists and its id != entry.sessionId",
+     "effect": "return (notice not shown); no hero overnight → shown"
+    },
+    {
+     "at": "+3",
      "cond": "reduceMotion",
      "effect": "no animation; else spring"
     }
    ],
    "flags": [],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.latestOvernightComplete": "f41743b582b9e9d4"
+   }
   },
   {
    "key": "var DashboardV2View.dashboardStack",
@@ -710,7 +721,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/DashboardV2View.swift::func DashboardV2View.sleepDetail(for:)": "15ff7730d074e1dd",
+    "Emuqu/Sources/Views/DashboardV2View.swift::func DashboardV2View.sleepDetail(for:)": "79894127627a6b55",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.dismissAlertButton": "18593f44d512bcf8",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.latestOvernightComplete": "f41743b582b9e9d4",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.latestWithSleep": "004c12a9584e0185",
@@ -768,8 +779,8 @@
   },
   {
    "key": "func DashboardV2View.sleepDetail(for:)",
-   "hash": "bb81973bbd587098",
-   "does": "Builds SleepDetailV2View for the session; sleep data comes from latestWithSleep when this session has none; edits are saved to that source session.",
+   "hash": "f7983e95675840de",
+   "does": "Builds SleepDetailV2View for the night it shows: this session, or latestWithSleep when this session has no sleep snapshot; that same night supplies the sleep data, the vitals snapshot, the session the view reads strap HR / vitals refresh window / editor HealthKit refetch from, and the session edits are saved to.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.latestWithSleep",
@@ -796,7 +807,8 @@
     "Emuqu/Sources/Views/DashboardV2View.swift::func DashboardV2View.saveSleepBoundaries(_:for:)": "c4280ff01c4c961e",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.latestWithSleep": "004c12a9584e0185",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.settingsManager": "248c4d378524d288",
-    "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift::var ScoreBreakdownCard.temperatureUnit": "063a6053cf5ccc9d"
+    "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift::var ScoreBreakdownCard.temperatureUnit": "063a6053cf5ccc9d",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::init SleepDetailV2View(session:sleepData:recoveryVitals:recentSessions:temperatureUnit:typicalSleepHours:userAge:onAdjust:)": "27e634743a0cb13b"
    }
   },
   {

@@ -124,7 +124,7 @@ extension WatchConnectivityBridge: WCSessionDelegate {
         let ts = (snapshot["ts"] as? Double) ?? 0
         if ts > 0, ts <= lastProcessedContextTimestamp { return false }
         if ts > 0 { lastProcessedContextTimestamp = ts }
-        guard !Self.isStaleQueuedIntent(ts), !Self.isExpired(snapshot) else {
+        guard !isStale(snapshot, ts: ts) else {
             debugLog("[WatchBridge] dropped a queued Watch intent from \(Int(Date().timeIntervalSince1970 - ts)) s ago", level: .warning)
             return false
         }
@@ -133,6 +133,18 @@ extension WatchConnectivityBridge: WCSessionDelegate {
             return false
         }
         return true
+    }
+
+    /// Past its `expiresAt`, or older than `maxQueuedIntentAge`. A stamped
+    /// End is judged by its stamp alone: the Watch keeps it actionable for
+    /// 12 h (`WatchSessionManager.queuedStopLifetime`) because its own session
+    /// has already ended, and `predatesCurrentWorkout` still drops one tapped
+    /// before the workout now recording began.
+    private func isStale(_ snapshot: [String: Any], ts: Double) -> Bool {
+        if Self.isExpired(snapshot) { return true }
+        let typeRaw = snapshot[MessageKey.type.rawValue] as? String
+        if typeRaw == MessageType.stopWorkoutFromWatch.rawValue, snapshot["expiresAt"] is Double { return false }
+        return Self.isStaleQueuedIntent(ts)
     }
 
     /// A stop, pause or resume stamped before the recording workout's start.
@@ -155,7 +167,7 @@ extension WatchConnectivityBridge: WCSessionDelegate {
 
     /// The Watch stamps every workout control it queues (start, stop, pause,
     /// resume, acknowledge) with `expiresAt`, seconds since 1970, one minute
-    /// after the tap (`WatchSessionManager.withQueueExpiry`); past it, the tap
+    /// after the tap, 12 h for an End (`WatchSessionManager.withQueueExpiry`); past it, the tap
     /// no longer means "now". An intent without the stamp is judged by its
     /// `ts` alone (`isStaleQueuedIntent`).
     nonisolated private static func isExpired(_ snapshot: [String: Any]) -> Bool {

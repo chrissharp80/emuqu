@@ -44,15 +44,15 @@
   },
   {
    "key": "func SessionImport.save(_:)",
-   "hash": "2962f748722926a4",
-   "does": "Saves one imported session: requires complete+analysed, refuses a duplicate the archive already holds, archives it with a re-upload request (same-sleep merge allowed). A reading saved under its own id is uploaded to iCloud; one the archive merged into an existing reading reaches iCloud through the archive's re-upload request for the merged id, and the merged reading (re-read) is what the baseline and deviation use. Bumps the archive signal (its own post reaches an ArchiveSignal listening on an injected centre).",
+   "hash": "a93bc84b4feafe0a",
+   "does": "Saves one imported session: requires complete+analysed, refuses a duplicate the archive already holds, archives it with a re-upload request (same-sleep merge allowed). A reading saved under its own id is uploaded to iCloud; one the archive merged into an existing reading reaches iCloud through the archive's re-upload request for the merged id, and the merged reading (re-read) is what the baseline and deviation use; the deviation is measured against the nights before the imported one (deviation(for:sleepSchedule:)), not a baseline it has just joined. Bumps the archive signal (its own post reaches an ArchiveSignal listening on an injected centre).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.holdsCopy(of:)",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadSession(_:)",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.update(with:sleepSchedule:)",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.deviation(for:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.deviation(for:sleepSchedule:)",
     "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)"
    ],
@@ -91,14 +91,14 @@
      "effect": "uploadSession"
     },
     {
-     "at": "+14",
+     "at": "+16",
      "cond": "deviation computed",
      "effect": "publishes it; nil leaves the previous deviation"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.deviation(for:)": "81305e07fa0673d3",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.deviation(for:sleepSchedule:)": "db44d0c36e819068",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.update(with:sleepSchedule:)": "39b522c63ba99f84",
     "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()": "47c71a985b0f7b54",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.holdsCopy(of:)": "9ee650a0ac71e106",

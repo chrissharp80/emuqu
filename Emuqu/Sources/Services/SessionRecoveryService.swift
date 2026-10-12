@@ -268,9 +268,17 @@ final class SessionRecoveryService {
         }
     }
 
-    /// The backup behind a Trash entry could not be read back.
+    /// The backup behind a Trash entry could not be read back. Puts the
+    /// deletion mark back that `restoreFromTrash` removed, so the entry stays
+    /// in the Trash exactly as before instead of leaving it with nothing
+    /// archived.
     func restoreFromTrashFailed(_ sessionId: UUID) {
         cloudSyncManager.trashRestore.abandon(sessionId)
+        do {
+            try archive.markAsDeleted(sessionId)
+        } catch {
+            debugLog("[SessionRecoveryService] Failed to re-mark session \(sessionId.uuidString.prefix(8)) as deleted after a failed restore: \(error)", level: .error)
+        }
     }
 
     /// Permanently forget a deleted session.

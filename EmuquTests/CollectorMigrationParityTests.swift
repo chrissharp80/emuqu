@@ -72,6 +72,11 @@ final class CollectorMigrationParityTests: XCTestCase {
         reanalysisService: collector.reanalysisService
     )
     private var seededIds: [UUID] = []
+    /// The host app's own values of the flags, put back after each test. The
+    /// flags live in the host's standard defaults, so clearing them for good
+    /// would make the host re-run all three migrations against the user's
+    /// real archive on its next launch.
+    private var savedMigrationFlags: [String: Bool] = [:]
 
     override func setUp() async throws {
         try await super.setUp()
@@ -85,7 +90,7 @@ final class CollectorMigrationParityTests: XCTestCase {
         }
         seededIds = []
         try? FileManager.default.removeItem(at: tempDir)
-        clearMigrationFlags()
+        restoreMigrationFlags()
         try await super.tearDown()
     }
 
@@ -228,10 +233,26 @@ final class CollectorMigrationParityTests: XCTestCase {
 
     // MARK: - Helpers
 
+    /// Saves the host's values of the flags, then clears them.
     private func clearMigrationFlags() {
         let defaults = UserDefaults.standard
+        savedMigrationFlags = [:]
         for key in migrationFlagKeys {
+            if let value = defaults.object(forKey: key) as? Bool { savedMigrationFlags[key] = value }
             defaults.removeObject(forKey: key)
+        }
+    }
+
+    /// Puts back the values `clearMigrationFlags` saved; a flag the host did
+    /// not have is removed again.
+    private func restoreMigrationFlags() {
+        let defaults = UserDefaults.standard
+        for key in migrationFlagKeys {
+            if let value = savedMigrationFlags[key] {
+                defaults.set(value, forKey: key)
+            } else {
+                defaults.removeObject(forKey: key)
+            }
         }
     }
 

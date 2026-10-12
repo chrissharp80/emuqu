@@ -403,21 +403,7 @@
      "effect": "true: runs sport-scoped tick work; false: skipped"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "The interval controller is ticked every second even while the workout is paused (manual or auto): IntervalController.tick measures step time by wall clock (Date() - stepStartAt), so a timed interval step keeps elapsing and can advance/announce the next step during a pause or traffic-light auto-pause.",
-     "evidence": [
-      "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift:185",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift:60",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift:62",
-      "Emuqu/Sources/Collection/IntervalController.swift:86",
-      "Emuqu/Sources/Collection/IntervalController.swift:87"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.streamedRRPoints": "e1584f9930f839e0",
     "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.advanceIntervalPlanUnlessPaused()": "23cd27e21f9adfe9",

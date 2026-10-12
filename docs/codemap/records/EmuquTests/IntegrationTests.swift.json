@@ -318,8 +318,8 @@
   },
   {
    "key": "func IntegrationTests.testSleepFetchWindowExtendsToMorningCutoffForOvernight()",
-   "hash": "21d8f494f08e99a1",
-   "does": "Builds an overnight session and asserts sleepFetchWindow keeps the start, ends at schedule.morningCutoff(relativeTo: start) and ends after the session end.",
+   "hash": "106e27a6dd4b4ecf",
+   "does": "Builds an overnight session from 23:00 to 03:00 the next morning (asserting the fixture ends after it starts) and asserts sleepFetchWindow keeps the start, ends at schedule.morningCutoff(relativeTo: start) (the 06:00 wake + 4 h) and so ends after the recording's end.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "EmuquTests/IntegrationTests.swift::func IntegrationTests.makeSession(start:end:state:type:)",
@@ -333,27 +333,14 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "med",
-     "text": "The fixture ends before it starts: start = anchor+23 h, end = anchor+3 h (same day), so the session has a negative duration and 'window.end > end' holds trivially; the post-recording extension case it names is never really exercised.",
-     "evidence": [
-      "EmuquTests/IntegrationTests.swift:281",
-      "EmuquTests/IntegrationTests.swift:282",
-      "EmuquTests/IntegrationTests.swift:295"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/SessionMetadata+RecoveryPeriod.swift::func HRVSession.recoveryPeriodWindow(for:allSessions:sleepSchedule:mergeGapSeconds:)": "0c8c8d81222f9ca5",
     "Emuqu/Sources/Models/SessionMetadata+RecoveryPeriod.swift::func HRVSession.sleepFetchWindow(for:allSessions:sleepSchedule:mergeGapSeconds:)": "50e00d94698b0f93",
     "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
     "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.morningCutoff(forNightStartingAt:)": "4a8f97c3e296dfd5",
     "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.morningCutoff(relativeTo:)": "7ac0de5624e8f303",
-    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "248d2d6037a937bb",
-    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "e588edb386542ebf",
     "EmuquTests/IntegrationTests.swift::func IntegrationTests.makeSession(start:end:state:type:)": "6bcd0d6f5fcebab0"
    }
   },

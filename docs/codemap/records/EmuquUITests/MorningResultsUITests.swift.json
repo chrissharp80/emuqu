@@ -154,8 +154,8 @@
   },
   {
    "key": "func MorningResultsUITests.testTheScoreCardShowsANumericScore()",
-   "hash": "d1ecc37051a46ac5",
-   "does": "Opens the seeded reading, asserts the score ring exists, and asserts its accessibility label matches '.*[0-9]+.*'.",
+   "hash": "1e219e40ba4bdfeb",
+   "does": "Opens the seeded reading, asserts the score ring exists, splits its accessibility label into ASCII digit runs and asserts there are exactly two (the score and the scale's 100) with the first within 0–100, so a missing or placeholder score fails although the label always says \"out of 100\".",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "EmuquUITests/MorningResultsUITests.swift::func MorningResultsUITests.openSeededReading()",
@@ -166,19 +166,7 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "med",
-     "text": "Tautological: the ring's label is always 'Recovery score: <score> out of 100, <verdict>' (MorningResultsView+DetailCards.swift:82), so the literal '100' satisfies the digit regex whatever the score renders as; a missing or placeholder score still passes, defeating the NaN check the doc describes",
-     "evidence": [
-      "EmuquUITests/MorningResultsUITests.swift:115",
-      "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift:82",
-      "EmuquUITests/MorningResultsUITests.swift:98"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
     "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68",
@@ -298,7 +286,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
-    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.dashboardRoot": "5fdc71f029ac6f55",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.dashboardRoot": "1f05f416ecad4647",
     "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
     "EmuquUITests/EmuquUITests.swift::func UITestNav.selectTab(_:identifier:title:attempts:)": "22e67274e9187b00",
     "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"

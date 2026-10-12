@@ -265,9 +265,11 @@ extension VoiceConversationController {
     /// thing to wait for is a typed reply streaming in the chat, and no voice
     /// event would drain the queue, so the end of that reply drains it.
     @MainActor
-    private func queueTrigger(_ trigger: PendingTrigger) {
-        pendingTriggers.append(trigger)
-        capPendingTriggers()
+    private func queueTrigger(_ trigger: VoiceTriggerQueue.Trigger) {
+        let dropped = pendingTriggers.enqueue(trigger)
+        if dropped > 0 {
+            debugLog("[VoiceConv] dropped \(dropped) stale pending trigger(s) — queue cap=\(VoiceTriggerQueue.capacity)", level: .warning)
+        }
         debugLog("[VoiceConv] trigger queued — voice starting or user/AI busy, will play after (queue=\(pendingTriggers.count))")
         if state == .idle { drainWhenTypedReplyEnds() }
     }
@@ -285,21 +287,6 @@ extension VoiceConversationController {
             controller.drainPendingTriggersIfIdle()
         })
         assistantObservers.append(handle)
-    }
-
-    /// Cap pendingTriggers to 8. If the user holds a long chat turn
-    /// while triggers fire faster than they can drain, the queue
-    /// would grow unbounded — each entry holds a full prompt
-    /// string. Drop oldest interjections when over: by the time we
-    /// drain, anything more than ~8 alerts old is stale anyway.
-    @MainActor
-    func capPendingTriggers() {
-        let maxPending = 8
-        if pendingTriggers.count > maxPending {
-            let drop = pendingTriggers.count - maxPending
-            pendingTriggers.removeFirst(drop)
-            debugLog("[VoiceConv] dropped \(drop) stale pending trigger(s) — queue cap=\(maxPending)", level: .warning)
-        }
     }
 
     @MainActor
@@ -566,9 +553,7 @@ extension VoiceConversationController {
     /// as the in-flight response completes.
     @MainActor
     func drainPendingTriggersIfIdle() {
-        guard !pendingTriggers.isEmpty else { return }
-        guard !isBusyWithUserResponse() else { return }
-        let next = pendingTriggers.removeFirst()
+        guard !pendingTriggers.isEmpty, !isBusyWithUserResponse(), let next = pendingTriggers.popFirst() else { return }
         switch next {
         case .spokenLiteral(let msg):
             playSpokenTriggerNow(message: msg)

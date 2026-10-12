@@ -303,9 +303,9 @@
   },
   {
    "key": "var VitalsDetailV2View.body",
-   "hash": "a8ebecd054f2ad92",
-   "does": "SwiftUI body: ScrollView of banner, rows, trend chart and why-card, \"Vitals\" title, .task keyed on latestOvernight?.id running refreshVitals.",
-   "entry": "SwiftUI View.body; .task(id:) on appear and when the latest overnight changes",
+   "hash": "c8c684c7747af1a4",
+   "does": "SwiftUI body: ScrollView of banner, rows, trend chart and why-card, \"Vitals\" title, .task keyed on latestOvernight?.id running refreshVitals, and refreshVitals again whenever HealthKit delivers new vitals (MorningCoordination.vitalsDataVersion changes).",
+   "entry": "SwiftUI View.body; .task(id:) on appear and when the latest overnight changes; onChange(of: collector.morningCoordination.vitalsDataVersion)",
    "calls": [
     "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.statusBanner",
     "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.rowsSection",
@@ -316,10 +316,17 @@
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [
-    "mem:LanguageManager.shared.bundle"
+    "mem:LanguageManager.shared.bundle",
+    "mem:MorningCoordination.vitalsDataVersion"
    ],
    "writes": [],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+17",
+     "cond": "vitalsDataVersion changed",
+     "effect": "Task refreshVitals()"
+    }
+   ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",

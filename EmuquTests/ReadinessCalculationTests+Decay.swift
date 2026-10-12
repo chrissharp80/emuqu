@@ -125,24 +125,30 @@ extension ReadinessCalculationTests {
         )
     }
 
-    func testATLDissipationCappedAt15() {
-        // Massive ATL drop (morningATL=100, current=10) but bonus caps at 15.
-        let readiness = RecoveryScoreCalculator.calculateReadiness(
-            recoveryScore: 60,
-            todayTrimp: 0,
-            ctl: 50,
-            atl: 10,
-            morningATL: 100,
-            acuteChronicRatio: nil
-        )
-        // Base: ratio 0.2 → ~96, bonus capped at 15 → 100 (clamped)
-        XCTAssertLessThanOrEqual(
-            readiness,
-            100,
-            "ATL dissipation bonus should be capped at 15 points"
-        )
-        // Without the bonus cap, readiness would be 96 + 90 = 186.
-        // With cap: 96 + 15 = 111 → clamped to 100.
+    func testATLDissipationBonusIsCapped() {
+        // The bonus is freshnessGainMultiplier points per unit of ATL drop, up
+        // to freshnessGainCap. A drop far past the cap (morning ATL 100 → 10)
+        // must score exactly what a drop that just reaches the cap scores.
+        let r = RecoveryScoreConstants.Readiness.self
+        func readiness(morningATL: Double?) -> Double {
+            RecoveryScoreCalculator.calculateReadiness(
+                recoveryScore: 60,
+                todayTrimp: 0,
+                ctl: 50,
+                atl: 10,
+                morningATL: morningATL,
+                acuteChronicRatio: nil
+            )
+        }
+        let hugeDrop = readiness(morningATL: 100)
+        let dropAtTheCap = readiness(morningATL: 10 + r.freshnessGainCap / r.freshnessGainMultiplier)
+
+        // Precondition: the result is not at the 0–100 clamp, which would hide
+        // an uncapped bonus.
+        XCTAssertLessThan(hugeDrop, 100)
+        XCTAssertGreaterThan(hugeDrop, readiness(morningATL: nil), "the drop must earn a bonus")
+        XCTAssertEqual(hugeDrop, dropAtTheCap, accuracy: 1e-6,
+                       "ATL dissipation bonus should stop at freshnessGainCap points")
     }
 
     // MARK: - Recovery Modulation

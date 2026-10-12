@@ -43,7 +43,7 @@
   {
    "key": "func ArchiveStore.moveToTrash(_:id:)",
    "hash": "cb6fc82b412ad90e",
-   "does": "Creates Trash/ if needed, removes any existing trash file for the id, moves the session file there and dates it now (modificationDate, so expireTrash ages it from the deletion when no deletion time is recorded; a failed date set is only logged); on a create/remove/move failure logs and deletes the original file instead.",
+   "does": "Creates Trash/ if needed, removes any existing trash file for the id, moves the session file there and dates it now (modificationDate, so expiredDeletionIds ages it from the deletion when no deletion time is recorded; a failed date set is only logged); on a create/remove/move failure logs and deletes the original file instead.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+Trash.swift::var ArchiveStore.trashDirectory",
@@ -171,40 +171,39 @@
    }
   },
   {
-   "key": "func ArchiveStore.expireTrash(keepDays:)",
-   "hash": "83bfe7876db13f54",
-   "does": "Discards every trashed file whose age, measured from this device's recorded deletion time or else the file's modification date (set to the deletion moment by moveToTrash), exceeds keepDays (default 90). Called from launch housekeeping.",
+   "key": "func ArchiveStore.expiredDeletionIds(keepDays:)",
+   "hash": "76249dfe71fd1add",
+   "does": "Returns every deleted session id (deletedIds ∪ trashedIds) whose age, from this device's recorded deletion time or else the trashed file's modification date (set to the deletion moment by moveToTrash), exceeds keepDays (default 90); an id with neither date counts as now and is never returned. Pure query: the launch housekeeping job permanently deletes each one.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Storage/Archive+Internal.swift::var ArchiveStore.deletedIds",
     "Emuqu/Sources/Storage/Archive+Trash.swift::var ArchiveStore.trashedIds",
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.deletionTime(of:)",
-    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.trashFileDate(_:)",
-    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.discardTrashed(_:)"
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.trashFileDate(_:)"
    ],
    "reads": [
+    "mem:SessionArchive.deletedSessionIds (locked)",
     "file:<archiveDirectory>/Trash/<uuid>.session",
     "ud:archive.deletionTimes"
    ],
-   "writes": [
-    "file:<archiveDirectory>/Trash/<uuid>.session"
-   ],
+   "writes": [],
    "branches": [
     {
      "at": "+2",
-     "cond": "for each trashed id where its date < cutoff",
-     "effect": "discardTrashed"
+     "cond": "each deleted or trashed id with date < cutoff",
+     "effect": "included"
     },
     {
-     "at": "+2",
+     "at": "+3",
      "cond": "deletionTime nil (?? trashFileDate) and trashFileDate nil (?? Date())",
-     "effect": "fall back to file mtime; if that is unreadable use now, so the file is kept"
+     "effect": "falls back to file mtime; if none, now, so the id is kept"
     }
    ],
    "flags": [
     {
      "kind": "fragile",
      "sev": "low",
-     "text": "Files trashed before moveToTrash dated them keep the session's last-write date; without a recorded deletion time such a file of an old session is still discarded at the next launch rather than after 90 days.",
+     "text": "Files trashed before moveToTrash dated them keep the session's last-write date; without a recorded deletion time such a file of an old session is still expired at the next launch rather than after 90 days.",
      "evidence": [
       "Emuqu/Sources/Storage/Archive+Trash.swift"
      ]
@@ -212,7 +211,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.deletionTime(of:)": "321394cc916f6032",
-    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.discardTrashed(_:)": "92307549c8d57283",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::var ArchiveStore.deletedIds": "7828e04f3b31abf9",
     "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.trashFileDate(_:)": "47f0b3c2c17a24fc",
     "Emuqu/Sources/Storage/Archive+Trash.swift::var ArchiveStore.trashedIds": "160713aed5eced1c"
    }

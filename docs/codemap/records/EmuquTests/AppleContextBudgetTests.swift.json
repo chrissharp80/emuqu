@@ -149,15 +149,15 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.ToolOutputAllowance.admit(_:)": "b103ed0a1fd6fcd7",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.ToolOutputAllowance.admit(_:)": "abe88f24be3ad452",
     "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)": "beb08099bb36f9f4",
     "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::init AppleContextCompactor.ToolOutputAllowance(remaining:perCallCap:)": "c723e52520b1bdce"
    }
   },
   {
    "key": "func AppleContextBudgetTests.testSmallResultPassesThroughWhole()",
-   "hash": "ec5ea5e43b2dba77",
-   "does": "Asserts a small result passes through admit unchanged and remaining drops by exactly its estimated tokens.",
+   "hash": "5787cba9e603f795",
+   "does": "Asserts a small result passes through admit unchanged and remaining drops by exactly its estimated tokens plus Compactor.entryOverhead (the role marker admit charges).",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::init AppleContextCompactor.ToolOutputAllowance(remaining:perCallCap:)",
@@ -169,15 +169,15 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.ToolOutputAllowance.admit(_:)": "b103ed0a1fd6fcd7",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.ToolOutputAllowance.admit(_:)": "abe88f24be3ad452",
     "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)": "beb08099bb36f9f4",
     "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::init AppleContextCompactor.ToolOutputAllowance(remaining:perCallCap:)": "c723e52520b1bdce"
    }
   },
   {
    "key": "func AppleContextBudgetTests.testAllowanceCountsWhatTheTurnSpent()",
-   "hash": "401c271958a34509",
-   "does": "Charges a tool call, admits a large result then a spent note, and asserts allowance.spent equals call+overhead+result+note+overhead.",
+   "hash": "d2a8c18d1ef7d900",
+   "does": "Charges a tool call, admits a large result then a spent note, and asserts allowance.spent equals call+overhead + result+overhead + note+overhead (admit and charge each add Compactor.entryOverhead).",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::init AppleContextCompactor.ToolOutputAllowance(remaining:perCallCap:)",
@@ -190,7 +190,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.ToolOutputAllowance.admit(_:)": "b103ed0a1fd6fcd7",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.ToolOutputAllowance.admit(_:)": "abe88f24be3ad452",
     "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.ToolOutputAllowance.charge(_:)": "38fbbdbd95349b2c",
     "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)": "beb08099bb36f9f4",
     "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::init AppleContextCompactor.ToolOutputAllowance(remaining:perCallCap:)": "c723e52520b1bdce"

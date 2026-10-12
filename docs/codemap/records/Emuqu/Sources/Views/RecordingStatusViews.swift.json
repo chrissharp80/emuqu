@@ -325,16 +325,6 @@
    ],
    "flags": [
     {
-     "kind": "fragile",
-     "sev": "med",
-     "text": "The readout is now wall clock, but the battery-hours figure (recordRecordingHours at gather/stop, RRCollector+OvernightGather / +OvernightStreaming) is still derived from the 1 Hz tick counter streamingElapsedSeconds, which misses every second the app is suspended between BLE deliveries, so the strap battery provenance under-counts recording hours (handoff to the collector).",
-     "evidence": [
-      "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift:641",
-      "Emuqu/Sources/Collection/RRCollector+OvernightGather.swift:101"
-     ],
-     "found": "fix batch b24"
-    },
-    {
      "kind": "spec-mismatch",
      "sev": "low",
      "text": "User's Manual says overnight elapsed time is shown in HH:MM:SS format; code shows MM:SS until the first hour and H:MM:SS (unpadded hour) after.",

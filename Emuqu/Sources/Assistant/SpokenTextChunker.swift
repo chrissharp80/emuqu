@@ -72,7 +72,7 @@ final class SpokenTextChunker {
     /// buffered character (the fraction may arrive in the next delta).
     /// Cutting there would speak "42." and "3" as two utterances. A "."
     /// followed by a letter ("polar.com", "e.g") is not an ender either, and
-    /// no ".", "!" or "?" inside a link or URL is ("https://x.com/a?b=1",
+    /// no ".", "!" or "?" inside a link or URL is (the "?" of "/a?b=1",
     /// "[Why?](…)"): cutting a markdown link inside it left a half link the
     /// markdown stripping no longer recognised, and the voice read the
     /// brackets and the address aloud. A newline always ends a chunk.

@@ -151,40 +151,27 @@
   },
   {
    "key": "func DynamicTypeAX5UITests.testTabBarRemainsUsableAtAX5()",
-   "hash": "37ee8d7e144f0dd0",
-   "does": "Taps the disclaimer if hittable, asserts the tab bar exists, at least 3 tab buttons, and each is >=44x44 and intersects the screen.",
+   "hash": "4fd20af093a8e34c",
+   "does": "Walks every first-run gate with UITestLaunch.toMainUI (disclaimer, onboarding, paywall) and asserts it reports the tab bar reachable (no gate left over it, hittable), then asserts at least 3 tab buttons and that each is >=44x44 and intersects the screen.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
-    "EmuquUITests/DynamicTypeAX5UITests.swift::func DynamicTypeAX5UITests.dismissDisclaimerIfPresent()",
-    "EmuquUITests/DynamicTypeAX5UITests.swift::func DynamicTypeAX5UITests.assertUsableTarget(_:named:)",
-    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)",
+    "EmuquUITests/DynamicTypeAX5UITests.swift::func DynamicTypeAX5UITests.assertUsableTarget(_:named:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+9",
+     "at": "+8",
      "cond": "for each tab button that exists",
      "effect": "assert usable target"
     }
    ],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "med",
-     "text": "Only the disclaimer is dismissed; the onboarding walk-through that follows on a fresh install is never walked, and the tab bar exists in the hierarchy under that cover (EmuquUITests.swift:593-596), so the test passes without the tab bar ever being reachable at AX5",
-     "evidence": [
-      "EmuquUITests/DynamicTypeAX5UITests.swift:121",
-      "EmuquUITests/EmuquUITests.swift:593"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
     "EmuquUITests/DynamicTypeAX5UITests.swift::func DynamicTypeAX5UITests.assertUsableTarget(_:named:)": "10620a1e9034251a",
-    "EmuquUITests/DynamicTypeAX5UITests.swift::func DynamicTypeAX5UITests.dismissDisclaimerIfPresent()": "68b04e539edf0f90",
-    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)": "747ec38364b540cd"
    }
   },
   {
@@ -250,35 +237,6 @@
    ],
    "deps": {
     "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6"
-   }
-  },
-  {
-   "key": "func DynamicTypeAX5UITests.dismissDisclaimerIfPresent()",
-   "hash": "886185943f5d2631",
-   "does": "Waits up to 20s for disclaimer.agree; if present reveals it and taps it when hittable. No assertion.",
-   "entry": null,
-   "calls": [
-    "EmuquUITests/DynamicTypeAX5UITests.swift::func DynamicTypeAX5UITests.scrollToReveal(_:)",
-    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "agree button absent",
-     "effect": "return"
-    },
-    {
-     "at": "+4",
-     "cond": "agree hittable",
-     "effect": "tap; else leave it (button may also be disabled until scrolled)"
-    }
-   ],
-   "flags": [],
-   "deps": {
-    "EmuquUITests/DynamicTypeAX5UITests.swift::func DynamicTypeAX5UITests.scrollToReveal(_:)": "0622e50ef17aa8bf",
-    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
    }
   }
  ],

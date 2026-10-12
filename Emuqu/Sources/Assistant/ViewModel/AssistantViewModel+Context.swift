@@ -242,19 +242,29 @@ extension AssistantViewModel {
         timeoutSec: UInt64
     ) async -> String? {
         do {
-            return try await withThrowingTaskGroup(of: String.self) { group in
-                group.addTask { try await drainTextDeltas(stream) }
-                group.addTask {
-                    try await Task.sleep(nanoseconds: timeoutSec * 1_000_000_000)
-                    throw AIProviderError.cancelled
-                }
-                let first = try await group.next()
-                group.cancelAll()
-                return first
-            }
+            return try await drainRacingTimeout(stream, timeoutSec: timeoutSec)
         } catch {
             debugLog("[Assistant] background provider call failed or timed out after \(timeoutSec) s: \(error.localizedDescription)", level: .warning)
             return nil
+        }
+    }
+
+    /// Race the drain against a `timeoutSec` sleep: the first to finish wins
+    /// and the other is cancelled. The sleep winning throws
+    /// `AIProviderError.cancelled`; a stream error is rethrown.
+    private static func drainRacingTimeout(
+        _ stream: AsyncThrowingStream<AIStreamEvent, Error>,
+        timeoutSec: UInt64
+    ) async throws -> String? {
+        try await withThrowingTaskGroup(of: String.self) { group in
+            group.addTask { try await drainTextDeltas(stream) }
+            group.addTask {
+                try await Task.sleep(nanoseconds: timeoutSec * 1_000_000_000)
+                throw AIProviderError.cancelled
+            }
+            let first = try await group.next()
+            group.cancelAll()
+            return first
         }
     }
 

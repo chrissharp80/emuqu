@@ -21,33 +21,24 @@
   },
   {
    "key": "§ Runbook: Incident Response > A. AI provider outage / breaking change",
-   "hash": "14fcb14c017072ca",
-   "does": "Claims the per-provider kill switch lives in FeatureFlags (Settings -> Flo), is per-device with no remote config, so a provider can be disabled for everyone only by shipping a build; providers live in Sources/Assistant/Providers/ and implement a small AIProvider protocol. Code matches: FeatureFlags keys providerOpenAIEnabled..providerDeepSeekEnabled in app-group defaults (Constants+SleepAndDisplay.swift:422-475), protocol AIProvider at Emuqu/Sources/Assistant/Providers/AIProvider.swift:494.",
+   "hash": "d7eab892958e0747",
+   "does": "Claims the per-provider kill switch lives in FeatureFlags (Settings -> Flo), is per-device with no remote config, so a provider can be disabled for everyone only by shipping a build, and that changing the default is not enough because FeatureFlags.value(for:) returns a stored value over defaultValue and the Settings toggle stores an explicit Bool on every flip, so the build must also ignore or clear the stored key or disable the provider in code; providers live in Sources/Assistant/Providers/ and implement a small AIProvider protocol. Code matches: FeatureFlags.value(for:)/set(_:for:) (Constants+SleepAndDisplay.swift:402-420), AIAssistantSettingsPage.bindingFor(flag:) setter calls set.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift::func FeatureFlags.value(for:)",
     "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift::var FeatureFlags.Key.defaultValue",
-    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.isEnabled(_:)"
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.isEnabled(_:)",
+    "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift::func FeatureFlags.set(_:for:)",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::func AIAssistantSettingsPage.bindingFor(flag:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "A build that changes a provider's FeatureFlags default does not turn the provider off for every user: FeatureFlags.value(for:) returns the stored UserDefaults value whenever one exists and uses defaultValue only when nothing is stored, and the Settings -> Flo toggle writes an explicit Bool on every flip. Anyone who ever toggled that provider (off then back on) keeps an explicit true, so the shipped default-off build leaves the provider enabled on their device. The runbook's 'a build is the only way to turn it off for everyone' is therefore insufficient; the build must also clear or override the stored key.",
-     "evidence": [
-      "docs/runbooks/incident-response.md:18",
-      "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift:482",
-      "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift:492",
-      "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift:68"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.isEnabled(_:)": "4d1d71f3bef78e55",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::func AIAssistantSettingsPage.bindingFor(flag:)": "6d79ab08d5b80831",
+    "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift::func FeatureFlags.set(_:for:)": "5a8afd1a67fff2fb",
     "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift::func FeatureFlags.value(for:)": "a2781a86fccf2cac",
     "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift::var FeatureFlags.Key.defaultValue": "6904ac00f3193e7f"
    }
@@ -160,15 +151,21 @@
   },
   {
    "key": "§ Runbook: Incident Response > F. Privacy / leak suspicion",
-   "hash": "4c32072e42f273e4",
-   "does": "Privacy-leak triage: treat as P0; verify AppFactResolver sends only aggregates (no raw RR or sample timestamps); verify ProviderConsentTracker gates provider calls; pull the diagnostic log via More -> Settings -> Troubleshooting -> Export Diagnostic Log; if real, ship a build with that provider's FeatureFlags default off and update SECURITY.md. Code: the only rrSeries use in Facts is nadirWallClock deriving one timestamp (AppFactResolver+Sleep.swift:412-418); consent gate consentGateAllowsDispatch runs before dispatch; Export Diagnostic Log button at SettingsPages+DiagnosticActions.swift:53; SECURITY.md lives at .github/SECURITY.md.",
+   "hash": "3eb836a8d5567fd2",
+   "does": "Privacy-leak triage: treat as P0; verify AppFactResolver sends only aggregates; verify ProviderConsentTracker gates provider calls; step 4 says the exported diagnostic log cannot show what was sent (PHI-scrubbed, no payloads) and points to LLMRequestAudit (last 10 chat-loop requests, in memory, lost on quit; summaries, fact extraction and voice interjections not recorded), read via Troubleshooting with Advanced Diagnostics on -> AI prompt audit and shared from the detail screen; if real, ship a build that turns the provider off, noting a default-off flag alone is not enough because a stored value wins, then update SECURITY.md. Code: LLMRequestAudit maxEntries 10, not persisted (LLMRequestAudit.swift:3-31); the audit section shows only with debugModeEnabled (SettingsPages+Diagnostics.swift:67-75); LLMPromptAuditDetailView has a ShareLink; DebugLogger.scrubPHI; FeatureFlags.value(for:) prefers the stored value.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.consentGateAllowsDispatch(provider:voiceMode:)",
     "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.exportLogButton",
     "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift::func FeatureFlags.value(for:)",
-    "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift::func FeatureFlags.set(_:for:)"
+    "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift::func FeatureFlags.set(_:for:)",
+    "Emuqu/Sources/Assistant/Facts/LLMRequestAudit.swift::func LLMRequestAudit.record(provider:model:systemPrompt:messagesJSON:toolsJSON:)",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.developerSections",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.aiPromptAuditSection",
+    "Emuqu/Sources/Views/LLMPromptAuditView.swift::var LLMPromptAuditDetailView.shareToolbarItem",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.scrubPHI(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.exportToFileAsync()"
    ],
    "reads": [],
    "writes": [],
@@ -183,46 +180,26 @@
       ".github/SECURITY.md"
      ],
      "found": "first read, upheld on second"
-    },
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "A build that changes a provider's FeatureFlags default does not turn the provider off for every user: FeatureFlags.value(for:) returns the stored UserDefaults value whenever one exists and uses defaultValue only when nothing is stored, and the Settings -> Flo toggle writes an explicit Bool on every flip. Anyone who ever toggled that provider (off then back on) keeps an explicit true, so the shipped default-off build leaves the provider enabled on their device. Step 5's 'a build is the only way to turn it off for everyone' is therefore insufficient; the build must also clear or override the stored key.",
-     "evidence": [
-      "docs/runbooks/incident-response.md:180",
-      "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift:482",
-      "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift:492",
-      "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift:68"
-     ],
-     "found": "second read"
-    },
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "Step 4 says the exported diagnostic log confirms what was actually sent to the provider. Export Diagnostic Log shares only the debugLogger file (DiagnosticLogExport -> debugLogger.exportToFileAsync), whose lines are PHI-scrubbed (health values replaced with <redacted>) and which never logs request payloads. The record of what was sent is LLMRequestAudit: an in-memory FIFO of 10 entries, lost on relaunch, viewable only in LLMPromptAuditView and not part of any export. An operator following the runbook cannot confirm or rule out a leak from the artifact it names.",
-     "evidence": [
-      "docs/runbooks/incident-response.md:176",
-      "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift:413",
-      "Emuqu/Sources/Utilities/DebugLog.swift:295",
-      "Emuqu/Sources/Assistant/Facts/LLMRequestAudit.swift:28",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift:246",
-      "Emuqu/Sources/Views/LLMPromptAuditView.swift:4"
-     ],
-     "found": "second read"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Assistant/Facts/LLMRequestAudit.swift::func LLMRequestAudit.record(provider:model:systemPrompt:messagesJSON:toolsJSON:)": "7d4a9916a0cef544",
     "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)": "b36a2b8ea48a5e61",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.consentGateAllowsDispatch(provider:voiceMode:)": "f33ba78443fc59ea",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.consentGateAllowsDispatch(provider:voiceMode:)": "8f3ebec1754d08b5",
     "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift::func FeatureFlags.set(_:for:)": "5a8afd1a67fff2fb",
     "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift::func FeatureFlags.value(for:)": "a2781a86fccf2cac",
-    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.exportLogButton": "133cf41dd056ae19"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.exportToFileAsync()": "9a89afa792ea197c",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.scrubPHI(_:)": "1ce9d44bc1dd4c98",
+    "Emuqu/Sources/Views/LLMPromptAuditView.swift::var LLMPromptAuditDetailView.shareToolbarItem": "194eda71ad3390ed",
+    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.exportLogButton": "cb60546e391b24fd",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.aiPromptAuditSection": "08eb3b53bcf6c126",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.developerSections": "828616a191fb03e5"
    }
   },
   {
    "key": "§ Runbook: Incident Response > G. CVE against a transitive dependency you cannot bump",
-   "hash": "661aceec56b18989",
-   "does": "Transitive-dependency CVE playbook: Zip arrives via polar-ble-sdk, yyjson and swift-* via WhisperKit; establish reachability, ship a build with the path off (no runtime flag for the sensor path; voice degrades to typed input), file upstream, bump by hand because Dependabot open-pull-requests-limit: 0 blocks version PRs only. Package.resolved lists polar-ble-sdk, whisperkit, yyjson, zip and swift-* packages; .github/dependabot.yml:24,36 sets open-pull-requests-limit: 0.",
+   "hash": "b04612b4795bdf25",
+   "does": "Transitive-dependency CVE playbook: Zip and swift-protobuf arrive via polar-ble-sdk (BLE sensor path), yyjson and the other swift-* packages via WhisperKit (voice path), the same split scripts/generate_sbom.py records (DIRECT comment, generate_sbom.py:32-35); establish reachability, ship a build with the path off (no runtime flag for the sensor path; voice degrades to typed input), file upstream, bump by hand because Dependabot open-pull-requests-limit: 0 blocks version PRs only. Package.resolved lists polar-ble-sdk, whisperkit, yyjson, zip, swift-protobuf and other swift-* packages.",
    "entry": null,
    "calls": [
     "scripts/generate_sbom.py::def build",
@@ -236,17 +213,6 @@
    "writes": [],
    "branches": [],
    "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "Runbook says the swift-* packages arrive through WhisperKit; the repo's own SBOM generator records swift-protobuf as arriving through polar-ble-sdk (with Zip). A swift-protobuf advisory triaged by this runbook would be scoped to the voice path (degrade to typed input) when the reachable consumer is the BLE sensor path, so step 2 would switch off the wrong subsystem.",
-     "evidence": [
-      "docs/runbooks/incident-response.md:196",
-      "scripts/generate_sbom.py:33",
-      "Emuqu.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved"
-     ],
-     "found": "second read"
-    },
     {
      "kind": "spec-mismatch",
      "sev": "low",

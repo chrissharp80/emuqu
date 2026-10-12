@@ -70,7 +70,7 @@
     "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.refuseReplacingLargerBackup(_:newCount:)": "8b726bd8e45073c9",
     "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.startAppendFormat(sessionId:deviceId:existingEntry:)": "6283ed906898efe4",
     "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.updateAppendIndex(sessionId:existingEntry:beatCount:)": "b70e54d39d282e0a",
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.writeAppendData(_:to:sessionId:count:)": "2739b6d84ab91035",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.writeAppendData(_:to:sessionId:count:)": "0735881aed25fb8b",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.pointsURL(for:)": "c513933badbf2627"
    }
   },
@@ -240,12 +240,11 @@
   },
   {
    "key": "func RawRRBackup.writeAppendData(_:to:sessionId:count:)",
-   "hash": "84c1318bac9e1fd4",
-   "does": "Appends bytes via FileHandle (seekToEnd/write, closing quietly); a write that throws is truncated back to the offset it started at and rethrown, so a retried batch is not in the file twice. If the handle won't open and the file exists, rewrites existing+new; else writes the bytes as a fresh file, logging and rethrowing on failure.",
+   "hash": "c9d083d5ff3a0258",
+   "does": "Appends bytes through a FileHandle when one opens (appendThroughHandle: seek to end, write, truncate a failed write back and rethrow, close quietly). If the handle won't open and the file exists, rewrites existing+new (rewriteKeepingExisting); else writes the bytes as a fresh file with completeFileProtectionUntilFirstUserAuthentication, logging and rethrowing on failure.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.closeQuietly(_:sessionId:)",
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.truncateFailedAppend(_:to:sessionId:)",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.appendThroughHandle(_:_:sessionId:)",
     "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.rewriteKeepingExisting(_:at:sessionId:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "ext:FileHandle",
@@ -261,20 +260,15 @@
     {
      "at": "+3",
      "cond": "FileHandle opened",
-     "effect": "seek+write, close, return"
+     "effect": "appendThroughHandle (rethrows its error), return"
     },
     {
-     "at": "+8",
-     "cond": "write throws",
-     "effect": "truncate to the start offset, rethrow"
-    },
-    {
-     "at": "+14",
+     "at": "+7",
      "cond": "file exists and rewriteKeepingExisting succeeded",
      "effect": "return; false → fall through to fresh write"
     },
     {
-     "at": "+22",
+     "at": "+15",
      "cond": "fresh write failed",
      "effect": "log error and rethrow"
     }
@@ -282,10 +276,38 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/StoreKitManager.swift::func handle(_:)": "4ca4c631cc8c2212",
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.closeQuietly(_:sessionId:)": "0c1e1160b73e13ad",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.appendThroughHandle(_:_:sessionId:)": "22f28893e5dad6ca",
     "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.rewriteKeepingExisting(_:at:sessionId:)": "9a5b989efb924156",
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.truncateFailedAppend(_:to:sessionId:)": "4c7b7d1fcc8a0ec5",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func RawRRBackup.appendThroughHandle(_:_:sessionId:)",
+   "hash": "be36889bfaf90c02",
+   "does": "Seeks the open handle to its end and writes the bytes; a write that throws is truncated back to the offset it started at (truncateFailedAppend) and rethrown, so a retried batch is not in the file twice. The handle is closed quietly on every exit (defer). A throwing seekToEnd propagates.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.closeQuietly(_:sessionId:)",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.truncateFailedAppend(_:to:sessionId:)",
+    "ext:FileHandle.seekToEnd",
+    "ext:FileHandle.write(contentsOf:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<backupDir>/<uuid>_points.jsonl"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "write throws",
+     "effect": "truncate to the start offset, rethrow"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/StoreKitManager.swift::func handle(_:)": "4ca4c631cc8c2212",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.closeQuietly(_:sessionId:)": "0c1e1160b73e13ad",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.truncateFailedAppend(_:to:sessionId:)": "4c7b7d1fcc8a0ec5"
    }
   },
   {

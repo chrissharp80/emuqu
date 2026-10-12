@@ -158,9 +158,24 @@
    }
   },
   {
+   "key": "var SessionArchive.hasCompleteIndex",
+   "hash": "c40bcbc1f6f4650a",
+   "does": "Under archiveLock, true unless index.json failed to read (indexReadFailed) or read but did not decode this launch (indexDecodeFailed); false means an empty in-memory index is 'unknown', not 'no history'.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:SessionArchive.indexReadFailed",
+    "mem:SessionArchive.indexDecodeFailed"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
    "key": "func SessionArchive.loadIndex()",
-   "hash": "fc8f03d0059bef3c",
-   "does": "Loads index.json into memory: missing file → nothing; read error → keeps file, sets indexReadFailed for retry; entries decoded one by one (decodeIndex), so one this build cannot read is skipped and logged rather than failing the index; bytes that are not an index at all → index=[] and the file moved aside so boot's orphan scan re-adopts sessions.",
+   "hash": "ecbc13769fc74443",
+   "does": "Loads index.json into memory: missing file → nothing; read error → keeps file, sets indexReadFailed for retry; entries decoded one by one (decodeIndex), so one this build cannot read is skipped and logged rather than failing the index; bytes that are not an index at all → index=[], indexDecodeFailed=true and the file moved aside so boot's orphan scan re-adopts sessions.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.decodeIndex(_:)",
@@ -173,6 +188,7 @@
    "writes": [
     "mem:SessionArchive.index",
     "mem:SessionArchive.indexReadFailed",
+    "mem:SessionArchive.indexDecodeFailed",
     "mem:SessionArchive.sortedEntriesCache",
     "mem:SessionArchive.sessionIdLookup"
    ],
@@ -190,7 +206,7 @@
     {
      "at": "+14",
      "cond": "catch decode error (not an index array)",
-     "effect": "logs, index=[] (caches NOT reset), preserveUnreadableIndex"
+     "effect": "logs, index=[] (caches NOT reset), indexDecodeFailed=true, preserveUnreadableIndex"
     }
    ],
    "flags": [],
@@ -202,8 +218,8 @@
   },
   {
    "key": "func SessionArchive.mergeIndexThatFailedToLoad()",
-   "hash": "d22c71620dce417a",
-   "does": "If the launch read failed, re-reads index.json (throwing while still unreadable) and merges on-disk entries (decodeIndex, undecodable entries skipped) not already in memory and not deleted; bytes that are not an index move aside.",
+   "hash": "679713ef81c3c082",
+   "does": "If the launch read failed, re-reads index.json (throwing while still unreadable) and merges on-disk entries (decodeIndex, undecodable entries skipped) not already in memory and not deleted; bytes that are not an index move aside and set indexDecodeFailed.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.decodeIndex(_:)",
@@ -217,6 +233,7 @@
    "writes": [
     "mem:SessionArchive.index",
     "mem:SessionArchive.indexReadFailed",
+    "mem:SessionArchive.indexDecodeFailed",
     "mem:SessionArchive.sortedEntriesCache",
     "mem:SessionArchive.sessionIdLookup",
     "file:<indexFile>.unreadable_<epoch> (via preserveUnreadableIndex on decode failure)"
@@ -230,7 +247,7 @@
     {
      "at": "+11",
      "cond": "catch decode error on retry",
-     "effect": "logs, moves file aside; in-memory index kept and saved over it by the caller"
+     "effect": "logs, sets indexDecodeFailed, moves file aside; in-memory index kept and saved over it by the caller"
     }
    ],
    "flags": [],

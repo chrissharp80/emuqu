@@ -605,6 +605,17 @@ extension RecoveryScoreDetailView {
 /// the view type stays within its size budget; nothing here reads view state.
 @MainActor
 enum RecoveryDetailCopy {
+    /// `selectedSource` is an internal tag ("streaming", "internal",
+    /// "composite"), not display text.
+    static func dataSourceLabel(_ source: String) -> String {
+        switch source {
+        case "streaming": String(localized: "Streaming", bundle: LanguageManager.appBundle)
+        case "internal": String(localized: "Strap recording", bundle: LanguageManager.appBundle)
+        case "composite": String(localized: "Merged", bundle: LanguageManager.appBundle)
+        default: source
+        }
+    }
+
     /// `ScoreDetailBuilder` labels factors with fixed English identifiers;
     /// these are their catalog names.
     static func factorName(_ label: String) -> String {

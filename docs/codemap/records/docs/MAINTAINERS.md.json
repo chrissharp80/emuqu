@@ -294,44 +294,30 @@
   },
   {
    "key": "§ Emuqu — Maintainer's Guide > 3. Code-design philosophy > What NOT to do",
-   "hash": "349d73a5be2a7c7f",
-   "does": "No behavioural claim: list of forbidden practices (sweeping rewrites, new global state, new magic numbers) pointing to the REFACTOR_SPEC completion checklist.",
+   "hash": "6bb2f11ae970ca8f",
+   "does": "Lists forbidden practices (sweeping rewrites, new global state, new magic numbers) and points to the REFACTOR_SPEC completion checklist, stating CI measures only part of it: check_refactor_spec_conformance.sh covers function/property/init length, nesting depth, commented-out code and empty catches, other gates own try?, .shared and log redaction; magic numbers (no_magic_numbers is not enabled in either SwiftLint config) and the judgement items are held by review only.",
    "entry": null,
    "calls": [
     "Makefile::target spec-conformance",
-    ".github/workflows/ci.yml::step lint-and-budgets/Refactor-spec conformance (docs/REFACTOR_SPEC.md)",
     "scripts/check_refactor_spec_conformance.sh::fn measure_spec",
     "scripts/check_refactor_spec_conformance.sh::fn read_budget",
     "scripts/check_refactor_spec_conformance.sh::fn over",
     "Makefile::target budget-monotonicity",
+    ".github/workflows/ci.yml::step lint-and-budgets/Refactor-spec conformance (docs/REFACTOR_SPEC.md)",
     ".github/workflows/ci.yml::step lint-and-budgets/Debt budgets ratchet down only"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "Doc says \"no new magic numbers\" and that the Refactor Completion Checklist \"is the hard gate\"; CI measures only function length, nesting depth, commented-out code and empty catches from that checklist (check_refactor_spec_conformance.sh header), and defers magic numbers to SwiftLint, but neither .swiftlint.yml nor .swiftlint-strict.yml enables no_magic_numbers. A new magic number (or any judgement item) passes every gate, so the \"hard gate\" claim overstates enforcement.",
-     "evidence": [
-      "docs/MAINTAINERS.md:262",
-      "docs/REFACTOR_SPEC.md:403",
-      "scripts/check_refactor_spec_conformance.sh:12",
-      "scripts/check_refactor_spec_conformance.sh:25",
-      ".swiftlint.yml:16"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
-    ".github/workflows/ci.yml::step lint-and-budgets/Debt budgets ratchet down only": "7123856c78189975",
+    ".github/workflows/ci.yml::step lint-and-budgets/Debt budgets ratchet down only": "73c8ded96a9405ae",
     ".github/workflows/ci.yml::step lint-and-budgets/Refactor-spec conformance (docs/REFACTOR_SPEC.md)": "af93a701edc65875",
     "Makefile::target budget-monotonicity": "734b517fa2d98f72",
     "Makefile::target spec-conformance": "060f9ad7c55731da",
     "scripts/check_refactor_spec_conformance.sh::fn measure_spec": "509182b8a7724c89",
     "scripts/check_refactor_spec_conformance.sh::fn over": "a8abf10c9c4d580f",
-    "scripts/check_refactor_spec_conformance.sh::fn read_budget": "5b0a58754128dcf2"
+    "scripts/check_refactor_spec_conformance.sh::fn read_budget": "0bb5b672bbc299cf"
    }
   },
   {
@@ -780,8 +766,8 @@
   },
   {
    "key": "§ Emuqu — Maintainer's Guide > 7. End-to-end flows > 7.2 Overnight recording → recovery score → dashboard",
-   "hash": "045150dba933147d",
-   "does": "Claims overnight spine: RRCollector.startOvernightStreaming arms H10 internal recording as backup (never on Verity Sense), ~60 s incremental raw-RR backup; StrapLinkCoordinator gives PolarReconnectPolicy.windowSeconds (20 min, verified PolarReconnectPolicy.swift:18) before reconnectExhausted; gatherOvernightData stops/flushes/fetches internal recording; DataSourceSelector.selectBestSource internal → composite when internal has ≥5% fewer beats (compositeThresholdPercent = 5.0) → streaming → raw backup, composite gap threshold 2 s (`expectedGap + 2000`, DataSourceSelector.swift:213); HRVAnalysisPipeline.analyzeWithAutoWindow runs WindowSelector.findBestWindow over 30-70% of sleep (WindowSelection+Scoring.swift:54-57) then analyzeWithWindow; computeRecoveryScore → calculateWithBreakdown 0-100 HRV60/Sleep25/Vitals15 stored 0-10 via toTenScale; archive + archiveSignal.notifyChanged + CloudKit upload; MainTabView.startDashboardLoad reloads recentSessionsAsync(limit: 35) (dashboardSessionLoadLimit = 35, MainTabView.swift:710).",
+   "hash": "357cb3f1400587e7",
+   "does": "Claims overnight spine: RRCollector.startOvernightStreaming arms H10 internal recording as backup (never on Verity Sense), ~60 s incremental raw-RR backup; StrapLinkCoordinator gives PolarReconnectPolicy.windowSeconds (20 min) before reconnectExhausted; Stop = RecordView.stopOvernightAndApplyOutcome -> RRCollector.stopOvernightStreaming -> OvernightStreamingCoordinator.stopOvernightStreaming (end arming, stop streaming infrastructure, back up beats, download/merge/score with bounded reconnect and parallel sleep poll, fallbackToDeviceFetch for a short stream); gatherOvernightData named as the pause/recovery gather; DataSourceSelector.selectBestSource internal → composite → streaming → raw backup, composite gap threshold 2 s; HRVAnalysisPipeline.analyzeWithAutoWindow runs WindowSelector.findBestWindow over 30-70% of sleep then analyzeWithWindow; computeRecoveryScore → calculateWithBreakdown 0-100 HRV60/Sleep25/Vitals15 stored 0-10 via toTenScale; archive + archiveSignal.notifyChanged + CloudKit upload; MainTabView.startDashboardLoad reloads recentSessionsAsync(limit: 35).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::func RRCollector.startOvernightStreaming(sessionType:useDeviceInternalBackup:)",
@@ -801,7 +787,9 @@
     "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.startDashboardLoad()",
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.recentSessionsAsync(limit:)",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::func RRCollector.stopOvernightStreaming()",
-    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.stopOvernightStreaming()"
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.stopOvernightStreaming()",
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.stopOvernightAndApplyOutcome()",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.fallbackToDeviceFetch(baseSession:streamingPoints:reconnectCount:isVeritySense:)"
    ],
    "reads": [],
    "writes": [],
@@ -821,19 +809,6 @@
     },
     {
      "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "Step 3 'Stop' names gatherOvernightData() as the morning stop. The Stop path is stopOvernightStreaming() (RecordView action → RRCollector forwarder → OvernightStreamingCoordinator.stopOvernightStreaming, which downloads, merges and scores); gatherOvernightData is the pause/resume and recovery gather (its own file header says so; its only collector caller is the pause path). A maintainer debugging a bad morning score is sent to the wrong function.",
-     "evidence": [
-      "docs/MAINTAINERS.md:566",
-      "Emuqu/Sources/Views/RecordView+Actions.swift:107",
-      "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift:295",
-      "Emuqu/Sources/Collection/RRCollector+OvernightGather.swift:4",
-      "Emuqu/Sources/Collection/RRCollector+PauseResume.swift:40"
-     ],
-     "found": "second read"
-    },
-    {
-     "kind": "spec-mismatch",
      "sev": "low",
      "text": "Says the composite is used when internal has '>=5% fewer beats'; the code requires internal < streaming and a difference strictly greater than 5% of the LARGER count, so exactly 5% keeps internal.",
      "evidence": [
@@ -848,21 +823,23 @@
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeWithAutoWindow(session:sleepStartMs:wakeTimeMs:trainingContext:ansConfig:baselineStats:)": "4199736e0169638a",
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeWithWindow(session:window:flags:peakCapacity:trainingContext:ansConfig:)": "71a0b9279559af80",
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.toTenScale(_:)": "18aa103b513d602d",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingMetrics:config:ansBalance:referenceDate:)": "7f20947af6a0bf60",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "80f3df9ec13766e3",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingMetrics:config:ansBalance:referenceDate:)": "70be27c5f9044d3f",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "15efe5b42c0fbb9e",
     "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()": "47c71a985b0f7b54",
     "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.findGaps(in:)": "da584f5e541a4983",
     "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)": "aa75532f95478352",
-    "Emuqu/Sources/Collection/RRCollector+Analysis.swift::func MorningSessionPipeline.computeRecoveryScore(for:from:)": "0e6851d7bed686b8",
+    "Emuqu/Sources/Collection/RRCollector+Analysis.swift::func MorningSessionPipeline.computeRecoveryScore(for:from:)": "7a19cfe1082a0a25",
     "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.gatherOvernightData()": "0de5a6f27d744502",
-    "Emuqu/Sources/Collection/RRCollector+OvernightGather.swift::func MorningSessionPipeline.gatherOvernightData()": "195c7a78169d9671",
-    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.startOvernightStreaming(sessionType:useDeviceInternalBackup:)": "55027bd0a099d6d0",
-    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.stopOvernightStreaming()": "58ce1d84a7650bdc",
+    "Emuqu/Sources/Collection/RRCollector+OvernightGather.swift::func MorningSessionPipeline.gatherOvernightData()": "e21ccf4a0590777f",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.fallbackToDeviceFetch(baseSession:streamingPoints:reconnectCount:isVeritySense:)": "1626cb7771ca239b",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.startOvernightStreaming(sessionType:useDeviceInternalBackup:)": "65dcc3a0947a7a79",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.stopOvernightStreaming()": "d31e7e770e2026d4",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::func RRCollector.startOvernightStreaming(sessionType:useDeviceInternalBackup:)": "74f0fc14e776a9f8",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::func RRCollector.stopOvernightStreaming()": "035dae70c6cf74f8",
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.recentSessionsAsync(limit:)": "b016442b3cd5698d",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
-    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.startDashboardLoad()": "e606c117f96ee6a0"
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.startDashboardLoad()": "e606c117f96ee6a0",
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.stopOvernightAndApplyOutcome()": "fcfefd6805e324c4"
    }
   },
   {

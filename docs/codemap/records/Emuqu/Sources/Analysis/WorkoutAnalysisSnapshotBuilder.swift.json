@@ -80,15 +80,14 @@
    "flags": [
     {
      "kind": "duplicate",
-     "sev": "med",
-     "text": "HR-zone seconds are still computed two ways: this scan and the PDF's WorkoutPDFRenderer.hrZoneSeconds now both credit the first sample 1 s and cap gaps at 5 s (Alpha1ReportCards.sampleSeconds / creditedSeconds), but the on-screen ThresholdCards.hrZoneSeconds credits every gap in full (dt = max(1, offset - prev), first sample its whole offset). After a sample gap (capWorkoutSampleMemory dropping the head of a >12 h workout, or a stall) the zone card on screen disagrees with the stored snapshot and the PDF. Fix needs ThresholdCards+Cards.swift to use Alpha1ReportCards.sampleSeconds (handed off).",
+     "sev": "low",
+     "text": "The snapshot, the PDF and the on-screen zone card now credit zone time the same way (Alpha1ReportCards.sampleSeconds), but SamplePass.addZoneTime keeps its own copy of the 50/60/70/80/90 % HRmax bins instead of WorkoutPDFRenderer.hrZoneSeconds(samples:maxHR:), which ThresholdCards uses.",
      "evidence": [
-      "Emuqu/Sources/Analysis/WorkoutAnalysisSnapshotBuilder.swift:87",
-      "Emuqu/Sources/Views/ThresholdCards+Cards.swift:457",
-      "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift:340",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift:601"
+      "Emuqu/Sources/Analysis/WorkoutAnalysisSnapshotBuilder.swift:51",
+      "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift:330",
+      "Emuqu/Sources/Views/ThresholdCards+Cards.swift:378"
      ],
-     "found": "second read"
+     "found": "handoff pass h_src1"
     }
    ],
    "deps": {

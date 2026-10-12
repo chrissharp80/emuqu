@@ -1,28 +1,16 @@
 {
  "file": "EmuquTests/UserSettingsDecodeContractTests.swift",
- "hash": "635e94b61b15a32c",
- "role": "Contract tests for UserSettings Codable: empty payload decodes to init() defaults except a justified set, a populated round trip survives, malformed fields fall back, iCloud sync is opt-in, and Health-filled profile markers/backup/restore behave.",
+ "hash": "5c50fa9233caf36c",
+ "role": "Contract tests for UserSettings Codable: empty payload decodes to init() defaults except a justified set, a round trip with every stored field off its default survives (and the fixture is checked to cover every field), malformed fields fall back, iCloud sync is opt-in, and Health-filled profile markers/backup/restore behave.",
  "types": [
   "UserSettingsDecodeContractTests: class (XCTestCase) — Mirror-based field-by-field decode contract"
  ],
  "state": [
-  "mem:UserSettingsDecodeContractTests.justifiedDecodeOnlyDefaults — {sourceSchemaVersion, hasCompletedOnboarding, hasFixedTempAsymmetry}"
+  "mem:UserSettingsDecodeContractTests.justifiedDecodeOnlyDefaults — {sourceSchemaVersion, hasCompletedOnboarding, hasFixedTempAsymmetry}",
+  "mem:UserSettingsDecodeContractTests.notRoundTripped — {sourceSchemaVersion, defaultEmailRecipient, defaultEmailCC}"
  ],
- "toplevel": "justifiedDecodeOnlyDefaults is a static Set listing fields whose decode default deliberately differs from init().",
- "flags": [
-  {
-   "kind": "test-defect",
-   "sev": "med",
-   "text": "Header claims the two tests cover all ~80 fields, but init(from:) starts from self.init(), so the empty-payload test only sees fields whose explicit decode default differs from init(); the round trip sets only 10 fields to non-defaults. A field among the other ~70 that is encoded under one key and decoded under another (or never decoded) decodes back to its default in both and passes.",
-   "evidence": [
-    "EmuquTests/UserSettingsDecodeContractTests.swift:12",
-    "EmuquTests/UserSettingsDecodeContractTests.swift:33",
-    "EmuquTests/UserSettingsDecodeContractTests.swift:43",
-    "Emuqu/Sources/Models/UserSettings+Codable.swift:40"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "toplevel": "justifiedDecodeOnlyDefaults is a static Set listing fields whose decode default deliberately differs from init(); notRoundTripped lists the fields a round trip cannot carry off their default (the encoder-stamped schema version and the two legacy email fields the decoder consumes).",
+ "flags": [],
  "units": [
   {
    "key": "func UserSettingsDecodeContractTests.testEmptyPayloadDecodesToTheDesignatedDefaults()",
@@ -70,10 +58,11 @@
   },
   {
    "key": "func UserSettingsDecodeContractTests.testPopulatedSettingsSurviveARoundTrip()",
-   "hash": "6ba74e51fb3b79ec",
-   "does": "Sets 10 fields (fitness, sex, birthday, temp unit, onboarding, baselines, sleep hours, custom tags, trial start), encodes/decodes with ISO-8601 dates, and asserts only sourceSchemaVersion differs.",
+   "hash": "1c5205d9017a16ee",
+   "does": "Builds everyFieldChanged(); asserts the fields that differ from init(), plus notRoundTripped, are every stored field Mirror reports (so no field is left at its default); encodes/decodes with ISO-8601 dates and asserts only sourceSchemaVersion differs from the original.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
+    "EmuquTests/UserSettingsDecodeContractTests.swift::func UserSettingsDecodeContractTests.everyFieldChanged()",
     "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()",
     "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encode(to:)",
     "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeProfile(into:)",
@@ -97,42 +86,64 @@
     "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeOnboarding(from:)",
     "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeCoachAutomation(from:)",
     "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeExportAndPerformance(from:)",
-    "EmuquTests/UserSettingsDecodeContractTests.swift::func UserSettingsDecodeContractTests.differingFields(_:_:)",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.birthday",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.biologicalSex"
+    "EmuquTests/UserSettingsDecodeContractTests.swift::func UserSettingsDecodeContractTests.differingFields(_:_:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeAppearance(from:)": "48f3de365de0d7b6",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeAppearance(from:)": "3c5e52a4a18a2380",
     "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeCoachAutomation(from:)": "c554894787ecc263",
-    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeEmailDefaults(from:)": "f93d37e6c5e74441",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeEmailDefaults(from:)": "eaff3a7683e1deaa",
     "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeExportAndPerformance(from:)": "a7512e1a4d8d1eb1",
-    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeFitnessMarkers(from:)": "2c94de5a0a46e5da",
-    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeNotifications(from:)": "98315627512ab75e",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeFitnessMarkers(from:)": "69f107097d073e48",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeNotifications(from:)": "f63a390b56e3f955",
     "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeOnboarding(from:)": "a17b0a95de086413",
-    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeProfile(from:)": "fdc6778072b09c5a",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeProfile(from:)": "c4c5f2270bbe73f6",
     "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeRoutingMode(from:)": "73525eb31d31f472",
     "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeTrainingState(from:)": "d2c25da760eb3e7e",
     "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decoded(_:_:from:default:)": "9db47be773dc5fe1",
-    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encode(to:)": "d099425585df23ef",
-    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeAppearance(into:)": "eb7f4e94a4f0733e",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encode(to:)": "b34f5d0e5c02e7e0",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeAppearance(into:)": "053fffe8897f12e0",
     "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeCoachAutomation(into:)": "bd94abf695f537ca",
     "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeEmailDefaults(into:)": "f9c80d634f7bc9a8",
     "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeExportAndPerformance(into:)": "b2c0c38b52bd25bd",
     "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeFitnessMarkers(into:)": "ed0b137ca5428edc",
-    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeNotifications(into:)": "0bf128a4064ae7e9",
-    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeProfile(into:)": "3a60be114fde7c27",
-    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeTrainingState(into:)": "dbfbaf35b6b02d5a",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeNotifications(into:)": "ae3d00a02dffc27d",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeProfile(into:)": "062c22c44397f890",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.encodeTrainingState(into:)": "9561983b71ac9640",
     "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.optional(_:_:from:)": "f7f50a33c30ccf82",
     "Emuqu/Sources/Models/UserSettings+Codable.swift::init UserSettings(from:)": "be16736fa176d425",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "fc9f14bb70664847",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "f1ace8ba85027f38",
+    "EmuquTests/UserSettingsDecodeContractTests.swift::func UserSettingsDecodeContractTests.differingFields(_:_:)": "29e16297fb419a42",
+    "EmuquTests/UserSettingsDecodeContractTests.swift::func UserSettingsDecodeContractTests.everyFieldChanged()": "1d8d0e4f7d0a2af6"
+   }
+  },
+  {
+   "key": "func UserSettingsDecodeContractTests.everyFieldChanged()",
+   "hash": "343a8245dc671fec",
+   "does": "Test fixture: UserSettings() with every stored field except notRoundTripped set to a value other than init()'s and inside the decoder's clamps (sleep hours 7.25, merge gap 6 h, max HR 185); whole-second dates; temperature unit set to whichever of Celsius/Fahrenheit the region default is not; profileFieldsFromHealth = [.bodyWeight] set last, since setting birthday, sex or weight clears its marker.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.birthday",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.biologicalSex",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.bodyWeightKg"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.routingMode(_:)": "8a8722554b9cf157",
+    "Emuqu/Sources/Collection/HealthKitManager+HRV.swift::func HealthWriteAndObserve.exportSDNN(value:at:sessionId:)": "00a9060158c34297",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "f1ace8ba85027f38",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.biologicalSex": "55c985aa6bd25115",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.birthday": "848cd8a572666b81",
-    "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift::var ScoreBreakdownCard.temperatureUnit": "063a6053cf5ccc9d",
-    "EmuquTests/UserSettingsDecodeContractTests.swift::func UserSettingsDecodeContractTests.differingFields(_:_:)": "29e16297fb419a42"
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.bodyWeightKg": "832c4ee32f6110e2",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.watchDisplayOnlyMode()": "656f9a1305b60791",
+    "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift::var ScoreBreakdownCard.temperatureUnit": "063a6053cf5ccc9d"
    }
   },
   {

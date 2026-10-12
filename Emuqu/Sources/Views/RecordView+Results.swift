@@ -147,6 +147,17 @@ extension RecordView {
         return selected.union([ReadingTag.morning])
     }
 
+    /// Tags & Notes edited in a reading's report (morning or quick), handed
+    /// over by the report on its Done or as it closes: onto the in-memory
+    /// reading while it is still the current one (acceptance archives that
+    /// copy), and into the archived copy. The report hands them over after
+    /// the toolbar Done has started acceptance, so these writes land after
+    /// `persistTagsAndNotes`'s and the report's edits are what is kept.
+    func saveReportTags(_ tags: [ReadingTag], notes: String?, sessionId: UUID) {
+        applyTagsInMemory(tags, notes: notes, sessionId: sessionId)
+        Task { await writeTagsToArchive(sessionId, tags: tags, notes: notes) }
+    }
+
     /// Apply tags + notes onto `currentSession` when it is the session being
     /// saved.
     func applyTagsInMemory(_ tags: [ReadingTag], notes: String?, sessionId: UUID) {

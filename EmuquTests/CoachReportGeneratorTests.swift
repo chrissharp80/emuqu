@@ -33,14 +33,21 @@ final class CoachReportGeneratorTests: XCTestCase {
 
     // MARK: - Units
 
-    func testUnitsPreferenceSwitchesTheDistanceUnit() {
+    /// The fixture's 10 km must be quoted as the formatted kilometre figure
+    /// under metric and as the formatted mile figure under imperial, and never
+    /// the other way round. Matching the whole formatted distance (number and
+    /// unit) rather than a bare "mi" keeps "min" or "minutes" from passing.
+    func testUnitsPreferenceSwitchesTheDistanceUnit() throws {
+        let distance = try XCTUnwrap(makeSession().workoutMetadata?.distanceMeters)
+        let kilometres = UnitsPreference.metric.formatDistance(meters: distance)
+        let miles = UnitsPreference.imperial.formatDistance(meters: distance)
         let metric = summary(makeSession(), units: .metric)
         let imperial = summary(makeSession(), units: .imperial)
 
-        XCTAssertTrue(metric.contains("km"), "metric summary should quote kilometres")
-        XCTAssertFalse(metric.contains(" mi,"), "metric summary must not quote miles")
-        XCTAssertTrue(imperial.contains("mi"), "imperial summary should quote miles")
-        XCTAssertNotEqual(metric, imperial, "the unit preference must actually change the output")
+        XCTAssertTrue(metric.contains(kilometres), "metric summary should quote \(kilometres)")
+        XCTAssertFalse(metric.contains(miles), "metric summary must not quote \(miles)")
+        XCTAssertTrue(imperial.contains(miles), "imperial summary should quote \(miles)")
+        XCTAssertFalse(imperial.contains(kilometres), "imperial summary must not quote \(kilometres)")
     }
 
     // MARK: - Conversational summary
@@ -55,8 +62,10 @@ final class CoachReportGeneratorTests: XCTestCase {
         )
 
         XCTAssertFalse(summary.isEmpty)
-        XCTAssertFalse(summary.contains("## "), "the email body is prose — no section headings")
-        XCTAssertFalse(summary.contains("# Coach Report"), "the Markdown title belongs to the PDF report only")
+        let headings = summary.split(separator: "\n").filter {
+            $0.trimmingCharacters(in: .whitespaces).hasPrefix("#")
+        }
+        XCTAssertTrue(headings.isEmpty, "the email body is prose — no Markdown heading of any level: \(headings)")
     }
 
     func testConversationalSummaryWithoutMetadataStillReturnsSomething() {

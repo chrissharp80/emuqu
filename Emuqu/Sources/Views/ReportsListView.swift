@@ -417,63 +417,32 @@ struct ReportsListView: View {
             full.workout = archive.retrieveOrLog(inputs.workout.id) ?? inputs.workout
         }
         full.overnight = inputs.overnight.map { archive.retrieveOrLog($0.id) ?? $0 }
-        full.recentOvernight = overnights(before: inputs.overnight?.startDate ?? inputs.workout.startDate, archive: archive)
+        full.recentOvernight = ReportBaselineNights.before(inputs.overnight?.startDate ?? inputs.workout.startDate, archive: archive)
         return full
     }
 
-    /// Nights the daily loop's baseline reaches back over
-    /// (`DailyLoopAnalysis.baselineNightLimit`).
-    nonisolated private static let baselineNightCount = 60
-
-    /// The overnight sessions before the reported night, newest first, so a
-    /// past day's report is measured against the nights before it. Read
-    /// until `baselineNightCount` of them are reliable, as the auto-emailed
-    /// report does: the daily loop drops unreliable nights, and its baseline
-    /// must cover the same 60 reliable nights as the recovery score's.
-    nonisolated private static func overnights(before night: Date, archive: SessionArchive) -> [HRVSession] {
-        let entries = archive.entries
-            .filter { $0.sessionType == .overnight && $0.date < night }
-            .sorted { $0.date > $1.date }
-        var nights: [HRVSession] = []
-        var reliableCount = 0
-        for entry in entries where reliableCount < baselineNightCount {
-            guard let session = archive.retrieveLightweightOrLog(entry.sessionId) else { continue }
-            nights.append(session)
-            if session.isReliableForHRVAggregates { reliableCount += 1 }
-        }
-        return nights
-    }
-
+    /// The renders themselves are `ReportRenderer`'s, shared with the
+    /// Send-Report menu.
     nonisolated private static func renderHolistic(_ inputs: GenerationInputs, track: [CLLocation], load: TrainingLoadRegistry.TrainingLoad?) async throws {
-        let report = HolisticDailyReport(
-            workoutSession: inputs.workout,
-            workoutTrack: track,
-            overnightSession: inputs.overnight,
-            recentOvernightSessions: inputs.recentOvernight,
-            userMaxHR: inputs.maxHR,
-            userRestingHR: inputs.restingHR,
-            userLTHR: inputs.lthr,
-            units: inputs.units,
-            temperatureUnit: inputs.temperatureUnit,
-            liveLoadSnapshot: load
+        try await ReportRenderer.renderDaily(
+            workout: inputs.workout, track: track, overnight: inputs.overnight, recentOvernight: inputs.recentOvernight,
+            profile: profile(inputs), load: load, to: inputs.pdfURL
         )
-        try await report.generate(to: inputs.pdfURL)
     }
 
     nonisolated private static func renderWorkoutOnly(_ inputs: GenerationInputs, track: [CLLocation]) async throws {
-        let report = WorkoutPDFReport(
-            session: inputs.workout,
-            track: track,
-            userMaxHR: inputs.maxHR,
-            userRestingHR: inputs.restingHR,
-            userLTHR: inputs.lthr,
-            units: inputs.units
+        try await ReportRenderer.renderWorkout(inputs.workout, track: track, profile: profile(inputs), to: inputs.pdfURL)
+    }
+
+    nonisolated private static func profile(_ inputs: GenerationInputs) -> ReportRenderer.Profile {
+        ReportRenderer.Profile(
+            maxHR: inputs.maxHR, restingHR: inputs.restingHR, lthr: inputs.lthr,
+            units: inputs.units, temperatureUnit: inputs.temperatureUnit
         )
-        try await report.generate(to: inputs.pdfURL)
     }
 
     /// Recovery / HRV-only report. Source session is the overnight
-    /// HRV (held in `overnight` for this kind). Reuses the same comprehensive
+    /// HRV (held in `overnight` for this kind). The same comprehensive
     /// PDF that MorningResultsView's "Email PDF" path produces, with
     /// frozen-snapshot data only — no live HealthKit query — so a tap from the
     /// Reports list never blocks on background HK auth or async sleep fetches.
@@ -484,38 +453,11 @@ struct ReportsListView: View {
         guard let overnightSession = inputs.overnight else {
             throw ReportsListError.recoverySessionMissing
         }
-        guard let url = await recoveryPDFURL(for: overnightSession, inputs: inputs, load: load) else {
-            throw ReportsListError.recoveryGenerationFailed
-        }
-        // PDFReportGenerator writes to its own URL; move it into our
-        // deterministic temp path so the rest of the pipeline (sheet
-        // presentation, share) doesn't care which generator produced it.
-        if FileManager.default.fileExists(atPath: inputs.pdfURL.path) {
-            _ = attempt("ReportsListView.remove") { try FileManager.default.removeItem(at: inputs.pdfURL) }
-        }
-        try FileManager.default.moveItem(at: url, to: inputs.pdfURL)
-    }
-
-    /// Nonisolated, so the render runs off the main actor.
-    nonisolated private static func recoveryPDFURL(
-        for session: HRVSession, inputs: GenerationInputs, load: TrainingLoadRegistry.TrainingLoad?
-    ) async -> URL? {
-        let breakdown = session.scoreBreakdown
-        let generator = PDFReportGenerator()
-        return generator.generateReportURL(
-            for: session,
-            sleepData: session.sleepSnapshot.map { PDFReportGenerator.SleepData(from: $0) },
-            sleepTrend: nil,
-            recentSessions: inputs.recentOvernight,
-            healthKitHR: nil,
-            vitals: session.vitalsSnapshot.map { PDFReportGenerator.VitalsData(from: $0) },
-            compositeRecoveryScore: breakdown.map { Double($0.compositeScore) },
-            scoreBreakdown: breakdown,
-            baselineStats: inputs.baselineStats,
-            liveLoadSnapshot: load,
-            style: .comprehensive,
-            sections: .all
+        let rendered = try await ReportRenderer.renderRecovery(
+            overnightSession, recentOvernight: inputs.recentOvernight,
+            baselineStats: inputs.baselineStats, load: load, to: inputs.pdfURL
         )
+        guard rendered else { throw ReportsListError.recoveryGenerationFailed }
     }
 }
 

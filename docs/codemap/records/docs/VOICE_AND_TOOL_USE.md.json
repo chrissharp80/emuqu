@@ -25,8 +25,8 @@
   },
   {
    "key": "§ Voice Conversation & Tool Use > Adaptive routing (Quick / Auto / Deep / Manual)",
-   "hash": "282ff72790986284",
-   "does": "Claims routing acts only when Apple Intelligence is selected (TurnRouter.preTierDecision returns the user's pick otherwise, and the picker is disabled); Quick keeps typed turns on Apple; Auto uses the capability classifier and maps to consented Grok then DeepSeek, else Apple; Deep uses the same mid-tier cloud; Manual uses the picker; voice and action turns go to the first consented cloud. Verified: preTierDecision (TurnRouter.swift:155-160), TierProviderMapper.midTierProvider iterates [.grok, .deepseek] with consent (TierProviderMapper.swift:167-190), routingModePicker .disabled when non-Apple (AIAssistantSettingsPage+Sections.swift:175-184).",
+   "hash": "2e59b0010bf1c75c",
+   "does": "Claims routing acts only when Apple Intelligence is selected (TurnRouter.preTierDecision returns the user's pick otherwise, and the picker is disabled); with Apple selected the chat has no text composer (prefab chips and voice are the input), so routed text turns are chip questions; Quick keeps chip turns on Apple; Auto uses the capability classifier and maps to consented Grok then DeepSeek, else Apple; Deep uses the same mid-tier cloud; Manual uses the picker; voice and action turns go to the first consented cloud. Verified: preTierDecision (TurnRouter.swift), ChatInputBar.composer shows appleOnlyComposerHint when Apple is active (AssistantChatSupport.swift:128-134), TierProviderMapper.midTierProvider iterates [.grok, .deepseek] with consent, routingModePicker .disabled when non-Apple.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.route(inputs:)",
@@ -41,23 +41,14 @@
     "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.deepMapping(_:)",
     "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.midTierProvider(in:)",
     "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.consentedProvider(_:in:)",
-    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift::var AIAssistantSettingsPage.routingModePicker"
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift::var AIAssistantSettingsPage.routingModePicker",
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var ChatInputBar.composer",
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var ChatInputBar.prefabChips"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "Doc describes Quick/Auto/Deep routing of typed turns (classifier, action-intent override for typed 'email'/'directions' requests) while Apple is selected, but with Apple selected the chat has no text composer (only prefab chips), so free-typed turns cannot occur on the only configuration where routing runs.",
-     "evidence": [
-      "docs/VOICE_AND_TOOL_USE.md:39",
-      "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift:125",
-      "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift:478"
-     ],
-     "found": "first read, upheld on second"
-    },
     {
      "kind": "spec-mismatch",
      "sev": "low",
@@ -72,7 +63,7 @@
    "deps": {
     "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.autoMapping(_:)": "b317efb1271b6fb2",
     "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.consentedProvider(_:in:)": "cec78cb02486aed7",
-    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.deepMapping(_:)": "0241aba5ad7acbb6",
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.deepMapping(_:)": "14236e71b1e1036a",
     "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.mapping(for:registry:)": "cea711b44f092f91",
     "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.midTierProvider(in:)": "783bf94ea521500f",
     "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.quickMapping(_:)": "797c5532948ab602",
@@ -82,7 +73,9 @@
     "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.preTierDecision(inputs:)": "914e5a48e368e73f",
     "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.route(inputs:)": "6aa8195fe8c9c640",
     "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.tierDecision(inputs:)": "8f03b3e5b50f334d",
-    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift::var AIAssistantSettingsPage.routingModePicker": "34951f4d91951498"
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift::var AIAssistantSettingsPage.routingModePicker": "34951f4d91951498",
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var ChatInputBar.composer": "8c16019740c8a15f",
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var ChatInputBar.prefabChips": "6816fca7b9a95702"
    }
   },
   {
@@ -227,32 +220,21 @@
   },
   {
    "key": "§ Voice Conversation & Tool Use > Adaptive routing (Quick / Auto / Deep / Manual) > Adversarial-spend cap",
-   "hash": "2dd7d6fc7c371552",
-   "does": "Claims a daily Tier-3 ceiling of 50 turns (dailyTier3Cap) counted in memory per local date; once exceeded, further Deep proposals downgrade to Auto for the day. Verified dailyTier3Cap = 50 (SmartProviderRouter.swift:49), recordTier3UsageAndCheck (215-220) and the downgrade in TurnRouter.tierDecision (202-212).",
+   "hash": "7a34bbf11697ab9b",
+   "does": "Claims a daily Tier-3 ceiling of 50 turns (dailyTier3Cap) counting Deep turns that resolve to a cloud model, per local date in UserDefaults; once exceeded, Deep proposals downgrade to Auto for the day; states this changes only the tier label, since with Apple selected TierProviderMapper maps .deep and .auto to the same consented mid-tier cloud and model, so the cap does not limit spend. Verified dailyTier3Cap = 50 and recordTier3UsageAndCheck (SmartProviderRouter.swift:50,195-203), makeTierStageInputs counts only cloud-resolved Deep (AssistantViewModel+Routing.swift:88-101), autoMapping/deepMapping (TierProviderMapper.swift:81-101).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.recordTier3UsageAndCheck()",
     "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.dayKey(_:)",
     "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.tierDecision(inputs:)",
     "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.autoMapping(_:)",
-    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.deepMapping(_:)"
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.deepMapping(_:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.makeTierStageInputs(mode:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "The cap is described as preventing runaway spend, but routing only runs with Apple selected, where TierProviderMapper maps both .auto and .deep to the same consented mid-tier cloud (deepMapping's userChosenMapping is nil because the active provider is Apple). Downgrading Deep to Auto therefore sends the turn to the same paid provider and model; the cap changes only the tier label.",
-     "evidence": [
-      "docs/VOICE_AND_TOOL_USE.md:138",
-      "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift:80",
-      "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift:92",
-      "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift:149"
-     ],
-     "found": "first read, upheld on second"
-    },
     {
      "kind": "fragile",
      "sev": "low",
@@ -266,9 +248,10 @@
    ],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.dayKey(_:)": "570eea800f58e83b",
-    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.recordTier3UsageAndCheck()": "3ef922608ce1ed67",
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.recordTier3UsageAndCheck()": "1221909e4059a410",
     "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.autoMapping(_:)": "b317efb1271b6fb2",
-    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.deepMapping(_:)": "0241aba5ad7acbb6",
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.deepMapping(_:)": "14236e71b1e1036a",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.makeTierStageInputs(mode:)": "076e446307c74397",
     "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.tierDecision(inputs:)": "8f03b3e5b50f334d"
    }
   },
@@ -915,8 +898,8 @@
   },
   {
    "key": "§ Voice Conversation & Tool Use > Status",
-   "hash": "0ba2e55f56aeb6b4",
-   "does": "Status list: classifier 4 axes >=0.55; routing only with Apple; voice bypass; Apple tool wiring; 70%-of-4K compaction; 14 deterministic patterns; earcon; cache telemetry; <live_state> in last user tail; Anthropic cache breakpoints; sorted-keys JSON; 4-gate barge-in; 8-call budget; 30 s / 3 s timeouts; 1110/301 restart; 5 s first-partial watchdog; 45 s long-idle restart; per-turn engine restart; FactResolverRegistry rate limiter on 3rd consecutive missing, 80 KB output cap, 2 s resolver budget with 0.5 s warning; 8 catalog-validation tests; 5 composites; 2026-08 additions; deferred items. Verified firstPartialTimeoutSec 5.0, longIdleRestartSec 45.0, outputSizeCapBytes 80_000, defaultResolveBudgetSec 2.0, resolveWarnBudgetSec 0.5, <live_state> appended in Anthropic/Gemini/OpenAI-compatible providers, FactCatalogValidationTests has 8 test functions.",
+   "hash": "550901911ef01625",
+   "does": "Status list: classifier 4 axes >=0.55; routing only with Apple; voice bypass; Apple tool wiring; 70%-of-4K compaction; 14 deterministic patterns; earcon; cache telemetry; <live_state> in last user tail; Anthropic cache breakpoints; sorted-keys JSON; 4-gate barge-in; 8-call budget; 30 s / 3 s timeouts; 1110/301 restart; 5 s first-partial watchdog; 45 s long-idle restart; per-turn engine restart; FactResolverRegistry rate limiter on 3rd consecutive missing, 80 KB output cap, resolver timing warnings at 0.5 s and 2 s with the value kept; 8 catalog-validation tests; 5 composites; 2026-08 additions incl. sleep.latest/vitals.latest live HealthKit fallback with a 5 s timeout whose late answer the registry keeps; deferred items. Verified firstPartialTimeoutSec 5.0, longIdleRestartSec 45.0, outputSizeCapBytes 80_000, defaultResolveBudgetSec 2.0, resolveWarnBudgetSec 0.5, FactResolverRegistry.resolveTool/logResolveDuration keep the value (FactResolverRegistry.swift:342-412), <live_state> appended in Anthropic/Gemini/OpenAI-compatible providers, FactCatalogValidationTests has 8 test functions.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.rateLimited(signature:)",
@@ -928,51 +911,24 @@
     "EmuquTests/FactCatalogValidationTests.swift::func FactCatalogValidationTests.testCompositeDependenciesResolveToRealAtomics()",
     "EmuquTests/FactCatalogValidationTests.swift::func FactCatalogValidationTests.testSchemaSerializationIsDeterministic()",
     "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolveTool(name:argsJSON:)",
-    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.budgetOverrun(name:elapsed:)",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func SleepNamespace.sleepRecordAsync(for:userAge:typicalSleepHours:)",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func VitalsNamespace.vitalsRecordAsync(for:)"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func VitalsNamespace.vitalsRecordAsync(for:)",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.logResolveDuration(name:elapsed:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "Doc says sleep.latest / vitals.latest fall back to a LIVE HealthKit read with a 5 s timeout. Those resolvers wait up to 5 s (withTimeout(seconds: 5)), but FactResolverRegistry.resolveTool times every read entry and budgetOverrun replaces any value that took longer than 2 s with .missing(.internalError). A live HealthKit answer arriving between 2 and 5 s is computed and then thrown away, so the model reports the night's sleep/vitals as missing. The same applies to vitals.hr_now (5 s) and other read resolvers with 3 s or 8 s waits.",
-     "evidence": [
-      "docs/VOICE_AND_TOOL_USE.md:936",
-      "docs/VOICE_AND_TOOL_USE.md:879",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift:234",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift:554",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift:626",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift:804",
-      "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift:365",
-      "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift:414"
-     ],
-     "found": "second read"
-    },
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Doc says resolver timeouts return .internalError on a >2 s overshoot; that applies only to read entries. Action entries (location_current, web_search, directions_routeTo, ...) only log the overrun and return their value.",
-     "evidence": [
-      "docs/VOICE_AND_TOOL_USE.md:879",
-      "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift:332"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func SleepNamespace.sleepRecordAsync(for:userAge:typicalSleepHours:)": "611312921f81aec3",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func VitalsNamespace.vitalsRecordAsync(for:)": "9082aef24d664268",
     "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.schema(registry:)": "923c2c42ab3aa043",
-    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.budgetOverrun(name:elapsed:)": "40f9e06a4cd740b9",
-    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.rateLimited(signature:)": "a7adcd082afdd54f",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.logResolveDuration(name:elapsed:)": "82a6fe1c06ed171c",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.rateLimited(signature:)": "d51081314fede1f0",
     "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolveAsync(_:)": "67e3ca45fab7d9e6",
-    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolveTool(name:argsJSON:)": "6ee535086f75f636",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolveTool(name:argsJSON:)": "41058973459b65bf",
     "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.toolSchema()": "c3f73b10a7c61e34",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.beginUserTurn()": "e7f4d2cc6fabf52d",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.beginUserTurn()": "103619e1b249fe5a",
     "EmuquTests/FactCatalogValidationTests.swift::func FactCatalogValidationTests.testCompositeDependenciesResolveToRealAtomics()": "e686888409ffa0fe",
     "EmuquTests/FactCatalogValidationTests.swift::func FactCatalogValidationTests.testNoDuplicateToolNames()": "598fa0dc695a66ca",
     "EmuquTests/FactCatalogValidationTests.swift::func FactCatalogValidationTests.testSchemaSerializationIsDeterministic()": "a592b9f480a701b5"

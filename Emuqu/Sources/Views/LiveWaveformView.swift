@@ -253,10 +253,16 @@ struct LiveStatsCard: View {
 
     private var msUnit: String { String(localized: "ms", bundle: LanguageManager.appBundle) }
 
+    /// RMSSD to the whole millisecond, or a dash while there is none yet.
+    private static func rmssdText(_ rmssd: Double?) -> String {
+        guard let rmssd else { return "—" }
+        return String(format: "%.0f", locale: LanguageManager.appLocale, rmssd)
+    }
+
     var body: some View {
         HStack(spacing: 16) {
             if let s = stats {
-                StatItem(label: "RMSSD", value: s.rmssd.map { String(format: "%.0f", locale: LanguageManager.appLocale, $0) } ?? "—", unit: msUnit)
+                StatItem(label: "RMSSD", value: Self.rmssdText(s.rmssd), unit: msUnit)
                 StatItem(label: "SDNN", value: String(format: "%.0f", locale: LanguageManager.appLocale, s.sdnn), unit: msUnit)
                 StatItem(
                     label: String(localized: "Avg HR", bundle: LanguageManager.appBundle),

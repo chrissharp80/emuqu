@@ -390,7 +390,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.captureRows": "88328e7fd9532d70",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.dataSourceRows": "f5154a8f5f455ef2",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.dataSourceRows": "9a24baa08a7ca76a",
     "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.hrRangeRow": "bfad075f4797e0e0",
     "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.nadirAtRow": "a122138df41eb3ec",
     "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.nadirRows": "bc783b06b7eb1639",
@@ -594,12 +594,12 @@
   },
   {
    "key": "var RecoveryScoreDetailView.dataSourceRows",
-   "hash": "39aca1a238be7664",
-   "does": "Streaming beats, optional device beats, and source-label rows from session.dataSourceSummary.",
+   "hash": "c16216267ddf0dbf",
+   "does": "Streaming beats, optional device beats, and source-label rows (RecoveryDetailCopy.dataSourceLabel) from session.dataSourceSummary.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.detailRow(_:value:)",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.sourceLabel(_:)"
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryDetailCopy.dataSourceLabel(_:)"
    ],
    "reads": [],
    "writes": [],
@@ -620,42 +620,7 @@
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.dataSourceSummary(_:baseSession:totalBeats:)": "79391780177697bc",
     "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.detailRow(_:value:)": "471064d87666a6a1",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.sourceLabel(_:)": "d2a1ecef57cfb843"
-   }
-  },
-  {
-   "key": "func RecoveryScoreDetailView.sourceLabel(_:)",
-   "hash": "68c9700b2694a205",
-   "does": "Maps the internal source tag to display text.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "'streaming'",
-     "effect": "'Streaming'"
-    },
-    {
-     "at": "+3",
-     "cond": "'internal'",
-     "effect": "'Strap recording'"
-    },
-    {
-     "at": "+4",
-     "cond": "'composite'",
-     "effect": "'Merged'"
-    },
-    {
-     "at": "+5",
-     "cond": "any other tag",
-     "effect": "the raw tag string shown untranslated"
-    }
-   ],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryDetailCopy.dataSourceLabel(_:)": "b11d9869c055f3ca"
    }
   },
   {

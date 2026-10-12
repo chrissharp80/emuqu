@@ -4,6 +4,26 @@ import XCTest
 /// Tests for BaselineTracker
 /// Validates baseline deviation logic and interpretation
 final class BaselineTrackerTests: XCTestCase {
+    /// Files of the trackers this test made, removed in tearDown.
+    private var trackerFiles: [URL] = []
+
+    override func tearDownWithError() throws {
+        for url in trackerFiles where FileManager.default.fileExists(atPath: url.path) {
+            try FileManager.default.removeItem(at: url)
+        }
+        trackerFiles = []
+        try super.tearDownWithError()
+    }
+
+    /// A tracker on its own empty file in the temporary directory, so no test
+    /// reads or overwrites the app's `HRVBaseline.json` or another test's data.
+    private func makeTracker() -> BaselineTracker {
+        let file = FileManager.default.temporaryDirectory
+            .appendingPathComponent("HRVBaseline-\(UUID().uuidString).json")
+        trackerFiles.append(file)
+        return BaselineTracker(baselineFile: file, onBaselineUpdated: nil)
+    }
+
     // MARK: - Baseline Configuration Tests
 
     func testBaselineWindowDays() {
@@ -24,8 +44,8 @@ final class BaselineTrackerTests: XCTestCase {
     // RMSSD. RMSSD is log-normal, so the geometric mean is the correct central
     // tendency; an arithmetic mean would sit above it (Jensen's inequality) and
     // systematically deflate every recovery score. These pin that property and
-    // the minimum-days gate. `reset()` isolates each run from any persisted
-    // HRVBaseline.json.
+    // the minimum-days gate. Each tracker starts on its own empty temporary
+    // file (`makeTracker()`), never the app's HRVBaseline.json.
 
     private let producerSchedule = SleepSchedule(bedtimeHour: 22, bedtimeMinute: 0, sleepHours: 8.0)
 
@@ -61,9 +81,7 @@ final class BaselineTrackerTests: XCTestCase {
     /// enter the rolling baseline. Its depressed RMSSD would drag the anchor
     /// down and corrupt the NEXT morning's recovery score.
     func testInsufficientSessionsExcludedFromBaseline() throws {
-        let tracker = BaselineTracker(onBaselineUpdated: nil)
-        tracker.reset()
-        defer { tracker.reset() }
+        let tracker = makeTracker()
 
         var sessions = (0 ..< 8).map { producerMockSession(daysAgo: $0, rmssd: 50) }
         // One extra day with an absurd 5 ms RMSSD that would wreck the anchor
@@ -119,9 +137,7 @@ final class BaselineTrackerTests: XCTestCase {
     ///
     /// The anchor must be unmoved by this session.
     func testShortHighRMSSDPartialIsExcludedFromBaseline() throws {
-        let tracker = BaselineTracker(onBaselineUpdated: nil)
-        tracker.reset()
-        defer { tracker.reset() }
+        let tracker = makeTracker()
 
         var sessions = (0 ..< 8).map { producerMockSession(daysAgo: $0, rmssd: 50) }
         // 30 minutes, no organized recovery, RMSSD 4x the good days.
@@ -138,9 +154,7 @@ final class BaselineTrackerTests: XCTestCase {
     /// first nights are precisely the ones that seed the anchor for the life
     /// of the install, so they cannot be the ones that go ungated.
     func testShortPartialExcludedEvenBeforeABaselineExists() {
-        let tracker = BaselineTracker(onBaselineUpdated: nil)
-        tracker.reset()
-        defer { tracker.reset() }
+        let tracker = makeTracker()
 
         tracker.rebuildFromSessions(
             [shortMockSession(daysAgo: 0, rmssd: 200, durationSec: 1800)],
@@ -173,8 +187,7 @@ final class BaselineTrackerTests: XCTestCase {
     }
 
     private func seededTracker(rmssdValues: [Double]) -> BaselineTracker {
-        let tracker = BaselineTracker(onBaselineUpdated: nil)
-        tracker.reset()
+        let tracker = makeTracker()
         // One distinct calendar day per value (daysAgo = index) so each appends.
         let sessions = rmssdValues.enumerated().map { producerMockSession(daysAgo: $0.offset, rmssd: $0.element) }
         tracker.rebuildFromSessions(sessions, sleepSchedule: producerSchedule)
@@ -184,7 +197,6 @@ final class BaselineTrackerTests: XCTestCase {
     func testBaselineAnchorIsGeometricMean() throws {
         let values: [Double] = [20, 25, 30, 35, 40, 50, 60, 80, 100, 120]
         let tracker = seededTracker(rmssdValues: values)
-        defer { tracker.reset() }
         let stats = try XCTUnwrap(tracker.recoveryBaselineStats, "Baseline should exist with 10 days")
 
         let expectedGeometric = exp(values.map(log).reduce(0, +) / Double(values.count))
@@ -199,7 +211,6 @@ final class BaselineTrackerTests: XCTestCase {
         // anchor has regressed to an arithmetic average and scores deflate.
         let values: [Double] = [20, 25, 30, 35, 40, 50, 60, 80, 100, 120]
         let tracker = seededTracker(rmssdValues: values)
-        defer { tracker.reset() }
         let stats = try XCTUnwrap(tracker.recoveryBaselineStats)
 
         let arithmeticMean = values.reduce(0, +) / Double(values.count)
@@ -210,7 +221,6 @@ final class BaselineTrackerTests: XCTestCase {
     func testConstantData_GeometricEqualsArithmetic() throws {
         let values = Array(repeating: 50.0, count: 8)
         let tracker = seededTracker(rmssdValues: values)
-        defer { tracker.reset() }
         let stats = try XCTUnwrap(tracker.recoveryBaselineStats)
 
         XCTAssertEqual(exp(stats.lnRmssdMean), 50.0, accuracy: 0.01)
@@ -221,7 +231,6 @@ final class BaselineTrackerTests: XCTestCase {
     func testBelowMinimumDays_ReturnsNil() {
         let values = Array(repeating: 45.0, count: BaselineTracker.RecoveryBaselineStats.minimumDays - 1)
         let tracker = seededTracker(rmssdValues: values)
-        defer { tracker.reset() }
         XCTAssertNil(tracker.recoveryBaselineStats,
                      "Baseline must be withheld below minimumDays")
     }
@@ -248,9 +257,7 @@ final class BaselineTrackerTests: XCTestCase {
     /// `hrvDataQuality`, so it counted as reliable). Only overnight readings
     /// describe the resting state the baseline is.
     func testQuickReadingNeverEntersBaseline() {
-        let tracker = BaselineTracker(onBaselineUpdated: nil)
-        tracker.reset()
-        defer { tracker.reset() }
+        let tracker = makeTracker()
         tracker.update(with: timedSession(start: at(1, 15), hours: 8, rmssd: 20, type: .quick), sleepSchedule: producerSchedule)
         tracker.update(with: timedSession(start: at(2, 15), hours: 8, rmssd: 20, type: .nap), sleepSchedule: producerSchedule)
         XCTAssertEqual(tracker.daysCollected, 0)
@@ -261,9 +268,7 @@ final class BaselineTrackerTests: XCTestCase {
     /// (two different nights) fought for one. Each part is three hours or
     /// more so the structural gate admits it.
     func testSlotsAreKeyedByNightNotCalendarDay() {
-        let tracker = BaselineTracker(onBaselineUpdated: nil)
-        tracker.reset()
-        defer { tracker.reset() }
+        let tracker = makeTracker()
         tracker.update(with: timedSession(start: at(1, 23), hours: 3, rmssd: 50), sleepSchedule: producerSchedule)
         tracker.update(with: timedSession(start: at(2, 2, 30), hours: 4, rmssd: 50), sleepSchedule: producerSchedule)
         XCTAssertEqual(tracker.daysCollected, 1, "One night, one slot")
@@ -274,9 +279,7 @@ final class BaselineTrackerTests: XCTestCase {
     /// The saved score's baseline used to include the night being scored.
     /// The scoring stats leave that night's slot out.
     func testScoringStatsExcludeTheScoredNight() throws {
-        let tracker = BaselineTracker(onBaselineUpdated: nil)
-        tracker.reset()
-        defer { tracker.reset() }
+        let tracker = makeTracker()
         for day in 1 ... 4 {
             tracker.update(with: timedSession(start: at(day, 23), hours: 8, rmssd: 40), sleepSchedule: producerSchedule)
         }
@@ -293,9 +296,7 @@ final class BaselineTrackerTests: XCTestCase {
     /// Re-scoring an old night reads only the nights before it, as the
     /// published method builds its reference from earlier days.
     func testScoringStatsIgnoreLaterNights() throws {
-        let tracker = BaselineTracker(onBaselineUpdated: nil)
-        tracker.reset()
-        defer { tracker.reset() }
+        let tracker = makeTracker()
         for day in 1 ... 3 {
             tracker.update(with: timedSession(start: at(day, 23), hours: 8, rmssd: 40), sleepSchedule: producerSchedule)
         }
@@ -318,9 +319,7 @@ final class BaselineTrackerTests: XCTestCase {
     /// archive, leave it unchanged.
     @MainActor
     func testCollectorRescoresANightAgainstOnlyTheNightsBeforeIt() throws {
-        let tracker = BaselineTracker(onBaselineUpdated: nil)
-        tracker.reset()
-        defer { tracker.reset() }
+        let tracker = makeTracker()
         let archiveDirectory = FileManager.default.temporaryDirectory.appendingPathComponent("BaselineCallers-\(UUID().uuidString)")
         defer { try? FileManager.default.removeItem(at: archiveDirectory) }
         let collector = RRCollector(

@@ -793,20 +793,7 @@
      "effect": "onRefreshAccepted called"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "After 'Refresh from Apple Health' with no further edit, Done hands the refreshed night only to the optional onRefreshAccepted callback (stored without the user-adjustment lock); SleepDetailV2View.sleepEditor does not pass it yet, so the refreshed snapshot the card promised ('Re-pull the latest sleep snapshot') is still discarded and the session keeps its old sleep.",
-     "evidence": [
-      "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift:386",
-      "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift:403",
-      "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift:442",
-      "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift:440"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.buildSleepDataFromTimelineState(original:state:)": "0619f75746f40e19",
     "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.hasSameContent(as:)": "039dc479d838d0ad",

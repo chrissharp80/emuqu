@@ -528,6 +528,9 @@ struct FitnessPostSummaryView: View {
     }
 
     @State var feelingEditing = false
+    /// Skip was tapped on an unrated workout: both feeling prompts hide for
+    /// this visit (`feelingSection`).
+    @State var feelingSkipped = false
     /// A feeling rating couldn't be stored; drives the save-failure alert.
     @State var feelingSaveFailed = false
 }

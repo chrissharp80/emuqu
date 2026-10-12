@@ -1,7 +1,7 @@
 {
  "file": "EmuquTests/ExtensionsTests.swift",
  "hash": "e780069d73fdec4f",
- "role": "XCTest suite for the small helpers in Emuqu/Sources/Utilities/Extensions.swift: Optional comparisons, Collection average/sum, Int.minutesAsHours, Array safe subscript, Date adding*/startOfDay, Set<ReadingTag> name lookup and [HRVSession].validSessions.",
+ "role": "XCTest suite for the helpers left in Emuqu/Sources/Utilities/Extensions.swift: DurationFormatter.hoursMinutes(minutes:) (\"1h 23m\" formatting).",
  "types": [
   "ExtensionsTests: class — XCTestCase for Utilities/Extensions.swift helpers"
  ],
@@ -10,438 +10,67 @@
  "flags": [],
  "units": [
   {
-   "key": "func ExtensionsTests.testIsNilOrLessThan()",
-   "hash": "d85fc61486944756",
-   "does": "Asserts Optional.isNilOrLessThan: nil→true; 3<5 true; 3<2 false; 3<3 false (strict).",
+   "key": "func ExtensionsTests.testHoursAndMinutes()",
+   "hash": "7525a229f559ef34",
+   "does": "Asserts hoursMinutes(minutes:) renders 83 → \"1h 23m\" and 605 → \"10h 5m\".",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
-    "Emuqu/Sources/Utilities/Extensions.swift::func Optional.isNilOrLessThan(_:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "isNilOrLessThan/isNilOrGreaterThan are only called by updateMax/updateMin (Extensions.swift:40,47), which have no production caller (grep Emuqu/ for \"updateMin(\" / \"updateMax(\" finds only the declarations); the Optional helper tests (lines 7,17,27,39) pin dead code.",
-     "evidence": [
-      "EmuquTests/ExtensionsTests.swift:7",
-      "Emuqu/Sources/Utilities/Extensions.swift:27",
-      "Emuqu/Sources/Utilities/Extensions.swift:39"
-     ],
-     "found": "second read"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Utilities/Extensions.swift::func Optional.isNilOrLessThan(_:)": "c121c789bc2cbf65"
-   }
-  },
-  {
-   "key": "func ExtensionsTests.testIsNilOrGreaterThan()",
-   "hash": "fec5558521a49fcd",
-   "does": "Asserts Optional.isNilOrGreaterThan: nil→true; 7>5 true; 7>10 false; 7>7 false (strict).",
-   "entry": "XCTest runner: test method on an XCTestCase subclass",
-   "calls": [
-    "Emuqu/Sources/Utilities/Extensions.swift::func Optional.isNilOrGreaterThan(_:)"
+    "Emuqu/Sources/Utilities/Extensions.swift::func DurationFormatter.hoursMinutes(minutes:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/Extensions.swift::func Optional.isNilOrGreaterThan(_:)": "105a019daf55a520"
+    "Emuqu/Sources/Utilities/Extensions.swift::func DurationFormatter.hoursMinutes(minutes:)": "040ffec531ca3586"
    }
   },
   {
-   "key": "func ExtensionsTests.testUpdateMin()",
-   "hash": "9f6e9f31de978dec",
-   "does": "Asserts Optional.updateMin: nil→5, then 3 replaces 5, then 10 does not replace 3.",
+   "key": "func ExtensionsTests.testWholeHoursDropTheMinutes()",
+   "hash": "47e9504c8e69a828",
+   "does": "Asserts a whole number of hours has no minutes part: 60 → \"1h\", 480 → \"8h\".",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
-    "Emuqu/Sources/Utilities/Extensions.swift::func Optional.updateMin(_:)",
-    "Emuqu/Sources/Utilities/Extensions.swift::func Optional.isNilOrGreaterThan(_:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Optional.updateMin has no production caller (grep of Emuqu/ finds only its declaration at Extensions.swift:39); this test is its only user, so it pins dead code.",
-     "evidence": [
-      "EmuquTests/ExtensionsTests.swift:27",
-      "Emuqu/Sources/Utilities/Extensions.swift:39"
-     ],
-     "found": "second read"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Utilities/Extensions.swift::func Optional.isNilOrGreaterThan(_:)": "105a019daf55a520",
-    "Emuqu/Sources/Utilities/Extensions.swift::func Optional.updateMin(_:)": "55cffbbfe2216d14"
-   }
-  },
-  {
-   "key": "func ExtensionsTests.testUpdateMax()",
-   "hash": "5939d2766100b25f",
-   "does": "Asserts Optional.updateMax: nil→5, then 10 replaces, then 3 does not replace 10.",
-   "entry": "XCTest runner: test method on an XCTestCase subclass",
-   "calls": [
-    "Emuqu/Sources/Utilities/Extensions.swift::func Optional.updateMax(_:)",
-    "Emuqu/Sources/Utilities/Extensions.swift::func Optional.isNilOrLessThan(_:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Optional.updateMax has no production caller (grep of Emuqu/ finds only its declaration at Extensions.swift:46); this test is its only user, so it pins dead code.",
-     "evidence": [
-      "EmuquTests/ExtensionsTests.swift:39",
-      "Emuqu/Sources/Utilities/Extensions.swift:46"
-     ],
-     "found": "second read"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Utilities/Extensions.swift::func Optional.isNilOrLessThan(_:)": "c121c789bc2cbf65",
-    "Emuqu/Sources/Utilities/Extensions.swift::func Optional.updateMax(_:)": "575e849b2de9a0a6"
-   }
-  },
-  {
-   "key": "func ExtensionsTests.testAverageEmpty()",
-   "hash": "28fe5ebe35ac15b7",
-   "does": "Asserts [Double]().average is nil.",
-   "entry": "XCTest runner: test method on an XCTestCase subclass",
-   "calls": [
-    "Emuqu/Sources/Utilities/Extensions.swift::var Collection.average"
+    "Emuqu/Sources/Utilities/Extensions.swift::func DurationFormatter.hoursMinutes(minutes:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/Extensions.swift::var Collection.average": "6a0d265f30f29943"
+    "Emuqu/Sources/Utilities/Extensions.swift::func DurationFormatter.hoursMinutes(minutes:)": "040ffec531ca3586"
    }
   },
   {
-   "key": "func ExtensionsTests.testAverageNonEmpty()",
-   "hash": "e08cf28263184daf",
-   "does": "Asserts [2,4,6].average == 4.0.",
+   "key": "func ExtensionsTests.testUnderAnHourShowsMinutesOnly()",
+   "hash": "236e9e24e8209231",
+   "does": "Asserts durations under an hour show minutes only: 45 → \"45m\", 0 → \"0m\".",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
-    "Emuqu/Sources/Utilities/Extensions.swift::var Collection.average"
+    "Emuqu/Sources/Utilities/Extensions.swift::func DurationFormatter.hoursMinutes(minutes:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/Extensions.swift::var Collection.average": "6a0d265f30f29943"
+    "Emuqu/Sources/Utilities/Extensions.swift::func DurationFormatter.hoursMinutes(minutes:)": "040ffec531ca3586"
    }
   },
   {
-   "key": "func ExtensionsTests.testSum()",
-   "hash": "c3a2087fb505a9a7",
-   "does": "Asserts [1,2,3].sum == 6 and empty sum == 0.",
+   "key": "func ExtensionsTests.testNegativeDurationsClampToZero()",
+   "hash": "6b0c633983d2567c",
+   "does": "Asserts a negative duration clamps to zero: -30 → \"0m\".",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
-    "Emuqu/Sources/Utilities/Extensions.swift::var Collection.sum"
+    "Emuqu/Sources/Utilities/Extensions.swift::func DurationFormatter.hoursMinutes(minutes:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/Extensions.swift::var Collection.sum": "2fe43e623affcba2"
-   }
-  },
-  {
-   "key": "func ExtensionsTests.testMinutesAsHours()",
-   "hash": "f927be02915ca404",
-   "does": "Asserts 90.minutesAsHours == 1.5 and 60.minutesAsHours == 1.0.",
-   "entry": "XCTest runner: test method on an XCTestCase subclass",
-   "calls": [
-    "Emuqu/Sources/Utilities/Extensions.swift::var Int.minutesAsHours"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Int.minutesAsHours has no production caller (grep of Emuqu/ finds only its declaration at Extensions.swift:117); this test is its only user, so it pins dead code.",
-     "evidence": [
-      "EmuquTests/ExtensionsTests.swift:70",
-      "Emuqu/Sources/Utilities/Extensions.swift:117"
-     ],
-     "found": "second read"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Utilities/Extensions.swift::var Int.minutesAsHours": "59ac97ea1894f946"
-   }
-  },
-  {
-   "key": "func ExtensionsTests.testSafeSubscript()",
-   "hash": "92d6c63a362ed5a5",
-   "does": "Asserts Array[safe:] returns elements at 0 and 2 and nil for 3 and -1.",
-   "entry": "XCTest runner: test method on an XCTestCase subclass",
-   "calls": [
-    "Emuqu/Sources/Utilities/Extensions.swift::subscript Array(safe:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Array[safe:] has no production caller (grep of Emuqu/ finds only its declaration at Extensions.swift:73); this test is its only user, so it pins dead code.",
-     "evidence": [
-      "EmuquTests/ExtensionsTests.swift:77",
-      "Emuqu/Sources/Utilities/Extensions.swift:73"
-     ],
-     "found": "second read"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Utilities/Extensions.swift::subscript Array(safe:)": "a3dcb87868e196ab"
-   }
-  },
-  {
-   "key": "func ExtensionsTests.testSafeSubscriptEmpty()",
-   "hash": "1e579f0012fafa57",
-   "does": "Asserts empty Array[safe: 0] is nil.",
-   "entry": "XCTest runner: test method on an XCTestCase subclass",
-   "calls": [
-    "Emuqu/Sources/Utilities/Extensions.swift::subscript Array(safe:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Utilities/Extensions.swift::subscript Array(safe:)": "a3dcb87868e196ab"
-   }
-  },
-  {
-   "key": "func ExtensionsTests.testAddingHours()",
-   "hash": "522451fd17f55af5",
-   "does": "Asserts Date().addingHours(2) is 7200 s later (±1 s).",
-   "entry": "XCTest runner: test method on an XCTestCase subclass",
-   "calls": [
-    "Emuqu/Sources/Utilities/Extensions.swift::func Date.addingHours(_:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Date.addingHours has no production caller (grep of Emuqu/ finds only its declaration at Extensions.swift:87); this test is its only user, so it pins dead code.",
-     "evidence": [
-      "EmuquTests/ExtensionsTests.swift:92",
-      "Emuqu/Sources/Utilities/Extensions.swift:87"
-     ],
-     "found": "second read"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Utilities/Extensions.swift::func Date.addingHours(_:)": "02e3c575da1582a1"
-   }
-  },
-  {
-   "key": "func ExtensionsTests.testAddingDays()",
-   "hash": "87db2fb3894259db",
-   "does": "Asserts Date().addingDays(3) is exactly 3*86400 s later (±1 s).",
-   "entry": "XCTest runner: test method on an XCTestCase subclass",
-   "calls": [
-    "Emuqu/Sources/Utilities/Extensions.swift::func Date.addingDays(_:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "med",
-     "text": "Timing-dependent: addingDays uses Calendar.current .day arithmetic (Extensions.swift:93), which across a DST change is 23/25-hour days, so the ±1 s assertion fails when the suite runs within 3 days before a DST transition in the host time zone.",
-     "evidence": [
-      "EmuquTests/ExtensionsTests.swift:100",
-      "EmuquTests/ExtensionsTests.swift:103",
-      "Emuqu/Sources/Utilities/Extensions.swift:93"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Date.addingDays has no production caller (grep of Emuqu/ finds only its declaration at Extensions.swift:92); this test is its only user, so it pins dead code.",
-     "evidence": [
-      "EmuquTests/ExtensionsTests.swift:99",
-      "Emuqu/Sources/Utilities/Extensions.swift:92"
-     ],
-     "found": "second read"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Utilities/Extensions.swift::func Date.addingDays(_:)": "5d677370aee28ddf"
-   }
-  },
-  {
-   "key": "func ExtensionsTests.testAddingMinutes()",
-   "hash": "6f311f31151274e5",
-   "does": "Asserts Date().addingMinutes(30) is 1800 s later (±1 s).",
-   "entry": "XCTest runner: test method on an XCTestCase subclass",
-   "calls": [
-    "Emuqu/Sources/Utilities/Extensions.swift::func Date.addingMinutes(_:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Date.addingMinutes has no production caller (grep of Emuqu/ finds only its declaration at Extensions.swift:97); this test is its only user, so it pins dead code.",
-     "evidence": [
-      "EmuquTests/ExtensionsTests.swift:106",
-      "Emuqu/Sources/Utilities/Extensions.swift:97"
-     ],
-     "found": "second read"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Utilities/Extensions.swift::func Date.addingMinutes(_:)": "1b74eded2ec404e8"
-   }
-  },
-  {
-   "key": "func ExtensionsTests.testStartOfDay()",
-   "hash": "df9573e84be0d183",
-   "does": "Asserts Date().startOfDay has hour, minute and second 0 in Calendar.current.",
-   "entry": "XCTest runner: test method on an XCTestCase subclass",
-   "calls": [
-    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
-   }
-  },
-  {
-   "key": "func ExtensionsTests.testSetContainsTagNamed()",
-   "hash": "06d2b05bc43602dd",
-   "does": "Asserts Set<ReadingTag>.contains(tagNamed:) finds 'Morning' and not 'Relaxed' in {morning, evening, stressed}.",
-   "entry": "XCTest runner: test method on an XCTestCase subclass",
-   "calls": [
-    "Emuqu/Sources/Utilities/Extensions.swift::func Set<ReadingTag>.contains(tagNamed:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Set<ReadingTag>.contains(tagNamed:) has no production caller (grep of Emuqu/ finds only its declaration at Extensions.swift:128); this test is its only user, so it pins dead code.",
-     "evidence": [
-      "EmuquTests/ExtensionsTests.swift:124",
-      "Emuqu/Sources/Utilities/Extensions.swift:128"
-     ],
-     "found": "second read"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Utilities/Extensions.swift::func Set<ReadingTag>.contains(tagNamed:)": "88f59ec508c61943"
-   }
-  },
-  {
-   "key": "func ExtensionsTests.testSetTagNamed()",
-   "hash": "a7da90844418e540",
-   "does": "Asserts Set<ReadingTag>.tag(named:) returns a tag for 'Morning' and nil for 'Nonexistent'.",
-   "entry": "XCTest runner: test method on an XCTestCase subclass",
-   "calls": [
-    "Emuqu/Sources/Utilities/Extensions.swift::func Set<ReadingTag>.tag(named:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Set<ReadingTag>.tag(named:) has no production caller (grep of Emuqu/ finds only its declaration at Extensions.swift:135); this test is its only user, so it pins dead code.",
-     "evidence": [
-      "EmuquTests/ExtensionsTests.swift:130",
-      "Emuqu/Sources/Utilities/Extensions.swift:135"
-     ],
-     "found": "second read"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Utilities/Extensions.swift::func Set<ReadingTag>.tag(named:)": "930ec74b181a58e3"
-   }
-  },
-  {
-   "key": "func ExtensionsTests.testValidSessionsFilter()",
-   "hash": "c76ccc78e4c672d5",
-   "does": "Builds 5 sessions (complete+analysis x2, failed, collecting, complete without analysis) and asserts validSessions.count == 2 (state .complete AND analysisResult != nil).",
-   "entry": "XCTest runner: test method on an XCTestCase subclass",
-   "calls": [
-    "Emuqu/Sources/Utilities/Extensions.swift::var [HRVSession].validSessions",
-    "EmuquTests/ExtensionsTests.swift::func ExtensionsTests.makeSession(state:hasAnalysis:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "[HRVSession].validSessions has no production caller (grep of Emuqu/ finds only its declaration at Extensions.swift:163); this test is its only user, so it pins dead code.",
-     "evidence": [
-      "EmuquTests/ExtensionsTests.swift:138",
-      "Emuqu/Sources/Utilities/Extensions.swift:163"
-     ],
-     "found": "second read"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Utilities/Extensions.swift::var [HRVSession].validSessions": "9b187e8af0b24fc7",
-    "EmuquTests/ExtensionsTests.swift::func ExtensionsTests.makeSession(state:hasAnalysis:)": "3bce4c24fb9f040d"
-   }
-  },
-  {
-   "key": "func ExtensionsTests.makeSession(state:hasAnalysis:)",
-   "hash": "04de00ec85ed2df3",
-   "does": "Test helper: builds HRVSession(startDate: now) with the given state and, when hasAnalysis, a fixed HRVAnalysisResult (rMSSD 40, SDNN 50, 5% artifacts, no frequency domain).",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)",
-    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+3",
-     "cond": "hasAnalysis",
-     "effect": "true: attaches a synthetic HRVAnalysisResult; false: analysisResult stays nil"
-    }
-   ],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)": "501c2b4e36fffb8e",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5"
+    "Emuqu/Sources/Utilities/Extensions.swift::func DurationFormatter.hoursMinutes(minutes:)": "040ffec531ca3586"
    }
   }
  ],

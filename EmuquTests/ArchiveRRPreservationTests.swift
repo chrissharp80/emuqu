@@ -12,16 +12,22 @@ import XCTest
 /// hash-checked AND raw readers … already unrecoverable on disk".
 @MainActor
 final class ArchiveRRPreservationTests: XCTestCase {
+    /// A private directory per test. A default-constructed archive shares the
+    /// App Group directory, and its `index.json`, with the host app's own
+    /// archive: each instance rewrites the whole index from its own copy, so
+    /// the two would drop each other's entries, and deletes there leave trash
+    /// and tombstones behind in the user's real archive.
+    nonisolated private let archiveDirectory = FileManager.default.temporaryDirectory
+        .appendingPathComponent("ArchiveRRPreservationTests-\(UUID().uuidString)", isDirectory: true)
     private lazy var archive = SessionArchive(
+        directory: archiveDirectory,
         sleepScheduleProvider: { SleepSchedule(bedtimeHour: 22, bedtimeMinute: 0, sleepHours: 8.0) },
         sessionMergeModeProvider: { .defaultGap }
     )
-    private var written: [UUID] = []
 
     override func tearDown() async throws {
-        await MainActor.run {
-            for id in written { try? archive.delete(id) }
-            written = []
+        if FileManager.default.fileExists(atPath: archiveDirectory.path) {
+            try FileManager.default.removeItem(at: archiveDirectory)
         }
         try await super.tearDown()
     }
@@ -50,7 +56,6 @@ final class ArchiveRRPreservationTests: XCTestCase {
         session.endDate = session.startDate.addingTimeInterval(600)
         session.state = .complete
         session.workoutMetadata = WorkoutMetadata(sport: .walk)
-        written.append(session.id)
         return session
     }
 

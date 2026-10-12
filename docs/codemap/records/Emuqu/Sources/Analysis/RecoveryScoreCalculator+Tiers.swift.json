@@ -45,8 +45,8 @@
   },
   {
    "key": "func RecoveryScoreCalculator.baselineNormalisedScore(rmssd:meanHR:dfaAlpha1:stats:ansBalance:referenceDate:)",
-   "hash": "ccdd44e93ad9d9ba",
-   "does": "Primary Tier-1 path: zToRecoveryScore((ln rmssd - lnRmssdMean)/lnRmssdSD) plus rhrAdjustment, the points of dfaAlpha1Adjustment and cvAdjustment(lnRmssdCV7Day) (0 when they return nil), ansBalanceAdjustment, minus the penalty of baselineStaleness (0 when not stale); unclamped sum returned.",
+   "hash": "7b4b16f8662bc34a",
+   "does": "Primary Tier-1 path: zToRecoveryScore((ln rmssd - lnRmssdMean)/lnRmssdSD) plus rhrAdjustment, the points of dfaAlpha1Adjustment and cvAdjustment(lnRmssdCV7Day) (0 when they return nil), ansBalanceAdjustment, minus the penalty of baselineStalenessPenalty (0 when not stale); unclamped sum returned.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.zToRecoveryScore(_:parameters:)",
@@ -54,7 +54,7 @@
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.dfaAlpha1Adjustment(_:)",
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.cvAdjustment(_:)",
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.ansBalanceAdjustment(_:)",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.baselineStaleness(stats:referenceDate:)"
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.baselineStalenessPenalty(stats:referenceDate:)"
    ],
    "reads": [],
    "writes": [],
@@ -71,14 +71,14 @@
     },
     {
      "at": "+18",
-     "cond": "baselineStaleness returns nil",
+     "cond": "baselineStalenessPenalty returns nil",
      "effect": "subtracts 0"
     }
    ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.ansBalanceAdjustment(_:)": "c24879b45c062893",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.baselineStaleness(stats:referenceDate:)": "66664776677e00f4",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.baselineStalenessPenalty(stats:referenceDate:)": "cc52dd7b92d9d3e4",
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.cvAdjustment(_:)": "4098c0951c0e136a",
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.dfaAlpha1Adjustment(_:)": "689def0d1a18a3e0",
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.rhrAdjustment(meanHR:stats:)": "0b1fd39e61da12f8",
@@ -104,9 +104,9 @@
    "deps": {}
   },
   {
-   "key": "func RecoveryScoreCalculator.baselineStaleness(stats:referenceDate:)",
-   "hash": "31d23c6c0f7fa01d",
-   "does": "Baseline-staleness penalty: nil when stats.lastDataPointDate is nil or the baseline is under BaselineStaleness.staleAfterDays old at referenceDate (baselineStalenessDays); otherwise (days, penalty) with penalty = min(maxPenalty, penaltyPerWeek × (1 + weeksStale)). The one copy, read by baselineNormalisedScore (deducts penalty) and ScoreDetailBuilder.baselineStalenessAdjustments (shows days and rounded penalty).",
+   "key": "func RecoveryScoreCalculator.baselineStalenessPenalty(stats:referenceDate:)",
+   "hash": "532bd2c9a3344597",
+   "does": "Baseline-staleness penalty: nil when stats.lastDataPointDate is nil or the baseline is under BaselineStaleness.staleAfterDays old at referenceDate (baselineStalenessDays); otherwise (days, penalty) with penalty = min(maxPenalty, penaltyPerWeek × (1 + weeksStale)). The one copy, read by baselineNormalisedScore (deducts penalty) and ScoreDetailBuilder.baselineStalenessAdjustments (shows days and rounded penalty). Named with the Penalty suffix so check_science_register discovers it; claimed by composite-weights-60-25-15.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+DetailForwarding.swift::func RecoveryScoreCalculator.baselineStalenessDays(baselineDate:referenceDate:)"

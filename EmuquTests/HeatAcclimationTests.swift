@@ -231,17 +231,33 @@ final class HeatTrackingConsentTests: XCTestCase {
     }
 
     /// The assistant's heat facts must not compute it either.
+    ///
+    /// The archive is a throwaway one in a temporary directory, not the app
+    /// host's App Group archive. The tracking switch is still read from the
+    /// host's settings manager: `HeatAcclimationCache` has no way to be given
+    /// another one yet.
     func testTheAssistantPathDoesNotComputeWhileTrackingIsOff() async {
         let manager = SettingsManager.shared
         let original = manager.settings.heatTrackingEnabled
         defer { manager.settings.heatTrackingEnabled = original }
         manager.settings.heatTrackingEnabled = false
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("HeatConsent-\(UUID().uuidString)", isDirectory: true)
+        defer { removeDirectory(directory) }
 
-        let cache = HeatAcclimationCache(archive: SessionArchive())
+        let cache = HeatAcclimationCache(archive: SessionArchive(directory: directory))
         let readout = await cache.currentAwaitingRefresh()
 
         XCTAssertNil(readout)
         XCTAssertNil(cache.lastUpdated, "The cache computed with heat tracking off")
+    }
+
+    private func removeDirectory(_ directory: URL) {
+        do {
+            try FileManager.default.removeItem(at: directory)
+        } catch {
+            // swallow-ok: an archive that never wrote left no directory behind.
+        }
     }
 }
 

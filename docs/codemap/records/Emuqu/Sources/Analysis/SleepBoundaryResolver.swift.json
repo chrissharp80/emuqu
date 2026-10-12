@@ -117,8 +117,8 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.resolveFromHREstimation(rrPoints:sessionStart:)": "7cb366e4742cfde1",
-    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.resolveFromHealthKit(sessionStart:recordingEnd:)": "cae6ee3f770ce6c5",
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.resolveFromHREstimation(rrPoints:sessionStart:)": "5e2d61ca19668fca",
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.resolveFromHealthKit(sessionStart:recordingEnd:)": "cd39b61c14eebf23",
     "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.validatedHealthKitBoundaries(_:rrPoints:sessionStart:)": "3c36de82a3f24d7c"
    }
   },
@@ -142,7 +142,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.resolveFromHREstimation(rrPoints:sessionStart:)": "7cb366e4742cfde1",
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.resolveFromHREstimation(rrPoints:sessionStart:)": "5e2d61ca19668fca",
     "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.validateBoundaries(healthKit:hrEstimate:hasDetailedStages:)": "d044430edfd646d6"
    }
   },
@@ -385,11 +385,12 @@
   },
   {
    "key": "func SleepBoundaryResolver.resolveFromHealthKit(sessionStart:recordingEnd:)",
-   "hash": "3940fd15fd01931e",
-   "does": "Async: calls healthKit.fetchSleepData(for:recordingEnd:) and converts sleepStart/sleepEnd to ms from sessionStart (can be negative when HK sleep starts before the recording); hasDetailedStages = deep > 0 or REM > 0. Nil when neither boundary exists or the fetch throws. A core-only night counts as undetailed on purpose: it is what a source that does not stage sleep writes (as SleepResolver.stageTotals treats it), and validateBoundaries' doc now says so.",
+   "hash": "45f4b395d926cc00",
+   "does": "Async: calls healthKit.fetchSleepData(for:recordingEnd:) and converts sleepStart/sleepEnd to rounded ms from sessionStart via MillisecondOffset.between (nil when not representable; can be negative when HK sleep starts before the recording); hasDetailedStages = deep > 0 or REM > 0. Nil when neither boundary exists or the fetch throws. A core-only night counts as undetailed on purpose: it is what a source that does not stage sleep writes (as SleepResolver.stageTotals treats it), and validateBoundaries' doc now says so.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::func HealthKitServiceProtocol.fetchSleepData(for:recordingEnd:)",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:)",
     "dyn:HealthKitServiceProtocol.fetchSleepData → Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift:25|EmuquTests/Mocks/MockHealthKitService.swift::func MockHealthKitService.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
@@ -417,16 +418,18 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::func HealthKitServiceProtocol.fetchSleepData(for:recordingEnd:)": "fe0165a7fbe9ea39",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:)": "eed24a8b84f4db4d"
    }
   },
   {
    "key": "func SleepBoundaryResolver.resolveFromHREstimation(rrPoints:sessionStart:)",
-   "hash": "ca3324cdb449d6e6",
-   "does": "HR-only boundaries: first tries HealthKitManager.estimateSleepFromHR (start/end converted to ms), then detectSleepOnset (start only, no wake); nil when both fail.",
+   "hash": "9834de9975394c1d",
+   "does": "HR-only boundaries: first tries HealthKitManager.estimateSleepFromHR (start/end converted to rounded ms via MillisecondOffset.between, nil when not representable), then detectSleepOnset (start only, no wake); nil when both fail.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.estimateSleepFromHR(rrPoints:recordingStart:)",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:)",
     "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.detectSleepOnset(in:)"
    ],
    "reads": [],
@@ -451,7 +454,8 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.detectSleepOnset(in:)": "d5f25d3b38744676",
-    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.estimateSleepFromHR(rrPoints:recordingStart:)": "c16e3d979adbaf49"
+    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.estimateSleepFromHR(rrPoints:recordingStart:)": "c16e3d979adbaf49",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:)": "eed24a8b84f4db4d"
    }
   }
  ],

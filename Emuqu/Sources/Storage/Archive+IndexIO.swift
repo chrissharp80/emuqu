@@ -117,6 +117,14 @@ extension SessionArchive {
         }
     }
 
+    /// Whether the in-memory index lists every session `index.json` held:
+    /// false while that file could not be read (`indexReadFailed`) or read
+    /// but did not decode this launch (`indexDecodeFailed`). An empty index
+    /// is then "unknown", not "no history". Takes `archiveLock`.
+    var hasCompleteIndex: Bool {
+        archiveLock.withLock { !indexReadFailed && !indexDecodeFailed }
+    }
+
     /// A read error (the file is locked by data protection, EPERM) is not
     /// corruption: the file is left where it is, `indexReadFailed` is set and
     /// the read is retried at `boot()` and before any save. Only bytes that
@@ -140,6 +148,7 @@ extension SessionArchive {
         } catch {
             debugLog("Failed to decode archive index: \(error)", level: .error)
             index = []
+            indexDecodeFailed = true
             preserveUnreadableIndex()
         }
     }
@@ -162,6 +171,7 @@ extension SessionArchive {
             debugLog("[Archive] index re-read after a failed launch read: \(index.count) sessions")
         } catch {
             debugLog("Failed to decode archive index on retry: \(error)", level: .error)
+            indexDecodeFailed = true
             preserveUnreadableIndex()
         }
     }

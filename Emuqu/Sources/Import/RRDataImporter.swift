@@ -262,12 +262,6 @@ final class RRDataImporter: Sendable {
         guard spanMs <= Self.maximumRecordingSpanMs else { throw ImportError.recordingTooLong }
     }
 
-    /// Create an HRVSession from import result, dated by the file's own
-    /// recording date, or now when the file states none.
-    func createSession(from result: ImportResult) -> HRVSession {
-        createSession(from: result, startingAt: result.recordingDate ?? Date())
-    }
-
     /// Create an HRVSession from an import result, starting at `startDate`.
     /// For a file that states no recording date (`recordingDate` nil — every
     /// CSV, Kubios and text file) the caller supplies the date the user

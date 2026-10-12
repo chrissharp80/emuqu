@@ -302,12 +302,24 @@ extension ThresholdCards {
         return .init(label: "VAM", value: display, sub: String(localized: "vertical ascent rate", bundle: LanguageManager.appBundle))
     }
 
+    /// Grade-adjusted pace: the per-kilometre GAP the analysis snapshot and the
+    /// assistant use (`WorkoutLiveTrends.sessionGradeAdjustedPaceSecPerKm`,
+    /// each kilometre adjusted for its own grade), so this row shows the same
+    /// figure. Without a completed kilometre, the net-climb estimate below.
+    private func gradeAdjustedPaceRow(samples: [WorkoutSample], meta: WorkoutMetadata?, duration: Double) -> DerivedRow? {
+        guard let gap = WorkoutLiveTrends.sessionGradeAdjustedPaceSecPerKm(samples: samples),
+              let formatted = unitsPref.formatPace(secondsPerMeter: gap / 1_000)
+        else { return netClimbAdjustedPaceRow(samples: samples, meta: meta, duration: duration) }
+        return .init(label: String(localized: "Grade-adj pace", bundle: LanguageManager.appBundle), value: formatted, sub: nil)
+    }
+
     /// Average moving pace adjusted for the route's NET climb (gain − loss) at
     /// 2 s/km per 1 % grade — between the ~3 s/km running and ~1.5 s/km walking
-    /// heuristics. Samples carry no per-sample grade, so a hilly loop (net ≈ 0)
-    /// shows close to its plain average pace. The pace is over moving time
-    /// (the Moving time row's), so a stop does not slow it.
-    private func gradeAdjustedPaceRow(samples: [WorkoutSample], meta: WorkoutMetadata?, duration: Double) -> DerivedRow? {
+    /// heuristics. A hilly loop (net ≈ 0) shows close to its plain average
+    /// pace, so this is only the fallback for a workout without a completed
+    /// kilometre. The pace is over moving time (the Moving time row's), so a
+    /// stop does not slow it.
+    private func netClimbAdjustedPaceRow(samples: [WorkoutSample], meta: WorkoutMetadata?, duration: Double) -> DerivedRow? {
         let pacedSamples = samples.filter { ($0.paceSecPerKm ?? 0) > 0 }
         guard pacedSamples.count >= 30, duration > 300, let dist = meta?.distanceMeters, dist > 500 else { return nil }
         let moving = min(duration, Double(movingSeconds(samples: samples)))

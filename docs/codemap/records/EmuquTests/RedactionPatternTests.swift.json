@@ -1,28 +1,18 @@
 {
  "file": "EmuquTests/RedactionPatternTests.swift",
- "hash": "334644727113966e",
- "role": "Pins that every regex DebugLogger's log redactor and MetricsVerifier use compiles (they fail open on a malformed pattern), by keeping a verbatim copy and scraping raw-string literals from the source files at test time.",
+ "hash": "f232f359f2a2ec47",
+ "role": "Pins that every regex DebugLogger's log redactor and MetricsVerifier use compiles (they fail open on a malformed pattern), by keeping a verbatim copy, rebuilding the two runtime-composed patterns, and scraping raw-string literals from the source files at test time; and asserts what DebugLogger.scrubPHI actually leaves of sample log lines.",
  "types": [
   "RedactionPatternTests: class — XCTestCase for DebugLogger redaction pattern compilation"
  ],
  "state": [
-  "mem:RedactionPatternTests.patterns (4 verbatim copies of DebugLog.swift:357/364/366/373 raw-string patterns)",
+  "mem:RedactionPatternTests.patterns (4 verbatim copies of DebugLog.swift's raw-string patterns: lat/lon, metric names incl. \\w*score, unit, separator)",
   "mem:RedactionPatternTests.failOpenSources (DebugLog.swift, MetricsVerifier.swift paths)",
   "mem:RedactionPatternTests.failOpenCoveredElsewhere (MedicalTermLexicon.swift → CoachVoiceGuardTests.testEveryConceptCompiles)",
   "file:<repo>/Emuqu/Sources/Utilities/DebugLog.swift and Emuqu/Sources/Assistant/MetricsVerifier.swift read via #filePath"
  ],
  "toplevel": "Static lets hold copied patterns and source paths. Tests read production .swift files from disk relative to #filePath, so they only work when the test bundle runs on the machine holding the source tree.",
  "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Class doc says it pins 'that redaction still removes what it claims to', but no test in the file runs DebugLogger redaction on a sample line; it only checks that patterns compile.",
-   "evidence": [
-    "EmuquTests/RedactionPatternTests.swift:4",
-    "EmuquTests/RedactionPatternTests.swift:5"
-   ],
-   "found": "first read, upheld on second"
-  },
   {
    "kind": "fragile",
    "sev": "low",
@@ -32,17 +22,6 @@
     "EmuquTests/RedactionPatternTests.swift:144"
    ],
    "found": "first read, upheld on second"
-  },
-  {
-   "kind": "test-defect",
-   "sev": "med",
-   "text": "The main scrubPHI pattern is composed at runtime by interpolation (metricPattern+separatorPattern+unitPattern, DebugLog.swift:352) and no test compiles that composed string; only the chain composition is reconstructed (line 45). No test anywhere in EmuquTests calls DebugLogger.scrubPHI (grep: only DebugLog.swift and CrashLogManager.swift reference it), so whether redaction actually removes HRV/HR/GPS values from debug_log.txt is never asserted.",
-   "evidence": [
-    "Emuqu/Sources/Utilities/DebugLog.swift:351",
-    "Emuqu/Sources/Utilities/DebugLog.swift:352",
-    "EmuquTests/RedactionPatternTests.swift:43"
-   ],
-   "found": "second read"
   }
  ],
  "units": [
@@ -86,6 +65,55 @@
     }
    ],
    "deps": {}
+  },
+  {
+   "key": "func RedactionPatternTests.testComposedMetricPatternCompiles()",
+   "hash": "cd0176dd1b51c4a9",
+   "does": "Rebuilds scrubPHI's main pattern the way DebugLogger composes it ((?i)(\\b<metric>\\b<separator>)[-+]?\\d+(?:\\.\\d+)?<unit>, from patterns[1], [3] and [2]) and asserts it compiles.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "ext:NSRegularExpression.init(pattern:options:)"
+   ],
+   "reads": [
+    "mem:RedactionPatternTests.patterns"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Reconstructs the composed string by hand, like testComposedValueChainPatternCompiles; a change to scrubPHI's interpolation is caught only through testScrubPHIRedactsHealthValues' outputs, not here.",
+     "evidence": [
+      "EmuquTests/RedactionPatternTests.swift:53",
+      "Emuqu/Sources/Utilities/DebugLog.swift:352"
+     ],
+     "found": "t2 test pass"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func RedactionPatternTests.testScrubPHIRedactsHealthValues()",
+   "hash": "6c6d6b59dda26fd8",
+   "does": "Asserts DebugLogger.scrubPHI's output on six lines: 'RMSSD: 42.5 ms' → 'RMSSD: <redacted>', an arrow chain 'RMSSD 42.0→51.3' → both values redacted, 'score=72.00' and camel-case 'frozenScore=55.20' redacted, lat/lon values redacted, and 'session 3 started' left untouched.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.scrubPHI(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.replacing(_:_:with:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.redactValueChains(in:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.compiledPattern(_:options:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.compiledPattern(_:options:)": "3350ce6123d0accf",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.redactValueChains(in:)": "507c1db8e611eeaa",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.replacing(_:_:with:)": "3ce0a99266611d57",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.scrubPHI(_:)": "1ce9d44bc1dd4c98"
+   }
   },
   {
    "key": "func RedactionPatternTests.testCompiledPatternReturnsNilOnMalformedInput()",

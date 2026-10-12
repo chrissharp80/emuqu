@@ -310,6 +310,38 @@
    "deps": {}
   },
   {
+   "key": "func RecordView.saveReportTags(_:notes:sessionId:)",
+   "hash": "6b718dcc0fc18672",
+   "does": "Tags & Notes edited in a reading's report (morning or quick), handed over by MorningResultsView on its Done/Discard or as it closes: applied to currentSession while it is still this reading (acceptance archives that copy) and written to the archived copy (writeTagsToArchive, off the main actor). The hand-off comes after the toolbar Done has started acceptance, so these writes land after persistTagsAndNotes's and the report's edits are what is kept.",
+   "entry": "MorningResultsView onUpdateTags (morningResults / quickResults)",
+   "calls": [
+    "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.applyTagsInMemory(_:notes:sessionId:)",
+    "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.writeTagsToArchive(_:tags:notes:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:RecordView.sessionState.currentSession tags/notes",
+    "archive:session tags/notes"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "race",
+     "sev": "low",
+     "text": "Ordering against acceptance is by timing, not by construction: if acceptance (collector.acceptSession) snapshots the in-memory reading before this hand-off and writes it to the archive after this archive write, the reading keeps persistTagsAndNotes's pre-recording tags. The hand-off fires when the report sheet finishes closing, normally after acceptance.",
+     "evidence": [
+      "Emuqu/Sources/Views/RecordView+Results.swift:156",
+      "Emuqu/Sources/Views/RecordView+Actions.swift:199"
+     ],
+     "found": "first read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.applyTagsInMemory(_:notes:sessionId:)": "1fe2048baee01ea2",
+    "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.writeTagsToArchive(_:tags:notes:)": "005c3e40bf61c250"
+   }
+  },
+  {
    "key": "func RecordView.applyTagsInMemory(_:notes:sessionId:)",
    "hash": "446278b4c74dd123",
    "does": "If the current session id matches, overwrites its tags and notes in memory.",

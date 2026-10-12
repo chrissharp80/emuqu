@@ -444,13 +444,36 @@
    }
   },
   {
+   "key": "func LiveStatsCard.rmssdText(_:)",
+   "hash": "227e35631effa271",
+   "does": "RMSSD formatted '%.0f' in the app locale, or '—' when nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "rmssd nil",
+     "effect": "returns '—'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
    "key": "var LiveStatsCard.body",
-   "hash": "767daaea247455e3",
-   "does": "HStack of RMSSD, SDNN and Avg HR StatItems formatted '%.0f' in the app locale (RMSSD shows '—' when stats has none), or 'Collecting data...' when stats is nil.",
+   "hash": "9c74132829e0eb8a",
+   "does": "HStack of RMSSD (rmssdText: '%.0f' or '—'), SDNN and Avg HR StatItems formatted '%.0f' in the app locale, or 'Collecting data...' when stats is nil.",
    "entry": "SwiftUI body.",
    "calls": [
     "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveStatsCard.stats",
     "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveStatsCard.msUnit",
+    "Emuqu/Sources/Views/LiveWaveformView.swift::func LiveStatsCard.rmssdText(_:)",
     "Emuqu/Sources/Views/LiveWaveformView.swift::var StatItem.body",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
@@ -462,17 +485,13 @@
      "at": "+2",
      "cond": "stats non-nil",
      "effect": "three StatItems; nil: 'Collecting data...' caption"
-    },
-    {
-     "at": "+3",
-     "cond": "s.rmssd nil",
-     "effect": "RMSSD value '—'"
     }
    ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/LiveWaveformView.swift::func LiveStatsCard.rmssdText(_:)": "efa188f7dac35f01",
     "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveStatsCard.msUnit": "ee0c47d42f994e72",
     "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveStatsCard.stats": "df852f2e0cde4939",
     "Emuqu/Sources/Views/LiveWaveformView.swift::var StatItem.body": "9c810db2456ad257",

@@ -148,9 +148,8 @@ register and Settings → About → "How Emuqu scores recovery" say which is whi
 ### Software
 
 - **iOS 17.0** or later for the app, every sensor integration, the scoring,
-  and the bring-your-own-key AI providers.
-- **iOS 18.0** or later for on-device translation of the narrative text.
-  Earlier versions show the narratives in English.
+  the bring-your-own-key AI providers, and the narrative text in all 17
+  languages (built from translated sentences, not translated on the fly).
 - **iOS 26.0** or later for the Apple Intelligence provider, which is free and
   on-device. On iOS 17 to 25 the assistant works with your own API key.
 - **HealthKit** access for sleep, workouts and vitals.
@@ -165,7 +164,7 @@ register and Settings → About → "How Emuqu scores recovery" say which is whi
 - **HealthKit** for sleep stages, respiratory rate, SpO₂, wrist temperature
   and workouts, with bounded queries and guards against eager prompts.
 - **On-device frameworks**: Foundation Models for the assistant, Speech for
-  dictation, Translation for the narratives.
+  dictation.
 - **Streaming HTTP and SSE** clients for the five cloud providers, with prompt
   caching and a deterministic intent shortcut in front of the model.
 - **Storage**: an encrypted session archive, streamed raw-RR backup, opt-in
@@ -290,7 +289,7 @@ until you turn it on, and the hosted AI providers ask for consent first.
 |---|---|---|
 | iCloud sync, once turned on | Session backups, raw RR data and settings, encrypted by the app before upload. Nothing read from Apple Health is uploaded: each device reads Health itself | Your own private CloudKit container |
 | AI assistant, hosted | Your question, the data the model asks the app for, and on every turn a short block with your latest and previous recovery score, RMSSD, SDNN and heart rate, last night's heart rate and sleep, your location during a live workout, and the facts saved to the assistant's memory | The provider you choose, with your own API key, after its consent screen. DeepSeek processes and stores data in the People's Republic of China. |
-| AI assistant, Apple Intelligence | Nothing, apart from a web search or map lookup it makes. In Quick, Auto and Deep, voice turns and requests to email, get directions or search the web go to the first hosted provider you've consented to, if you have one | On-device; a web search goes to the service below, a map lookup to Apple Maps, a handed-off turn to that provider |
+| AI assistant, Apple Intelligence | In Quick, nothing, apart from a web search or map lookup it makes. If you've consented to Grok or DeepSeek, Auto sends the questions that need more reasoning, and Deep sends every question, to that provider, with the same data a hosted turn carries. In every mode, voice turns and requests to email, get directions or search the web go to the first hosted provider you've consented to, if you have one | On-device; a web search goes to the service below, a map lookup to Apple Maps, a turn sent to a hosted provider to that provider |
 | Voice conversation, when the device or language can't transcribe on the device | Your speech | Apple's speech recognition service |
 | Web search | Your search query | Tavily with your Tavily key, or Anthropic on Claude |
 | Weather for outdoor workouts | Coordinates rounded to about 1 km | MET Norway (CC BY 4.0) |
@@ -307,7 +306,8 @@ your own API key for Claude, ChatGPT, Gemini, Grok or DeepSeek, the chat and
 your structured recovery context go to that vendor when you use it, after a
 consent screen that lists exactly what it will receive. Select a hosted model
 and every turn goes to it. Quick, Auto and Deep only apply while Apple
-Intelligence is selected. Questions and replies
+Intelligence is selected; Auto and Deep can send a turn to a consented Grok or
+DeepSeek, as the table says. Questions and replies
 are screened on the device for medical red flags, and any reply can be
 reported from its long-press menu.
 API keys live in the iOS Keychain and are never synced to iCloud.

@@ -618,6 +618,25 @@ final class HealthKitManager {
         }
     }
 
+    /// Whether the user has already answered Apple Health's permission sheet
+    /// for the app's types on this device, in this launch or an earlier one.
+    /// `authorizationRequested` only covers this process; HealthKit keeps the
+    /// answer (`.unnecessary`: nothing left to ask). False when HealthKit is
+    /// unavailable or the status cannot be read.
+    func authorizationWasEverRequested() async -> Bool {
+        guard isHealthKitAvailable, let core = Self.coreAuthorizationTypes() else { return false }
+        do {
+            let status = try await healthStore.statusForAuthorizationRequest(
+                toShare: Self.writeTypes(core: core),
+                read: Self.readTypes(core: core)
+            )
+            return status == .unnecessary
+        } catch {
+            debugLog("[HealthKitManager] Authorization request status unavailable: \(error)", level: .warning)
+            return false
+        }
+    }
+
     /// The types the app cannot function without. A nil return means one of
     /// them is unavailable on this device and authorization can't proceed.
     private struct CoreAuthTypes {

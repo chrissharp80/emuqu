@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift",
- "hash": "0ce1005fcc27b03a",
+ "hash": "67854a609fe59766",
  "role": "Second half of WorkoutLiveCoachingNamespace: LLM fact/action entries for journey intelligence, OSM roads-ahead, detailed current location, forward-geocode override, MapKit directions (routeTo/next_step/clear), user thresholds, interval-plan progress and post-stop HRR capture status.",
  "types": [
   "WorkoutLiveCoachingNamespace: extension (struct declared in AppFactResolver+LiveCoaching.swift) — navigation/threshold/interval/HRR fact entries",
@@ -9,9 +9,10 @@
  ],
  "state": [
   "static let medicalPOIQuery = \"hospital\"",
-  "static let journeyDescription — model-facing description for location.journey (says it runs on the active Get Me Back trail; a workout alone does not record one)"
+  "static let journeyDescription — model-facing description for location.journey (says it runs on the active Get Me Back trail; a workout alone does not record one)",
+  "static let directionsRouteToDescription / directionsRouteToDestinationDescription — model-facing descriptions for directions.routeTo and its destination parameter"
  ],
- "toplevel": "Private static lets medicalPOIQuery and journeyDescription, private enums DestinationResolution and AddressLookup. directions.* and location.journey are not behind the workout-only location gate: the cloud consent sheet discloses the position used when the user asks for directions and the Get Me Back trail while it runs (comment above directionsRouteToEntry).",
+ "toplevel": "Private static lets medicalPOIQuery, journeyDescription, directionsRouteToDescription and directionsRouteToDestinationDescription (model-facing text for directions.routeTo and its destination parameter), private enums DestinationResolution and AddressLookup. directions.* and location.journey are not behind the workout-only location gate: the cloud consent sheet discloses the position used when the user asks for directions and the Get Me Back trail while it runs (comment above directionsRouteToEntry).",
  "flags": [],
  "units": [
   {
@@ -42,7 +43,7 @@
    "deps": {
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::var WorkoutLiveCoachingNamespace.directionsClearEntry": "431c752e8d129cf7",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::var WorkoutLiveCoachingNamespace.directionsNextStepEntry": "23b7bf33c4c6f71f",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::var WorkoutLiveCoachingNamespace.directionsRouteToEntry": "64be41670a5454bf",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::var WorkoutLiveCoachingNamespace.directionsRouteToEntry": "e2247b5b64363802",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::var WorkoutLiveCoachingNamespace.journeyEntry": "3842e04224f0519c",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::var WorkoutLiveCoachingNamespace.locationCurrentDetailedEntry": "f987bc0ae9f43e59",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::var WorkoutLiveCoachingNamespace.locationRoadsAheadEntry": "e90b2e2b57f57d6e",
@@ -455,7 +456,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.resolveLocationSetAddress(_:)": "d243339b06fbc442",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.resolveLocationSetAddress(_:)": "eb9bc6bdbd37f123",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.actionAsync(key:description:parameters:execute:)": "0e2da56177e3f63e",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::init ActionParam(_:_:required:)": "d7adb1b41654ff54"
    }
@@ -463,7 +464,7 @@
   {
    "key": "func WorkoutLiveCoachingNamespace.resolveLocationSetAddress(_:)",
    "hash": "7bbede06d61eb3d7",
-   "does": "Trims the 'address' arg and forward-geocodes it (7 s cap); a match overrides RoadGeocodingService's current context (and AmbientLocationService's address mirror) and returns the resolved address record; no match or an unreachable geocoder returns invalidParameter; no answer in time returns notRecorded telling the model to retry rather than ask the user to rephrase. Not gated on an active workout.",
+   "does": "Trims the 'address' arg and forward-geocodes it (12 s cap, room for a queued forward geocode); a match overrides RoadGeocodingService's current context (and AmbientLocationService's address mirror) and returns the resolved address record; no match or an unreachable geocoder returns invalidParameter; no answer in time returns notRecorded telling the model to retry rather than ask the user to rephrase. Not gated on an active workout.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.geocodedRoadContext(_:)",
@@ -501,7 +502,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.geocodedRoadContext(_:)": "46a6047e53534840",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.geocodedRoadContext(_:)": "547c3be7d57c88d0",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.roadContextRecord(_:)": "99d208722b7b5e3c",
     "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.overrideContext(_:)": "7cf9dcc7fd87dc34",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
@@ -509,8 +510,8 @@
   },
   {
    "key": "func WorkoutLiveCoachingNamespace.geocodedRoadContext(_:)",
-   "hash": "abd62185f21f759c",
-   "does": "Runs RoadGeocodingService.geocodeAddress(query) in a 7 s FactResolveTimeout race (above the queued geocode's own 5 s timeout plus 1 s rate floor) and wraps the result as AddressLookup.matched/unmatched; nil means the race timed out.",
+   "hash": "1b688c2cb22843ab",
+   "does": "Runs RoadGeocodingService.geocodeAddress(query) in a 12 s FactResolveTimeout race (the queued forward geocode can wait for an in-flight geocoder call (≤5 s), then the 1 s rate floor, then make its own ≤5 s call; forward geocodes skip the failure backoff) and wraps the result as AddressLookup.matched/unmatched; nil means the race timed out.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolveTimeout.withTimeout(seconds:_:)",
@@ -553,8 +554,8 @@
   },
   {
    "key": "var WorkoutLiveCoachingNamespace.directionsRouteToEntry",
-   "hash": "ef2a271ba7e05cb5",
-   "does": "Builds async action entry 'directions.routeTo' (params destination, address, mode) whose closure awaits resolveDirectionsRouteTo; the description gives 'walk me back to the trailhead' as an origin example and says 'start', 'where i started' and 'trailhead' all mean the Get Me Back origin.",
+   "hash": "50e3484d30a17865",
+   "does": "Builds async action entry 'directions.routeTo' (params destination, address, mode) whose closure awaits resolveDirectionsRouteTo; the tool and destination descriptions are the static lets directionsRouteToDescription / directionsRouteToDestinationDescription (the latter gives 'walk me back to the trailhead' as an origin example and says 'start', 'where i started' and 'trailhead' all mean the Get Me Back origin).",
    "entry": "fact closure runs when the LLM calls tool 'directions.routeTo' (FactResolverRegistry.resolveTool/resolveActionTool dispatch, Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift:291/348); the computed property itself is read when WorkoutLiveCoachingNamespace.entries builds the catalog",
    "calls": [
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.actionAsync(key:description:parameters:execute:)",

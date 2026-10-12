@@ -272,15 +272,14 @@
   },
   {
    "key": "func ImportDataView.analyzeImportedData()",
-   "hash": "42fca8fed6987ca5",
-   "does": "For the loaded plain file: requires a start date (the file's own, else the user's importRecordingDate — Analyze is disabled until set); builds the session starting then (createSession(from:startingAt:)), detects and logs artifacts off the main actor, analyses it through pipelineAnalysis (no sleep bounds), and on success marks it complete with no recovery score and presents the results; a missing RR series or too little clean data fails with an error card.",
+   "hash": "22d50746aaaa3f4a",
+   "does": "For the loaded plain file: requires a start date (the file's own, else the user's importRecordingDate — Analyze is disabled until set); builds the session starting then with its artifact flags (makeImportedSession), analyses it through pipelineAnalysis (no sleep bounds), and on success marks it complete with no recovery score and presents the results; a missing RR series or too little clean data fails with an error card.",
    "entry": "Analyze Data button via startAnalysis (Preview:223)",
    "calls": [
-    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.createSession(from:startingAt:)",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.makeImportedSession(from:startingAt:)",
     "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.updateStatus(_:)",
     "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)",
     "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.failAnalysis(_:log:)",
-    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.detectAndLogArtifacts(in:)",
     "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.pipelineAnalysis(of:sleep:)",
     "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.logAnalysisSuccess(result:)",
     "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.presentResults(_:)",
@@ -301,12 +300,12 @@
      "effect": "return"
     },
     {
-     "at": "+7",
-     "cond": "no RR series",
-     "effect": "failAnalysis(no RR data)"
+     "at": "+5",
+     "cond": "makeImportedSession nil (no RR series; failure already shown)",
+     "effect": "return"
     },
     {
-     "at": "+13",
+     "at": "+7",
      "cond": "pipeline returns nil",
      "effect": "failAnalysis(insufficient clean data)"
     }
@@ -325,15 +324,44 @@
    ],
    "deps": {
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
-    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.createSession(from:startingAt:)": "9c0e9f06d6a0ff99",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.detectAndLogArtifacts(in:)": "7c1b3f2a81d6b3e1",
     "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.failAnalysis(_:log:)": "31a829f00727e339",
     "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.logAnalysisSuccess(result:)": "71366d363f076b4c",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.makeImportedSession(from:startingAt:)": "5fa5ca175b148f71",
     "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.pipelineAnalysis(of:sleep:)": "02c7808d2dec1f63",
     "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.presentResults(_:)": "0eb8eea3c0bbcc11",
     "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "3de843a3d3457727",
     "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.updateStatus(_:)": "ee8dfd6bcab1f076"
+   }
+  },
+  {
+   "key": "func ImportDataView.makeImportedSession(from:startingAt:)",
+   "hash": "b2c5ebb989da1dd6",
+   "does": "Builds the imported recording as a session starting at startDate (RRDataImporter.createSession(from:startingAt:)), logs its point count, and sets its artifact flags (detectAndLogArtifacts, off the main actor); with no RR series reports 'Analysis failed - no RR data' (failAnalysis) and returns nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.createSession(from:startingAt:)",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.failAnalysis(_:log:)",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.detectAndLogArtifacts(in:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "no RR series",
+     "effect": "failAnalysis(no RR data), nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.createSession(from:startingAt:)": "9c0e9f06d6a0ff99",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.detectAndLogArtifacts(in:)": "7c1b3f2a81d6b3e1",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.failAnalysis(_:log:)": "31a829f00727e339",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "3de843a3d3457727"
    }
   },
   {
@@ -497,6 +525,40 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
     "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "3de843a3d3457727"
+   }
+  },
+  {
+   "key": "func ImportDataView.applyReportTags(_:notes:sessionId:)",
+   "hash": "3ceb369026295b91",
+   "does": "Tags & Notes edited on the imported reading's report (MorningResultsView onUpdateTags): written onto importedSession, which Done saves, and, off the main actor, onto the archived copy (SessionArchive.updateTags) — the report hands its edits over as it closes, after Done has already saved the reading. For a discarded reading there is no archived copy; that failure is logged.",
+   "entry": "MorningResultsView onUpdateTags (Done/Discard or the report closing, when tags/notes changed) — importedResults(session:result:)",
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.updateTags(_:tags:notes:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "mem:ImportDataView.importedSession"
+   ],
+   "writes": [
+    "mem:ImportDataView.importedSession tags/notes",
+    "archive:session tags/notes"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "importedSession is not this session",
+     "effect": "return"
+    },
+    {
+     "at": "+8",
+     "cond": "archive update throws (reading not archived)",
+     "effect": "logged"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.updateTags(_:tags:notes:)": "1bf6c9d59b14e9d7",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
   {

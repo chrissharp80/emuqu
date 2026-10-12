@@ -1,6 +1,6 @@
 {
  "file": "EmuquTests/StrapRecoveryFlowTests.swift",
- "hash": "14435e5dd3024283",
+ "hash": "79a3639351f822c4",
  "role": "@MainActor integration tests of the app-level strap transfer flows (Retry, Recover, review-archive/Discard, the overnight fetch gate, reconnect-for-transfer) driven through a real PolarManager/RRCollector with FakeStrapRadio and a temp-directory SessionArchive, pinning strap-copies Bugs 1-3, 5-9.",
  "types": [
   "StrapRecoveryFlowTests: class — @MainActor XCTestCase over RRCollector recovery/morning/overnight flows and PolarManager.reconnectForTransfer"
@@ -9,23 +9,12 @@
   "deviceId: \"H10-RECOVERY\" fixed strap id",
   "directory: lazy temp dir StrapRecoveryFlowTests-<UUID>",
   "archive: lazy SessionArchive(directory:) under that dir",
-  "ud:RRCollector.persistedRecordingState (UserDefaults.standard, written via persistRecordingState, cleared in tearDown)",
-  "ud:StrapRecoveryFlowTests-<UUID> suite per collector for StrapDownloadLedger (never removed)"
+  "ud:RRCollector.persistedRecordingState (UserDefaults.standard: cleared for each test by isolateFromHostRecordingState, written via persistRecordingState, host value restored in teardown)",
+  "ud:StrapRecoveryFlowTests-<UUID> suite per collector for StrapDownloadLedger (never removed)",
+  "const hostDismissedInterruptionsKey = \"RRCollector.dismissedInterruptedSessionIds\" (mirrors the private PersistedRecordingState.dismissedKey)"
  ],
  "toplevel": "Lazy stored properties create a per-test temp directory and SessionArchive.",
  "flags": [
-  {
-   "kind": "test-defect",
-   "sev": "med",
-   "text": "Shares state with the app host: persistRecordingState writes RRCollector.persistedRecordingState to UserDefaults.standard (PersistedRecordingState.swift:37) and tearDown's PersistedRecordingState.clear() removes that key, the legacy keys and RRCollector.dismissedInterruptedSessionIds from the host's UserDefaults.standard; offersStrapRecovery also reads getPersistedRecordingState() and AppDependencies.current.app.recorderBox (RRCollector+Recovery.swift:37-39), so leftover host state changes these tests' outcomes and running them wipes a real interrupted-session record on a device test host.",
-   "evidence": [
-    "EmuquTests/StrapRecoveryFlowTests.swift:17",
-    "EmuquTests/StrapRecoveryFlowTests.swift:58",
-    "Emuqu/Sources/Collection/PersistedRecordingState.swift:62",
-    "Emuqu/Sources/Collection/RRCollector+Recovery.swift:37"
-   ],
-   "found": "first read, upheld on second"
-  },
   {
    "kind": "duplicate",
    "sev": "low",
@@ -41,18 +30,36 @@
  ],
  "units": [
   {
+   "key": "func StrapRecoveryFlowTests.setUp()",
+   "hash": "315d3b0152681764",
+   "does": "Calls super.setUp, then isolateFromHostRecordingState(): each test starts with no persisted recording state and an empty recorder box, and the host's are put back in teardown.",
+   "entry": "XCTest per-test setUp",
+   "calls": [
+    "EmuquTests/StrapRecoveryFlowTests.swift::func XCTestCase.isolateFromHostRecordingState()"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:RRCollector.persistedRecordingState (UserDefaults.standard)",
+    "ud:legacy activeRecording* keys (UserDefaults.standard)",
+    "ud:RRCollector.dismissedInterruptedSessionIds (UserDefaults.standard)",
+    "mem:AppDependencies.current"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/StrapRecoveryFlowTests.swift::func XCTestCase.isolateFromHostRecordingState()": "013346ab5f875bd3"
+   }
+  },
+  {
    "key": "func StrapRecoveryFlowTests.tearDown()",
-   "hash": "6fc01cbac6fad921",
-   "does": "tearDown: clears PersistedRecordingState from UserDefaults.standard, deletes the temp archive directory, then calls super.tearDown.",
+   "hash": "f9cb517912842767",
+   "does": "Deletes the temp archive directory (a missing one is ignored), then calls super.tearDown. The persisted recording state is restored by the teardown block isolateFromHostRecordingState registered, which runs first.",
    "entry": "XCTest runner: async tearDown after each test",
    "calls": [
-    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.clear()",
     "ext:FileManager.removeItem"
    ],
    "reads": [],
    "writes": [
-    "ud:RRCollector.persistedRecordingState",
-    "ud:RRCollector.dismissedInterruptedSessionIds",
     "file:tmp/StrapRecoveryFlowTests-<UUID>"
    ],
    "branches": [
@@ -63,14 +70,12 @@
     }
    ],
    "flags": [],
-   "deps": {
-    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.clear()": "40d48ad743b2b737"
-   }
+   "deps": {}
   },
   {
    "key": "func StrapRecoveryFlowTests.makeCollector(_:)",
-   "hash": "4bea8337393d6b29",
-   "does": "Test helper: builds a PolarManager wired to the FakeStrapRadio, marks it connected to H10 'H10-RECOVERY', establishes and settles readiness, gives it a StrapDownloadLedger on a fresh UserDefaults suite, and returns RRCollector(polarManager:, healthKit: HealthKitManager(), archive:).",
+   "hash": "e12fa04fb62cfe14",
+   "does": "Test helper: builds a PolarManager wired to the FakeStrapRadio, marks it connected to H10 'H10-RECOVERY', establishes and settles readiness, gives it a StrapDownloadLedger on a fresh UserDefaults suite, and returns RRCollector.withoutCloudAcceptance over it and the temp archive (acceptance sends nothing to iCloud).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()",
@@ -78,8 +83,7 @@
     "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkEstablished()",
     "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.settleWithoutSummary()",
     "Emuqu/Sources/Collection/StrapRecording.swift::init StrapDownloadLedger(defaults:)",
-    "Emuqu/Sources/Collection/HealthKitManager.swift::init HealthKitManager(settingsProvider:)",
-    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:backgroundAudioManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)"
+    "EmuquTests/StrapRecoveryFlowTests.swift::func RRCollector.withoutCloudAcceptance(polarManager:archive:)"
    ],
    "reads": [],
    "writes": [
@@ -106,13 +110,12 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager.swift::init HealthKitManager(settingsProvider:)": "b07f454e4747c40b",
     "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.setConnectedDeviceForTesting(id:type:)": "119fb2afbb3f1150",
     "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "b9f281895be22d44",
-    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:backgroundAudioManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)": "ab46982b96b81c2c",
     "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkEstablished()": "f32f3e5777f67ce6",
     "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.settleWithoutSummary()": "e36111b9f64a69b7",
-    "Emuqu/Sources/Collection/StrapRecording.swift::init StrapDownloadLedger(defaults:)": "53b6693e0e3e79d1"
+    "Emuqu/Sources/Collection/StrapRecording.swift::init StrapDownloadLedger(defaults:)": "53b6693e0e3e79d1",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func RRCollector.withoutCloudAcceptance(polarManager:archive:)": "a520a299975a4cde"
    }
   },
   {
@@ -128,7 +131,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.exerciseId(at:timeZone:)": "bde2f9a59f6c5745"
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.exerciseId(at:timeZone:)": "1387ceb33e2da778"
    }
   },
   {
@@ -179,13 +182,13 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "9f997d8c7612d204",
-    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.persistRecordingState(sessionId:startTime:sessionType:)": "eb5f05984c3aa9a1",
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.persistRecordingState(sessionId:startTime:sessionType:)": "90485455818ed9f4",
     "Emuqu/Sources/Collection/RRCollector+Recovery.swift::func SessionRecoveryCoordinator.retryFetchRecording()": "d19aadfb389a61dc",
     "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.retryFetchRecording()": "6a035806d3377bc2",
     "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.addExercise(entryId:path:date:rrMs:)": "922c29ced26bff57",
     "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.exerciseId(_:)": "48b8f10b47b1b316",
     "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.fetched(_:)": "676c3051865da852",
-    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.makeCollector(_:)": "8bbba8e1b762e5c6"
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.makeCollector(_:)": "9691cb4696e00d05"
    }
   },
   {
@@ -205,25 +208,13 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "med",
-     "text": "Outcome depends on host-global state: strapHoldsOrphanedRecording requires getPersistedRecordingState()==nil from UserDefaults.standard and no live recorder in AppDependencies.current.app.recorderBox (RRCollector+Recovery.swift:38-47); a test host with a persisted session or running workout makes this fail.",
-     "evidence": [
-      "EmuquTests/StrapRecoveryFlowTests.swift:79",
-      "Emuqu/Sources/Collection/RRCollector+Recovery.swift:38",
-      "Emuqu/Sources/Collection/RRCollector+Recovery.swift:46"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+Recovery.swift::var SessionRecoveryCoordinator.strapHoldsOrphanedRecording": "ef19a875cb340fce",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.hasUnrecoveredData": "bf812a1928139cbd",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "80cfea9a213f0e16",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.offersStrapRecovery": "10003bf4e1cf9b6e",
-    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.makeCollector(_:)": "8bbba8e1b762e5c6"
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.makeCollector(_:)": "9691cb4696e00d05"
    }
   },
   {
@@ -251,14 +242,14 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isCollecting": "fae635a5d47df935",
-    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::func SessionRecoveryCoordinator.recoverFromDevice()": "1cd48851ede8a255",
+    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::func SessionRecoveryCoordinator.recoverFromDevice()": "1d8007b8ba38339c",
     "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.recoverFromDevice()": "004ea007882e33c0",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "80cfea9a213f0e16",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.offersStrapRecovery": "10003bf4e1cf9b6e",
     "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.setRecording(ongoing:entryId:)": "257ff9ed6a32ea4c",
     "EmuquTests/FakeStrapRadio.swift::var FakeStrapRadio.calls": "f3f360684b4dcac1",
     "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.exerciseId(_:)": "48b8f10b47b1b316",
-    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.makeCollector(_:)": "8bbba8e1b762e5c6"
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.makeCollector(_:)": "9691cb4696e00d05"
    }
   },
   {
@@ -289,29 +280,16 @@
      "effect": "asserts CollectorError.strapRecordingAlreadySaved (a non-throw hits XCTFail)"
     }
    ],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "med",
-     "text": "recoverFromDevice first runs checkRecoverable, whose strapRecordingBelongsToLiveSession reads the host-global AppDependencies.current.app.recorderBox (RRCollector+Recovery.swift:39,77); a host with a recorder in .recording/.finalizing makes it throw .alreadyRecording instead of .strapRecordingAlreadySaved and the assertion at :122 fails. offersStrapRecovery likewise reads getPersistedRecordingState() from UserDefaults.standard.",
-     "evidence": [
-      "EmuquTests/StrapRecoveryFlowTests.swift:117",
-      "EmuquTests/StrapRecoveryFlowTests.swift:122",
-      "Emuqu/Sources/Collection/RRCollector+Recovery.swift:39",
-      "Emuqu/Sources/Collection/RRCollector+Recovery.swift:77"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::func SessionRecoveryCoordinator.recoverFromDevice()": "1cd48851ede8a255",
+    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::func SessionRecoveryCoordinator.recoverFromDevice()": "1d8007b8ba38339c",
     "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.recoverFromDevice()": "004ea007882e33c0",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.hasStoredExercise": "dbd1bab5a9194403",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.hasUnrecoveredData": "bf812a1928139cbd",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.offersStrapRecovery": "10003bf4e1cf9b6e",
     "Emuqu/Sources/Collection/StrapRecording.swift::func StrapDownloadLedger.markDownloaded(recordingStartedAt:)": "f7777736bca46a35",
     "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.fetched(_:)": "676c3051865da852",
-    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.makeCollector(_:)": "8bbba8e1b762e5c6"
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.makeCollector(_:)": "9691cb4696e00d05"
    }
   },
   {
@@ -331,8 +309,7 @@
    "writes": [
     "archive:SessionArchive.archive (temp dir)",
     "archive:SessionArchive.delete (temp dir)",
-    "ud:RRCollector.persistedRecordingState",
-    "ud:RRCollector.dismissedInterruptedSessionIds",
+    "ud:RRCollector.persistedRecordingState (isolated, restored in teardown)",
     "ck:session deletion via host CloudKitSyncManager (only when iCloudSyncEnabled)"
    ],
    "branches": [],
@@ -340,26 +317,25 @@
     {
      "kind": "test-defect",
      "sev": "med",
-     "text": "rejectSession reaches host-global services the test does not inject: processRejection clears PersistedRecordingState in UserDefaults.standard (SessionAcceptanceService.swift:495, PersistedRecordingState.swift:62) and fires onCloudDelete, and discardReviewArchivedSession uploads a deletion through collector.cloudSyncManager, which defaults to AppDependencies.current.storage.cloudKitSyncManager (RRCollector.swift:706; RRCollector+MorningProcessing.swift:181-182). On a host with iCloud sync on, the test sends CloudKit deletions for its random session id; makeCollector also builds RawRRBackup() over the host App Group backup directory (RawRRBackup.swift:230-246).",
+     "text": "Still reaches host-global services the test cannot inject: discardReviewArchivedSession uploads a deletion for the random session id through collector.cloudSyncManager, which can only be the host's CloudKitSyncManager.shared (private init; RRCollector.swift:724, RRCollector+MorningProcessing.swift:196), so on a host with iCloud sync on the test sends a CloudKit deletion; and RRCollector.withoutCloudAcceptance builds RawRRBackup() over the host App Group backup directory (no directory seam). The persisted recording state, the recorder box and the acceptance service's cloud calls are isolated (isolateFromHostRecordingState, withoutCloudAcceptance). Needs source seams (handoff).",
      "evidence": [
-      "EmuquTests/StrapRecoveryFlowTests.swift:139",
-      "Emuqu/Sources/Services/SessionAcceptanceService.swift:495",
-      "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift:182",
-      "Emuqu/Sources/Collection/RRCollector.swift:706",
-      "Emuqu/Sources/Storage/CloudKitSyncManager.swift:636"
+      "EmuquTests/StrapRecoveryFlowTests.swift:143",
+      "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift:196",
+      "Emuqu/Sources/Collection/RRCollector.swift:724",
+      "Emuqu/Sources/Storage/RawRRBackup.swift:219"
      ],
      "found": "second read"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Acceptance.swift::func MorningSessionPipeline.rejectSession()": "eb28cd1f16567216",
+    "Emuqu/Sources/Collection/RRCollector+Acceptance.swift::func MorningSessionPipeline.rejectSession()": "067fbe1a2055febe",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.needsAcceptance": "37c71d78df96a761",
     "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.rejectSession()": "a559e2a578c0ee66",
     "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::var RRCollector.morning": "74bd9499d7e73a42",
-    "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift::func MorningSessionPipeline.archiveForReview(_:)": "2de706529f5fcca3",
-    "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift::func MorningSessionPipeline.discardReviewArchivedSession()": "55cc69607ab6fe10",
+    "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift::func MorningSessionPipeline.archiveForReview(_:)": "2b52d934645eed08",
+    "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift::func MorningSessionPipeline.discardReviewArchivedSession()": "15bc3b04bdb72182",
     "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.completeNight()": "dc8f352f46c431da",
-    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.makeCollector(_:)": "8bbba8e1b762e5c6"
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.makeCollector(_:)": "9691cb4696e00d05"
    }
   },
   {
@@ -381,10 +357,10 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::var RRCollector.morning": "74bd9499d7e73a42",
-    "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift::func MorningSessionPipeline.archiveForReview(_:)": "2de706529f5fcca3",
+    "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift::func MorningSessionPipeline.archiveForReview(_:)": "2b52d934645eed08",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)": "e1a5ccaab9fa4e3e",
     "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.completeNight()": "dc8f352f46c431da",
-    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.makeCollector(_:)": "8bbba8e1b762e5c6"
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.makeCollector(_:)": "9691cb4696e00d05"
    }
   },
   {
@@ -415,7 +391,7 @@
     "EmuquTests/FakeStrapRadio.swift::var FakeStrapRadio.calls": "f3f360684b4dcac1",
     "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.exerciseId(_:)": "48b8f10b47b1b316",
     "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.fetched(_:)": "676c3051865da852",
-    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.makeCollector(_:)": "8bbba8e1b762e5c6"
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.makeCollector(_:)": "9691cb4696e00d05"
    }
   },
   {
@@ -449,7 +425,7 @@
     "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refuse(_:times:with:)": "975d3292e9e4e597",
     "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.setRecording(ongoing:entryId:)": "257ff9ed6a32ea4c",
     "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.exerciseId(_:)": "48b8f10b47b1b316",
-    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.makeCollector(_:)": "8bbba8e1b762e5c6",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.makeCollector(_:)": "9691cb4696e00d05",
     "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.streamWithGap(minutes:)": "161bea0c1f6a1fa5"
    }
   },
@@ -540,6 +516,74 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "1ad44fdc2c485550"
+   }
+  },
+  {
+   "key": "func XCTestCase.isolateFromHostRecordingState()",
+   "hash": "b93b039a77ffd13e",
+   "does": "Saves the host's persisted recording state (PersistedRecordingState.load) and dismissed-prompt list, clears the persisted state, and installs a fresh AppDependencies whose overrides hold an empty RecorderBox (no live workout). Registers a teardown block that resets AppDependencies, clears the persisted state again and puts the saved state and dismissed list back (removing the key when there was none).",
+   "entry": "Called from setUp of StrapRecoveryFlowTests and SessionDiscardTests",
+   "calls": [
+    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.load()",
+    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.clear()",
+    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.save(_:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::init AppDependencies()",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.Overrides.recorderBox",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::func AppDependencies.reset()",
+    "ext:XCTestCase.addTeardownBlock"
+   ],
+   "reads": [
+    "ud:RRCollector.persistedRecordingState",
+    "ud:legacy activeRecording* keys",
+    "ud:RRCollector.dismissedInterruptedSessionIds"
+   ],
+   "writes": [
+    "ud:RRCollector.persistedRecordingState (UserDefaults.standard)",
+    "ud:legacy activeRecording* keys (UserDefaults.standard)",
+    "ud:RRCollector.dismissedInterruptedSessionIds (UserDefaults.standard)",
+    "mem:AppDependencies.current"
+   ],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "teardown: savedState non-nil",
+     "effect": "PersistedRecordingState.save(savedState); else the state stays cleared"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.clear()": "40d48ad743b2b737",
+    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.load()": "369ba575c47e4e85",
+    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.save(_:)": "3fd1e07aa3e68060",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::func AppDependencies.reset()": "9923e6c35385c5ed",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::init AppDependencies()": "92c65c092a79595e",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.Overrides.recorderBox": "bd497bb2cc2ba260",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+   }
+  },
+  {
+   "key": "func RRCollector.withoutCloudAcceptance(polarManager:archive:)",
+   "hash": "24da80efc4048409",
+   "does": "Builds an RRCollector over the given PolarManager and archive with a fresh HealthKitManager, RawRRBackup and BaselineTracker, and a SessionAcceptanceService on the same archive/backup/tracker whose onCloudSync and onCloudDelete do nothing; the collector's other dependencies default.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager.swift::init HealthKitManager(settingsProvider:)",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup()",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::init BaselineTracker(onBaselineUpdated:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::init SessionAcceptanceService(archive:healthKit:baselineTracker:rawBackup:onCloudSync:onCloudDelete:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:backgroundAudioManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::init BaselineTracker(onBaselineUpdated:)": "cabf0f241718fe50",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::init HealthKitManager(settingsProvider:)": "b07f454e4747c40b",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:backgroundAudioManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)": "ab46982b96b81c2c",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::init SessionAcceptanceService(archive:healthKit:baselineTracker:rawBackup:onCloudSync:onCloudDelete:)": "aba25f71775f0d83",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup()": "fc8431a6601465db"
    }
   }
  ],

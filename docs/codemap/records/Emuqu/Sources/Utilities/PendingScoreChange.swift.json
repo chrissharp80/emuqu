@@ -60,15 +60,14 @@
    "branches": [],
    "flags": [
     {
-     "kind": "broken",
-     "sev": "med",
-     "text": "Notices now expire after 12 h, but the dashboard still calls read() with no session (DashboardV2View.onDashboardAppear), so within that window a 'score updated 67 → 74' notice for a session other than the one the dashboard shows is still surfaced; read(currentSessionId:now:) supports the check once the dashboard passes latestOvernightComplete?.id.",
+     "kind": "dead",
+     "sev": "low",
+     "text": "No caller left: DashboardV2View.onDashboardAppear now calls read(currentSessionId:now:) with the overnight the hero shows.",
      "evidence": [
       "Emuqu/Sources/Utilities/PendingScoreChange.swift:47",
-      "Emuqu/Sources/Utilities/PendingScoreChange.swift:54",
-      "Emuqu/Sources/Views/DashboardV2View.swift:275"
+      "Emuqu/Sources/Views/DashboardV2View.swift:279"
      ],
-     "found": "second read; narrowed by the 12 h expiry fix"
+     "found": "handoff pass h_src1"
     }
    ],
    "deps": {

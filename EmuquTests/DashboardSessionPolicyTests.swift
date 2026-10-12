@@ -148,9 +148,11 @@ final class DashboardSessionPolicyTests: XCTestCase {
     /// it sorted first and the naive `.first { … }` picked it. The policy
     /// must pick the longest-duration session within the most recent night.
     func testLatestOvernightCompletePicksLongestWithinSameNight() {
-        // Same night (both start Monday May 18); partial sorts first,
-        // exactly the ordering that triggered the original bug.
-        let partial = makeSession(start: date(5, 18, 23, 30), durationMinutes: 22)
+        // Same night: with no sleep snapshot a night is keyed on the end
+        // day, and both end the morning of Tuesday May 19. The partial sorts
+        // first and starts later, exactly the ordering that triggered the
+        // original bug, so `.first` or a latest-start pick would return it.
+        let partial = makeSession(start: date(5, 19, 3), durationMinutes: 22)
         let realOvernight = makeSession(start: date(5, 18, 22), durationMinutes: 480)
         let sessions = [partial, realOvernight]
 
@@ -203,17 +205,27 @@ final class DashboardSessionPolicyTests: XCTestCase {
     /// archived a 12-min partial as an `.insufficient` overnight with a
     /// baseline-derived score. It must NOT headline the HRV chip: the newer
     /// insufficient partial should be skipped in favor of the real overnight.
+    ///
+    /// The partial ends after midnight, so it is the more recent night
+    /// (the real overnight ends 7/31, the partial 8/1): only the reliability
+    /// gate keeps it off the chip, as the control without the flag shows.
     func testLatestOvernightCompleteExcludesInsufficient() {
         let realOvernight = makeSession(start: date(7, 30, 22), durationMinutes: 480)
         let insufficientPartial = makeSession(
-            start: date(7, 31, 21, 45), durationMinutes: 13, recoveryScore: 4.8,
+            start: date(8, 1, 0, 10), durationMinutes: 13, recoveryScore: 4.8,
             hrvDataQuality: .insufficient
         )
-        let sessions = [insufficientPartial, realOvernight] // newest first
+        let reliablePartial = makeSession(start: date(8, 1, 0, 10), durationMinutes: 13, recoveryScore: 4.8)
 
-        let picked = DashboardSessionPolicy.latestOvernightComplete(in: sessions, calendar: calendar)
+        let picked = DashboardSessionPolicy.latestOvernightComplete(
+            in: [insufficientPartial, realOvernight], calendar: calendar
+        )
+        let control = DashboardSessionPolicy.latestOvernightComplete(
+            in: [reliablePartial, realOvernight], calendar: calendar
+        )
 
         XCTAssertEqual(picked?.id, realOvernight.id)
+        XCTAssertEqual(control?.id, reliablePartial.id, "Control: the same partial without the flag is the newer night and wins")
     }
 
     /// The recent-days strip must leave a day EMPTY when its only reading is
@@ -232,16 +244,23 @@ final class DashboardSessionPolicyTests: XCTestCase {
 
     /// `.preSleep` (recording ended before sleep → awake RMSSD) is excluded
     /// from the HRV chip too — same reliability gate as `.insufficient`.
+    /// As there, the pre-sleep reading is the more recent night (it ends 8/1),
+    /// so without the gate it would win.
     func testLatestOvernightCompleteExcludesPreSleep() {
         let realOvernight = makeSession(start: date(7, 30, 22), durationMinutes: 480)
         let preSleep = makeSession(
-            start: date(7, 31, 21), durationMinutes: 40, recoveryScore: 5.0,
+            start: date(7, 31, 23, 50), durationMinutes: 40, recoveryScore: 5.0,
             hrvDataQuality: .preSleep
         )
+        let reliableTwin = makeSession(start: date(7, 31, 23, 50), durationMinutes: 40, recoveryScore: 5.0)
         let picked = DashboardSessionPolicy.latestOvernightComplete(
             in: [preSleep, realOvernight], calendar: calendar
         )
+        let control = DashboardSessionPolicy.latestOvernightComplete(
+            in: [reliableTwin, realOvernight], calendar: calendar
+        )
         XCTAssertEqual(picked?.id, realOvernight.id)
+        XCTAssertEqual(control?.id, reliableTwin.id, "Control: the same reading without the flag is the newer night and wins")
     }
 
     /// A good reading on the same day still wins — the exclusion is scoped to

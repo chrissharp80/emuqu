@@ -1,7 +1,7 @@
 {
  "file": "EmuquTests/StrapOfflineRecordingEntriesTests.swift",
  "hash": "058b2a333bacf1c4",
- "role": "XCTest suite for StrapOfflineRecordingEntries: grouping Verity Sense offline sub-file paths (PPI0.REC, PPI1.REC, …) to one recording key and de-duplicating the SDK fallback listing to one entry per recording in listing order.",
+ "role": "XCTest suite for StrapOfflineRecordingEntries: grouping Verity Sense offline sub-file paths (PPI0.REC, PPI1.REC, …) to one recording key, de-duplicating the SDK fallback listing to one entry per recording in listing order, and clearing a split recording with one removal (against FakeStrapRadio).",
  "types": [
   "StrapOfflineRecordingEntriesTests: class — XCTestCase over StrapOfflineRecordingEntries.recordingKey/onePerRecording"
  ],
@@ -93,6 +93,38 @@
    "deps": {
     "Emuqu/Sources/Collection/StrapOfflineRecordingEntries.swift::func StrapOfflineRecordingEntries.onePerRecording(_:path:)": "ad14f2f73d638fb0",
     "Emuqu/Sources/Collection/StrapOfflineRecordingEntries.swift::func StrapOfflineRecordingEntries.recordingKey(forPath:)": "452a39a1b30c2224"
+   }
+  },
+  {
+   "key": "func StrapOfflineRecordingEntriesTests.testASplitRecordingIsRemovedOnce()",
+   "hash": "e85a90c4dc50558b",
+   "does": "Adds a Verity night split into three sub-files (same recording key) to a FakeStrapRadio, runs StrapRecordingCoordinator.removeOfflinePpiRecordings, and asserts it reports 1 removed, the fake saw exactly one .removeOfflineRecord call, and listPpiEntries then lists nothing. A per-sub-file removal regression would throw on the second removal (the fake fails a removal of a recording already gone).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.addOfflineRecording(path:date:ppiMs:)",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.removeOfflinePpiRecordings(api:deviceId:)",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.listPpiEntries(api:deviceId:)",
+    "EmuquTests/FakeStrapRadio.swift::var FakeStrapRadio.calls",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.removeOfflineRecord(_:entry:)",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.listOfflineRecordings(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for index in 0 ..< 3",
+     "effect": "adds sub-files PPI0/PPI1/PPI2.REC of one recording"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.listPpiEntries(api:deviceId:)": "fc7c574ff9a9b9bb",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.removeOfflinePpiRecordings(api:deviceId:)": "4bacb0cccb8308e6",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.addOfflineRecording(path:date:ppiMs:)": "f1faeda571c39b62",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.listOfflineRecordings(_:)": "c94c55e59839bb88",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.removeOfflineRecord(_:entry:)": "88e1d033acbd3abc",
+    "EmuquTests/FakeStrapRadio.swift::var FakeStrapRadio.calls": "f3f360684b4dcac1"
    }
   }
  ],

@@ -379,37 +379,30 @@
   },
   {
    "key": "func RRDataImporterTests.testParseCSV_semicolonSeparator()",
-   "hash": "5ebd12901f9f5c7c",
-   "does": "Parses '800\\n750\\n810' and asserts 3 values.",
+   "hash": "d5a591a9441012f5",
+   "does": "Parses 'timestamp;rr\\n0;800\\n800;750\\n1550;810' and asserts exactly [800, 750, 810]: detectSeparator picks ';' (the header has no comma), the header names column 1 as RR, and a comma split would have left each row one unparseable column and imported nothing.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.parseCSV(_:)",
-    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrValues(from:separator:rrColumn:)",
     "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.detectSeparator(firstLine:)",
     "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.looksLikeHeader(_:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrColumnIndex(inHeaderLine:separator:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.namesRRColumn(_:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrValues(from:separator:rrColumn:)",
     "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrValue(fromColumns:rrColumnIndex:convert:)",
     "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.convertToMilliseconds(_:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "med",
-     "text": "Named testParseCSV_semicolonSeparator but the input contains no semicolon, so detectSeparator's ';' branch is never exercised by it; the test duplicates testParseCSV_singleColumn.",
-     "evidence": [
-      "EmuquTests/RRDataImporterTests.swift:145",
-      "Emuqu/Sources/Import/RRDataImporter+CSV.swift:51"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.convertToMilliseconds(_:)": "2ec956267d8ac7b2",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.convertToMilliseconds(_:)": "77db942b7880f4ff",
     "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.detectSeparator(firstLine:)": "6f0e1dfe45616755",
     "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.looksLikeHeader(_:)": "812f8866fbe54d0e",
-    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.parseCSV(_:)": "42657bcc4a447778",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.namesRRColumn(_:)": "9a0e2af575a94283",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.parseCSV(_:)": "504ff6254cf0d106",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrColumnIndex(inHeaderLine:separator:)": "2cabd9766c826325",
     "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrValue(fromColumns:rrColumnIndex:convert:)": "9fcc368a80967cc6",
     "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrValues(from:separator:rrColumn:)": "3c594bf03d246328"
    }
@@ -1235,11 +1228,11 @@
   },
   {
    "key": "func RRDataImporterTests.testCreateSession_setsCorrectFields()",
-   "hash": "825672374e02e4de",
-   "does": "Asserts createSession from 3 intervals builds an rrSeries with those 3 rr values and notes containing the file name.",
+   "hash": "da08453292120054",
+   "does": "Asserts createSession from 3 intervals builds an rrSeries with those 3 rr values and notes containing the file name. Creates the session with an explicit start date and asserts the session starts at it.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
-    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.createSession(from:)",
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.createSession(from:startingAt:)",
     "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)",
     "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)"
    ],
@@ -1248,19 +1241,18 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.createSession(from:)": "533034b3b12c26eb",
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.createSession(from:startingAt:)": "9c0e9f06d6a0ff99",
     "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5",
-    "EmuquTests/WorkoutRRMergeTests.swift::func WorkoutRRMergeTests.points(_:)": "c275ddb86778fcf0"
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5"
    }
   },
   {
    "key": "func RRDataImporterTests.testCreateSession_cumulativeTimestamps()",
-   "hash": "0489b93b5b12c2d2",
-   "does": "Asserts createSession builds cumulative t_ms 0, 800, 1550.",
+   "hash": "aa7fc0bfd5f67408",
+   "does": "Asserts createSession builds cumulative t_ms 0, 800, 1550 (session created with an explicit start date).",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
-    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.createSession(from:)",
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.createSession(from:startingAt:)",
     "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)",
     "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)"
    ],
@@ -1269,7 +1261,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.createSession(from:)": "533034b3b12c26eb",
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.createSession(from:startingAt:)": "9c0e9f06d6a0ff99",
     "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
     "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5"
    }

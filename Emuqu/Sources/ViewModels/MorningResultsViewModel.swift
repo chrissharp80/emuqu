@@ -159,23 +159,29 @@ final class MorningResultsViewModel {
     /// archived copy (`SessionArchive.update`), or by archiving `rescored`
     /// whole when the session is not archived yet. False when the write threw.
     nonisolated private static func writePerceivedReadiness(_ rescored: HRVSession, isArchived: Bool) -> Bool {
-        let archive = AppDependencies.current.storage.sessionArchive
         do {
-            if isArchived {
-                try archive.update(rescored.id) { stored in
-                    stored.perceivedReadiness = rescored.perceivedReadiness
-                    stored.recoveryScore = rescored.recoveryScore
-                    stored.scoreBreakdown = rescored.scoreBreakdown
-                    stored.frozenReadiness = rescored.frozenReadiness
-                }
-            } else {
-                try archive.archive(rescored, skipSameNightMerge: false, requestingReupload: true)
-            }
+            try storePerceivedReadiness(rescored, isArchived: isArchived)
             debugLog("[MorningResultsVM] Persisted perceivedReadiness=\(rescored.perceivedReadiness.map { String(format: "%.2f", $0) } ?? "nil")")
             return true
         } catch {
             debugLog("[MorningResultsVM] Failed to persist perceivedReadiness: \(error)", level: .warning)
             return false
+        }
+    }
+
+    /// The write behind `writePerceivedReadiness`: only the rating and score
+    /// fields, in place, on an archived copy; the whole session otherwise.
+    nonisolated private static func storePerceivedReadiness(_ rescored: HRVSession, isArchived: Bool) throws {
+        let archive = AppDependencies.current.storage.sessionArchive
+        guard isArchived else {
+            try archive.archive(rescored, skipSameNightMerge: false, requestingReupload: true)
+            return
+        }
+        try archive.update(rescored.id) { stored in
+            stored.perceivedReadiness = rescored.perceivedReadiness
+            stored.recoveryScore = rescored.recoveryScore
+            stored.scoreBreakdown = rescored.scoreBreakdown
+            stored.frozenReadiness = rescored.frozenReadiness
         }
     }
 
@@ -505,11 +511,12 @@ final class MorningResultsViewModel {
     }
 
     /// No snapshot yet (pre-acceptance) — fetch live from HealthKit.
+    ///
+    /// Only reads: Health's prompt is a remote sheet, and remote sheets over
+    /// this one crashed in `_tryToConnectToRemoteSheet`. Launch and taps ask;
+    /// without access the RR estimate stands in.
     private func loadLiveSleep() async {
         do {
-            // Only reads: Health's prompt is a remote sheet, and remote sheets
-            // over this one crashed in `_tryToConnectToRemoteSheet`. Launch and
-            // taps ask; without access the RR estimate below stands in.
             let recoveryWindow = sleepFetchWindow()
             let sleep = try await healthKit.fetchSleepData(
                 for: recoveryWindow.start,

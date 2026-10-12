@@ -90,8 +90,8 @@
   },
   {
    "key": "§ Architecture decision records > 001 — Sensitive storage falls back, then repairs",
-   "hash": "8c0d61da42b0ad9d",
-   "does": "Claims: when EncryptionManager is unavailable (before first unlock), archive writes plaintext with .completeFileProtection, records the session in PendingEncryptionLedger, and reencryptPendingSessions() rewrites it encrypted at the next launch where the key is reachable; the window is 'bounded by one app launch' and 'logged at .error'. Verified the write options (Archive+PendingEncryption.swift:22-29) and the launch-time repair called from ArchiveMigrations.runDeferredMigrations (Archive+Migrations.swift:37).",
+   "hash": "083cc017046b6ffd",
+   "does": "Claims: when EncryptionManager is unavailable (before first unlock), archive writes plaintext with .completeFileProtection, records the session in PendingEncryptionLedger, and reencryptPendingSessions() rewrites it encrypted at the next launch where the key is reachable; the window is 'bounded by one app launch'; only a throwing encrypt() is logged at .error, while the key-unavailable fallback is not logged and shows only as the ledger entry. Verified the write options (Archive+PendingEncryption.swift:18-30), encryptOrReportFailure (Archive+SessionCodec.swift:113-126: isAvailable guard returns nil silently, catch logs .error), and the launch-time repair called from ArchiveMigrations.runDeferredMigrations.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func archiveWriteOptions(for:sessionID:)",
@@ -110,17 +110,6 @@
    "flags": [
     {
      "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "ADR says the plaintext window is logged at .error, but in the realistic trigger it names (key unavailable before first unlock) encryptOrReportFailure returns nil via the isAvailable guard without logging; only a throwing encrypt() logs at .error, and no call site passes onPlaintextFallback. The fallback write itself is silent.",
-     "evidence": [
-      "docs/adr/README.md:39",
-      "Emuqu/Sources/Storage/Archive+SessionCodec.swift:120",
-      "Emuqu/Sources/Storage/Archive+SessionCodec.swift:49"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "spec-mismatch",
      "sev": "low",
      "text": "ADR says the plaintext window is 'bounded by one app launch', but reencryptPendingSessions returns early (leaving entries queued) when the key is still unavailable at launch, and pendingSession defers when the file is unreadable (background launch while locked), so the window spans any number of launches.",
      "evidence": [
@@ -133,13 +122,13 @@
    ],
    "deps": {
     "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.runDeferredMigrations()": "35d630570bec345f",
-    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func archiveWriteOptions(for:sessionID:)": "d9ad1255ee6ca7c4",
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func archiveWriteOptions(for:sessionID:)": "f132c4b8e789661b",
     "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func pendingSession(_:in:)": "916edc2b800cbdaa",
-    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func reencryptOne(_:in:)": "be6622dcbf06e136",
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func reencryptOne(_:in:)": "d6cceffd6ffc982d",
     "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func reencryptPendingSessions(in:)": "a6f10f434000c214",
     "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.SessionFileCodec.encodeForDisk(_:encoder:onPlaintextFallback:)": "2975e4eff5812cf9",
     "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func encryptOrReportFailure(_:onFailure:)": "267af528614df645",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)": "46e4c74baeb23ced",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)": "fc2ac13ffc3aa3f6",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.reencryptPendingBackups()": "4d01bc9e69ee0ada"
    }
   },

@@ -48,14 +48,13 @@
   },
   {
    "key": "func ScoreBreakdownMessageTests.testStrongCompositeWithWeakHRVDoesNotSayGoHard()",
-   "hash": "d33581c1c3d5521e",
-   "does": "For HRV 71/sleep 95/vitals 96 (composite 80.75) asserts the message does not contain 'Go hard' and names HRV (carriers message).",
+   "hash": "56821c97dbd8614a",
+   "does": "For HRV 71/sleep 95/vitals 96 (composite 80.75) asks ScoreBreakdownCopy.message with a .clear load (so only the HRV<72 gate stands between it and the all-clear lines) and asserts no 'Go hard', the carriers line ('carrying the score while HRV sits under its usual level') and no 'all in a good place'.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "EmuquTests/ScoreBreakdownMessageTests.swift::func ScoreBreakdownMessageTests.breakdown(hrv:sleep:vitals:)",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreBreakdown.message",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:)",
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:loadLevel:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.scoredFactors(_:)",
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.vitalsPenaltyMessage(_:weakest:)",
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.baselineDriftMessage(_:)",
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.bandMessage(_:weakest:strongest:loadLevel:)",
@@ -68,35 +67,61 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "med",
-     "text": "Cannot catch the regression it was written for: b.message calls ScoreBreakdownCopy.message with loadLevel nil, so allClearMessage can never say 'Go hard' (goHardAllowed requires .clear), and if the HRV<72 carriers gate were removed the all-clear line 'HRV, sleep, and vitals are all in a good place. Normal training is fine.' still contains 'HRV'. Both assertions pass with or without the gate at ScoreBreakdownCopy.swift:176.",
-     "evidence": [
-      "EmuquTests/ScoreBreakdownMessageTests.swift:28",
-      "EmuquTests/ScoreBreakdownMessageTests.swift:29",
-      "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift:156",
-      "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift:79",
-      "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift:176",
-      "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift:196"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreBreakdown.message": "d0b0c73404adc2d2",
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.bandMessage(_:weakest:strongest:loadLevel:)": "267f839de3a15935",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.baselineDriftMessage(_:)": "321acfc78d5dd5e4",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.baselineDriftMessage(_:)": "aa22c33a053d378c",
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.carriersMessage(_:)": "ec4c21bdd9ab2e62",
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.listPhrase(_:)": "cd29ffa21302af26",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:)": "c5ebaac0d7086a28",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:loadLevel:)": "fcd09acf3383cea3",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:loadLevel:)": "b27056eb75799513",
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.midSentenceName(_:)": "b31fa83fd00c415c",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.scoredFactors(_:)": "60ad3f0b5d6043b2",
     "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.sentenceCase(_:)": "8389e10f7b598b2a",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.strongBandMessage(_:weakest:loadLevel:)": "7482dac74e1b50c5",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.vitalsPenaltyMessage(_:weakest:)": "10eeb91f9476d4b9",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.strongBandMessage(_:weakest:loadLevel:)": "f3bfc0ae9e970dab",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.vitalsPenaltyMessage(_:weakest:)": "5004bf5643ca38b4",
     "EmuquTests/ScoreBreakdownMessageTests.swift::func ScoreBreakdownMessageTests.breakdown(hrv:sleep:vitals:)": "a8ac4221c8cd243e"
+   }
+  },
+  {
+   "key": "func ScoreBreakdownMessageTests.testExcellentCompositeCarriedPastWeakHRVDoesNotSayGoHard()",
+   "hash": "2f56059dbd6cd8d7",
+   "does": "Builds a breakdown with HRV 71 at weight 0.2 and sleep/vitals 99 (composite 93.4, Excellent) and asks with a .clear load, where everything but the HRV gate allows 'Go hard'; asserts no 'Go hard' and the carriers line.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreFactor(label:detail:score:weight:impact:facts:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(compositeScore:tier:factors:penalties:spo2PenaltyApplied:scoringVersion:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreBreakdown.gapFromFactors",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreFactor.contribution",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:loadLevel:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.scoredFactors(_:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.vitalsPenaltyMessage(_:weakest:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.baselineDriftMessage(_:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.bandMessage(_:weakest:strongest:loadLevel:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.strongBandMessage(_:weakest:loadLevel:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.midSentenceName(_:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.listPhrase(_:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.sentenceCase(_:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.carriersMessage(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(compositeScore:tier:factors:penalties:spo2PenaltyApplied:scoringVersion:)": "6d045d2ab75f0630",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreFactor(label:detail:score:weight:impact:facts:)": "1f7485fa01851fa3",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreBreakdown.gapFromFactors": "7ab83d289abeb803",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreFactor.contribution": "ae0a47f30691925e",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.bandMessage(_:weakest:strongest:loadLevel:)": "267f839de3a15935",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.baselineDriftMessage(_:)": "aa22c33a053d378c",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.carriersMessage(_:)": "ec4c21bdd9ab2e62",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.listPhrase(_:)": "cd29ffa21302af26",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:loadLevel:)": "b27056eb75799513",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.midSentenceName(_:)": "b31fa83fd00c415c",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.scoredFactors(_:)": "60ad3f0b5d6043b2",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.sentenceCase(_:)": "8389e10f7b598b2a",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.strongBandMessage(_:weakest:loadLevel:)": "f3bfc0ae9e970dab",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.vitalsPenaltyMessage(_:weakest:)": "5004bf5643ca38b4"
    }
   },
   {

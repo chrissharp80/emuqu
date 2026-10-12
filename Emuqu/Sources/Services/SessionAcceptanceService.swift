@@ -188,11 +188,16 @@ final class SessionAcceptanceService {
         rrPoints: [RRPoint]?,
         fetchStart: Date,
         fetchEnd: Date,
+        sessionStart: Date,
         sessionEnd: Date
     ) async -> (SleepData?, RecoveryVitals?) {
         let hk = healthKit
         let raced = await runWithTimeout(seconds: 10) {
-            let sleep = await Self.sleepOrNil(hk, from: fetchStart, to: fetchEnd, rrPoints: rrPoints)
+            let fetched = await Self.sleepOrNil(hk, from: fetchStart, to: fetchEnd, rrPoints: rrPoints)
+            // Credit the day-before's qualifying nap toward 24 h sleep, as the
+            // morning pass did for the score shown before acceptance.
+            let napMinutes = await hk.fetchDaytimeNapMinutes(nightAnchoredAt: sessionStart)
+            let sleep = fetched.map { napMinutes > 0 ? $0.withNapSleepMinutes(napMinutes) : $0 }
             return SleepAndVitals(sleep: sleep, vitals: await hk.fetchRecoveryVitals(relativeTo: sessionEnd))
         }
         guard let raced else {
@@ -304,6 +309,7 @@ final class SessionAcceptanceService {
             rrPoints: session.rrSeries?.points,
             fetchStart: fetchStart,
             fetchEnd: fetchEnd,
+            sessionStart: session.startDate,
             sessionEnd: sessionEnd
         )
         session.sleepSnapshot = sleepData
@@ -476,7 +482,8 @@ final class SessionAcceptanceService {
         let sessionEnd = session.endDate ?? session.startDate
         let (fetchStart, fetchEnd) = sleepFetchRange(for: session, sessionEnd: sessionEnd, sleepSchedule: sleepSchedule)
         let (sleepData, vitals) = await fetchSleepAndVitals(
-            rrPoints: session.rrSeries?.points, fetchStart: fetchStart, fetchEnd: fetchEnd, sessionEnd: sessionEnd
+            rrPoints: session.rrSeries?.points, fetchStart: fetchStart, fetchEnd: fetchEnd,
+            sessionStart: session.startDate, sessionEnd: sessionEnd
         )
         if let sleepData { session.sleepSnapshot = sleepData }
         if let vitals { session.vitalsSnapshot = vitals.withStrapNocturnalRHR(result.timeDomain.meanHR) }

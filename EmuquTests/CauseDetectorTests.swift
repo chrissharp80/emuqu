@@ -86,9 +86,12 @@ final class CauseDetectorTests: XCTestCase {
 
         let causes = detector.detectCauses(in: context, limit: 10)
 
+        // Ordering is only observable with two or more causes; this context
+        // (very low RMSSD, very high stress index) produces several.
+        XCTAssertGreaterThan(causes.count, 1, "Expected several causes to compare, got \(causes.count)")
         // Verify causes are sorted by weight (descending)
-        for i in 0 ..< (causes.count - 1) {
-            XCTAssertGreaterThanOrEqual(causes[i].rankingWeight, causes[i + 1].rankingWeight)
+        for (higher, lower) in zip(causes, causes.dropFirst()) {
+            XCTAssertGreaterThanOrEqual(higher.rankingWeight, lower.rankingWeight)
         }
     }
 

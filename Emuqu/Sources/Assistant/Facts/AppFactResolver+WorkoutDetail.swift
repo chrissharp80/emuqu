@@ -631,14 +631,7 @@ extension WorkoutNamespace {
         let sortedSamples = samples.sorted { $0.offsetSec < $1.offsetSec }
         let durationSec = max(sortedSamples.last?.offsetSec ?? 1, 1)
         let bucketSec = max(1, Int(ceil(Double(durationSec) / Double(maxBuckets))))
-        var grouped: [Int: [WorkoutSample]] = [:]
-        // The final offset can equal maxBuckets × bucketSec; it belongs to
-        // the last bucket, not a 201st.
-        for s in sortedSamples { grouped[min(s.offsetSec / bucketSec, maxBuckets - 1), default: []].append(s) }
-        let bucketRecords: [FactValue] = grouped.keys.sorted().compactMap { idx in
-            guard let bucket = grouped[idx], !bucket.isEmpty else { return nil }
-            return .record(bucketRecord(bucket, startingAt: idx * bucketSec))
-        }
+        let bucketRecords = timelineBuckets(sortedSamples, bucketSec: bucketSec, maxBuckets: maxBuckets)
         var envelope: [String: FactValue] = [
             "date": .date(session.startDate), "duration_sec": .integer(durationSec),
             "bucket_sec": .integer(bucketSec), "bucket_count": .integer(bucketRecords.count),
@@ -648,6 +641,19 @@ extension WorkoutNamespace {
             envelope["sport"] = .string(sport)
         }
         return .record(envelope)
+    }
+
+    /// Groups samples into `bucketSec`-wide buckets (at most `maxBuckets`) and
+    /// returns one median record per non-empty bucket, in time order.
+    private static func timelineBuckets(_ samples: [WorkoutSample], bucketSec: Int, maxBuckets: Int) -> [FactValue] {
+        var grouped: [Int: [WorkoutSample]] = [:]
+        // The final offset can equal maxBuckets × bucketSec; it belongs to
+        // the last bucket, not a 201st.
+        for s in samples { grouped[min(s.offsetSec / bucketSec, maxBuckets - 1), default: []].append(s) }
+        return grouped.keys.sorted().compactMap { idx in
+            guard let bucket = grouped[idx], !bucket.isEmpty else { return nil }
+            return .record(bucketRecord(bucket, startingAt: idx * bucketSec))
+        }
     }
 
     /// One bucket's median metrics, keyed by its start offset.

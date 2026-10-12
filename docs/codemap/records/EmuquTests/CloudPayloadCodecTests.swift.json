@@ -1,6 +1,6 @@
 {
  "file": "EmuquTests/CloudPayloadCodecTests.swift",
- "hash": "e2e7c6dc2c4e202c",
+ "hash": "da0aec07f632c846",
  "role": "Tests for CloudPayloadCodec (EMQC envelope round trip, magic/version framing, legacy pass-through, tamper/truncation failures, key stability and multi-key opening, primary-account choice, live-backup chain) and, in a second class, CloudSettingsRecord encryption/legacy-plaintext handling and Health-filled profile stripping.",
  "types": [
   "CloudPayloadCodecTests: class — XCTestCase over CloudPayloadCodec using the real Keychain",
@@ -396,8 +396,8 @@
   },
   {
    "key": "func CloudPayloadCodecTests.testDecodingDoesNotCreateAKey()",
-   "hash": "932795b9486ecb6f",
-   "does": "Encodes a payload then decodes it twice, asserting both decodes return the payload.",
+   "hash": "fdff7df1c4ba04a6",
+   "does": "Encodes a payload (which stores the cloud key if none exists), builds an EMQC envelope sealed with a fresh key this device does not hold, reads the cloud-key Keychain accounts (cloudKeyAccounts), then decodes the own payload (must equal it) and the foreign one (must throw), and asserts the set of Keychain accounts is unchanged, i.e. decoding neither added nor replaced a key.",
    "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
    "calls": [
     "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)",
@@ -407,26 +407,19 @@
     "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.baseQuery()",
     "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)",
     "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.openCurrent(_:)",
-    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.open(_:withAnyOf:)"
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.open(_:withAnyOf:)",
+    "EmuquTests/CloudPayloadCodecTests.swift::func CloudPayloadCodecTests.cloudKeyAccounts()",
+    "ext:AES.GCM.seal",
+    "ext:SymmetricKey.init(size:)"
    ],
    "reads": [
     "kc:com.chrissharp.flowrecovery.cloud"
    ],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "med",
-     "text": "Named 'decoding does not create a key', but encode runs first and creates/loads the key, and nothing inspects the Keychain item count before/after decode; a decode path that minted a new key would still pass because the sealing key is also held.",
-     "evidence": [
-      "EmuquTests/CloudPayloadCodecTests.swift:159",
-      "EmuquTests/CloudPayloadCodecTests.swift:160",
-      "EmuquTests/CloudPayloadCodecTests.swift:162"
-     ],
-     "found": "first read, upheld on second"
-    }
+   "writes": [
+    "kc:com.chrissharp.flowrecovery.cloud (encode creates the key when none exists)"
    ],
+   "branches": [],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.baseQuery()": "af3633847d0ef6b7",
     "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)": "15dfc7e25d0a72b9",
@@ -435,8 +428,36 @@
     "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.openCurrent(_:)": "8e49782ede28cd92",
     "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.primaryAccount(among:)": "f5618d2383fba70d",
     "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.storedKeys()": "54a0f9830a1c9db1",
-    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.writingKey()": "20f345b68a8cd006"
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.writingKey()": "3706dcec5ce9702d",
+    "EmuquTests/CloudPayloadCodecTests.swift::func CloudPayloadCodecTests.cloudKeyAccounts()": "9a094dac3a02d8e1"
    }
+  },
+  {
+   "key": "func CloudPayloadCodecTests.cloudKeyAccounts()",
+   "hash": "5e7dffc6fb9272ee",
+   "does": "Queries the Keychain the way CloudPayloadCodec's private baseQuery does (generic password, service com.chrissharp.flowrecovery.cloud, synchronizable, all matches, attributes) and returns the set of account names; empty on errSecItemNotFound, throws CodecError.keyUnreadable on any other failure.",
+   "entry": "Called by testDecodingDoesNotCreateAKey.",
+   "calls": [
+    "ext:SecItemCopyMatching"
+   ],
+   "reads": [
+    "kc:com.chrissharp.flowrecovery.cloud"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "status == errSecItemNotFound",
+     "effect": "returns []"
+    },
+    {
+     "at": "+11",
+     "cond": "status not success or rows not [[String: Any]]",
+     "effect": "throws CodecError.keyUnreadable(status)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
   },
   {
    "key": "func CloudPayloadCodecTests.testRepeatedWritesRemainMutuallyDecodable()",

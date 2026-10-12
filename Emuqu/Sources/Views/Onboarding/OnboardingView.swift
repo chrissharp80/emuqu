@@ -77,7 +77,14 @@ struct OnboardingView: View {
     private func noteHealthPageSwipedPast(from old: Int, to new: Int) {
         guard old == 4, new > 4, !healthPageAnswered,
               !collector.healthKit.authorizationRequested else { return }
-        UserDefaults.standard.set(true, forKey: UserDefaultsKeys.healthAccessSkipped)
+        // A relaunch mid-onboarding loses the in-memory flag; HealthKit's own
+        // record says whether the permission sheet was already answered.
+        let healthKit = collector.healthKit
+        Task {
+            let alreadyAnswered = await healthKit.authorizationWasEverRequested()
+            guard !alreadyAnswered else { return }
+            UserDefaults.standard.set(true, forKey: UserDefaultsKeys.healthAccessSkipped)
+        }
     }
 
     /// The Health page's own advance (Skip, or Continue after Connect).

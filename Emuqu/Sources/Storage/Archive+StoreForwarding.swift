@@ -25,7 +25,7 @@ extension SessionArchive {
     func forgetDeletedSession(_ id: UUID) throws { try store.unmarkAsDeleted(id) }
     func trashedSession(_ id: UUID) -> HRVSession? { store.trashedSession(id) }
     func discardTrashed(_ id: UUID) { store.discardTrashed(id) }
-    func expireTrash(keepDays: Int = 90) { store.expireTrash(keepDays: keepDays) }
+    func expiredDeletionIds(keepDays: Int = 90) -> [UUID] { store.expiredDeletionIds(keepDays: keepDays) }
     var trashedIds: Set<UUID> { store.trashedIds }
     func markAsDeleted(_ id: UUID) throws { try store.markAsDeleted(id) }
     func unmarkAsDeleted(_ id: UUID) throws { try store.unmarkAsDeleted(id) }

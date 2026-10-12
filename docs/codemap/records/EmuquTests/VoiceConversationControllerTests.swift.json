@@ -14,36 +14,28 @@
    "hash": "76b23f54948e6e77",
    "does": "Asserts VoiceConversationController.shared returns the same object twice.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
-   "calls": [
-    "Emuqu/Sources/Assistant/VoiceConversationController.swift::init VoiceConversationController()"
-   ],
+   "calls": [],
    "reads": [
     "mem:VoiceConversationController.shared"
    ],
    "writes": [],
    "branches": [],
    "flags": [],
-   "deps": {
-    "Emuqu/Sources/Assistant/VoiceConversationController.swift::init VoiceConversationController()": "8a53e66c5839e0cd"
-   }
+   "deps": {}
   },
   {
    "key": "func VoiceConversationControllerTests.testInitialStateIsIdle()",
    "hash": "5eaf033a65113087",
    "does": "Asserts VoiceConversationController.shared.state == .idle.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
-   "calls": [
-    "Emuqu/Sources/Assistant/VoiceConversationController.swift::init VoiceConversationController()"
-   ],
+   "calls": [],
    "reads": [
     "mem:VoiceConversationController.shared.state"
    ],
    "writes": [],
    "branches": [],
    "flags": [],
-   "deps": {
-    "Emuqu/Sources/Assistant/VoiceConversationController.swift::init VoiceConversationController()": "8a53e66c5839e0cd"
-   }
+   "deps": {}
   },
   {
    "key": "func VoiceConversationControllerTests.testStateEquatableIdentity()",
@@ -95,7 +87,6 @@
    "does": "Resets the shared controller's textChunker, feeds three deltas, and asserts its outputs equal a fresh SpokenTextChunker's and the literal ['Run hard now.','Then rest.',nil], then finalize yields 'Next up: walk home' and a second finalize nil; resets the chunker on exit.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
-    "Emuqu/Sources/Assistant/VoiceConversationController.swift::init VoiceConversationController()",
     "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.append(delta:)",
     "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.finalize()",
     "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.reset()"
@@ -125,8 +116,7 @@
    "deps": {
     "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.append(delta:)": "bdd4dfc591e46762",
     "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.finalize()": "dd0ee2d1995fab40",
-    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.reset()": "a226667027d63c39",
-    "Emuqu/Sources/Assistant/VoiceConversationController.swift::init VoiceConversationController()": "8a53e66c5839e0cd"
+    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.reset()": "a226667027d63c39"
    }
   }
  ],

@@ -88,17 +88,20 @@ final class LocalOnlyTurnTests: XCTestCase {
     }
 
     /// A long conversation truncates by token budget. A local-only turn must be
-    /// excluded regardless of where the window happens to fall.
+    /// excluded regardless of where the window happens to fall. Each padded
+    /// user turn costs about budget / 200 tokens (8 characters per repeat, 4
+    /// per token), so 400 of them run to about twice the budget.
     func testExclusionHoldsUnderTruncation() {
+        let padding = String(repeating: "padding ", count: AssistantViewModel.conversationTokenBudget(for: .anthropic) / 400)
         var history: [ChatTurn] = [turn(.user, secret, localOnly: true)]
         for i in 0 ..< 400 {
-            history.append(turn(.user, "message \(i) " + String(repeating: "padding ", count: 40)))
+            history.append(turn(.user, "message \(i) " + padding))
             history.append(turn(.assistant, "reply \(i)"))
         }
         let (kept, dropped) = AssistantViewModel.truncateForSend(history, provider: .anthropic)
+        XCTAssertFalse(dropped.isEmpty, "The history must overrun the budget, or truncation is not exercised")
         let leaked = (kept + dropped).contains { $0.text.contains(self.secret) }
-        XCTAssertFalse(leaked,
-                       "Refused text survived truncation")
+        XCTAssertFalse(leaked, "Refused text survived truncation")
         XCTAssertFalse(kept.isEmpty, "Truncation must still keep recent ordinary turns")
     }
 

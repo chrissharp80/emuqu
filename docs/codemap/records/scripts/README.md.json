@@ -142,25 +142,14 @@
   },
   {
    "key": "§ Scripts > Quality / CI scripts > `check_localization_bundle.sh`",
-   "hash": "fe5c70c5e4f9d0ae",
-   "does": "Claims check_localization_bundle.sh requires every String(localized:)/NSLocalizedString to name LanguageManager.appBundle. The script only requires some `bundle:` argument inside the call (check_localization_bundle.sh:71,132).",
+   "hash": "d7cbef05df5c415a",
+   "does": "Claims check_localization_bundle.sh requires every String(localized:)/NSLocalizedString to name a bundle other than Bundle.main (LanguageManager.appBundle or a bundle derived from it). Matches the script: a `bundle:` argument is required and `bundle: .main` / `Bundle.main` is rejected (check_localization_bundle.sh main_bundle regex).",
    "entry": null,
    "calls": [],
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "README says the bundle must be LanguageManager.appBundle; the gate accepts any `bundle:` argument.",
-     "evidence": [
-      "scripts/README.md:73",
-      "scripts/check_localization_bundle.sh:71"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {}
   },
   {

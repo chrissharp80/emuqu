@@ -66,6 +66,30 @@
    ],
    "flags": [],
    "deps": {}
+  },
+  {
+   "key": "var GPSAccuracyLevel.showsDirection",
+   "hash": "cac96042fe732b62",
+   "does": "True unless the level is waiting (a direction arrow may be drawn only with a usable fix).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "showsDirection has no production caller; only GPSAccuracyLevelTests uses it (GetMeBackView.showsArrow re-tests `accuracyState != .waiting`). Kept because removing it broke the test build.",
+     "evidence": [
+      "Emuqu/Sources/Utilities/GPSAccuracyLevel.swift:57",
+      "EmuquTests/GPSAccuracyLevelTests.swift:73",
+      "Emuqu/Sources/Views/GetMeBackView.swift:174"
+     ],
+     "found": "h_src2 handoff pass"
+    }
+   ],
+   "deps": {}
   }
  ],
  "deps": {}

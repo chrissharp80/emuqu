@@ -261,21 +261,23 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.hrvDetailLink": "27c6eca6d6c18b80",
+    "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.hrvDetailLink": "9ba8eeefe8766f22",
     "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.sleepDetailLink": "61950a1b906e9cfb"
    }
   },
   {
    "key": "var MorningResultsView.hrvDetailLink",
-   "hash": "5a79bbd2564ec862",
-   "does": "NavigationLink to SessionHRVDetailView(displaySession, displayResult, recentSessions) labelled by hrvMetricCard.",
+   "hash": "454434d255f1a119",
+   "does": "NavigationLink to SessionHRVDetailView(displaySession, displayResult, recentSessions, the scoring baselineStats the HRV card rates against — so the detail hero and trend rows say what the card said) labelled by hrvMetricCard.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displayResult",
     "Emuqu/Sources/Views/MorningResultsView+CardForwarding.swift::var MorningResultsView.hrvMetricCard"
    ],
-   "reads": [],
+   "reads": [
+    "mem:MorningResultsViewModel.baselineStats"
+   ],
    "writes": [],
    "branches": [],
    "flags": [],
@@ -327,6 +329,7 @@
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession": "eccc568f4bbb99c3",
     "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift::var ScoreBreakdownCard.temperatureUnit": "063a6053cf5ccc9d",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::init SleepDetailV2View(session:sleepData:recoveryVitals:recentSessions:temperatureUnit:typicalSleepHours:userAge:onAdjust:)": "27e634743a0cb13b",
     "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.recoveryVitals()": "6b42d93fc6f07dd7"
    }
   },
@@ -385,22 +388,30 @@
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displayResult": "215489cda008c57b",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession": "eccc568f4bbb99c3",
-    "Emuqu/Sources/Views/MorningResultsView.swift::func MorningResultsView.trainingDetailLink(_:)": "bfe0433cfea7ecdf"
+    "Emuqu/Sources/Views/MorningResultsView.swift::func MorningResultsView.trainingDetailLink(_:)": "93b80097c5726e94"
    }
   },
   {
    "key": "func MorningResultsView.trainingDetailLink(_:)",
-   "hash": "3cbed1d227eff254",
-   "does": "NavigationLink to TrainingDetailView(trainingMetrics: nil, trainingContext:) labelled by trainingLoadCard.",
+   "hash": "99b848ef8fb05902",
+   "does": "NavigationLink to TrainingDetailView(trainingMetrics: nil, trainingContext:, followsLiveLoad: true for today's reading — the screen then shows and refreshes the live TrainingMetricsCache load — false for a past night, which keeps its frozen load) labelled by trainingLoadCard.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/MorningResultsView+CardForwarding.swift::func MorningResultsView.trainingLoadCard(_:)"
+    "Emuqu/Sources/Views/MorningResultsView+CardForwarding.swift::func MorningResultsView.trainingLoadCard(_:)",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.isHistoricalSession"
    ],
    "reads": [],
    "writes": [],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "vm.isHistoricalSession",
+     "effect": "followsLiveLoad false (frozen context); else true (live load)"
+    }
+   ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.isHistoricalSession": "80173b2efd370453",
     "Emuqu/Sources/Views/MorningResultsView+CardForwarding.swift::func MorningResultsView.trainingLoadCard(_:)": "1a5b14fdabe1d049"
    }
   },

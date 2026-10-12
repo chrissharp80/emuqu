@@ -90,8 +90,8 @@ extension ReanalysisService {
     ) {
         updated.sleepSnapshot = newSleep
         let clamped = SleepBoundaryResolver.clamp(
-            sleepStartMs: newSleep.sleepStart.map { Int64($0.timeIntervalSince(sessionStart) * 1000) },
-            sleepEndMs: newSleep.sleepEnd.map { Int64($0.timeIntervalSince(sessionStart) * 1000) },
+            sleepStartMs: newSleep.sleepStart.flatMap { MillisecondOffset.between($0, and: sessionStart) },
+            sleepEndMs: newSleep.sleepEnd.flatMap { MillisecondOffset.between($0, and: sessionStart) },
             recordingDurationMs: recordingDurationMs(of: updated)
         )
         if let start = clamped.sleepStartMs { updated.sleepStartMs = start }
@@ -172,7 +172,7 @@ extension ReanalysisService {
 
     /// Reanalyze a session at a specific timestamp (for manual window selection).
     func reanalyzeAtPosition(_ inputSession: HRVSession, targetMs: Int64) async -> HRVAnalysisResult? {
-        let session = hydrated(inputSession)
+        let session = hydrated(latestArchivedCopy(of: inputSession))
         let sessionDate = session.endDate ?? session.startDate
         let trainingContext = session.trainingSnapshot ?? session.analysisResult?.trainingContext ?? trainingContextProvider(sessionDate)
         return await analysisPipeline.reanalyzeAtPosition(
@@ -187,7 +187,7 @@ extension ReanalysisService {
         // Hydrate before any archive write — otherwise a lightweight
         // input session would be re-encoded with `rrSeries: nil`,
         // erasing the raw beats from disk.
-        let session = hydrated(inputSession)
+        let session = hydrated(latestArchivedCopy(of: inputSession))
         var appliedResult = result
         appliedResult.isReanalysis = true
         // Preserve the frozen training context from the original session.
@@ -202,6 +202,19 @@ extension ReanalysisService {
         reclassifyHRVQuality(of: &updatedSession, result: appliedResult)
         applyDeterministicScore(to: &updatedSession, result: appliedResult, training: frozenTraining)
         return await persistManualAnalysis(updatedSession, originalId: session.id)
+    }
+
+    /// The archived copy of `session` when there is one, so a manual pick
+    /// starts from what the archive holds now (a sleep edit, merge or rescore
+    /// made after the sheet captured its copy), not the sheet's copy. Falls
+    /// back to `session` when it is not archived or the read fails.
+    private func latestArchivedCopy(of session: HRVSession) -> HRVSession {
+        do {
+            return try archive.retrieve(session.id) ?? session
+        } catch {
+            debugLog("[ReanalysisService] Archive read failed for \(session.id.uuidString.prefix(8)); using the given copy: \(error)", level: .warning)
+            return session
+        }
     }
 
     /// Keep frozen snapshots so manual reanalysis remains deterministic and local.

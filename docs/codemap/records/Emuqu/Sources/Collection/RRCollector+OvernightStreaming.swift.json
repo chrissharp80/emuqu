@@ -880,19 +880,21 @@
   },
   {
    "key": "func OvernightStreamingCoordinator.stopStreamingInfrastructure()",
-   "hash": "d8bd2d93ed8292f5",
-   "does": "Clears isDeviceFetchInProgress, stops timer and sampler, clears isStreamingMode before stopping streaming, captures base session/reconnect count/elapsed hours, stops PolarManager streaming and publishes the saving state; returns (base, beats, reconnects). Shared by the morning stop and the pause's gather.",
+   "hash": "2a40772ca37e0429",
+   "does": "Clears isDeviceFetchInProgress, stops timer and sampler, clears isStreamingMode before stopping streaming, captures base session/reconnect count/elapsed hours (streamingHoursForBattery: wall clock since the session start, tick count without one), stops PolarManager streaming and publishes the saving state; returns (base, beats, reconnects). Shared by the morning stop and the pause's gather.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.stopStreamingTimer()",
     "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.stopSamplingAfterRecording()",
     "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.stopStreaming()",
-    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.publishGatherSavingState(streamingPoints:elapsedHours:)"
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.publishGatherSavingState(streamingPoints:elapsedHours:)",
+    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::var RRCollector.streamingHoursForBattery"
    ],
    "reads": [
     "mem:RRCollector.currentSession",
     "mem:PolarManager.streamingReconnectCount",
-    "mem:RRCollector.streamingElapsedSeconds"
+    "mem:RRCollector.streamingElapsedSeconds",
+    "mem:RRCollector.sessionStartTime"
    ],
    "writes": [
     "mem:RRCollector.isDeviceFetchInProgress",
@@ -910,8 +912,8 @@
     "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.stopStreaming()": "61f032bd39cc3856",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isDeviceFetchInProgress": "c99b310984e70107",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isStreamingMode": "d47ea010230d507a",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.streamingElapsedSeconds": "7bf2ba3c9c305fc2",
     "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.publishGatherSavingState(streamingPoints:elapsedHours:)": "77c30f2fccb85fdb",
+    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::var RRCollector.streamingHoursForBattery": "06e9b81313f7ccff",
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.stopStreamingTimer()": "be9297aa441dccad",
     "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",

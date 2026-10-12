@@ -93,8 +93,8 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::init StreamTextBuffer(owner:turnID:)": "0e0fbb92bdd4857c",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.applyRoundEndTextPolicy(thisRound:budgetExhausted:buffer:turnID:)": "720bbdcab514098e",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.consumeStreamRound(_:state:buffer:)": "155d61c0ceac4d40",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.applyRoundEndTextPolicy(thisRound:budgetExhausted:buffer:turnID:)": "3c42e2449c8a5671",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.consumeStreamRound(_:state:buffer:)": "c7d595998da6bbc8",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.recordResolutions(_:factRegistry:state:)": "b8c98acc1c135065",
     "Emuqu/Sources/Assistant/ViewModel/GrokQuirkPolicy.swift::func GrokQuirkPolicy.announceWithoutCallNudge(outbound:buffer:)": "ed3f5aef6c5875d3"
    }
@@ -123,39 +123,97 @@
   },
   {
    "key": "func AssistantToolRunner.consumeStreamRound(_:state:buffer:)",
-   "hash": "6b0771d35dbcd210",
-   "does": "Records the prompt audit, opens provider.send with outbound, live-state location block (renderLiveStateForCloud), system prompt, tools and prior tool rounds; handles each event with a cancel check; force-flushes the buffer on every exit via defer; returns this round's tool calls.",
+   "hash": "fd48177b06bb8595",
+   "does": "Records the prompt audit, opens provider.send with outbound, live-state location block (renderLiveStateForCloud), system prompt, tools and prior tool rounds; drains the stream into this round's tool calls (drain); a provider error is recorded on the audit entry (recordAuditFailure, so the prompt-audit page shows the round as failed) and rethrown; force-flushes the buffer on every exit via defer; returns this round's tool calls.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.recordPromptAudit(provider:model:outbound:systemPrompt:tools:toolRounds:)",
     "Emuqu/Sources/Assistant/Chat/AssistantContextSource.swift::func AssistantContextSource.currentContext()",
     "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.renderLiveStateForCloud(now:)",
     "dyn:AIProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:) → Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift:91|Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)|Emuqu/Sources/Assistant/Providers/DeepSeekProvider.swift::func DeepSeekProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)|Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)|Emuqu/Sources/Assistant/Providers/GrokProvider.swift::func GrokProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)|Emuqu/Sources/Assistant/Providers/OpenAIProvider.swift::func OpenAIProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.handle(_:provider:auditID:budgetExhausted:buffer:thisRound:)",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func StreamTextBuffer.flush(force:thisRoundIsEmpty:)",
-    "ext:Task.checkCancellation"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.drain(_:round:state:auditID:buffer:into:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.recordAuditFailure(_:auditID:)"
    ],
    "reads": [
     "mem:AssistantContext today/yesterday recovery, HRV, mean HR, live workout/location"
    ],
    "writes": [
-    "net:provider API (chat request)"
+    "net:provider API (chat request)",
+    "mem:LLMRequestAudit.entries errorDescription (on a provider error, via recordAuditFailure)"
    ],
    "branches": [
     {
      "at": "+16",
-     "cond": "for try await event in stream",
-     "effect": "handle each event; throws on stream error or cancellation (defer still flushes)"
+     "cond": "drain throws (stream error or cancellation)",
+     "effect": "recordAuditFailure, then rethrow (defer still flushes)"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/AssistantContextSource.swift::func AssistantContextSource.currentContext()": "81b3769a876d3fed",
+    "Emuqu/Sources/Assistant/Chat/AssistantContextSource.swift::func AssistantContextSource.currentContext()": "7c3bb99541628fba",
     "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.renderLiveStateForCloud(now:)": "cc6577a7f3dcdd80",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func StreamTextBuffer.flush(force:thisRoundIsEmpty:)": "d08461b5890797a2",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+ToolForwarding.swift::var AssistantViewModel.tools": "e99be7c41ae4f3b8",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.handle(_:provider:auditID:budgetExhausted:buffer:thisRound:)": "97ac1bb1b318c611",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.drain(_:round:state:auditID:buffer:into:)": "0ed59404eb8bbb07",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.recordAuditFailure(_:auditID:)": "0b66fea9f7c811f9",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.recordPromptAudit(provider:model:outbound:systemPrompt:tools:toolRounds:)": "74e9e7eda2eee532"
+   }
+  },
+  {
+   "key": "func AssistantToolRunner.drain(_:round:state:auditID:buffer:into:)",
+   "hash": "6da620026b71691e",
+   "does": "Consumes every event of one provider round's stream through handle (text into the buffer and audit, tool calls into thisRound, usage into telemetry), checking cancellation before each event and after the stream ends; throws on a stream error or cancellation.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.handle(_:provider:auditID:budgetExhausted:buffer:thisRound:)",
+    "ext:Task.checkCancellation"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "for try await event in stream",
+     "effect": "checkCancellation then handle; a stream error propagates"
+    },
+    {
+     "at": "+15",
+     "cond": "task cancelled after the stream ended",
+     "effect": "throws CancellationError"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.handle(_:provider:auditID:budgetExhausted:buffer:thisRound:)": "97ac1bb1b318c611"
+   }
+  },
+  {
+   "key": "func AssistantToolRunner.recordAuditFailure(_:auditID:)",
+   "hash": "68fc89ae81ed09a2",
+   "does": "Marks the round's prompt-audit entry as failed with the error's LocalizedError.errorDescription (else localizedDescription) via LLMRequestAudit.setError, unless the error is a CancellationError or the task is cancelled (a cancelled round is not a failure).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.llmRequestAudit",
+    "Emuqu/Sources/Assistant/Facts/LLMRequestAudit.swift::func LLMRequestAudit.setError(_:for:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:LLMRequestAudit.entries errorDescription"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "CancellationError or Task.isCancelled",
+     "effect": "return without recording"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/LLMRequestAudit.swift::func LLMRequestAudit.setError(_:for:)": "664b482413d9395a",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "3848c612cbdb11bc",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.llmRequestAudit": "dd4275b8cd4159d3"
    }
   },
   {
@@ -267,7 +325,7 @@
   {
    "key": "func AssistantToolRunner.applyRoundEndTextPolicy(thisRound:budgetExhausted:buffer:turnID:)",
    "hash": "3610d7423079e920",
-   "does": "Text-only or post-budget rounds advance the speakable cursor to the end; tool rounds rewind the round's text (and pull the speakable cursor back with it); then runs the MetricsVerifier app-state check on the text that stays.",
+   "does": "Text-only or post-budget rounds advance the speakable cursor to the end; tool rounds rewind the round's text (and pull the speakable cursor back with it); then runs the MetricsVerifier live-workout and app-state checks (verifyAppStateNumbers) on the text that stays.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func StreamTextBuffer.advanceSpeakableCursorToCurrentEnd()",
@@ -290,15 +348,19 @@
    "deps": {
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func StreamTextBuffer.advanceSpeakableCursorToCurrentEnd()": "43ee143b55cd6817",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func StreamTextBuffer.rewindToRoundStart()": "3b89eaf1c36dbcaf",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.verifyAppStateNumbers(turnID:)": "95cb9e5ecb20f038"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.verifyAppStateNumbers(turnID:)": "b7262a7902e72917"
    }
   },
   {
    "key": "func AssistantToolRunner.verifyAppStateNumbers(turnID:)",
-   "hash": "0838856fccd6b488",
-   "does": "Runs MetricsVerifier.verifyAppStateClaims on the live turn text; on discrepancies logs them, records corrections, and if a corrected text exists replaces the turn text and saves.",
+   "hash": "c809944ba05a2816",
+   "does": "Checks the live turn text's live-workout claims (HR, power, α1) against the broker's snapshot (MetricsVerifier.verify(_:againstLive:); none while no workout records) and applies those corrections, then runs MetricsVerifier.verifyAppStateClaims on that text; with any discrepancy from either pass logs them, records corrections, and replaces the turn text with the corrected text and saves.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.liveWorkoutBroker",
+    "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift::func LiveWorkoutBroker.currentSnapshot()",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.verify(_:againstLive:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.correctedText(from:applying:)",
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.verifyAppStateClaims(_:)",
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.formatForLog(_:)",
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.recordCorrections(_:)",
@@ -306,7 +368,8 @@
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)"
    ],
    "reads": [
-    "mem:AssistantViewModel.turns"
+    "mem:AssistantViewModel.turns",
+    "mem:LiveWorkoutBroker snapshot (live HR/power/α1)"
    ],
    "writes": [
     "mem:AssistantViewModel.turns",
@@ -320,23 +383,33 @@
      "effect": "return"
     },
     {
-     "at": "+3",
-     "cond": "no discrepancies",
+     "at": "+4",
+     "cond": "no live discrepancy (correctedText nil)",
+     "effect": "app-state pass runs on the original text"
+    },
+    {
+     "at": "+7",
+     "cond": "no discrepancies from either pass",
      "effect": "return"
     },
     {
-     "at": "+6",
-     "cond": "no corrected text",
-     "effect": "return after logging/recording; else replace and save"
+     "at": "+10",
+     "cond": "app-state pass produced no corrected text",
+     "effect": "saves the live-corrected text"
     }
    ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)": "a412e3b0848259de",
-    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.correctedText(from:applying:)": "4988656d08a92650",
+    "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift::func LiveWorkoutBroker.currentSnapshot()": "a50b1a67daa97277",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.correctedText(from:applying:)": "4932de40589c71c4",
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.formatForLog(_:)": "1d94fecdcc609742",
-    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.recordCorrections(_:)": "9c1beb550d5009e8",
-    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.verifyAppStateClaims(_:)": "75b05213d1f548a3",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.recordCorrections(_:)": "3cdfceb288af8a7e",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.verify(_:againstLive:)": "6938d86f4a8afae9",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.verifyAppStateClaims(_:)": "917b731e60c489ef",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "6d93847830e6d9e6",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.liveWorkoutBroker": "e05e91154e3e8f2d",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },

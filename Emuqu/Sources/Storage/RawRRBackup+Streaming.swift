@@ -127,14 +127,7 @@ extension RawRRBackup {
         _ appendData: Data, to pointsPath: URL, sessionId: UUID, count: Int
     ) throws {
         if let handle = try? FileHandle(forWritingTo: pointsPath) {
-            defer { closeQuietly(handle, sessionId: sessionId) }
-            let start = try handle.seekToEnd()
-            do {
-                try handle.write(contentsOf: appendData)
-            } catch {
-                truncateFailedAppend(handle, to: start, sessionId: sessionId)
-                throw error
-            }
+            try appendThroughHandle(handle, appendData, sessionId: sessionId)
             return
         }
         if fileManager.fileExists(atPath: pointsPath.path),
@@ -147,6 +140,20 @@ extension RawRRBackup {
             try appendData.write(to: pointsPath, options: [.completeFileProtectionUntilFirstUserAuthentication])
         } catch {
             debugLog("[RawRRBackup] ERROR: Fallback write failed for \(sessionId.uuidString.prefix(8)): \(error). \(count) RR points may be lost.", level: .error)
+            throw error
+        }
+    }
+
+    /// Seek to the end and append through an open handle, closing it after.
+    /// A write that throws is truncated back to the offset it started at and
+    /// rethrown, so the batch the caller retries is not in the file twice.
+    private func appendThroughHandle(_ handle: FileHandle, _ appendData: Data, sessionId: UUID) throws {
+        defer { closeQuietly(handle, sessionId: sessionId) }
+        let start = try handle.seekToEnd()
+        do {
+            try handle.write(contentsOf: appendData)
+        } catch {
+            truncateFailedAppend(handle, to: start, sessionId: sessionId)
             throw error
         }
     }

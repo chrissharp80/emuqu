@@ -701,8 +701,8 @@
   },
   {
    "key": "§ Emuqu — Real-Time DFA α1 and Dropout-Robust Training Load > 3. Methods > 3.5 Training readiness > 3.5.1 Daily score",
-   "hash": "276eae370c04b66b",
-   "does": "Specifies daily readiness: acute = 0.30 * sum(load e^(-h/24)) over 72 h when todayTrimp > 0, else 0.35 * todayTrimp; base from (ATL+acute)/CTL through 0->100, 0.8->85, 1.0->70, 1.3->50, 1.5->30, 2.0->10 when CTL>=3.2, else max(10, 100-0.5(ATL+raw)); ACWR>1.3 penalty min(0.05+0.5(ACWR-1.3),0.40)*min(CTL/50,1), capped 0.10 when recovery >=70; freshness min(1.5*max(0,anchorATL-ATL),20); asymmetric blend (trust min(CTL/40,1)*0.55 above, uplift 0.30 below); non-finite -> 50, clamp 0-100; labels 7/4.5/2 on /10. Code: ReadinessScoring.calculateReadiness/computeAcuteFatigue/computeBaseReadiness/mapCapacityRatioToReadiness/applyACWRModifier/dampenedACWRPenalty/applyFreshnessBonus/applyRecoveryModulation/readinessLabel (ReadinessScoring.swift:118-360), constants Constants+RecoveryScore.swift:112-222.",
+   "hash": "842af2c4aa21117c",
+   "does": "Specifies daily readiness: inputs include the loads of workouts in the last 72 h on or after the start of the morning reading's day; acute = 0.30 * sum(load e^(-h/24)) when such loads exist, else 0.35 * todayTrimp; base from (ATL+acute)/CTL through 0->100, 0.8->85, 1.0->70, 1.3->50, 1.5->30, 2.0->10 when CTL>=3.2, else max(10, 100-0.5(ATL+raw)); ACWR>1.3 penalty min(0.05+0.5(ACWR-1.3),0.40)*min(CTL/50,1), capped 0.10 when recovery >=70; freshness min(1.5*max(0,anchorATL-ATL),20); asymmetric blend (trust min(CTL/40,1)*0.55 above, uplift 0.30 below); non-finite -> 50, clamp 0-100; labels 7/4.5/2 on /10. Code: ReadinessScoring.calculateReadiness/computeAcuteFatigue/rawAcuteFatigue/computeBaseReadiness/mapCapacityRatioToReadiness/applyACWRModifier/dampenedACWRPenalty/applyFreshnessBonus/applyRecoveryModulation/readinessLabel/displayReadinessLabel; loads from LiveReadiness.workoutLoads(from:since:now:).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
@@ -714,7 +714,9 @@
     "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyFreshnessBonus(_:morningATL:atl:)",
     "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyRecoveryModulation(_:recoveryScore:ctl:)",
     "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessLabel(for:)",
-    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.displayReadinessLabel(for:)"
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.displayReadinessLabel(for:load:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.rawAcuteFatigue(todayTrimp:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.workoutLoads(from:since:now:)"
    ],
    "reads": [],
    "writes": [],
@@ -735,22 +737,24 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyACWRModifier(_:acuteChronicRatio:ctl:recoveryScore:)": "af43b21bcbbeaaaa",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.workoutLoads(from:since:now:)": "5be6152f2133c2ea",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyACWRModifier(_:acuteChronicRatio:ctl:recoveryScore:)": "12e1e28a922bed8a",
     "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyFreshnessBonus(_:morningATL:atl:)": "e88756532c3a791e",
     "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyRecoveryModulation(_:recoveryScore:ctl:)": "09f5a5e0dc237a38",
     "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "dadd07d5df986633",
-    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeAcuteFatigue(todayTrimp:recentWorkoutLoads:)": "c6894f9bcbb37dd6",
-    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeBaseReadiness(ctl:atl:acuteFatigue:rawAcuteFatigue:)": "510a4cb6f29ffc87",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeAcuteFatigue(todayTrimp:recentWorkoutLoads:)": "5ec62fd236a645bb",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeBaseReadiness(ctl:atl:acuteFatigue:rawAcuteFatigue:)": "7c25b38c4a4edb18",
     "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.dampenedACWRPenalty(acr:ctl:recoveryScore:)": "31f46ca54792db88",
-    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.displayReadinessLabel(for:)": "37fca87d5e92957d",
-    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.mapCapacityRatioToReadiness(_:)": "75d9c9855af3f587",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.displayReadinessLabel(for:load:)": "543c5625f6bf2adf",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.mapCapacityRatioToReadiness(_:)": "036f5b31ceda8304",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.rawAcuteFatigue(todayTrimp:recentWorkoutLoads:)": "c683041167634eaa",
     "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessLabel(for:)": "855c8b68d2abcbc7"
    }
   },
   {
    "key": "§ Emuqu — Real-Time DFA α1 and Dropout-Robust Training Load > 3. Methods > 3.5 Training readiness > 3.5.2 Frozen morning value and live interpolation",
-   "hash": "43cbf1ff08138a82",
-   "does": "Specifies frozen morning readiness (todayTrimp 0, anchor = ATL, ACWR = ATL/CTL, stored /10) and live interpolation f = clamp(h/24,0,1) of ATL and CTL from the frozen snapshot, anchor ATL_m except at f=1; no training metrics -> readiness equals recovery; narrative at >=3 point gap. Code: ReanalysisService.computeFrozenReadiness, LiveReadiness.compute/readiness/morningOnly/gateLoad/interpolatedLoad/headline/recentWorkoutLoads/computeRawAcuteFatigue (LiveReadiness.swift:63-290).",
+   "hash": "e31aaadf57d5af77",
+   "does": "Specifies frozen morning readiness (todayTrimp 0, anchor = ATL, ACWR = ATL/CTL, stored /10) and live interpolation f = clamp(h/24,0,1) of ATL and CTL from the frozen snapshot, anchor ATL_m except at f=1; no training metrics -> readiness equals recovery; narrative when readiness differs by >=3 points from the morning-anchor readiness (frozen ATL/CTL, no training). Code: ReanalysisService.computeFrozenReadiness, LiveReadiness.compute/readiness/morningReadiness/morningOnly/gateLoad/interpolatedLoad/headline/recentWorkoutLoads/workoutLoads, ReadinessScoring.rawAcuteFatigue (LiveReadiness.swift:85-170,266-296).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.computeFrozenReadiness(compositeScore:trainingContext:)",
@@ -761,21 +765,25 @@
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.interpolatedLoad(morningSession:live:hoursSinceMorning:)",
     "Emuqu/Sources/Analysis/LiveReadiness.swift::var LiveReadiness.headline",
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.recentWorkoutLoads(from:now:)",
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.computeRawAcuteFatigue(todayTrimp:recentLoads:)"
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.morningReadiness(recoveryScore:interpolated:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.workoutLoads(from:since:now:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.rawAcuteFatigue(todayTrimp:recentWorkoutLoads:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.compute(recoveryScore:morningSession:liveMetrics:now:)": "53467252c9f850fb",
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.computeRawAcuteFatigue(todayTrimp:recentLoads:)": "4e589efe236e197c",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.compute(recoveryScore:morningSession:liveMetrics:now:)": "6781ab4fbf48049b",
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.gateLoad(interpolated:live:now:)": "dbe0742e4ba67153",
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.interpolatedLoad(morningSession:live:hoursSinceMorning:)": "a268de40200cac36",
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.morningOnly(recoveryScore:hoursSinceMorning:)": "00db02b971ecf34f",
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.readiness(recoveryScore:hoursSinceMorning:live:interpolated:recentLoads:now:)": "9738da9ea0818aa6",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.interpolatedLoad(morningSession:live:hoursSinceMorning:)": "9177220142f1a5bd",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.morningOnly(recoveryScore:hoursSinceMorning:)": "8667949d1f70f899",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.morningReadiness(recoveryScore:interpolated:)": "39b7dcf4fc1e9db9",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.readiness(recoveryScore:hoursSinceMorning:live:interpolated:recentLoads:now:)": "64819d6a737c3eda",
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.recentWorkoutLoads(from:now:)": "09392256797550a2",
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::var LiveReadiness.headline": "ea16fa39d7e037ce",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.workoutLoads(from:since:now:)": "5be6152f2133c2ea",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::var LiveReadiness.headline": "4078398644550145",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.rawAcuteFatigue(todayTrimp:recentWorkoutLoads:)": "c683041167634eaa",
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.computeFrozenReadiness(compositeScore:trainingContext:)": "7aa853f03a8994f8"
    }
   },
@@ -905,8 +913,8 @@
   },
   {
    "key": "§ Emuqu — Real-Time DFA α1 and Dropout-Robust Training Load > 5. What Is New",
-   "hash": "8124678d25e90f4c",
-   "does": "no behavioural claim: novelty statements N1-N14 restating Section 3 methods with commit-dated provenance; restated parameters match code; external commit hashes are not checkable from this checkout.",
+   "hash": "c1be72b8eebfc050",
+   "does": "no behavioural claim: novelty statements N1-N14 restating Section 3 methods with commit-dated provenance (acute fatigue restated as tau 24 h, weight 0.30, over workouts since the start of the morning reading's day, matching LiveReadiness.workoutLoads); external commit hashes are not checkable from this checkout.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -917,8 +925,8 @@
   },
   {
    "key": "§ Emuqu — Real-Time DFA α1 and Dropout-Robust Training Load > 6. Verification",
-   "hash": "1ee7a72eee1c36e8",
-   "does": "Claims a Python reimplementation reproduced 114/114 unit-test cases across eight suites (including DFAAnalysisTests 15, DFAReferenceValidationTests 9, LiveDFAAnalyzerTests 19) and reports injected-artifact results on nsr2db (Table 6.1). Results live in Tools/validation/RESULTS.md (exists). Test-count claims were not recounted for these three suites here.",
+   "hash": "0493386f00020aab",
+   "does": "Claims a Python reimplementation (from e028039) reproduced 111 of the 128 test functions in eight suites plus three comment/SciPy cross-checks, 114 cases all matched (Tools/validation/test_ports_output.txt); per suite DFAAnalysisTests 15/15, DFAReferenceValidationTests 8/8, LiveDFAAnalyzerTests 19/21 (window-fill gate tests not ported), HRVSleepStageClassifierTests 28/36, TimeDomainTests 10/14, HRVReferenceValidationTests 6/9; reports injected-artifact results on nsr2db (Table 6.1). Recounted against test_ports_output.txt and EmuquTests/*.swift (counts unchanged since e028039).",
    "entry": null,
    "calls": [
     "Tools/validation/validate_dfa_injection.py::def main",
@@ -935,24 +943,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "Paper says the port reproduced 'LiveDFAAnalyzerTests (19 of 19)' and 114 of 114 cases across eight suites. LiveDFAAnalyzerTests had 21 tests at e028039 (and now); the port only ports cleanRRForDFA cases and skips testAlpha1IsNotProducedBeforeTheWindowIsFull and testAlpha1IsProducedOnceTheWindowIsFull, i.e. the live window-fill gate the paper describes. Across the eight suites 14 of 128 test functions were not reproduced, and DFAReferenceValidationTests' '9 of 9' counts a 'quoted' pseudo-case over 8 real tests.",
-     "evidence": [
-      "docs/whitepapers/02-exercise-hrv-and-training-load.md:631",
-      "Tools/validation/test_ports_output.txt",
-      "EmuquTests/LiveDFAAnalyzerTests.swift:223",
-      "EmuquTests/LiveDFAAnalyzerTests.swift:236",
-      "EmuquTests/HRVSleepStageClassifierTests.swift",
-      "EmuquTests/TimeDomainTests.swift"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "93a8b95af9c5a354",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "3401262883b38a4b",
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.cleanRRForDFA(_:)": "84bb81d01db736b2",
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.ingest(points:now:)": "f81bd872a5279e60",
     "Tools/validation/make_results.py::def main": "908dfd1cde2ba05c",
@@ -1096,8 +1089,8 @@
   },
   {
    "key": "§ Emuqu — Real-Time DFA α1 and Dropout-Robust Training Load > Appendix B: Pseudocode",
-   "hash": "be7847094dc4d687",
-   "does": "Pseudocode (Appendix B1-B10) for the beat clock, live analyzer, cleaner, ectopic shadows, first sustained crossing, route match, route estimate, load ladder and auto-FTP, readiness and live readiness, strap fusion and merge, offline re-analysis; each block matches the implementing Swift listed in the corresponding Section 3 record.",
+   "hash": "b35dfb6cc5ba1263",
+   "does": "Pseudocode (Appendix B1-B10) for the beat clock, live analyzer, cleaner, ectopic shadows, first sustained crossing, route match, route estimate, load ladder and auto-FTP, readiness and live readiness (loads = 72 h loads since the start of the morning reading's day), strap fusion and merge, offline re-analysis; each block matches the implementing Swift listed in the corresponding Section 3 record.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.BeatClock.stamp(_:)",
@@ -1124,16 +1117,16 @@
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.BeatClock.stamp(_:)": "72768c5fc7fd1f49",
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.cleanRRForDFA(_:)": "84bb81d01db736b2",
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.ingest(points:now:)": "f81bd872a5279e60",
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.compute(recoveryScore:morningSession:liveMetrics:now:)": "53467252c9f850fb",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.compute(recoveryScore:morningSession:liveMetrics:now:)": "6781ab4fbf48049b",
     "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "dadd07d5df986633",
-    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.findMatch(currentTrack:sport:store:)": "26547ccaed8e1da6",
-    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.estimate(track:sport:recordedTRIMP:recordedDistance:distanceMayBeTruncated:archive:savedRouteStore:)": "79a9067b84cc9c9e",
-    "Emuqu/Sources/Analysis/WorkoutAlpha1Reanalyzer.swift::func WorkoutAlpha1Reanalyzer.reanalyze(session:windowSec:cadenceSec:minBeatsForFit:)": "db5846f46dc6a468",
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.findMatch(currentTrack:sport:store:)": "5d0533a9a1f15147",
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.estimate(track:sport:recordedTRIMP:recordedDistance:distanceMayBeTruncated:archive:savedRouteStore:)": "8f466affbbb59c85",
+    "Emuqu/Sources/Analysis/WorkoutAlpha1Reanalyzer.swift::func WorkoutAlpha1Reanalyzer.reanalyze(session:windowSec:cadenceSec:minBeatsForFit:)": "6a135b405e811152",
     "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.stored(_:ftp:)": "4072cd48894182bc",
     "Emuqu/Sources/Collection/WorkoutRRMerge.swift::func WorkoutRRMerge.merged(source:streaming:watchRouted:)": "7e1894cd589db307",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.consumeWatchRoutedStrapFallback()": "0179dde9754aee8b",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.consumeWatchRoutedStrapFallback()": "2b7b3426454b5733",
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.AT1CrossDetector.step(alpha1:sample:dt:)": "b34973e204f28fd0",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.ectopicShadows(in:)": "244ecc9ffe5baf31"
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.ectopicShadows(in:)": "9173c8e9337e06b4"
    }
   },
   {

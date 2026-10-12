@@ -208,10 +208,13 @@ struct TrashView: View {
         statusMessage = message
         Task {
             await sleepQuietly(3_000_000_000, context: "showTransientStatus")
-            await MainActor.run {
-                if statusMessage == message { statusMessage = nil }
-            }
+            await MainActor.run { clearStatus(ifStill: message) }
         }
+    }
+
+    /// Clears the banner only if it still shows `message`; a newer message stays.
+    private func clearStatus(ifStill message: String) {
+        if statusMessage == message { statusMessage = nil }
     }
 
     private func permanentlyDelete(_ id: UUID) {

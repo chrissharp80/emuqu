@@ -208,31 +208,21 @@
   },
   {
    "key": "func SleepBoundaryResolverTests.testResolveFallsBackToRecordingBoundaries()",
-   "hash": "3ffd7b22df70f5e2",
-   "does": "Calls resolve(sessionStart:recordingEnd:) with a default MockHealthKitService over 8h and asserts both sleepStartMs and wakeTimeMs are non-nil.",
+   "hash": "6a5c62946f22ff6a",
+   "does": "Calls resolve(sessionStart:recordingEnd:) with a default MockHealthKitService (empty sleep, so no HealthKit boundary) over 8 h and no RR, and asserts sleepStartMs and wakeTimeMs are both nil: nothing resolved is left nil rather than filled with 0 / the recording end, and the window selector uses the recording bounds for it.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::init SleepBoundaryResolver(healthKit:)",
-    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.resolve(sessionStart:recordingEnd:rrPoints:useHREstimation:)"
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.resolve(sessionStart:recordingEnd:rrPoints:useHREstimation:)",
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.resolveFromHealthKit(sessionStart:recordingEnd:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Only asserts non-nil; the fallback path always returns (0, recordingEndMs), so the actual fallback values (0 and 28,800,000) are never checked and a wrong fallback would pass. Comment also wrongly says HealthKit 'will likely fail' while the mock is in use.",
-     "evidence": [
-      "EmuquTests/SleepBoundaryResolverTests.swift:150",
-      "EmuquTests/SleepBoundaryResolverTests.swift:151",
-      "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift:103"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.resolve(sessionStart:recordingEnd:rrPoints:useHREstimation:)": "472051ae5134cf89",
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.resolve(sessionStart:recordingEnd:rrPoints:useHREstimation:)": "e4282b3f7c33cf56",
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.resolveFromHealthKit(sessionStart:recordingEnd:)": "cd39b61c14eebf23",
     "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::init SleepBoundaryResolver(healthKit:)": "165c0cc6e5775dcd"
    }
   },

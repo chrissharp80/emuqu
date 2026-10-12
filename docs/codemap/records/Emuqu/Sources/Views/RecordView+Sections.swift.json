@@ -700,7 +700,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.morningResults(_:)": "a937b534353e610c",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.morningResults(_:)": "8934bbfb8f3bb731",
     "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.sleepEditFailedTitle": "036276d0c9e8672f"
    }
   },
@@ -720,8 +720,8 @@
   },
   {
    "key": "func RecordView.morningResults(_:)",
-   "hash": "44d1b515f63c4df6",
-   "does": "Builds MorningResultsView for the presentation with cached recent sessions and callbacks: discard, reanalyze, reanalyze at position, apply manual result, update sleep, adjust sleep (with failure alert), unlink segment, and the archive's linked segments.",
+   "hash": "7cfe07508d332c3c",
+   "does": "Builds MorningResultsView for the presentation with cached recent sessions and callbacks: discard, reanalyze, the report's Tags & Notes edits (saveReportTags: onto the in-memory reading and its archived copy), reanalyze at position, apply manual result, update sleep, adjust sleep (with failure alert), unlink segment, and the archive's linked segments.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/MorningResultsView.swift::init MorningResultsView(session:result:recentSessions:onDiscard:onDelete:onReanalyze:onUpdateTags:onReanalyzeAt:onApplyManualResult:onUpdateSleep:onAdjustSleep:onUnlinkSegment:linkedSegments:)",
@@ -732,13 +732,15 @@
     "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)",
     "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.adjustMorningSleep(_:for:)",
     "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.unlinkSegment(segmentId:fromSession:)",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.linkedSegments(for:)"
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.linkedSegments(for:)",
+    "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.saveReportTags(_:notes:sessionId:)"
    ],
    "reads": [
     "archive:SessionArchive.linkedSegments"
    ],
    "writes": [
-    "archive:session (via reanalysis callbacks)"
+    "archive:session (via reanalysis callbacks)",
+    "archive:session tags/notes (via saveReportTags)"
    ],
    "branches": [],
    "flags": [],
@@ -749,6 +751,7 @@
     "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)": "ed8abe89df2283be",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.linkedSegments(for:)": "852d48d0e3ec6bcb",
     "Emuqu/Sources/Views/MorningResultsView.swift::init MorningResultsView(session:result:recentSessions:onDiscard:onDelete:onReanalyze:onUpdateTags:onReanalyzeAt:onApplyManualResult:onUpdateSleep:onAdjustSleep:onUnlinkSegment:linkedSegments:)": "708e5b20f5522dc7",
+    "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.saveReportTags(_:notes:sessionId:)": "fe02567a0ee9f50a",
     "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.adjustMorningSleep(_:for:)": "f6a0755d9cb724bc",
     "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.applyManualMorningResult(_:to:)": "5901a756ab163338",
     "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.dismissMorningReading()": "ba8e1c6dc4486be8"
@@ -871,7 +874,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.quickResults(_:)": "952361bbc9ff3413",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.quickResults(_:)": "7df9e0b77b2ed70c",
     "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.quickDiscardFailedActions": "847565b75b44b482",
     "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.quickDoneToolbar": "2856e5fcd5c900b1"
    }
@@ -894,21 +897,25 @@
   },
   {
    "key": "func RecordView.quickResults(_:)",
-   "hash": "dd3018c42a43d385",
-   "does": "Builds MorningResultsView for a quick reading with discard and update-sleep callbacks only.",
+   "hash": "9982d1d50de0d189",
+   "does": "Builds MorningResultsView for a quick reading with discard, Tags & Notes edits (saveReportTags) and update-sleep callbacks.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/MorningResultsView.swift::init MorningResultsView(session:result:recentSessions:onDiscard:onDelete:onReanalyze:onUpdateTags:onReanalyzeAt:onApplyManualResult:onUpdateSleep:onAdjustSleep:onUnlinkSegment:linkedSegments:)",
     "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.discardQuickReading(_:)",
-    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)"
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)",
+    "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.saveReportTags(_:notes:sessionId:)"
    ],
    "reads": [],
-   "writes": [],
+   "writes": [
+    "archive:session tags/notes (via saveReportTags)"
+   ],
    "branches": [],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)": "ed8abe89df2283be",
     "Emuqu/Sources/Views/MorningResultsView.swift::init MorningResultsView(session:result:recentSessions:onDiscard:onDelete:onReanalyze:onUpdateTags:onReanalyzeAt:onApplyManualResult:onUpdateSleep:onAdjustSleep:onUnlinkSegment:linkedSegments:)": "708e5b20f5522dc7",
+    "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.saveReportTags(_:notes:sessionId:)": "fe02567a0ee9f50a",
     "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.discardQuickReading(_:)": "443f6cce95b57541"
    }
   },

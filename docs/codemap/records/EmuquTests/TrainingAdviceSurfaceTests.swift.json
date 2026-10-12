@@ -129,8 +129,8 @@
   },
   {
    "key": "func TrainingAdviceSurfaceTests.testPDFBreakdownMessageReadsTheReportsTrainingLoad()",
-   "hash": "8295924e9695a44f",
-   "does": "Asserts PDFReportGenerator().adviceLoadLevel for ReportInputs with the heavy trainingContext is .easier.",
+   "hash": "3146d96e9608dd7a",
+   "does": "Builds ReportInputs for a night 3 days ago with the heavy load as both trainingContext and frozenTrainingContext and no adviceLiveLoad, and asserts PDFReportGenerator().adviceLoadLevel (which prefers the live load, else the frozen one) is .easier.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "EmuquTests/TrainingAdviceSurfaceTests.swift::func TrainingAdviceSurfaceTests.night(endingDaysAgo:frozen:)",
@@ -163,12 +163,12 @@
    "deps": {
     "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.Load.preferring(live:frozen:)": "e3f09218ae297d05",
     "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.assess(_:)": "3e6ec93f1a8fa572",
-    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.fatigueReasons(_:)": "6e5e28c38fddc383",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.fatigueReasons(_:)": "bf6f23dc7ce2f7fe",
     "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.level(_:)": "e3f2ea3fa0b21c3c",
     "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.monotonyReasons(_:)": "65e6060d74298b65",
     "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.ratioReasons(_:)": "f4c51ff887c66484",
     "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::init TrainingAdviceGate.Load(context:)": "d6e23bfcd5da4f5d",
-    "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift::func PDFReportGenerator.adviceLoadLevel(_:)": "fc0c598831104e40",
+    "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift::func PDFReportGenerator.adviceLoadLevel(_:)": "fb32c739f8170ae8",
     "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator(config:settingsProvider:)": "f5883be68a9c9606",
     "EmuquTests/TrainingAdviceSurfaceTests.swift::func TrainingAdviceSurfaceTests.night(endingDaysAgo:frozen:)": "e6ea9821729e6bac",
     "EmuquTests/TrainingAdviceSurfaceTests.swift::func TrainingAdviceSurfaceTests.strongBreakdown()": "418f21e89cdd5f45"

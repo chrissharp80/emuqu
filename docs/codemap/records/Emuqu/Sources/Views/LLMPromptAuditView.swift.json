@@ -226,19 +226,7 @@
      "effect": "renders 'Failed'; when both are nil (in-flight or finished without usage) renders nothing"
     }
    ],
-   "flags": [
-    {
-     "kind": "unreachable-branch",
-     "sev": "med",
-     "text": "The 'Failed' branch never renders: LLMRequestAudit.setError(_:for:) has no caller anywhere in the repo (app or tests), so Entry.errorDescription is always nil. A failed provider request shows no usage and no failure marker, although LLMRequestAudit documents that the page surfaces why a turn failed.",
-     "evidence": [
-      "Emuqu/Sources/Views/LLMPromptAuditView.swift:106",
-      "Emuqu/Sources/Assistant/Facts/LLMRequestAudit.swift:130",
-      "Emuqu/Sources/Assistant/Facts/LLMRequestAudit.swift:61"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
@@ -342,19 +330,7 @@
      "effect": "renders 'Error' row; omitted otherwise"
     }
    ],
-   "flags": [
-    {
-     "kind": "unreachable-branch",
-     "sev": "low",
-     "text": "Error row never renders: Entry.errorDescription is only set by LLMRequestAudit.setError, which nothing calls.",
-     "evidence": [
-      "Emuqu/Sources/Views/LLMPromptAuditView.swift:156",
-      "Emuqu/Sources/Assistant/Facts/LLMRequestAudit.swift:130",
-      "Emuqu/Sources/Assistant/Facts/LLMRequestAudit.swift:61"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/LLMPromptAuditView.swift::func LLMPromptAuditDetailView.row(_:_:)": "81be7542b07d748f"
@@ -561,19 +537,7 @@
      "effect": "appends 'Error: …'; omitted otherwise"
     }
    ],
-   "flags": [
-    {
-     "kind": "unreachable-branch",
-     "sev": "low",
-     "text": "'Error:' share line is never appended: LLMRequestAudit.setError has no caller, so errorDescription is always nil.",
-     "evidence": [
-      "Emuqu/Sources/Views/LLMPromptAuditView.swift:274",
-      "Emuqu/Sources/Assistant/Facts/LLMRequestAudit.swift:130",
-      "Emuqu/Sources/Assistant/Facts/LLMRequestAudit.swift:61"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {}
   },
   {

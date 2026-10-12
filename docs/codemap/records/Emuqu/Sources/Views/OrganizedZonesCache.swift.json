@@ -84,14 +84,15 @@
    ],
    "flags": [
     {
-     "kind": "fragile",
-     "sev": "med",
-     "text": "Unkeyed lookup: zones depend on the sleep window as well as the beats. OvernightStatsComputer now uses the window-keyed get/set, but RecoveryScoreDetailView.computeOrganizedZonesOnDemand still calls get(_:)/set(_:zones:), so after a sleep-boundary change that screen keeps serving the old window's zones. Handoff b23: RecoveryScoreDetailView to call OvernightStatsComputer.computeOrganizedZonesOnDemand, then remove the unkeyed get/set.",
+     "kind": "dead",
+     "sev": "low",
+     "text": "The unkeyed get(_:) and set(_:zones:) have no caller left: RecoveryScoreDetailView and OvernightStatsComputer both use the sleep-window-keyed overloads (OvernightStatsComputer.computeOrganizedZonesOnDemand).",
      "evidence": [
       "Emuqu/Sources/Views/OrganizedZonesCache.swift:51",
-      "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:478"
+      "Emuqu/Sources/Views/OrganizedZonesCache.swift:71",
+      "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:472"
      ],
-     "found": "second read"
+     "found": "handoff pass h_src1"
     }
    ],
    "deps": {

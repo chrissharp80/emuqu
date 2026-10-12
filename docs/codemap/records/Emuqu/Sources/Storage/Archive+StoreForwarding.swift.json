@@ -177,20 +177,19 @@
    }
   },
   {
-   "key": "func SessionArchive.expireTrash(keepDays:)",
-   "hash": "d397e7aab083da65",
-   "does": "Forwards to ArchiveStore.expireTrash (default keepDays 90).",
+   "key": "func SessionArchive.expiredDeletionIds(keepDays:)",
+   "hash": "efe381e7daf6d0ae",
+   "does": "Forwards to ArchiveStore.expiredDeletionIds(keepDays:) (default 90): the deleted session ids past the Trash retention.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store",
-    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.expireTrash(keepDays:)"
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.expiredDeletionIds(keepDays:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.expireTrash(keepDays:)": "bc9da56fa5b4a1c7",
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.expiredDeletionIds(keepDays:)": "e30d5d7080897eb4",
     "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "807b98551832b9ba"
    }
   },

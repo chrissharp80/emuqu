@@ -287,17 +287,22 @@ final class FakeStrapRadio: StrapRadio, @unchecked Sendable {
 
     func removeOfflineRecord(_: String, entry: PolarOfflineRecordingEntry) async throws {
         record(.removeOfflineRecord(path: entry.path))
-        withState {
-            // Removing one sub-file removes the recording's directory, so a
-            // second removal for the same recording finds nothing — the real
-            // failure behind the duplicated-download bug.
+        let removed = withState { fake -> Bool in
+            // Removing one sub-file removes the recording's directory: every
+            // sub-file goes from the listing and can no longer be read.
             let key = StrapOfflineRecordingEntries.recordingKey(forPath: entry.path)
-            guard $0.offlineEntries.contains(where: {
-                StrapOfflineRecordingEntries.recordingKey(forPath: $0.path) == key
-            }) else { return }
-            $0.offlineEntries.removeAll {
-                StrapOfflineRecordingEntries.recordingKey(forPath: $0.path) == key
+            let paths = fake.offlineEntries
+                .map(\.path)
+                .filter { StrapOfflineRecordingEntries.recordingKey(forPath: $0) == key }
+            for path in paths {
+                fake.offlineData[path] = nil
             }
+            fake.offlineEntries.removeAll { paths.contains($0.path) }
+            return !paths.isEmpty
         }
+        // So a second removal for the same recording finds nothing and fails,
+        // as the sensor does — the real failure behind the duplicated-download
+        // bug.
+        guard removed else { throw PolarErrors.deviceError(description: "no such recording") }
     }
 }

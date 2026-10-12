@@ -305,7 +305,8 @@ struct TrendsV2View: View {
     }
 
     /// 60-day rolling baseline (shaded normal-range
-    /// band, mean ±1 SD over 60 days). Computed across ALL overnight sessions
+    /// band over 60 days: mean ±1 SD, or ±1 SD in log space for the
+    /// log-normal metrics, `isLogNormal`). Computed across ALL overnight sessions
     /// in the last 60 days, independent of the visible-window range chip —
     /// that's what makes the band a stable "this is your normal" reference
     /// rather than circular ("the average of the dots, ±1 SD of those same
@@ -315,7 +316,7 @@ struct TrendsV2View: View {
         return Dictionary(uniqueKeysWithValues:
             Metric.allCases.map { metric in
                 let pts = buildMetricPoints(from: baselineSet, metric: metric)
-                return (metric, BaselineStats.from(pts.map(\.value)))
+                return (metric, BaselineStats.from(pts.map(\.value), logScale: Self.isLogNormal(metric)))
             }
         )
     }
@@ -328,15 +329,38 @@ struct TrendsV2View: View {
         let mean: Double
         let sd: Double
         let sampleCount: Int
+        /// The normal-range band's edges: mean ±1 SD, or, for a log-normal
+        /// metric, exp(lnMean ± lnSD) over its positive values, so a skewed
+        /// metric's band isn't pulled low by its long upper tail.
+        let low: Double
+        let high: Double
 
-        static let empty = BaselineStats(mean: 0, sd: 0, sampleCount: 0)
+        static let empty = BaselineStats(mean: 0, sd: 0, sampleCount: 0, low: 0, high: 0)
         var hasData: Bool { sampleCount >= 4 }
 
-        static func from(_ values: [Double]) -> BaselineStats {
+        static func from(_ values: [Double], logScale: Bool = false) -> BaselineStats {
             guard values.count >= 4 else { return .empty }
             let mean = values.reduce(0, +) / Double(values.count)
-            let variance = values.map { pow($0 - mean, 2) }.reduce(0, +) / Double(values.count)
-            return BaselineStats(mean: mean, sd: sqrt(variance), sampleCount: values.count)
+            let sd = standardDeviation(values, mean: mean)
+            let edges = logScale ? logEdges(values) : nil
+            return BaselineStats(
+                mean: mean, sd: sd, sampleCount: values.count,
+                low: edges?.low ?? mean - sd, high: edges?.high ?? mean + sd
+            )
+        }
+
+        private static func standardDeviation(_ values: [Double], mean: Double) -> Double {
+            sqrt(values.map { pow($0 - mean, 2) }.reduce(0, +) / Double(values.count))
+        }
+
+        /// exp(lnMean ± lnSD) over the positive values; nil with fewer than
+        /// four (the band then falls back to mean ±1 SD).
+        private static func logEdges(_ values: [Double]) -> (low: Double, high: Double)? {
+            let logs = values.filter { $0 > 0 }.map { log($0) }
+            guard logs.count >= 4 else { return nil }
+            let lnMean = logs.reduce(0, +) / Double(logs.count)
+            let lnSD = standardDeviation(logs, mean: lnMean)
+            return (exp(lnMean - lnSD), exp(lnMean + lnSD))
         }
 
         /// Percentage delta of `value` vs the baseline mean. Returns nil

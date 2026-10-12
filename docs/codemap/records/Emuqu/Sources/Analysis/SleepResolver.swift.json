@@ -1,31 +1,19 @@
 {
  "file": "Emuqu/Sources/Analysis/SleepResolver.swift",
- "hash": "b36b87e961595d63",
+ "hash": "0d1fd2190896f1ec",
  "role": "Pure sleep resolution for one night from (recording session?, Watch samples?): row 1 Watch stages clipped to session envelope (+AutoSleep extension, optional HRV augmentation), row 2 RR-inferred stages, row 3 Watch-only clipped to bedtime window, row 4 empty. Produces SleepData with totals, stages, segments.",
  "types": [
   "SleepResolver: enum — namespace",
   "Context: struct — pre-fetched inputs",
   "AutoSleepExtension: struct — post-session sleep bounds + stages",
-  "Resolution: struct (Equatable, custom ==) — sleepData + writeToHealthKit",
+  "Resolution: struct (Equatable, custom ==) — sleepData (export to HealthKit is decided downstream from sleepData.boundarySource)",
   "Resolution.Summary / StageContent / SegmentContent: private structs (Equatable) — content of a resolution compared by =="
  ],
  "state": [
   "mem:SleepResolver.iphoneSleepFilterToleranceMinutes = 15"
  ],
- "toplevel": "Static constant; Resolution has a hand-written == comparing the export flag, every SleepData total and boundary, and each stage interval and segment by content (not by interval id).",
+ "toplevel": "Static constant; Resolution has a hand-written == comparing every SleepData total and boundary, and each stage interval and segment by content (not by interval id).",
  "flags": [
-  {
-   "kind": "dead",
-   "sev": "med",
-   "text": "Resolution.writeToHealthKit is documented as 'the sole authorization to export sleep to HK' but no production code reads it: every caller takes `.sleepData` (SleepMergingPipeline.swift:347, HealthKitManager+Sleep.swift:66, +SleepTrends.swift:33) and the export decision is made separately on boundarySource in exportSleepIfSoleSource; only SleepResolverTests read the flag.",
-   "evidence": [
-    "Emuqu/Sources/Analysis/SleepResolver.swift:68",
-    "Emuqu/Sources/Analysis/SleepResolver.swift:167",
-    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift:410",
-    "EmuquTests/SleepResolverTests.swift:476"
-   ],
-   "found": "first read, upheld on second"
-  },
   {
    "kind": "spec-mismatch",
    "sev": "low",
@@ -42,8 +30,8 @@
  "units": [
   {
    "key": "func SleepResolver.Resolution.==(lhs:rhs:)",
-   "hash": "f013b5996433bfb7",
-   "does": "Equality of two resolutions of a night: writeToHealthKit, Summary (date, inBedStart, sleepStart, sleepEnd, night/inBed/deep/REM/nap/awake minutes, efficiency, boundarySource), every stage interval by (stage, start, end, provenance) and every segment by all its fields. Interval ids are ignored (fresh UUID per construction).",
+   "hash": "3d69966b998bc061",
+   "does": "Equality of two resolutions of a night: Summary (date, inBedStart, sleepStart, sleepEnd, night/inBed/deep/REM/nap/awake minutes, efficiency, boundarySource), every stage interval by (stage, start, end, provenance) and every segment by all its fields. Interval ids are ignored (fresh UUID per construction).",
    "entry": "Equatable conformance (== operator).",
    "calls": [
     "Emuqu/Sources/Analysis/SleepResolver.swift::init SleepResolver.Resolution.Summary(_:)",
@@ -160,8 +148,8 @@
   },
   {
    "key": "func SleepResolver.resolveSessionAndWatch(_:)",
-   "hash": "b9792fbb4a08c46f",
-   "does": "Row 1: envelope = linked sessions ∪ extension; Watch samples → stages, drop iPhone early guesses, optional HRV augmentation, merge with extension stages (mergeStagesAcrossSources, whose output never overlaps), clip (with Watch-span rescue), assemble; source .hrValidated when an extension exists else .healthKit; writeToHealthKit false.",
+   "hash": "8dccb5015ec9620a",
+   "does": "Row 1: envelope = linked sessions ∪ extension; Watch samples → stages, drop iPhone early guesses, optional HRV augmentation, merge with extension stages (mergeStagesAcrossSources, whose output never overlaps), clip (with Watch-span rescue), assemble; source .hrValidated when an extension exists else .healthKit.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.row1Envelope(_:)",
@@ -246,8 +234,8 @@
   },
   {
    "key": "func SleepResolver.resolveSessionOnly(_:)",
-   "hash": "d53cdbc4562fa943",
-   "does": "Row 2: envelope = linked session bounds; stages inferred from RR; assemble with source .hrEstimated; writeToHealthKit = nightSleepMinutes > 0.",
+   "hash": "d40c25bc6f0bd549",
+   "does": "Row 2: envelope = linked session bounds; stages inferred from RR; assemble with source .hrEstimated (the boundary source the HealthKit sleep export keys on).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.inferStagesFromRR(ctx:envelope:)",
@@ -259,13 +247,12 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.assemble(stages:envelope:ctx:source:)": "d75eb40a355d4714",
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.inferStagesFromRR(ctx:envelope:)": "fb2c212d49d82013",
-    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29"
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.inferStagesFromRR(ctx:envelope:)": "fb2c212d49d82013"
    }
   },
   {
    "key": "func SleepResolver.resolveWatchOnly(_:)",
-   "hash": "5c8a202d918e0c51",
+   "hash": "f45fb4115ed5ea47",
    "does": "Row 3: envelope = bedtime window; Watch samples → stages, drop iPhone early guesses, merge (mergeStagesAcrossSources), clip, assemble with source .healthKit.",
    "entry": null,
    "calls": [
@@ -289,7 +276,7 @@
   },
   {
    "key": "func SleepResolver.resolveEmpty(_:)",
-   "hash": "3783e3ad9b00e36e",
+   "hash": "421b172ef4336d29",
    "does": "Row 4: empty SleepData (all 0, source .recordingBounds) dated fallbackDate.",
    "entry": null,
    "calls": [
@@ -935,23 +922,10 @@
      "effect": "false: unchanged; true: augmented"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "sleepStartMs/sleepEndMs are wall-clock offsets of the envelope but augment() windows the RR series on the beat-sum t_ms clock and dates epochs from it, so after BLE drops the HRV epochs are laid over the wrong Watch intervals (see HRVSleepStageClassifier.featureWindow).",
-     "evidence": [
-      "Emuqu/Sources/Analysis/SleepResolver.swift:602",
-      "Emuqu/Sources/Analysis/SleepResolver.swift:603",
-      "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift:206",
-      "Emuqu/Sources/Models/RRModels.swift:9"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.augment(watchIntervals:rrPoints:sleepStartMs:sleepEndMs:recordingStart:)": "af1b9795453e0ab3",
-    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "532ac87707a256ac",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "6d761b0522590a2a",
     "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.stageIntervals()": "4cec6874d7fcb65a"
    }
   },

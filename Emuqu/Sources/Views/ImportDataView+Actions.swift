@@ -135,13 +135,7 @@ extension ImportDataView {
         isAnalyzing = true
         updateStatus(String(localized: "Creating session from imported data...", bundle: LanguageManager.appBundle))
         log("Source file: \(result.originalFileName), RR intervals: \(result.beatCount)")
-        var session = importer.createSession(from: result, startingAt: startDate)
-        log("Session created with \(session.rrSeries?.points.count ?? 0) points")
-        guard let series = session.rrSeries else {
-            await failAnalysis(String(localized: "Analysis failed - no RR data", bundle: LanguageManager.appBundle), log: "ERROR: No RR series in session")
-            return
-        }
-        session.artifactFlags = await detectAndLogArtifacts(in: series)
+        guard var session = await makeImportedSession(from: result, startingAt: startDate) else { return }
         updateStatus(String(localized: "Running HRV analysis...", bundle: LanguageManager.appBundle))
         guard let analysisResult = await pipelineAnalysis(of: session, sleep: ImportSleepWindow.Offsets()) else {
             await failAnalysis(String(localized: "Analysis failed - insufficient clean data", bundle: LanguageManager.appBundle), log: "ERROR: analysis failed")
@@ -152,6 +146,20 @@ extension ImportDataView {
         session.recoveryScore = nil // scored when saved, against the baseline, not here
         logAnalysisSuccess(result: analysisResult)
         await presentResults(session)
+    }
+
+    /// The imported recording as a session dated `startDate`, with its
+    /// artifact flags; nil (after reporting the failure) when it holds no RR
+    /// series.
+    private func makeImportedSession(from result: RRDataImporter.ImportResult, startingAt startDate: Date) async -> HRVSession? {
+        var session = importer.createSession(from: result, startingAt: startDate)
+        log("Session created with \(session.rrSeries?.points.count ?? 0) points")
+        guard let series = session.rrSeries else {
+            await failAnalysis(String(localized: "Analysis failed - no RR data", bundle: LanguageManager.appBundle), log: "ERROR: No RR series in session")
+            return nil
+        }
+        session.artifactFlags = await detectAndLogArtifacts(in: series)
+        return session
     }
 
     /// The live recording pipeline (`HRVAnalysisPipeline`) on an imported
@@ -242,6 +250,24 @@ extension ImportDataView {
         log("SUCCESS: Analysis complete")
         log("RMSSD: \(String(format: "%.1f", locale: LanguageManager.appLocale, result.timeDomain.rmssd)) ms")
         log("Clean beats: \(result.cleanBeatCount)")
+    }
+
+    /// Tags & Notes edited on the imported reading's report: onto the reading
+    /// Done saves, and into the archived copy, because the report hands its
+    /// edits over as it closes, after Done has saved the reading. A reading
+    /// discarded instead has no archived copy; that write failure is logged.
+    func applyReportTags(_ tags: [ReadingTag], notes: String?, sessionId: UUID) {
+        guard importedSession?.id == sessionId else { return }
+        importedSession?.tags = tags
+        importedSession?.notes = notes
+        let archive = collector.archive
+        Task.detached {
+            do {
+                try archive.updateTags(sessionId, tags: tags, notes: notes)
+            } catch {
+                debugLog("[ImportDataView] Report tags not written to the archive for \(sessionId.uuidString.prefix(8)): \(error)")
+            }
+        }
     }
 
     /// `saveImportedSession` throws `duplicateImport` for a reading at the

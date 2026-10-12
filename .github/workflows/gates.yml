@@ -15,14 +15,11 @@ name: Gates
 #                             and would make the warning budget lie.
 # (debt-budget, spec-conformance and budget-monotonicity used to be listed
 # here too. They are python and git, not SwiftLint, so they run below.)
-#   infoplist-guard's privacy-manifest vocabulary check — needs `plutil`.
 #   test-coverage, thread-sanitizer — need Xcode and a simulator.
 # All of those still run in `ci.yml` and in `make ci` locally.
 #
-# `check_gates_wired.sh` audits `ci.yml`, not this file: this is a fast
-# subset, and the manual workflow remains the complete list. Nothing checks
-# that a new plain-bash `make ci` gate is added below as well, so add it here
-# by hand when you add it to the Makefile.
+# `check_gates_wired.sh` audits both files: every gate must run in `ci.yml`, and in
+# this file too unless its NOT_ON_PUSH map says why it cannot (SwiftLint, Xcode).
 
 on:
   push:
@@ -61,8 +58,8 @@ jobs:
       - name: Source hygiene guards
         run: make sendable-guard no-unowned-guard logger-self-reference-guard coremotion-isolation-guard hr-feed-link-guard license-header-guard dated-comment-budget shared-root-guard snapshot-refs-guard empty-range-guard leaked-mutations-guard eager-prompt-guard date-ms-guard log-redaction-guard uitest-reset-guard skip-budget fixed-font-budget orphan-swift-guard aggregate-type-size comment-citations strict-concurrency-enabled
 
-      - name: Info.plist and CloudKit guards (the plutil-free two)
-        run: ./scripts/check_no_health_data_in_cloudkit.sh && ./scripts/check_infoplist_key_drift.sh
+      - name: Info.plist, privacy manifest and CloudKit guards
+        run: ./scripts/check_no_health_data_in_cloudkit.sh && ./scripts/check_privacy_manifest_vocabulary.sh && ./scripts/check_infoplist_key_drift.sh
 
       - name: Documentation, SBOM, no phone-home
         run: make doc-counts-guard doc-links sbom-guard sbom-check no-phone-home

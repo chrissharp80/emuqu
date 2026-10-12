@@ -39,20 +39,7 @@
   "mem:AppConfig.resolvedSharedContainerURL (static let, resolved once per process)"
  ],
  "toplevel": "Only static let constants outside the units (AppConfig.resolvedSharedContainerURL is initialised lazily from resolveSharedContainerURL() on first use); no conformances or #if blocks.",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "med",
-   "text": "scripts/check_scoring_governance.sh says a scoring-version bump is required 'whenever inputs, thresholds, or weights change' but hashes only Constants+RecoveryScore.swift and HRVThresholds.swift; the composite recovery-score weights (ScoringWeights.Tier3 0.60/0.25/0.15, Tier2, Comeback, Sleep sub-weights, Vitals bands) and ScoringBounds live here and can change without moving the hash, so archived scores from two algorithms can share one ScoringVersion.",
-   "evidence": [
-    "Emuqu/Sources/Utilities/Constants.swift:396",
-    "Emuqu/Sources/Utilities/Constants.swift:400",
-    "scripts/check_scoring_governance.sh:8",
-    "scripts/check_scoring_governance.sh:59"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "func AppConfig.sharedContainerURL()",

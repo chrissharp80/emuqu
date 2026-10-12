@@ -1,12 +1,13 @@
 {
  "file": "EmuquTests/CollectorMigrationParityTests.swift",
- "hash": "6e72a1990e67c4de",
+ "hash": "8d800cbf1b84647e",
  "role": "Parity tests for three SessionDataMigrations one-shot migrations (workout sleep cleanup, insufficient-data re-flag, TRIMP repair) run against a hermetic temp-directory archive, checking post-state and that the UserDefaults flag short-circuits a second run.",
  "types": [
   "CollectorMigrationParityTests: class — @MainActor XCTestCase for collector-owned migrations"
  ],
  "state": [
   "migrationFlagKeys: the three standard-UserDefaults migration flag keys",
+  "savedMigrationFlags: the host app's values of those flags, saved by clearMigrationFlags and put back by restoreMigrationFlags",
   "tempDir: lazy per-test temp archive directory",
   "collector: lazy RRCollector on the temp archive",
   "migrations: lazy SessionDataMigrations",
@@ -14,18 +15,6 @@
  ],
  "toplevel": "Lazy collector/migrations (first use in a test): RRCollector(polarManager: PolarManager(), healthKit: HealthKitManager(), archive: SessionArchive(directory: tmp/CollectorMigrationParityTests-<uuid>)) and SessionDataMigrations built from that collector's archive, HealthKit manager, settings, baseline tracker and reanalysis service.",
  "flags": [
-  {
-   "kind": "test-defect",
-   "sev": "med",
-   "text": "setUp and tearDown remove didRunWorkoutSleepCleanup_v1 / didRunInsufficientDataMigration_v1 / didRunTrimpRepairMigration_v1 from UserDefaults.standard, which is the host app's own domain; after the suite runs on a device/simulator with a real install, all three migrations re-run against the user's real archive on the next app launch.",
-   "evidence": [
-    "EmuquTests/CollectorMigrationParityTests.swift:78",
-    "EmuquTests/CollectorMigrationParityTests.swift:88",
-    "EmuquTests/CollectorMigrationParityTests.swift:231",
-    "Emuqu/Sources/Collection/SessionDataMigrations+WorkoutSleepCleanupMigration.swift:23"
-   ],
-   "found": "first read, upheld on second"
-  },
   {
    "kind": "spec-mismatch",
    "sev": "low",
@@ -44,12 +33,16 @@
   {
    "key": "func CollectorMigrationParityTests.setUp()",
    "hash": "68ea2a766f94226c",
-   "does": "Calls super.setUp, removes the three migration flags from standard UserDefaults and resets seededIds.",
+   "does": "Calls super.setUp, saves the host's values of the three migration flags and removes them from standard UserDefaults (clearMigrationFlags), and resets seededIds.",
    "entry": "XCTest per-test async setUp override",
    "calls": [
     "EmuquTests/CollectorMigrationParityTests.swift::func CollectorMigrationParityTests.clearMigrationFlags()"
    ],
-   "reads": [],
+   "reads": [
+    "ud:didRunWorkoutSleepCleanup_v1",
+    "ud:didRunInsufficientDataMigration_v1",
+    "ud:didRunTrimpRepairMigration_v1"
+   ],
    "writes": [
     "ud:didRunWorkoutSleepCleanup_v1",
     "ud:didRunInsufficientDataMigration_v1",
@@ -58,17 +51,17 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "EmuquTests/CollectorMigrationParityTests.swift::func CollectorMigrationParityTests.clearMigrationFlags()": "401e59dd41627c73"
+    "EmuquTests/CollectorMigrationParityTests.swift::func CollectorMigrationParityTests.clearMigrationFlags()": "e771f865b52922cb"
    }
   },
   {
    "key": "func CollectorMigrationParityTests.tearDown()",
-   "hash": "2c3f080619858481",
-   "does": "Deletes each seeded session from the temp archive (errors ignored), removes the temp directory, clears the migration flags and calls super.tearDown.",
+   "hash": "1125f69bcaacf07d",
+   "does": "Deletes each seeded session from the temp archive (errors ignored), removes the temp directory, puts the host's migration flag values back (restoreMigrationFlags) and calls super.tearDown.",
    "entry": "XCTest per-test async tearDown override",
    "calls": [
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)",
-    "EmuquTests/CollectorMigrationParityTests.swift::func CollectorMigrationParityTests.clearMigrationFlags()"
+    "EmuquTests/CollectorMigrationParityTests.swift::func CollectorMigrationParityTests.restoreMigrationFlags()"
    ],
    "reads": [],
    "writes": [
@@ -87,7 +80,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)": "cefef470ab858af7",
-    "EmuquTests/CollectorMigrationParityTests.swift::func CollectorMigrationParityTests.clearMigrationFlags()": "401e59dd41627c73"
+    "EmuquTests/CollectorMigrationParityTests.swift::func CollectorMigrationParityTests.restoreMigrationFlags()": "2ecfccd5c58f0784"
    }
   },
   {
@@ -240,8 +233,8 @@
    "calls": [
     "Emuqu/Sources/Collection/SessionDataMigrations+TrimpMigration.swift::func SessionDataMigrations.runTrimpRepairMigrationIfNeeded()",
     "Emuqu/Sources/Collection/SessionDataMigrations.swift::func SessionDataMigrations.loadArchivedSessions()",
-    "Emuqu/Sources/Collection/SessionDataMigrations+TrimpMigration.swift::func SessionDataMigrations.hasTrimpRepairWork(in:defaults:)",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries"
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.repairTrainingSnapshots(sessions:progress:)"
    ],
    "reads": [
     "ud:didRunTrimpRepairMigration_v1",
@@ -264,16 +257,47 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/SessionDataMigrations+TrimpMigration.swift::func SessionDataMigrations.hasTrimpRepairWork(in:defaults:)": "eb0026c842e1dba1",
-    "Emuqu/Sources/Collection/SessionDataMigrations+TrimpMigration.swift::func SessionDataMigrations.runTrimpRepairMigrationIfNeeded()": "8e425828c6b23d78",
+    "Emuqu/Sources/Collection/SessionDataMigrations+TrimpMigration.swift::func SessionDataMigrations.runTrimpRepairMigrationIfNeeded()": "543478719aaceb28",
     "Emuqu/Sources/Collection/SessionDataMigrations.swift::func SessionDataMigrations.loadArchivedSessions()": "126051022cf23c3b",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.repairTrainingSnapshots(sessions:progress:)": "cac4e6c121467606",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e"
    }
   },
   {
    "key": "func CollectorMigrationParityTests.clearMigrationFlags()",
-   "hash": "a5c527ea5ff4c8d3",
-   "does": "Removes each of the three migration flag keys from UserDefaults.standard.",
+   "hash": "b3c7e8487b411e8c",
+   "does": "Saves into savedMigrationFlags the Bool value of each of the three migration flag keys that standard UserDefaults holds, then removes each key.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "ud:didRunWorkoutSleepCleanup_v1",
+    "ud:didRunInsufficientDataMigration_v1",
+    "ud:didRunTrimpRepairMigration_v1"
+   ],
+   "writes": [
+    "ud:didRunWorkoutSleepCleanup_v1",
+    "ud:didRunInsufficientDataMigration_v1",
+    "ud:didRunTrimpRepairMigration_v1"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each migration flag key",
+     "effect": "saves its Bool value when present, then removes it"
+    },
+    {
+     "at": "+4",
+     "cond": "the key holds a Bool",
+     "effect": "recorded in savedMigrationFlags"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func CollectorMigrationParityTests.restoreMigrationFlags()",
+   "hash": "d2b3eac2906cc8f5",
+   "does": "Puts back each migration flag saved by clearMigrationFlags; a key the host did not have is removed, so the test's own writes do not survive it.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -286,7 +310,12 @@
     {
      "at": "+2",
      "cond": "for each migration flag key",
-     "effect": "removes it"
+     "effect": "restore or remove"
+    },
+    {
+     "at": "+3",
+     "cond": "a value was saved",
+     "effect": "sets it; otherwise removes the key"
     }
    ],
    "flags": [],

@@ -498,7 +498,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.loadAndSelect(_:)": "bc5fe1533648fe4a"
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.loadAndSelect(_:)": "0c1991e5a2951c6c"
    }
   },
   {
@@ -577,7 +577,7 @@
    "deps": {
     "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "380cb385515abafc",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.loadAndSelect(_:)": "bc5fe1533648fe4a",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.loadAndSelect(_:)": "0c1991e5a2951c6c",
     "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.opensTagEditor(_:)": "d9a1ec49ed30bb17"
    }
   },
@@ -923,32 +923,52 @@
   },
   {
    "key": "func HistoryView.loadAndSelect(_:)",
-   "hash": "576a7034a2e886b2",
-   "does": "Cancels any prior selection task and starts a Task that loads the full session off-main via retrieveFullSessionAsync, then calls select; when it cannot be read (and the task was not cancelled) logs and sets failureMessage \"Couldn't open this reading. Try again.\".",
+   "hash": "5af1f30f2c69d203",
+   "does": "Cancels any prior selection task and starts a Task that loads the full session off-main via retrieveFullSessionAsync, then calls select; when it cannot be read, reportLoadFailure logs it and (unless the task was cancelled) sets the failure message.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.retrieveFullSessionAsync(_:)",
     "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.select(_:)",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.reportLoadFailure(_:)"
    ],
    "reads": [
     "archive:SessionArchive.retrieve (full session with rrSeries)"
    ],
    "writes": [
-    "mem:HistoryView.selectionTask",
-    "mem:HistoryView.failureMessage"
+    "mem:HistoryView.selectionTask"
    ],
    "branches": [
     {
      "at": "+7",
      "cond": "retrieveFullSessionAsync returns a session",
-     "effect": "false: debugLog, then the failure alert unless cancelled; true: await select(session)"
-    },
+     "effect": "false: reportLoadFailure, return; true: await select(session)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.retrieveFullSessionAsync(_:)": "0f232a98a915f52c",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.reportLoadFailure(_:)": "cf168bc4113ca595",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.select(_:)": "6c01803f9dca642b"
+   }
+  },
+  {
+   "key": "func HistoryView.reportLoadFailure(_:)",
+   "hash": "8d166bf8edb6bb99",
+   "does": "Logs the failed read of the session id and, unless the current task was cancelled (a newer tap superseded it), sets failureMessage \"Couldn't open this reading. Try again.\".",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:HistoryView.failureMessage"
+   ],
+   "branches": [
     {
-     "at": "+9",
-     "cond": "load failed and the task was not cancelled",
-     "effect": "failureMessage set (new tap supersedes silently)"
+     "at": "+2",
+     "cond": "Task.isCancelled is false",
+     "effect": "failureMessage set; cancelled: nothing shown (new tap supersedes silently)"
     }
    ],
    "flags": [
@@ -957,17 +977,15 @@
      "sev": "med",
      "text": "A reading that cannot be read now raises the failure alert, but its text (\"Couldn't open this reading. Try again.\") has no Localizable.xcstrings entry yet (catalog handoff from fix batch b22), so it is English in every language until the catalog is updated.",
      "evidence": [
-      "Emuqu/Sources/Views/HistoryView.swift:412",
+      "Emuqu/Sources/Views/HistoryView.swift:441",
       "Emuqu/Localizable.xcstrings"
      ],
      "found": "first read, upheld on second"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.retrieveFullSessionAsync(_:)": "0f232a98a915f52c",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.select(_:)": "6c01803f9dca642b"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
   {

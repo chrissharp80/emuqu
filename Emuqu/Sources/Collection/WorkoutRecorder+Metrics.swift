@@ -325,6 +325,9 @@ extension WorkoutSessionLifecycle {
         let session: HRVSession
         let subject: String
         let recipient: String?
+        /// Cc for the staged email: the training-category Cc, else the
+        /// general default (`coachReportCC`).
+        let ccRecipients: [String]
         let units: UnitsPreference
         let maxHR: Int
         let restingHR: Int
@@ -356,6 +359,9 @@ extension WorkoutSessionLifecycle {
     /// one on the MainActor takes seconds for archives with many sessions
     /// and blocks the AI chat (also on MainActor) for the duration, so the
     /// detached render decodes them.
+    ///
+    /// Recipient: the training-category default when set, then the recovery
+    /// and general defaults; Cc from `coachReportCC`.
     @MainActor
     private static func coachReportInputs(for session: HRVSession, settings: UserSettings) -> CoachReportInputs {
         let archive = AppDependencies.current.storage.sessionArchive
@@ -363,8 +369,8 @@ extension WorkoutSessionLifecycle {
         let recentOvernight = recentOvernightSessions(archive: archive, reportedNightCutoff: dayCutoff)
         return CoachReportInputs(
             session: session, subject: coachReportSubject(for: session),
-            // Pull the user's training-category default recipient if set.
             recipient: settings.defaultTrainingEmailRecipient ?? settings.defaultRecoveryEmailRecipient ?? settings.defaultEmailRecipient,
+            ccRecipients: coachReportCC(settings),
             units: UnitsPreferenceStore.current.resolved, maxHR: settings.effectiveMaxHR,
             restingHR: settings.effectiveRestingHR, lthr: settings.effectiveLTHR,
             temperatureUnit: settings.temperatureUnit,
@@ -378,6 +384,17 @@ extension WorkoutSessionLifecycle {
                 .map(\.sessionId),
             archive: archive
         )
+    }
+
+    /// The Cc list Settings → Reports gives workout reports: the training
+    /// Cc (comma-separated, trimmed) when set, else `resolvedDefaultEmailCC`
+    /// — the rule `FitnessPostSummaryView.trainingMailCC` uses.
+    private static func coachReportCC(_ settings: UserSettings) -> [String] {
+        let trainingCC = (settings.defaultTrainingEmailCC ?? "")
+            .split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        return trainingCC.isEmpty ? settings.resolvedDefaultEmailCC : trainingCC
     }
 
     /// The reported night (the newest overnight session since
@@ -451,7 +468,7 @@ extension WorkoutSessionLifecycle {
             let emailBody = attachment == nil ? body : body + "\n\n" + CoachReportGenerator.pdfFootnote
             AppDependencies.current.assistant.assistantEmailBridge.stage(AssistantEmailDraft(
                 subject: inputs.subject, body: emailBody, recipient: inputs.recipient,
-                ccRecipients: [], attachmentURL: attachment
+                ccRecipients: inputs.ccRecipients, attachmentURL: attachment
             ))
             debugLog("[CoachReport] staged email draft for session \(inputs.session.id.uuidString.prefix(8)) (body \(body.count) chars, pdf=\(attachment != nil ? "yes" : "no"))")
         }

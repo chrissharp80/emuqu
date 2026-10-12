@@ -489,7 +489,7 @@
     "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.computeAllStatistics(dataPoints:)",
     "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.computeStatistics(metric:values:dates:rule:)",
     "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.generateInsights(dataPoints:rmssd:sdnn:hr:stress:readiness:)",
-    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.rmssdInsights(_:)"
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.rmssdInsights(_:latestReading:)"
    ],
    "reads": [],
    "writes": [],
@@ -498,10 +498,10 @@
    "deps": {
     "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.analyze(sessions:period:)": "211a820e07506c98",
     "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.computeAllStatistics(dataPoints:)": "8d32ccbe4d42711c",
-    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.computeStatistics(metric:values:dates:rule:)": "0c467bd9fa808f95",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.computeStatistics(metric:values:dates:rule:)": "cd8263f3b13d1d5c",
     "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.filteredDataPoints(sessions:period:)": "e2db247ed1223673",
-    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.generateInsights(dataPoints:rmssd:sdnn:hr:stress:readiness:)": "49c6adaf84b943df",
-    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.rmssdInsights(_:)": "847179b40442906c",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.generateInsights(dataPoints:rmssd:sdnn:hr:stress:readiness:)": "06a3645ab6a575bd",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.rmssdInsights(_:latestReading:)": "fe151cd66b457bb4",
     "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.withinPeriod(_:period:)": "80e0cb434cd1c59b",
     "Emuqu/Sources/Analysis/TrendAnalysis.swift::init TrendAnalyzer.TrendDataPoint(session:)": "c1d69059100f781f",
     "EmuquTests/TrendAnalysisTests.swift::func TrendAnalysisTests.createMockSession(daysAgo:rmssd:sdnn:meanHR:stressIndex:dfaAlpha1:)": "76e8ba7fd7373f4d",
@@ -523,7 +523,7 @@
     "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.computeAllStatistics(dataPoints:)",
     "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.computeStatistics(metric:values:dates:rule:)",
     "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.generateInsights(dataPoints:rmssd:sdnn:hr:stress:readiness:)",
-    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.rmssdInsights(_:)"
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.rmssdInsights(_:latestReading:)"
    ],
    "reads": [],
    "writes": [],
@@ -532,10 +532,10 @@
    "deps": {
     "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.analyze(sessions:period:)": "211a820e07506c98",
     "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.computeAllStatistics(dataPoints:)": "8d32ccbe4d42711c",
-    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.computeStatistics(metric:values:dates:rule:)": "0c467bd9fa808f95",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.computeStatistics(metric:values:dates:rule:)": "cd8263f3b13d1d5c",
     "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.filteredDataPoints(sessions:period:)": "e2db247ed1223673",
-    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.generateInsights(dataPoints:rmssd:sdnn:hr:stress:readiness:)": "49c6adaf84b943df",
-    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.rmssdInsights(_:)": "847179b40442906c",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.generateInsights(dataPoints:rmssd:sdnn:hr:stress:readiness:)": "06a3645ab6a575bd",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.rmssdInsights(_:latestReading:)": "fe151cd66b457bb4",
     "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.withinPeriod(_:period:)": "80e0cb434cd1c59b",
     "Emuqu/Sources/Analysis/TrendAnalysis.swift::init TrendAnalyzer.TrendDataPoint(session:)": "c1d69059100f781f",
     "EmuquTests/TrendAnalysisTests.swift::func TrendAnalysisTests.createMockSession(daysAgo:rmssd:sdnn:meanHR:stressIndex:dfaAlpha1:)": "76e8ba7fd7373f4d",
@@ -666,42 +666,32 @@
   },
   {
    "key": "func TrendAnalysisTests.testAnalyzeExcludesNapSessions()",
-   "hash": "b1cfd900d6c6858a",
-   "does": "Adds a .nap session to 5 overnights and asserts 5 data points.",
+   "hash": "e542c981d304eb08",
+   "does": "Adds a session built like the overnights (full analysis result, RMSSD 20) but with sessionType .nap to 5 overnights, and asserts 5 data points and that the nap's id is not among them; with a result present only the overnight-type filter can drop it.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "EmuquTests/TrendAnalysisTests.swift::func TrendAnalysisTests.createMockSession(daysAgo:rmssd:sdnn:meanHR:stressIndex:dfaAlpha1:)",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)",
     "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.analyze(sessions:period:)",
     "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.filteredDataPoints(sessions:period:)",
     "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.withinPeriod(_:period:)",
     "Emuqu/Sources/Analysis/TrendAnalysis.swift::init TrendAnalyzer.TrendDataPoint(session:)",
     "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.computeAllStatistics(dataPoints:)",
-    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.computeStatistics(metric:values:dates:rule:)"
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.computeStatistics(metric:values:dates:rule:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.generateInsights(dataPoints:rmssd:sdnn:hr:stress:readiness:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "med",
-     "text": "The nap fixture has analysisResult nil, which filteredDataPoints already drops (TrendAnalysis.swift:197), so the test passes even if the sessionType == .overnight filter were removed; nap exclusion is not actually tested.",
-     "evidence": [
-      "EmuquTests/TrendAnalysisTests.swift:414",
-      "Emuqu/Sources/Analysis/TrendAnalysis.swift:197"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
     "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.analyze(sessions:period:)": "211a820e07506c98",
     "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.computeAllStatistics(dataPoints:)": "8d32ccbe4d42711c",
-    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.computeStatistics(metric:values:dates:rule:)": "0c467bd9fa808f95",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.computeStatistics(metric:values:dates:rule:)": "cd8263f3b13d1d5c",
     "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.filteredDataPoints(sessions:period:)": "e2db247ed1223673",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.generateInsights(dataPoints:rmssd:sdnn:hr:stress:readiness:)": "06a3645ab6a575bd",
     "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.withinPeriod(_:period:)": "80e0cb434cd1c59b",
     "Emuqu/Sources/Analysis/TrendAnalysis.swift::init TrendAnalyzer.TrendDataPoint(session:)": "c1d69059100f781f",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
     "EmuquTests/TrendAnalysisTests.swift::func TrendAnalysisTests.createMockSession(daysAgo:rmssd:sdnn:meanHR:stressIndex:dfaAlpha1:)": "76e8ba7fd7373f4d"
    }
   },

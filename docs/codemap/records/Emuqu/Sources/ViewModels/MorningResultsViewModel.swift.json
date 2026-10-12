@@ -356,13 +356,11 @@
   },
   {
    "key": "func MorningResultsViewModel.writePerceivedReadiness(_:isArchived:)",
-   "hash": "225e29d5c32095a5",
-   "does": "Nonisolated: for an archived session, SessionArchive.update(id) sets perceivedReadiness, recoveryScore, scoreBreakdown and frozenReadiness from the re-scored copy under one archive lock (other fields keep the archive's newest values; stamps modifiedAt and requests re-upload); for an unarchived one, archives the copy (skipSameNightMerge: false, requestingReupload: true). Logs the outcome; returns false when the write threw.",
+   "hash": "39025290795f34d8",
+   "does": "Nonisolated: writes the rating and score fields via storePerceivedReadiness (in place on an archived copy, whole session otherwise), logs the outcome, and returns false when the write threw.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.storePerceivedReadiness(_:isArchived:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [],
@@ -375,25 +373,49 @@
    ],
    "branches": [
     {
-     "at": "+3",
-     "cond": "isArchived",
-     "effect": "in-place update of the four fields; else archive the whole copy"
-    },
-    {
-     "at": "+15",
-     "cond": "update/archive throws (e.g. fileNotFound after a delete)",
+     "at": "+5",
+     "cond": "storePerceivedReadiness throws (e.g. fileNotFound after a delete)",
      "effect": "warning log, returns false"
     }
    ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.storePerceivedReadiness(_:isArchived:)": "44465b5e2755870f"
+   }
+  },
+  {
+   "key": "func MorningResultsViewModel.storePerceivedReadiness(_:isArchived:)",
+   "hash": "a26f5a2e3a7eef60",
+   "does": "Nonisolated, throws: for an archived session, SessionArchive.update(id) sets perceivedReadiness, recoveryScore, scoreBreakdown and frozenReadiness from the re-scored copy under one archive lock (other fields keep the archive's newest values; stamps modifiedAt and requests re-upload); for an unarchived one, archives the copy (skipSameNightMerge: false, requestingReupload: true).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)"
+   ],
+   "reads": [],
+   "writes": [
+    "archive:SessionArchive.update(requestingReupload:true)",
+    "archive:SessionArchive.archive(skipSameNightMerge:false, requestingReupload:true)",
+    "notif:flowRecoveryArchiveChanged",
+    "notif:flowRecoveryArchiveSessionsNeedReupload",
+    "ck:session reupload (modifiedAt stamp)"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "isArchived",
+     "effect": "false: archive the whole copy and return; true: in-place update of the four fields"
+    }
+   ],
+   "flags": [],
+   "deps": {
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
-    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.scoreBreakdown(result:session:inputs:training:useBaselineHRV:)": "3d86c57d7f933cf7",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)": "e1a5ccaab9fa4e3e",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "e021c7f17b266931",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74"
    }
   },
   {

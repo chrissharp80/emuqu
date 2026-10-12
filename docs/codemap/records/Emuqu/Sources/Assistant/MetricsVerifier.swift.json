@@ -125,18 +125,7 @@
      "effect": "returns [] (no live workout => nothing verified); else verifyLive"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "Live-workout claim checking (HR/power/alpha1/drift) runs only on the voice path. The typed-chat pipeline (AssistantViewModel+Tools.verifyAppStateNumbers) calls only verifyAppStateClaims, so a typed 'your HR is 142 bpm' fabrication during a workout is saved and shown unchecked. verify(_:againstLive:) now takes the broker snapshot the chat path has; the chat path still has to call it.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/MetricsVerifier.swift:151",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift:383"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.verifyLive(_:values:)": "d990303e98a1e5c0",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.powerWatts": "ad61e93456f590a4"

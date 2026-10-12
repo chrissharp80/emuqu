@@ -371,10 +371,11 @@
   },
   {
    "key": "func StateSnapshotTests.testHelpCenterRenders()",
-   "hash": "ed3509763eea3940",
-   "does": "Snapshots HelpCenterView in a NavigationStack with the live SettingsManager.shared against 'screen-help-center'.",
+   "hash": "a25a718a747850a3",
+   "does": "Puts SettingsManager.shared on fresh-install defaults for the test (useDefaultSettings, so the age-dependent category list does not follow the host's settings) and snapshots HelpCenterView in a NavigationStack against 'screen-help-center'.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
+    "EmuquTests/SnapshotFixtures.swift::func XCTestCase.useDefaultSettings()",
     "EmuquTests/StateSnapshotTests.swift::func StateSnapshotTests.hosted(_:)",
     "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
     "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCenterView.body"
@@ -383,24 +384,15 @@
     "file:EmuquTests/__Snapshots__/screen-help-center.raw",
     "mem:SettingsManager.shared.settings.age"
    ],
-   "writes": [],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "med",
-     "text": "HelpCenterView lists HelpContent.categories(forAge: settingsManager.settings.age) but this test never calls useDefaultSettings(), so the snapshot depends on the age stored in the test host's settings; a host with a different age renders a different category list and fails (or a reference recorded on such a host fails everywhere else).",
-     "evidence": [
-      "EmuquTests/StateSnapshotTests.swift:145",
-      "Emuqu/Sources/Views/HelpCenterView.swift:19",
-      "EmuquTests/SnapshotFixtures.swift:185"
-     ],
-     "found": "first read, upheld on second"
-    }
+   "writes": [
+    "mem:SettingsManager.shared.settings (UserSettings() for the test, restored by a teardown block; the didSet saves to the host's settings file)"
    ],
+   "branches": [],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Views/HelpCenterView.swift::init HelpCenterView()": "b289c4ded5db282b",
     "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCenterView.body": "6f53898c6a2f3bfe",
+    "EmuquTests/SnapshotFixtures.swift::func XCTestCase.useDefaultSettings()": "757ca3e9f00039f6",
     "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e",
     "EmuquTests/StateSnapshotTests.swift::func StateSnapshotTests.hosted(_:)": "a4a3c387bfa98505"
    }

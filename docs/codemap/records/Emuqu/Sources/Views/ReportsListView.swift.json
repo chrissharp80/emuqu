@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Views/ReportsListView.swift",
- "hash": "cd9df554c7e808bf",
+ "hash": "588cc08e67762235",
  "role": "'All Reports' list: decodes the last 90 days of workout and overnight sessions, emits one row per workout (holistic if a reliable overnight started within 36 h before it, else workout-only) and one Recovery/HRV row per overnight, and renders the chosen PDF on tap into a temp file shown in a PDF preview sheet.",
  "types": [
   "ReportsListView: struct (View) — list, load, generation",
@@ -13,23 +13,10 @@
  "state": [
   "@State rows, loading, loadTask, presentedPDF, shownPDF, isGenerating, generationError, generatingRowID (view-local)",
   "@Environment ArchiveSignal (reloads the rows on version change)",
-  "static let baselineNightCount = 60",
   "file:<tmp>/emuqu-report-<id8>-<epoch>.pdf (FileManager.temporaryDirectory; deleted when the preview sheet closes or the render fails)"
  ],
  "toplevel": "Presented from MainTabView.swift:542 and ReportsSettingsPage.swift:37; snapshot test ChartScreenSnapshotTests.swift:153. Header comment (lines 4-33) documents the three row kinds and the 36 h night-before rule.",
- "flags": [
-  {
-   "kind": "duplicate",
-   "sev": "low",
-   "text": "baselineNightCount = 60 is a hand copy of DailyLoopAnalysis.baselineNightLimit (private) and WorkoutRecorder+Metrics.baselineNightLimit; changing one does not change the others.",
-   "evidence": [
-    "Emuqu/Sources/Views/ReportsListView.swift:379",
-    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift:195",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift:364"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "var ReportsListView.body",
@@ -731,21 +718,21 @@
     "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.decode(polyline:startDate:duration:)": "8bf8d7e73e673ac6",
     "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift::func TrainingLoadRegistry.liveRefreshed()": "f6fdc835bab57f33",
     "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.polyline(for:)": "92368270c3e12467",
-    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.renderHolistic(_:track:load:)": "a104136c327ae473",
-    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.renderRecovery(_:load:)": "35162c246fe307ad",
-    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.renderWorkoutOnly(_:track:)": "cb855f324bdd3025",
-    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.withFullSessions(_:)": "70c6a5c6cebfbf78"
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.renderHolistic(_:track:load:)": "39ce73af5486e47f",
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.renderRecovery(_:load:)": "85d21ba35adf2965",
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.renderWorkoutOnly(_:track:)": "a8693b74d4c55001",
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.withFullSessions(_:)": "1341b3507c480eac"
    }
   },
   {
    "key": "func ReportsListView.withFullSessions(_:)",
-   "hash": "0905be5e42f9f8ad",
-   "does": "Nonisolated: replaces overnight (and, except for a .recovery row, workout) with full RR-bearing archive reads, falling back to the lightweight copies, and fills recentOvernight with overnights(before:) the reported night (or the workout start).",
+   "hash": "77d445e18761754f",
+   "does": "Nonisolated: replaces overnight (and, except for a .recovery row, workout) with full RR-bearing archive reads, falling back to the lightweight copies, and fills recentOvernight with ReportBaselineNights.before the reported night (or the workout's start when there is no overnight): the nights before it, read until 60 are reliable.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.sessionArchive",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)",
-    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.overnights(before:archive:)"
+    "Emuqu/Sources/Views/MainTabView+Reports.swift::func ReportBaselineNights.before(_:archive:)"
    ],
    "reads": [
     "archive:retrieve",
@@ -787,57 +774,18 @@
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.sessionArchive": "2c8002649ba22b7f",
-    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.overnights(before:archive:)": "65f0543318650627",
-    "Emuqu/Sources/Views/ReportsListView.swift::var ReportsListView.archive": "a1666ba6bb81209f"
-   }
-  },
-  {
-   "key": "func ReportsListView.overnights(before:archive:)",
-   "hash": "e57cc34f979134db",
-   "does": "Nonisolated: overnight entries dated before night, newest first, decoded lightweight (failures dropped) until baselineNightCount (60) of them are reliable, as the auto-emailed report collects them, so the daily loop baseline covers 60 reliable nights.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)"
-   ],
-   "reads": [
-    "archive:entries",
-    "archive:retrieveLightweight"
-   ],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+5",
-     "cond": "reliableCount < baselineNightCount",
-     "effect": "false: remaining entries skipped"
-    },
-    {
-     "at": "+6",
-     "cond": "decode fails",
-     "effect": "skipped"
-    },
-    {
-     "at": "+8",
-     "cond": "isReliableForHRVAggregates",
-     "effect": "counts toward the 60"
-    }
-   ],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "8dd50c9f204fb5d6",
+    "Emuqu/Sources/Views/MainTabView+Reports.swift::func ReportBaselineNights.before(_:archive:)": "1ff6f104c1019b50",
     "Emuqu/Sources/Views/ReportsListView.swift::var ReportsListView.archive": "a1666ba6bb81209f"
    }
   },
   {
    "key": "func ReportsListView.renderHolistic(_:track:load:)",
-   "hash": "50265b50e5fb8aaf",
-   "does": "Builds HolisticDailyReport from the inputs and generates it to pdfURL. Nonisolated.",
+   "hash": "6840fb8ad6b2f5ee",
+   "does": "The holistic daily report for the row through the shared ReportRenderer.renderDaily (workout, track, overnight, recent overnights, profile, live load) to pdfURL. Nonisolated.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Export/HolisticDailyReport.swift::init HolisticDailyReport(workoutSession:workoutTrack:overnightSession:recentOvernightSessions:userMaxHR:userRestingHR:userLTHR:units:temperatureUnit:liveLoadSnapshot:config:)",
-    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.generate(to:)"
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.profile(_:)",
+    "Emuqu/Sources/Views/MainTabView+Reports.swift::func ReportRenderer.renderDaily(workout:track:overnight:recentOvernight:profile:load:to:)"
    ],
    "reads": [],
    "writes": [
@@ -846,20 +794,19 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.generate(to:)": "8e081b59989b2340",
-    "Emuqu/Sources/Export/HolisticDailyReport.swift::init HolisticDailyReport(workoutSession:workoutTrack:overnightSession:recentOvernightSessions:userMaxHR:userRestingHR:userLTHR:units:temperatureUnit:liveLoadSnapshot:config:)": "856be540285510d8",
-    "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift::var ScoreBreakdownCard.temperatureUnit": "063a6053cf5ccc9d",
-    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.load()": "955f19ba7a1bb5f5"
+    "Emuqu/Sources/Views/MainTabView+Reports.swift::func ReportRenderer.renderDaily(workout:track:overnight:recentOvernight:profile:load:to:)": "e43162a208232dfb",
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.load()": "955f19ba7a1bb5f5",
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.profile(_:)": "e9ef4c8492c2a5b4"
    }
   },
   {
    "key": "func ReportsListView.renderWorkoutOnly(_:track:)",
-   "hash": "12b03072657755ec",
-   "does": "Builds WorkoutPDFReport and generates it to pdfURL. Nonisolated.",
+   "hash": "5f08cda8d7821ad9",
+   "does": "The workout PDF for the row through the shared ReportRenderer.renderWorkout to pdfURL. Nonisolated.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Export/WorkoutPDFReport.swift::init WorkoutPDFReport(session:track:userMaxHR:userRestingHR:userLTHR:units:config:)",
-    "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.generate(to:)"
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.profile(_:)",
+    "Emuqu/Sources/Views/MainTabView+Reports.swift::func ReportRenderer.renderWorkout(_:track:profile:to:)"
    ],
    "reads": [],
    "writes": [
@@ -868,19 +815,31 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.generate(to:)": "88a243ef2ca4a8fe",
-    "Emuqu/Sources/Export/WorkoutPDFReport.swift::init WorkoutPDFReport(session:track:userMaxHR:userRestingHR:userLTHR:units:config:)": "bd3c61559ac25534"
+    "Emuqu/Sources/Views/MainTabView+Reports.swift::func ReportRenderer.renderWorkout(_:track:profile:to:)": "4a896824cf0c3e27",
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.profile(_:)": "e9ef4c8492c2a5b4"
+   }
+  },
+  {
+   "key": "func ReportsListView.profile(_:)",
+   "hash": "0927806033592aaa",
+   "does": "The inputs' max/resting HR, LTHR, units and temperature unit as a ReportRenderer.Profile. Nonisolated.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift::var ScoreBreakdownCard.temperatureUnit": "063a6053cf5ccc9d"
    }
   },
   {
    "key": "func ReportsListView.renderRecovery(_:load:)",
-   "hash": "d18daab27a3947bf",
-   "does": "Requires an overnight, generates the comprehensive recovery PDF via PDFReportGenerator, removes any existing file at pdfURL and moves the generated file there. Throws typed errors when the session is missing or generation returned nil. Nonisolated; the baseline passed is the one before the reported night.",
+   "hash": "f14f9d59cc56bda4",
+   "does": "Requires an overnight and renders the comprehensive frozen-snapshot recovery PDF onto pdfURL through the shared ReportRenderer.renderRecovery (recent overnights, the baseline before that night, live load). Throws typed errors when the session is missing or the generator couldn't render it; a file-move error propagates.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.recoveryPDFURL(for:inputs:load:)",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
-    "ext:FileManager.moveItem"
+    "Emuqu/Sources/Views/MainTabView+Reports.swift::func ReportRenderer.renderRecovery(_:recentOvernight:baselineStats:load:to:)"
    ],
    "reads": [],
    "writes": [
@@ -893,69 +852,14 @@
      "effect": "throw recoverySessionMissing (unreachable for .recovery rows, which always set overnightSession)"
     },
     {
-     "at": "+4",
-     "cond": "generator returned nil URL",
+     "at": "+8",
+     "cond": "renderRecovery returned false",
      "effect": "throw recoveryGenerationFailed"
-    },
-    {
-     "at": "+10",
-     "cond": "a file already exists at pdfURL",
-     "effect": "remove it, error logged and ignored via attempt()"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Same steps as MainTabView.renderRecoveryReport (guard overnight, recoveryPDFURL, remove existing, moveItem).",
-     "evidence": [
-      "Emuqu/Sources/Views/ReportsListView.swift:427",
-      "Emuqu/Sources/Views/MainTabView+Reports.swift:71"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5",
-    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.load()": "955f19ba7a1bb5f5",
-    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.recoveryPDFURL(for:inputs:load:)": "f42f08e067586334"
-   }
-  },
-  {
-   "key": "func ReportsListView.recoveryPDFURL(for:inputs:load:)",
-   "hash": "083a1237efd5e8be",
-   "does": "Nonisolated: calls PDFReportGenerator.generateReportURL (comprehensive, all sections) with the session's frozen sleep/vitals snapshots and score breakdown, inputs.recentOvernight, baseline stats and load; returns the URL or nil.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator(config:settingsProvider:)",
-    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator.SleepData(from:)",
-    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator.VitalsData(from:)",
-    "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift::func PDFReportGenerator.generateReportURL(for:sleepData:sleepTrend:recentSessions:healthKitHR:vitals:compositeRecoveryScore:scoreBreakdown:baselineStats:liveLoadSnapshot:style:sections:)"
-   ],
-   "reads": [],
-   "writes": [
-    "file:PDFReportGenerator output PDF"
-   ],
-   "branches": [],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Identical PDFReportGenerator.generateReportURL call to MainTabView.recoveryPDFURL.",
-     "evidence": [
-      "Emuqu/Sources/Views/ReportsListView.swift:444",
-      "Emuqu/Sources/Views/MainTabView+Reports.swift:88"
-     ],
-     "found": "second read"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "25ff7cdb40a8ca69",
-    "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift::func PDFReportGenerator.generateReportURL(for:sleepData:sleepTrend:recentSessions:healthKitHR:vitals:compositeRecoveryScore:scoreBreakdown:baselineStats:liveLoadSnapshot:style:sections:)": "778fffbb2cefce5c",
-    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator(config:settingsProvider:)": "f5883be68a9c9606",
-    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator.SleepData(from:)": "0bacc660b77071e6",
-    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator.VitalsData(from:)": "1f72b8e1242a44d9",
+    "Emuqu/Sources/Views/MainTabView+Reports.swift::func ReportRenderer.renderRecovery(_:recentOvernight:baselineStats:load:to:)": "5df0504de6a6b1f0",
     "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.load()": "955f19ba7a1bb5f5"
    }
   },

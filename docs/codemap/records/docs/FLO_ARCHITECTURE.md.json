@@ -111,8 +111,8 @@
   },
   {
    "key": "§ Flo — AI Assistant Architecture > 3. Turn Lifecycle > 3.3 `dispatch()` — `AssistantViewModel+Routing.swift`",
-   "hash": "0553e7692590d0fc",
-   "does": "Claims dispatch() on AssistantTurnRouter routes, re-checks key/consent, reserves a placeholder turn, bumps streamGeneration and starts runDispatchedTurn, which refreshes metrics, assembles context (Apple compactRender, others none; truncateForSend; ToolRetriever targetK 40; trimTools), composes the prompt, runs the stream with error policy (guardrail refusals shown, fallbackable errors walk orderedFallbackProviders), drops empty turns, finishes, and post-stream clears the Apple registry and applies CoachVoiceGuard + background fact extraction. Matches AssistantViewModel+Routing.",
+   "hash": "d6e5d939e2a5e662",
+   "does": "Claims dispatch() on AssistantTurnRouter routes, re-checks key/consent, reserves a placeholder turn, bumps streamGeneration and starts runDispatchedTurn, which refreshes metrics, assembles context (Apple compactRender, others none; truncateForSend; ToolRetriever targetK 40; trimTools), composes the prompt, runs the stream with error policy (guardrail refusals shown; fallbackable errors go to handleFallbackableFailure, which cuts orderedFallbackProviders to TurnRouter.failureFallback and shows PickedModelFailure when nothing is allowed, or the original error when every fallback fails), drops an empty turn, and if still the current generation clears the Apple registry and applies CoachVoiceGuard + background fact extraction, then finishStream(generation:) dispatches a queued message. Matches AssistantViewModel+Routing.swift:286-314,650-712.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.dispatch()",
@@ -121,33 +121,22 @@
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.reserveAssistantPlaceholderTurn(provider:model:tier:)",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.refreshPreFlightMetrics()",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.assembleContextAndTools(provider:model:)",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.composeSystemPromptForTurn(rendered:voiceMode:tools:)",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.runStreamWithErrorPolicy(_:)",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.applyPostStreamEffects(turnID:)",
     "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.retrieve(query:tools:targetK:catalogHash:)",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.orderedFallbackProviders(after:)",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.handleFallbackableFailure(_:attempt:)",
     "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.failureFallback(mode:selectedProviderID:)",
-    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.allowedFallbacks(_:under:)"
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.allowedFallbacks(_:under:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.composeSystemPromptForTurn(rendered:voiceMode:toolMode:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.dropEmptyAssistantTurn(_:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.finishCurrentTurn(provider:turnID:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.finishStream(generation:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "Doc says a fallbackable provider error (auth, rate limit, network, model unavailable) walks orderedFallbackProviders / goes to the fallback chain; handleFallbackableFailure cuts the chain with TurnRouter.failureFallback, which allows no fallback at all when a cloud model is selected or mode is Manual, and only Apple in Quick. With a cloud model selected an offline or rate-limited turn shows PickedModelFailure instead of falling back.",
-     "evidence": [
-      "docs/FLO_ARCHITECTURE.md:104",
-      "docs/FLO_ARCHITECTURE.md:290",
-      "docs/FLO_ARCHITECTURE.md:179",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift:662",
-      "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift:312",
-      "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift:326"
-     ],
-     "found": "second read"
-    },
     {
      "kind": "spec-mismatch",
      "sev": "low",
@@ -161,17 +150,20 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.retrieve(query:tools:targetK:catalogHash:)": "179031c4c1cc8824",
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.retrieve(query:tools:targetK:catalogHash:)": "1b26f24c4d2367e2",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.applyPostStreamEffects(turnID:)": "7fc902d72e8c70f3",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.assembleContextAndTools(provider:model:)": "537ce92b7a789bc8",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.composeSystemPromptForTurn(rendered:voiceMode:tools:)": "020ffb4bd5da5217",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.assembleContextAndTools(provider:model:)": "261099fdc261c4b1",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.composeSystemPromptForTurn(rendered:voiceMode:toolMode:)": "5f00fb5e8f0bd6d5",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.dispatch()": "30b075c2f2967258",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.dropEmptyAssistantTurn(_:)": "9c39b0f8a55616f8",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.finishCurrentTurn(provider:turnID:)": "414d8054278c2fd9",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.handleFallbackableFailure(_:attempt:)": "8d2dcf65247f60cd",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.refreshPreFlightMetrics()": "622f16b8b818387a",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.reserveAssistantPlaceholderTurn(provider:model:tier:)": "09f2c57019cbac48",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.routeTurnAndLogOverride()": "821bf0093cfa75e8",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.runDispatchedTurn(provider:model:voiceMode:turnID:generation:)": "15e7aff4eaa429c4",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.runDispatchedTurn(provider:model:voiceMode:turnID:generation:)": "f1a8de3dd8c7c036",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.runStreamWithErrorPolicy(_:)": "f7cf122bffee42fe",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.finishStream(generation:)": "eb5f2af3e430c043",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.orderedFallbackProviders(after:)": "c4262b79c1b3a303",
     "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.allowedFallbacks(_:under:)": "abaefd31f56e61c4",
     "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.failureFallback(mode:selectedProviderID:)": "3741e44c1cf00c40"
@@ -261,8 +253,8 @@
   },
   {
    "key": "§ Flo — AI Assistant Architecture > 5. Providers > 5.2 Provider matrix",
-   "hash": "857c60512594f00a",
-   "does": "Provider matrix: Apple FoundationModels 4096 context; Anthropic cache_control ephemeral ttl 1h with extended-cache-ttl-2025-04-11 beta header; OpenAI reasoning_effort none; Gemini own builder; Grok maxToolSchemaCount 110; DeepSeek thinking disabled; ProviderStream.make maps cancellations/URLErrors; keys in Keychain via APIKeyStore. Spot-checked values match.",
+   "hash": "a8a6b737bc7fdac8",
+   "does": "Provider matrix: Apple FoundationModels 4096 context; Anthropic cache_control ephemeral ttl 1h with extended-cache-ttl-2025-04-11 beta header; OpenAI reasoning_effort none; Gemini own builder; Grok maxToolSchemaCount 110; DeepSeek thinking disabled; ProviderStream.make maps cancellations/URLErrors so an offline turn fails the same way for every model, with whether another model may answer left to TurnRouter.failureFallback (§8.3); keys in Keychain via APIKeyStore. Spot-checked values match.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)",
@@ -273,7 +265,8 @@
     "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.make(_:)",
     "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)",
     "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.cacheTagged(_:)",
-    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.makeSystemBlocks(stable:variable:)"
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.makeSystemBlocks(stable:variable:)",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.failureFallback(mode:selectedProviderID:)"
    ],
    "reads": [],
    "writes": [],
@@ -290,32 +283,19 @@
       "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift:228"
      ],
      "found": "second read"
-    },
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Doc says ProviderStream.make's error mapping means 'an offline turn falls back the same way whichever model was asked'; with a cloud model selected (or Manual) TurnRouter.failureFallback returns .none, so an offline turn does not fall back at all.",
-     "evidence": [
-      "docs/FLO_ARCHITECTURE.md:104",
-      "docs/FLO_ARCHITECTURE.md:290",
-      "docs/FLO_ARCHITECTURE.md:179",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift:662",
-      "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift:312",
-      "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift:326"
-     ],
-     "found": "second read"
     }
    ],
    "deps": {
     "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.cacheTagged(_:)": "1a9605f184933b33",
     "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.makeSystemBlocks(stable:variable:)": "9bf824779ebf7909",
     "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)": "3512c5da27515623",
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)": "7497b854ecdea890",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)": "19b6cbae8b2494ae",
     "Emuqu/Sources/Assistant/Providers/DeepSeekProvider.swift::func DeepSeekProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)": "ac452c89288faf61",
     "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)": "3291746dee017ce6",
     "Emuqu/Sources/Assistant/Providers/GrokProvider.swift::func GrokProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)": "786eeefe853edfb8",
     "Emuqu/Sources/Assistant/Providers/OpenAIProvider.swift::func OpenAIProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)": "635788248911791d",
-    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.make(_:)": "d43def889cd27b9e"
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.make(_:)": "d43def889cd27b9e",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.failureFallback(mode:selectedProviderID:)": "3741e44c1cf00c40"
    }
   },
   {
@@ -408,8 +388,8 @@
   },
   {
    "key": "§ Flo — AI Assistant Architecture > 6. Fact / Tool System > 6.3 `CompactToolRouter` — `Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift",
-   "hash": "896770271194815e",
-   "does": "Claims CompactToolRouter.schema exposes 21 polymorphic read tools plus allowedActionNames actions, deduped by name and sorted, with read results gated (rate limit, size cap, time budget) and capabilityIndex for the cached prompt. Matches; allowedActionNames also includes assistant_artifacts_add/update_status, which the doc's list omits.",
+   "hash": "554adb41a2138858",
+   "does": "Claims CompactToolRouter.schema exposes 21 polymorphic read tools plus allowedActionNames actions, deduped by name and sorted; read results pass the registry's rate limit and size cap (gatedReadResult), slow reads logged not discarded; resolveTool refuses an action outside allowedActionNames; capabilityIndex for the cached prompt. Matches CompactToolRouter.swift:42-113 and FactResolverRegistry.gatedReadResult; allowedActionNames also includes assistant_artifacts_add/update_status, which the doc's list omits.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.schema(registry:)",
@@ -422,8 +402,8 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.capabilityIndex()": "71a374d60c251976",
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.resolveTool(name:argsJSON:)": "fa79c3bca0f486d3",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.capabilityIndex()": "4d48953e333a6ba6",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.resolveTool(name:argsJSON:)": "91acb46f4275096a",
     "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.schema(registry:)": "923c2c42ab3aa043",
     "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.gatedReadResult(toolName:argsJSON:value:elapsed:)": "e215c6a75e5ffda3"
    }
@@ -448,13 +428,14 @@
   },
   {
    "key": "§ Flo — AI Assistant Architecture > 6. Fact / Tool System > 6.5 Resolver time budget — `FactResolverRegistry`",
-   "hash": "73ed4b5c795deb64",
-   "does": "Claims resolvers over 2 s (defaultResolveBudgetSec) log a warning and read results become .missing(.internalError); actions over 4 s (watchdogWarnSec) log WATCHDOG-WARN; awaitable resolvers use FactResolveTimeout.withTimeout. Constants match FactResolverRegistry.swift:266,273.",
+   "hash": "9e6e49dcaf02ab66",
+   "does": "Claims the registry times every resolve: over 0.5 s (resolveWarnBudgetSec) a warning, over 2 s (defaultResolveBudgetSec) a louder warning, value kept either way; actions over 4 s (watchdogWarnSec) log WATCHDOG-WARN; awaitable resolvers use FactResolveTimeout.withTimeout. Matches FactResolverRegistry.swift:260-268, logResolveDuration (406-412), logActionDuration (326-335), gatedReadResult (81-86).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.budgetOverrun(name:elapsed:)",
     "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.logActionDuration(name:elapsed:)",
-    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolveTimeout.withTimeout(seconds:_:)"
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolveTimeout.withTimeout(seconds:_:)",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.logResolveDuration(name:elapsed:)",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.gatedReadResult(toolName:argsJSON:value:elapsed:)"
    ],
    "reads": [],
    "writes": [],
@@ -462,8 +443,9 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolveTimeout.withTimeout(seconds:_:)": "ee8ecd721e21103a",
-    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.budgetOverrun(name:elapsed:)": "40f9e06a4cd740b9",
-    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.logActionDuration(name:elapsed:)": "845fecd2cf79e387"
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.gatedReadResult(toolName:argsJSON:value:elapsed:)": "e215c6a75e5ffda3",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.logActionDuration(name:elapsed:)": "845fecd2cf79e387",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.logResolveDuration(name:elapsed:)": "82a6fe1c06ed171c"
    }
   },
   {
@@ -574,39 +556,28 @@
   },
   {
    "key": "§ Flo — AI Assistant Architecture > 8. Routing — `TurnRouter` and `SmartProviderRouter` > 8.3 Overrides",
-   "hash": "4ce8779cc926c81e",
-   "does": "Claims overrides: voice bypass to first consented cloud when Apple selected; action-intent rerouting off Apple; 50/day deep cap; Apple guardrail refusals not retried elsewhere, context overflow retried once trimmed, other failures to fallback chain. Matches TurnRouter.appleVoiceBypass and SmartProviderRouter.dailyTier3Cap.",
+   "hash": "7c2648e6a153e792",
+   "does": "Claims overrides: voice bypass to first consented cloud when Apple selected; action-intent rerouting off Apple; 50/day deep cap; Apple guardrail refusals not retried elsewhere, context overflow retried once trimmed, other failures to the fallback chain as far as TurnRouter.failureFallback allows: none with a cloud model selected or in Manual (PickedModelFailure shown), Apple only in Quick, any accepted model in Auto/Deep in orderedFallbackProviders order (other clouds, Apple last). Matches TurnRouter.swift:294-331, AssistantViewModel+Routing.handleFallbackableFailure, AssistantViewModel+Tools.orderedFallbackProviders, SmartProviderRouter.dailyTier3Cap.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.route(inputs:)",
     "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.recordTier3UsageAndCheck()",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.runStreamWithErrorPolicy(_:)",
     "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.failureFallback(mode:selectedProviderID:)",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.handleFallbackableFailure(_:attempt:)"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.handleFallbackableFailure(_:attempt:)",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.allowedFallbacks(_:under:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.orderedFallbackProviders(after:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "Doc says a fallbackable provider error (auth, rate limit, network, model unavailable) walks orderedFallbackProviders / goes to the fallback chain; handleFallbackableFailure cuts the chain with TurnRouter.failureFallback, which allows no fallback at all when a cloud model is selected or mode is Manual, and only Apple in Quick. With a cloud model selected an offline or rate-limited turn shows PickedModelFailure instead of falling back.",
-     "evidence": [
-      "docs/FLO_ARCHITECTURE.md:104",
-      "docs/FLO_ARCHITECTURE.md:290",
-      "docs/FLO_ARCHITECTURE.md:179",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift:662",
-      "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift:312",
-      "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift:326"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.recordTier3UsageAndCheck()": "3ef922608ce1ed67",
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.recordTier3UsageAndCheck()": "1221909e4059a410",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.handleFallbackableFailure(_:attempt:)": "8d2dcf65247f60cd",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.runStreamWithErrorPolicy(_:)": "f7cf122bffee42fe",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.orderedFallbackProviders(after:)": "c4262b79c1b3a303",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.allowedFallbacks(_:under:)": "abaefd31f56e61c4",
     "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.failureFallback(mode:selectedProviderID:)": "3741e44c1cf00c40",
     "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.route(inputs:)": "6aa8195fe8c9c640"
    }

@@ -30,7 +30,7 @@ enum ScoringVersion {
     /// A scoring version names the whole algorithm, the z-score band table
     /// included: this version scores with
     /// `RecoveryScoreCalculator.defaultScoringParameters`
-    /// (`scoringParametersV2`, band version "v2.2026-06-22"). The band table's
+    /// (`scoringParametersV2`, the v2 band table). The band table's
     /// own `version` is not stored on a score; re-binding
     /// `defaultScoringParameters` is a scoring change, so it bumps this
     /// version, and the stored version then tells which table produced a score.

@@ -328,7 +328,7 @@ enum DataPurgeService {
     ///
     /// ## Why this list is not empty
     ///
-    /// Three groups, and each one is here because sweeping it would break
+    /// Four groups, and each one is here because sweeping it would break
     /// something a user would notice:
     ///
     ///   * `storekit.lastKnownPurchased` / `storekit.lastKnownTestFlight` are
@@ -336,6 +336,11 @@ enum DataPurgeService {
     ///     resolves from the cache before StoreKit has re-verified anything.
     ///     Deleting them would show a paying customer the paywall after they
     ///     erased their data, and offline it would not resolve at all.
+    ///   * `storekit.verifiedProductionInstall` / `storekit.verifiedXcodeInstall`
+    ///     record which environment signed this install (App Store / Xcode),
+    ///     not user data. `boot()` writes them once per process, so sweeping
+    ///     them would drop the beta-tester and Xcode-install grants until the
+    ///     next launch.
     ///   * `entitlement.anchor.v1` is the same argument one layer down. Erasing
     ///     someone's data is not a refund; the anchor is deliberately
     ///     device-transferable, which is why it also lives in the iCloud
@@ -358,7 +363,9 @@ enum DataPurgeService {
     private static let defaultsKeepList: Set<String> = [
         "entitlement.anchor.v1",
         "storekit.lastKnownPurchased",
-        "storekit.lastKnownTestFlight"
+        "storekit.lastKnownTestFlight",
+        "storekit.verifiedProductionInstall",
+        "storekit.verifiedXcodeInstall"
     ]
 
     /// Prefixes iOS itself writes into an app's persistent domain.

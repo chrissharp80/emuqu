@@ -282,33 +282,15 @@ final class VoiceConversationController: NSObject {
     /// Saved state to restore after a trigger preemption.
     var preemptedState: State?
 
-    // Pending triggers queue. If every threshold / mile-marker /
-    // decoupling alert preempted the in-flight LLM stream + TTS, a
-    // user mid-question would get their answer cut off and the
-    // trigger would speak instead — perceived as the chat "dying."
-    // So triggers enqueue when the AI is busy and drain when the
-    // current response finishes (synth + LLM both idle), so the
-    // user's answer always completes before the coaching alert
-    // plays. When the AI is idle, triggers fire immediately.
-    enum PendingTrigger {
-        /// `.spoken` tier — message is the literal phrase to TTS.
-        case spokenLiteral(String)
-        /// A PROMPT for the model, whose reply is spoken (the workout
-        /// start readout and post-workout summary).
-        case aiPrompt(String)
-    }
-    var pendingTriggers: [PendingTrigger] = []
+    /// Coach triggers waiting for the current answer to finish
+    /// (`VoiceTriggerQueue`).
+    var pendingTriggers = VoiceTriggerQueue()
 
     /// Drops the scripted trigger lines still waiting in the queue — the
     /// workout coach's mute, so nothing it handed over before the tap plays
     /// after it. Queued AI prompts (the workout start readout, the
     /// post-workout summary) stay.
-    func discardPendingSpokenTriggers() {
-        pendingTriggers.removeAll { trigger in
-            if case .spokenLiteral = trigger { return true }
-            return false
-        }
-    }
+    func discardPendingSpokenTriggers() { pendingTriggers.discardSpokenLines() }
     @ObservationIgnored var silenceTimer: Timer?
     /// Wall-clock moment the TTS started, so we can ignore any transcript
     /// ingested in the first half-second (echo bleed stabilises by then).
@@ -529,5 +511,57 @@ final class VoiceConversationController: NSObject {
 
     private static func makeRecognizer(locale: Locale) -> SFSpeechRecognizer? {
         SFSpeechRecognizer(locale: locale) ?? SFSpeechRecognizer(locale: Locale(identifier: "en-US"))
+    }
+}
+
+/// Coach triggers queued behind the conversation. If every threshold /
+/// mile-marker / decoupling alert preempted the in-flight LLM stream + TTS, a
+/// user mid-question would get their answer cut off and the trigger would
+/// speak instead — perceived as the chat "dying." So triggers enqueue when
+/// the AI is busy and drain when the current response finishes (synth + LLM
+/// both idle), so the user's answer always completes before the coaching
+/// alert plays. When the AI is idle, triggers fire immediately.
+struct VoiceTriggerQueue {
+    enum Trigger {
+        /// `.spoken` tier — message is the literal phrase to TTS.
+        case spokenLiteral(String)
+        /// A PROMPT for the model, whose reply is spoken (the workout
+        /// start readout and post-workout summary).
+        case aiPrompt(String)
+    }
+
+    /// If the user holds a long chat turn while triggers fire faster than
+    /// they can drain, the queue would grow unbounded — each entry holds a
+    /// full prompt string. Past this the oldest are dropped: by the time we
+    /// drain, anything more than ~8 alerts old is stale anyway.
+    static let capacity = 8
+
+    private var items: [Trigger] = []
+
+    var isEmpty: Bool { items.isEmpty }
+    var count: Int { items.count }
+
+    /// Appends `trigger`, then drops the oldest entries over `capacity`;
+    /// returns how many were dropped.
+    mutating func enqueue(_ trigger: Trigger) -> Int {
+        items.append(trigger)
+        let drop = max(0, items.count - Self.capacity)
+        items.removeFirst(drop)
+        return drop
+    }
+
+    /// The oldest trigger, removed; nil when the queue is empty.
+    mutating func popFirst() -> Trigger? {
+        items.isEmpty ? nil : items.removeFirst()
+    }
+
+    mutating func removeAll() { items.removeAll() }
+
+    /// Removes every `.spokenLiteral`; queued AI prompts stay.
+    mutating func discardSpokenLines() {
+        items.removeAll { trigger in
+            if case .spokenLiteral = trigger { return true }
+            return false
+        }
     }
 }

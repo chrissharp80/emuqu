@@ -372,11 +372,10 @@
   },
   {
    "key": "§ Emuqu — Complete Data Flow Reference > 5. processOvernightData() — The Main Pipeline",
-   "hash": "1d3c17f4ce26594f",
-   "does": "Claims the 13-step morning pipeline: backup, build series, same-night merge of every archived overnight from the same biological night (skipping already-linked), artifact detection, verification, HealthKit sleep (cache-first via SleepDataCache, 14 entries, ±1 day, else bounded poll 15×2 s, bail on locked phone, auto-rescore later), sleep-stage classification paths, training load fetch, window selection with Tier-1 baseline ranking and wall-clock→t_ms boundary translation, organized-recovery zones (α1 0.75-1.0 and HR CV < 8 %), HRV analysis, final session, recovery score (v3.1.oct2026), supersede same-night, archive. Code: RRCollector wrapper fetches training load first, then MorningProcessingService.run does backup → buildMergedSeries → artifacts/verify → sleep poll → window → analysis → vitals snapshot → insufficient-data gate → score → supersede; the wrapper archives via archiveForReview. Cache and poll numbers match (SleepDataCache.maxEntries 14, ±1 day+1 h, maxAttempts 15 × 2 s, 1 for background).",
+   "hash": "da0a286c2b5113c7",
+   "does": "Claims the morning pipeline: backup, build series, same-night merge only for overnights with sessionMergeMode != .off, skipping already-linked sessions and keeping only segments within the merge gap of the base chain (segmentsWithinGap; Default 4.5 h or Custom), artifact detection, verification, HealthKit sleep (cache-first via SleepDataCache, 14 entries, ±1 day, else bounded poll 15×2 s), sleep-stage classification, training load, window selection with Tier-1 ranking and wall-clock→t_ms translation, organized zones, HRV analysis, final session, recovery score, supersede same-night, archive. Code: RRCollector wrapper fetches training load first, then MorningProcessingService.run does backup → buildMergedSeries → artifacts/verify → sleep poll → window → analysis → vitals snapshot → insufficient-data gate → score → supersede; the wrapper archives via archiveForReview.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift::func MorningSessionPipeline.processOvernightData(points:baseSession:dataSource:reconnectCount:streamingBeats:deviceBeats:isBackgroundRefinement:prefetchedSleepData:)",
     "Emuqu/Sources/Services/MorningProcessingService.swift::func MorningProcessingService.processOvernightData(_:)",
     "Emuqu/Sources/Services/MorningProcessingService.swift::func MorningProcessingService.run(_:)",
     "Emuqu/Sources/Services/MorningProcessingService.swift::func MorningProcessingService.runAnalysisPhase(series:analyzingSession:effectiveStartDate:totalBeats:isBackgroundRefinement:settings:trainingContext:prefetchedSleepData:statusCallback:)",
@@ -391,23 +390,13 @@
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindowWithCapacity(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.resolveSleepBoundaries(points:sleepStartMs:wakeTimeMs:)",
     "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.computeRecoveryScore(for:analysisResult:trainingContext:baselineTracker:settings:cachedTrainingLoad:)",
-    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.supersedeSameNightSession(newSession:sleepSchedule:sessionMergeMode:mergeGapSeconds:)"
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.supersedeSameNightSession(newSession:sleepSchedule:sessionMergeMode:mergeGapSeconds:)",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.segmentsWithinGap(_:gap:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "Doc STEP 3 says every archived overnight from the same biological night is merged; code gates the merge on settings.sessionMergeMode (.off disables it) and only merges segments within the configured merge gap (segmentsWithinGap), so same-night sessions farther apart than the gap stay separate.",
-     "evidence": [
-      "docs/FLOWCHART.md:208",
-      "Emuqu/Sources/Services/MorningProcessingService+Merging.swift:157",
-      "Emuqu/Sources/Services/MorningProcessingService+Merging.swift:208"
-     ],
-     "found": "first read, upheld on second"
-    },
     {
      "kind": "spec-mismatch",
      "sev": "low",
@@ -447,22 +436,22 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindowWithCapacity(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "6ea9fe23df8bc412",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.resolveSleepBoundaries(points:sleepStartMs:wakeTimeMs:)": "2120c0d326f5b3f7",
-    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:)": "0838ad87e9693fbc",
-    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.startObservingSleepData()": "2541e915583705b5",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindowWithCapacity(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "2cf7b6aef935e6fd",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.resolveSleepBoundaries(points:sleepStartMs:wakeTimeMs:)": "2e6265d7977be6de",
+    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:)": "8ec2a1030ad9d884",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.startObservingSleepData()": "8dc94919a24b42fb",
     "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.fetchTrainingLoadIfEnabled()": "4ca8fe050a9e82ea",
-    "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift::func MorningSessionPipeline.processOvernightData(points:baseSession:dataSource:reconnectCount:streamingBeats:deviceBeats:isBackgroundRefinement:prefetchedSleepData:)": "0b386cb958d5c72c",
     "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.buildMergedSeries(points:baseSession:sleepSchedule:sessionMergeMode:mergeGapSeconds:)": "da64a32a624136e7",
-    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.computeRecoveryScore(for:analysisResult:trainingContext:baselineTracker:settings:cachedTrainingLoad:)": "92edb517f198fa00",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.computeRecoveryScore(for:analysisResult:trainingContext:baselineTracker:settings:cachedTrainingLoad:)": "201084d085366647",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.segmentsWithinGap(_:gap:)": "4593ef25ea0dc863",
     "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.supersedeSameNightSession(newSession:sleepSchedule:sessionMergeMode:mergeGapSeconds:)": "2778c574402344ff",
-    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.pollForSleepData(series:effectiveStartDate:totalBeats:isBackgroundRefinement:sleepSchedule:prefetchedSleepData:statusCallback:)": "eccc4573a72bc99f",
+    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.pollForSleepData(series:effectiveStartDate:totalBeats:isBackgroundRefinement:sleepSchedule:prefetchedSleepData:statusCallback:)": "1205007f930cbba9",
     "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.pollHealthKitSleep(series:effectiveStartDate:recordingEnd:totalBeats:isBackgroundRefinement:statusCallback:)": "01f01a5535f4967d",
-    "Emuqu/Sources/Services/MorningProcessingService.swift::func MorningProcessingService.finishSession(_:phase:settings:trainingContext:cachedTrainingLoad:isBackgroundRefinement:)": "32396d9f0de3b618",
+    "Emuqu/Sources/Services/MorningProcessingService.swift::func MorningProcessingService.finishSession(_:phase:settings:trainingContext:cachedTrainingLoad:isBackgroundRefinement:)": "8a8e3f2d3a9c7709",
     "Emuqu/Sources/Services/MorningProcessingService.swift::func MorningProcessingService.processOvernightData(_:)": "cb91edaa220b3c57",
-    "Emuqu/Sources/Services/MorningProcessingService.swift::func MorningProcessingService.run(_:)": "a8100fed5d739c51",
-    "Emuqu/Sources/Services/MorningProcessingService.swift::func MorningProcessingService.runAnalysisPhase(series:analyzingSession:effectiveStartDate:totalBeats:isBackgroundRefinement:settings:trainingContext:prefetchedSleepData:statusCallback:)": "1709d4655092064c",
-    "Emuqu/Sources/Storage/SleepDataCache.swift::func SleepDataCache.read(coveringRecordingStart:)": "ff61987017e5305d"
+    "Emuqu/Sources/Services/MorningProcessingService.swift::func MorningProcessingService.run(_:)": "0724ad4df1fcd343",
+    "Emuqu/Sources/Services/MorningProcessingService.swift::func MorningProcessingService.runAnalysisPhase(series:analyzingSession:effectiveStartDate:totalBeats:isBackgroundRefinement:settings:trainingContext:prefetchedSleepData:statusCallback:)": "031b4be479ecb3f6",
+    "Emuqu/Sources/Storage/SleepDataCache.swift::func SleepDataCache.read(coveringRecordingStart:)": "8ee448f8d5a6d8ae"
    }
   },
   {
@@ -720,30 +709,21 @@
   },
   {
    "key": "§ Emuqu — Complete Data Flow Reference > 9. Full Session Lifecycle",
-   "hash": "12781a59e431c7bb",
-   "does": "Lifecycle walkthrough of continuous, pause/resume, independent same-night and crash-recovery cases. Option D claims findRecoverableArchivedSession searches overnight entries < 24 h old with meanRMSSD nil or recoveryScore ≤ 1.0 and returns the newest candidate.",
+   "hash": "82c9ddba8f9b52be",
+   "does": "Lifecycle walkthrough of continuous, pause/resume, independent same-night and crash-recovery cases. Option D: findRecoverableArchivedSession searches overnight entries < 24 h old with meanRMSSD nil or recoveryScore ≤ 1.0 and returns the candidate only when exactly one matches; with several it logs the ambiguity (logAmbiguousRecoveryCandidates) and returns nil, and the strap file is filed by its own start; with one, the download reuses that session's id and rewrites the placeholder.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.resolveBaseSession()",
     "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.findRecoverableArchivedSession()",
     "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.looksLikeUnresolvedOvernight(_:cutoff:)",
     "Emuqu/Sources/Collection/RRCollector+OvernightGather.swift::func MorningSessionPipeline.gatherOvernightData()",
-    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.mergeParentSessionData(data:)"
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.mergeParentSessionData(data:)",
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func logAmbiguousRecoveryCandidates(_:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "Doc says crash recovery 'returns the newest candidate'; findRecoverableArchivedSession returns nil when more than one candidate matches (logs ambiguity), so the strap file is then filed by its own start rather than rewriting the placeholder in place.",
-     "evidence": [
-      "docs/FLOWCHART.md:569",
-      "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift:287"
-     ],
-     "found": "first read, upheld on second"
-    },
     {
      "kind": "spec-mismatch",
      "sev": "low",
@@ -762,7 +742,8 @@
     "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.findRecoverableArchivedSession()": "b430f98e6da011b8",
     "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.looksLikeUnresolvedOvernight(_:cutoff:)": "cbfaa7a414582557",
     "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.resolveBaseSession()": "43781bdbc25c18f4",
-    "Emuqu/Sources/Collection/RRCollector+OvernightGather.swift::func MorningSessionPipeline.gatherOvernightData()": "195c7a78169d9671",
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func logAmbiguousRecoveryCandidates(_:)": "7153593798dd1149",
+    "Emuqu/Sources/Collection/RRCollector+OvernightGather.swift::func MorningSessionPipeline.gatherOvernightData()": "e21ccf4a0590777f",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.mergeParentSessionData(data:)": "87a587c8120166f1"
    }
   },
@@ -973,8 +954,8 @@
   },
   {
    "key": "§ Emuqu — Complete Data Flow Reference > 13. Post-Acceptance Mutation Contract",
-   "hash": "745d55da37a2ac85",
-   "does": "Claims an archived session is frozen except for explicit user actions and additive fill-in merges of late HealthKit data.",
+   "hash": "fc5ab8e49a5799a6",
+   "does": "Claims an archived session is frozen except for explicit user actions, the one-shot launch migrations, the automatic sleep refresh of today's session, and additive fill-in merges of late HealthKit data.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.reanalyzeSession(_:method:)",
@@ -1000,41 +981,17 @@
     "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.applyPulledSleep(_:to:)",
     "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.refreshVitals(referenceDate:)",
     "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.persistMergedVitals(_:)",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.mergeVitals(fresh:stored:)",
     "Emuqu/Sources/Models/RecoveryVitals.swift::func RecoveryVitals.withStrapNocturnalRHR(_:)",
-    "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.bindHealthKitVitals()",
-    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:)",
     "Emuqu/Sources/Collection/RRCollector+Analysis.swift::func MorningSessionPipeline.computeRecoveryScore(for:from:)",
-    "Emuqu/Sources/Collection/RRCollector+Analysis.swift::func MorningSessionPipeline.recoverySnapshots(for:result:sessionEnd:)",
-    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.scoringHealthData(for:result:)"
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.scoringHealthData(for:result:)",
+    "Emuqu/Sources/Collection/SessionDataMigrations.swift::func SessionDataMigrations.runAllIfNeeded()",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::func VitalsDetailV2View.refreshVitals()",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryVitalsBackfill.store(_:id:archive:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "Doc lists a 'Dashboard vitals refresh' path that fills vitalsSnapshot nil fields when the HK vitals observer fires. In code the observer only copies healthKit.vitalsDataVersion into morningCoordination.vitalsDataVersion, nothing reads that value, and the RecoveryDashboardView named in the comment no longer exists. No dashboard code calls fetchRecoveryVitals. Consequence: Apple Watch vitals that arrive after acceptance (resp rate, SpO2, wrist temp) are written to the archive only if the user opens RecoveryScoreDetailView. Trends, the Coach context and PDFs otherwise keep the empty snapshot.",
-     "evidence": [
-      "docs/FLOWCHART.md:803",
-      "Emuqu/Sources/Collection/RRCollector+Bindings.swift:193",
-      "Emuqu/Sources/Collection/MorningCoordination.swift:48",
-      "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:363"
-     ],
-     "found": "second read"
-    },
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "Doc says that on dashboard load, HealthKitManager.fetchSleepData refetches HK when the frozen sleepSnapshot has totalSleepMinutes == 0 or a sleepEnd in the future. No such check exists: both scoring paths return any non-nil frozen snapshot unchanged (RRCollector+Analysis recoverySnapshots, MorningProcessingService scoringHealthData), and fetchSleepData has no snapshot logic. Consequence: an empty or corrupt frozen snapshot (the case SleepResolver.swift:129 describes) is never healed by this path. Only autoRefreshTodaysSleepIfImproved replaces it, and only for today's session.",
-     "evidence": [
-      "docs/FLOWCHART.md:805",
-      "Emuqu/Sources/Collection/RRCollector+Analysis.swift:66",
-      "Emuqu/Sources/Services/MorningProcessingService+Merging.swift:436"
-     ],
-     "found": "second read"
-    },
     {
      "kind": "spec-mismatch",
      "sev": "low",
@@ -1049,42 +1006,41 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:)": "247d0472c54f578e",
-    "Emuqu/Sources/Collection/RRCollector+Analysis.swift::func MorningSessionPipeline.computeRecoveryScore(for:from:)": "0e6851d7bed686b8",
-    "Emuqu/Sources/Collection/RRCollector+Analysis.swift::func MorningSessionPipeline.recoverySnapshots(for:result:sessionEnd:)": "760d72df5aebb010",
-    "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.bindHealthKitVitals()": "9d32300ca9f1e542",
-    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.resumeOvernightStreaming(linkedSessionId:)": "fd3252e0154e3022",
+    "Emuqu/Sources/Collection/RRCollector+Analysis.swift::func MorningSessionPipeline.computeRecoveryScore(for:from:)": "7a19cfe1082a0a25",
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.resumeOvernightStreaming(linkedSessionId:)": "1d943a6e4602b8db",
     "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.applyManualAnalysis(_:result:)": "7630f87b9d238a63",
     "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.autoRefreshTodaysSleepIfImproved()": "56b4191237b0d263",
     "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.handleRescoreRequest(sessionId:reason:)": "a68d342c8517fd16",
     "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.installRescoreListener()": "d07a86b3686df6fb",
-    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.performAutoRefreshTodaysSleepIfImproved()": "116be4de76274bbe",
-    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.reanalyzeSession(_:method:)": "99ae8aa63b6f1586",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.performAutoRefreshTodaysSleepIfImproved()": "92e312ecba19c0ec",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.reanalyzeSession(_:method:)": "2031f3f89a9dbdba",
     "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.recordPendingScoreChangeIfMeaningful(sessionId:prior:updated:reason:)": "045b95933d46148d",
-    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.repairTrainingSnapshots(progress:)": "13e6afa91cde6364",
-    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.retroApplySleepSettings(progress:)": "d2c6b220af47391a",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.repairTrainingSnapshots(progress:)": "6ad14013793ef97a",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.retroApplySleepSettings(progress:)": "f3b23a2a421e9bf4",
     "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)": "5bb4233b785f36a4",
     "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func postSleepRescoreRequest(sessionId:fresh:verdict:)": "0e5a458cef49d0e4",
-    "Emuqu/Sources/Collection/SessionDataMigrations+InsufficientDataMigration.swift::func SessionDataMigrations.runInsufficientDataMigrationIfNeeded()": "b64a4d152d46a804",
+    "Emuqu/Sources/Collection/SessionDataMigrations+InsufficientDataMigration.swift::func SessionDataMigrations.runInsufficientDataMigrationIfNeeded()": "97bb2728b9683adb",
+    "Emuqu/Sources/Collection/SessionDataMigrations.swift::func SessionDataMigrations.runAllIfNeeded()": "d4e00c05b325d191",
     "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.applyAutoRefresh(_:to:)": "626b20745ed36b2e",
-    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.applyFreshSleep(_:to:)": "def68e40a940835b",
-    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.applyPulledSleep(_:to:)": "57d5c9c3f927516a",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.applyFreshSleep(_:to:)": "fd838752117cc6c9",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.applyPulledSleep(_:to:)": "1efcb890e37eb67c",
     "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.autoSleepRefreshAllowed(for:)": "33fbd96f656ca268",
-    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.sleepRefreshVerdict(session:fresh:)": "69aa588ccadc5b5e",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.sleepRefreshVerdict(session:fresh:)": "9aece8f288223d6d",
     "Emuqu/Sources/Models/RecoveryVitals.swift::func RecoveryVitals.withStrapNocturnalRHR(_:)": "689968153e58848a",
-    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.scoringHealthData(for:result:)": "c1b042f4dde87fd7",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)": "aad8499a0f784cde",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.scoringHealthData(for:result:)": "485aaa092c439557",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)": "814ac02a5cea0163",
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.reanalyzeSession(_:method:preserveManualWindows:)": "a1c2d43f8a08de77",
     "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.analyzeSession(_:series:flags:analyze:analyzeWithCapacity:)": "13757a1f1ddf87a0",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.mergeVitals(fresh:stored:)": "d1332ed489937be3",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.persistMergedVitals(_:)": "d0af6e93451b82b8",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.refreshVitals(referenceDate:)": "1d85096dcc44db13"
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.persistMergedVitals(_:)": "b158a32487259ce8",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.refreshVitals(referenceDate:)": "37f8d586cf6a6d71",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryVitalsBackfill.store(_:id:archive:)": "a81a0a80fe6daca1",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::func VitalsDetailV2View.refreshVitals()": "ee2a7a42d5d7fb85"
    }
   },
   {
    "key": "§ Emuqu — Complete Data Flow Reference > 13. Post-Acceptance Mutation Contract > 13.1 User-initiated mutations (full-overwrite allowed)",
-   "hash": "65c67d58a17a60f3",
-   "does": "Lists user-initiated full-overwrite mutation paths: reanalyzeSession, retroApplySleepSettings, applyManualAnalysis, updateSessionSleepBoundaries (timeline Done), repairTrainingSnapshots (Troubleshooting → Advanced Diagnostics), runInsufficientDataMigrationIfNeeded (one-shot), SessionRecoveryService fallback, CloudKit merge, session resume. All named functions exist.",
+   "hash": "40e4cd3d7bfd480d",
+   "does": "Lists full-overwrite mutation paths: reanalyzeSession, retroApplySleepSettings, applyManualAnalysis, updateSessionSleepBoundaries (timeline Done), repairTrainingSnapshots (Troubleshooting → Advanced Diagnostics, and once at launch via runTrimpRepairMigrationIfNeeded), the launch one-shot migrations (SessionDataMigrations.runAllIfNeeded: InsufficientData rescore, TrainingRecalibration and TrimpRepair rewrite training snapshot and frozen readiness only, WorkoutSleepCleanup strips workout sleep snapshots, NapRepair and TimeInBed recompute scores), SessionRecoveryService fallback, CloudKit merge, session resume.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.reanalyzeSession(_:method:)",
@@ -1094,38 +1050,53 @@
     "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.repairTrainingSnapshots(progress:)",
     "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::func TroubleshootingPage.repairTrainingSnapshots()",
     "Emuqu/Sources/Collection/SessionDataMigrations+InsufficientDataMigration.swift::func SessionDataMigrations.runInsufficientDataMigrationIfNeeded()",
-    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.resumeOvernightStreaming(linkedSessionId:)"
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.resumeOvernightStreaming(linkedSessionId:)",
+    "Emuqu/Sources/Collection/SessionDataMigrations.swift::func SessionDataMigrations.runAllIfNeeded()",
+    "Emuqu/Sources/Collection/SessionDataMigrations+TrimpMigration.swift::func SessionDataMigrations.runTrimpRepairMigrationIfNeeded()",
+    "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift::func SessionDataMigrations.runTrainingRecalibrationIfNeeded()",
+    "Emuqu/Sources/Collection/SessionDataMigrations+WorkoutSleepCleanupMigration.swift::func SessionDataMigrations.runWorkoutSleepCleanupIfNeeded()",
+    "Emuqu/Sources/Collection/SessionDataMigrations+NapRepairMigration.swift::func SessionDataMigrations.runNapRepairMigrationIfNeeded()",
+    "Emuqu/Sources/Collection/SessionDataMigrations+TimeInBedRepairMigration.swift::func SessionDataMigrations.runTimeInBedRepairIfNeeded()"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.resumeOvernightStreaming(linkedSessionId:)": "fd3252e0154e3022",
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.resumeOvernightStreaming(linkedSessionId:)": "1d943a6e4602b8db",
     "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.applyManualAnalysis(_:result:)": "7630f87b9d238a63",
-    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.reanalyzeSession(_:method:)": "99ae8aa63b6f1586",
-    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.repairTrainingSnapshots(progress:)": "13e6afa91cde6364",
-    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.retroApplySleepSettings(progress:)": "d2c6b220af47391a",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.reanalyzeSession(_:method:)": "2031f3f89a9dbdba",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.repairTrainingSnapshots(progress:)": "6ad14013793ef97a",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.retroApplySleepSettings(progress:)": "f3b23a2a421e9bf4",
     "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)": "5bb4233b785f36a4",
-    "Emuqu/Sources/Collection/SessionDataMigrations+InsufficientDataMigration.swift::func SessionDataMigrations.runInsufficientDataMigrationIfNeeded()": "b64a4d152d46a804",
+    "Emuqu/Sources/Collection/SessionDataMigrations+InsufficientDataMigration.swift::func SessionDataMigrations.runInsufficientDataMigrationIfNeeded()": "97bb2728b9683adb",
+    "Emuqu/Sources/Collection/SessionDataMigrations+NapRepairMigration.swift::func SessionDataMigrations.runNapRepairMigrationIfNeeded()": "ab6b1b53fdaa822f",
+    "Emuqu/Sources/Collection/SessionDataMigrations+TimeInBedRepairMigration.swift::func SessionDataMigrations.runTimeInBedRepairIfNeeded()": "41dc07c8f436d360",
+    "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift::func SessionDataMigrations.runTrainingRecalibrationIfNeeded()": "e3394a5e0e041ff2",
+    "Emuqu/Sources/Collection/SessionDataMigrations+TrimpMigration.swift::func SessionDataMigrations.runTrimpRepairMigrationIfNeeded()": "543478719aaceb28",
+    "Emuqu/Sources/Collection/SessionDataMigrations+WorkoutSleepCleanupMigration.swift::func SessionDataMigrations.runWorkoutSleepCleanupIfNeeded()": "4f1fd6ad09f38e3f",
+    "Emuqu/Sources/Collection/SessionDataMigrations.swift::func SessionDataMigrations.runAllIfNeeded()": "d4e00c05b325d191",
     "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::func TroubleshootingPage.repairTrainingSnapshots()": "2b0dcea3f5f5c35e"
    }
   },
   {
    "key": "§ Emuqu — Complete Data Flow Reference > 13. Post-Acceptance Mutation Contract > 13.2 Automatic additive-merge paths (fill-in-only)",
-   "hash": "a7b6a52e19ecc84e",
-   "does": "Claims automatic additive paths only fill nil fields and re-archive only when something was added: dashboard and RecoveryScoreDetailView vitals refresh (strap RHR wins), fetchSleepData refetch when frozen sleep is 0 or in the future, autoRefreshTodaysSleepIfImproved (skips entirely when sleepUserAdjusted, rewrites sleepSnapshot on improvement, posts .flowRecoveryRescoreNeeded on ≥ 20 min delta or first snapshot), and installRescoreListener reanalyzing and recording PendingScoreChange.",
+   "hash": "34aec537d34890af",
+   "does": "Claims automatic paths: RecoveryScoreDetailView vitals refresh (on open and on each MorningCoordination.vitalsDataVersion bump while open) fills nil vitalsSnapshot fields via RecoveryVitalsBackfill with strap RHR winning, the only path that writes late vitals (no dashboard refresh; VitalsDetailV2View re-fetches for display only); any non-nil frozen sleepSnapshot is used unchanged at scoring (MorningProcessingService.scoringHealthData), HK fetched only when absent, nothing heals an empty snapshot except autoRefreshTodaysSleepIfImproved for today's session; autoRefreshTodaysSleepIfImproved (skips when sleepUserAdjusted, rewrites sleepSnapshot on improvement, posts .flowRecoveryRescoreNeeded on ≥ 20 min delta or first snapshot); installRescoreListener reanalyzes and records PendingScoreChange.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.refreshVitals(referenceDate:)",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.mergeVitals(fresh:stored:)",
     "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.autoRefreshTodaysSleepIfImproved()",
     "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.performAutoRefreshTodaysSleepIfImproved()",
     "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.autoSleepRefreshAllowed(for:)",
     "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.sleepRefreshVerdict(session:fresh:)",
     "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.installRescoreListener()",
     "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.handleRescoreRequest(sessionId:reason:)",
-    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.recordPendingScoreChangeIfMeaningful(sessionId:prior:updated:reason:)"
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.recordPendingScoreChangeIfMeaningful(sessionId:prior:updated:reason:)",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.persistMergedVitals(_:)",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryVitalsBackfill.merge(fresh:into:)",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::func VitalsDetailV2View.refreshVitals()",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.scoringHealthData(for:result:)"
    ],
    "reads": [],
    "writes": [],
@@ -1141,35 +1112,27 @@
       "Emuqu/Sources/Collection/SleepRefreshPolicy.swift:97"
      ],
      "found": "first read, upheld on second"
-    },
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Table row says HealthKitManager.fetchSleepData refetches on dashboard load when the frozen sleepSnapshot has totalSleepMinutes == 0 or a sleepEnd in the future. No such check exists anywhere in Emuqu/Sources (grep for totalSleepMinutes == 0 / sleepEnd in the future finds none). MorningResultsViewModel uses the snapshot whenever it is non-nil and fetches live only when it is nil.",
-     "evidence": [
-      "docs/FLOWCHART.md:805",
-      "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift:389",
-      "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift:408"
-     ],
-     "found": "second read"
     }
    ],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.autoRefreshTodaysSleepIfImproved()": "56b4191237b0d263",
     "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.handleRescoreRequest(sessionId:reason:)": "a68d342c8517fd16",
     "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.installRescoreListener()": "d07a86b3686df6fb",
-    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.performAutoRefreshTodaysSleepIfImproved()": "116be4de76274bbe",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.performAutoRefreshTodaysSleepIfImproved()": "92e312ecba19c0ec",
     "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.recordPendingScoreChangeIfMeaningful(sessionId:prior:updated:reason:)": "045b95933d46148d",
     "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.autoSleepRefreshAllowed(for:)": "33fbd96f656ca268",
-    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.sleepRefreshVerdict(session:fresh:)": "69aa588ccadc5b5e",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.mergeVitals(fresh:stored:)": "d1332ed489937be3",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.refreshVitals(referenceDate:)": "1d85096dcc44db13"
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.sleepRefreshVerdict(session:fresh:)": "9aece8f288223d6d",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.scoringHealthData(for:result:)": "485aaa092c439557",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.persistMergedVitals(_:)": "b158a32487259ce8",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.refreshVitals(referenceDate:)": "37f8d586cf6a6d71",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryVitalsBackfill.merge(fresh:into:)": "ebf7098a9440cb49",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::func VitalsDetailV2View.refreshVitals()": "ee2a7a42d5d7fb85"
    }
   },
   {
    "key": "§ Emuqu — Complete Data Flow Reference > 13. Post-Acceptance Mutation Contract > 13.3 Integrity contract",
-   "hash": "cd776bc26f8431e6",
-   "does": "Claims past sessions reopen with identical recoveryScore/scoreBreakdown/frozenReadiness/trainingSnapshot and today's session upgrades once via the score-changed banner; verified by SessionImmutabilityTests (file exists).",
+   "hash": "22eeb30d27de5c6d",
+   "does": "Claims past sessions reopen with identical recoveryScore/scoreBreakdown/frozenReadiness/trainingSnapshot (launch migrations aside); today's session is rescored on every HK sleep bump that passes SleepRefreshPolicy.sleepRefreshVerdict (≥ 20 min, onset move, source upgrade to Watch, first snapshot) with no once-only guard; the banner is written only for a displayed change of 3 or more (recordPendingScoreChangeIfMeaningful), smaller changes apply silently; loading never rescores; cites SessionImmutabilityTests.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.installRescoreListener()",
@@ -1177,27 +1140,16 @@
     "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.recordPendingScoreChangeIfMeaningful(sessionId:prior:updated:reason:)",
     "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.performAutoRefreshTodaysSleepIfImproved()",
     "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.sleepRefreshVerdict(session:fresh:)",
-    "Emuqu/Sources/Collection/RRCollector+Analysis.swift::func MorningSessionPipeline.recoverySnapshots(for:result:sessionEnd:)",
     "EmuquTests/SessionImmutabilityTests.swift::func SessionImmutabilityTests.testBaselineHRVDerivationMatchesAcceptanceRuleForAllQualities()",
     "EmuquTests/SessionImmutabilityTests.swift::func SessionImmutabilityTests.testDerivedBaselineFallbackReproducesTheAcceptedCompositeForAnInsufficientNight()",
     "EmuquTests/SessionImmutabilityTests.swift::func SessionImmutabilityTests.testCompositeScoreAndFrozenReadinessAreDeterministic()",
-    "EmuquTests/SessionImmutabilityTests.swift::func SessionImmutabilityTests.testArchivedScoreUpdateScoresAnUntrustworthyNightFromTheBaseline()"
+    "EmuquTests/SessionImmutabilityTests.swift::func SessionImmutabilityTests.testArchivedScoreUpdateScoresAnUntrustworthyNightFromTheBaseline()",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func postSleepRescoreRequest(sessionId:fresh:verdict:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "Doc says today's session may upgrade once, is surfaced through the score-changed banner, and never silently drifts after that. In code, performAutoRefreshTodaysSleepIfImproved posts .flowRecoveryRescoreNeeded on every HK sleep bump that passes the verdict (delta of 20 min or more, onset move, first snapshot), with no once-only guard. recordPendingScoreChangeIfMeaningful writes the banner only when the displayed delta is 3 or more (0.3 on the 0-10 scale). Consequence: today's frozen score can be rescored several times, and smaller changes are applied silently with no banner.",
-     "evidence": [
-      "docs/FLOWCHART.md:814",
-      "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift:435",
-      "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift:176"
-     ],
-     "found": "second read"
-    },
     {
      "kind": "spec-mismatch",
      "sev": "low",
@@ -1211,12 +1163,12 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Analysis.swift::func MorningSessionPipeline.recoverySnapshots(for:result:sessionEnd:)": "760d72df5aebb010",
     "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.handleRescoreRequest(sessionId:reason:)": "a68d342c8517fd16",
     "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.installRescoreListener()": "d07a86b3686df6fb",
-    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.performAutoRefreshTodaysSleepIfImproved()": "116be4de76274bbe",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.performAutoRefreshTodaysSleepIfImproved()": "92e312ecba19c0ec",
     "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.recordPendingScoreChangeIfMeaningful(sessionId:prior:updated:reason:)": "045b95933d46148d",
-    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.sleepRefreshVerdict(session:fresh:)": "69aa588ccadc5b5e",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func postSleepRescoreRequest(sessionId:fresh:verdict:)": "0e5a458cef49d0e4",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.sleepRefreshVerdict(session:fresh:)": "9aece8f288223d6d",
     "EmuquTests/SessionImmutabilityTests.swift::func SessionImmutabilityTests.testArchivedScoreUpdateScoresAnUntrustworthyNightFromTheBaseline()": "9b0267c2e1ed4c62",
     "EmuquTests/SessionImmutabilityTests.swift::func SessionImmutabilityTests.testBaselineHRVDerivationMatchesAcceptanceRuleForAllQualities()": "6e89ff983db1a1ff",
     "EmuquTests/SessionImmutabilityTests.swift::func SessionImmutabilityTests.testCompositeScoreAndFrozenReadinessAreDeterministic()": "6c57794afa035b0a",
@@ -1333,8 +1285,8 @@
   },
   {
    "key": "§ Emuqu — Complete Data Flow Reference > 16. Archive Status Visibility",
-   "hash": "cc8495741cbf2c3b",
-   "does": "Claims the dashboard shows InterruptedSessionBanner (red), LostBackupsBanner (gold), ScoreChangedBanner (primary/orange tint, written by recordPendingScoreChangeIfMeaningful at ≥ 3 points, cleared on X or after one read, live via .pendingScoreChangeWritten) and an ArchiveStatusLine pill on the recovery card; Settings → iCloud & Data storage summary and Force iCloud Sync; Repair Training History behind Advanced Diagnostics.",
+   "hash": "184ad56486939f59",
+   "does": "Claims an interrupted recording surfaces as the launch 'Session Interrupted' alert (EmuquApp.interruptedSessionAlerts: Resume / Save as Complete / Dismiss, or Save to Archive / Dismiss when not resumable; Dismiss only marks it dismissed and the backup stays for Settings → iCloud & Data → Recover Lost Sessions), with no dashboard banner; the dashboard shows ScoreChangedBanner (primary/orange tint, written by recordPendingScoreChangeIfMeaningful at ≥ 3 points, cleared on X or after one read, live via .pendingScoreChangeWritten) and an ArchiveStatusLine pill on the recovery card; Settings → iCloud & Data storage summary and Force iCloud Sync; Repair Training History behind Advanced Diagnostics, which also runs once at launch via runTrimpRepairMigrationIfNeeded.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/DashboardV2View+Cards.swift::func DashboardV2View.scoreChangedBanner(_:)",
@@ -1343,22 +1295,17 @@
     "Emuqu/Sources/Utilities/PendingScoreChange.swift::func PendingScoreChange.read()",
     "Emuqu/Sources/Utilities/PendingScoreChange.swift::func PendingScoreChange.clear()",
     "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusLine.body",
-    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::func TroubleshootingPage.repairTrainingSnapshots()"
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::func TroubleshootingPage.repairTrainingSnapshots()",
+    "Emuqu/EmuquApp.swift::func EmuquApp.interruptedSessionAlerts(_:)",
+    "Emuqu/EmuquApp.swift::func EmuquApp.resumableInterruptionAlert(_:)",
+    "Emuqu/EmuquApp.swift::func EmuquApp.unresumableInterruptionAlert(_:)",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.dismissInterruptedSession()",
+    "Emuqu/Sources/Collection/SessionDataMigrations+TrimpMigration.swift::func SessionDataMigrations.runTrimpRepairMigrationIfNeeded()"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "Doc describes InterruptedSessionBanner and LostBackupsBanner on the dashboard; no type or view with either name exists in Emuqu/Sources, so the documented recovery surfaces are absent.",
-     "evidence": [
-      "docs/FLOWCHART.md:903",
-      "docs/FLOWCHART.md:906"
-     ],
-     "found": "first read, upheld on second"
-    },
     {
      "kind": "broken",
      "sev": "low",
@@ -1382,10 +1329,15 @@
     }
    ],
    "deps": {
+    "Emuqu/EmuquApp.swift::func EmuquApp.interruptedSessionAlerts(_:)": "41cf243c18061a87",
+    "Emuqu/EmuquApp.swift::func EmuquApp.resumableInterruptionAlert(_:)": "5221bc66fbcbd1ba",
+    "Emuqu/EmuquApp.swift::func EmuquApp.unresumableInterruptionAlert(_:)": "8b066b9dfb9aa0c3",
     "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.recordPendingScoreChangeIfMeaningful(sessionId:prior:updated:reason:)": "045b95933d46148d",
+    "Emuqu/Sources/Collection/SessionDataMigrations+TrimpMigration.swift::func SessionDataMigrations.runTrimpRepairMigrationIfNeeded()": "543478719aaceb28",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.dismissInterruptedSession()": "9c336cc06e0af47c",
     "Emuqu/Sources/Utilities/PendingScoreChange.swift::func PendingScoreChange.clear()": "8fbaff62da395806",
-    "Emuqu/Sources/Utilities/PendingScoreChange.swift::func PendingScoreChange.read()": "49052db956ceb4a5",
-    "Emuqu/Sources/Utilities/PendingScoreChange.swift::func PendingScoreChange.write(_:)": "dd932b9a8c546bc4",
+    "Emuqu/Sources/Utilities/PendingScoreChange.swift::func PendingScoreChange.read()": "d0e454475830c6d1",
+    "Emuqu/Sources/Utilities/PendingScoreChange.swift::func PendingScoreChange.write(_:)": "f5e5d0db183c0acc",
     "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusLine.body": "3e04f732b3d0e8d4",
     "Emuqu/Sources/Views/DashboardV2View+Cards.swift::func DashboardV2View.scoreChangedBanner(_:)": "b60f19da9865ce26",
     "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::func TroubleshootingPage.repairTrainingSnapshots()": "2b0dcea3f5f5c35e"
@@ -1488,7 +1440,7 @@
   },
   {
    "key": "§ Emuqu — Complete Data Flow Reference > 18. Fitness Tab — Workout Recording Pipeline",
-   "hash": "e8fcf707e4e02ae0",
+   "hash": "04501558b071fdbd",
    "does": "Claims the live-workout pipeline: start() reconnects known secondary sensors, starts strap streaming, GPS/altimeter (lazy WorkoutLocationManager), pedometer, foot pod/PM5/FTMS, Watch session, α1 analyzer, voice coach, Zwift broadcast and a 1 Hz ticker; each tick ingests RR into LiveDFAAnalyzer (2-min window, 20 s cadence), backs up incrementally, records samples, auto-detects a saved route after 500 m (150 m start reject, ≤ 30 m mean nearest-neighbour), updates threshold breach counters, refreshes weather (30 min TTL, 5 km) and road geocoding (15 m / 60 s, 8-failure backoff, 30 s retry), publishes a LiveWorkoutSnapshot, pushes Watch/Zwift state, runs voice-coach/turn/mile-marker engines (turn bands 150/60/25 m) and the interval controller; stop() snapshots RR without stopping the stream, tears down live services, finalizes via WorkoutAnalyzer (Banister male 0.64/1.92, female 0.86/1.67, hrTSS, power metrics, splits), archives a breadcrumb trail (50-trail cap), disconnects the foot pod, flips to .finished and runs detached HRR capture (+60/+120 s strap) before stopping and disconnecting the strap. Constants checked match code.",
    "entry": null,
    "calls": [
@@ -1626,13 +1578,11 @@
     "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.evaluate(step:state:isFinalStep:)": "3d226c62978a31d8",
     "Emuqu/Sources/Assistant/TurnMarkerEngine.swift::func TurnMarkerEngine.evaluate(step:context:state:)": "f2b9402240281d21",
     "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.evaluate(context:state:interval:unitsImperial:)": "19d326dc1e2efeb4",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::func WorkoutTriggerEngine.evaluate(context:now:)": "876160b8dace8b52",
     "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.updateThresholdBreaches(sport:)": "8074d13effa02411",
     "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.finalizeSession(rrPoints:stopDate:hrrSamples:)": "64bf251428145cd9",
     "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.reconnectOrDisconnectSecondarySensors(sport:)": "39d6072429d8506b",
     "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.start(sport:source:intervalPlan:thresholds:route:)": "14dd715369a65cc9",
     "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.archiveBreadcrumbTrailIfNeeded(finished:)": "16dc95aa5d22ef41",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.captureHRRAndRearchive(captureService:stopDate:endHR:wasStrap:polarRef:archive:sessionId:)": "e071df1e5caaede7",
     "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.disconnectFootPodPostWorkout()": "fdbc1aa32c17b8c4",
     "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.launchHRRCaptureAndRearchive(stopDate:endHR:finished:)": "b5611c3673c7a99c",
     "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.stop()": "b716c7af6bb5b527",
@@ -1652,8 +1602,8 @@
   },
   {
    "key": "§ Emuqu — Complete Data Flow Reference > 18. Fitness Tab — Workout Recording Pipeline > Post-summary cards data flow",
-   "hash": "8536d47e36b56b1e",
-   "does": "Claims FitnessPostSummaryView cards read workoutMetadata: headline stats, route map, HRR card, charts, α1 timeline (0.75/0.50), route by α1 band, an α1 LT1 estimate that suggests an LTHR update when it differs ≥ 5 bpm and no override is set, threshold crossings, zone distribution, derived metrics, physiology, splits, GPX/CSV/TCX export.",
+   "hash": "117a79e4b1291c6d",
+   "does": "Claims FitnessPostSummaryView cards read workoutMetadata: headline stats, route map, HRR card, charts, α1 timeline (0.75/0.50), route by α1 band, an α1 LT1 estimate shown only (deliberately no LTHR update suggestion, as ThresholdCards+Cards.swift states), threshold crossings, zone distribution, derived metrics, physiology, splits, GPX/CSV/TCX export.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/ThresholdCards+Cards.swift::var ThresholdCards.alpha1LT1EstimateCard",
@@ -1662,21 +1612,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "Doc says the α1 LT1 card suggests an LTHR update when heuristic-vs-measured delta ≥ 5 bpm; ThresholdCards+Cards.swift states there is deliberately no LTHR update suggestion (LT1 is not LTHR and adopting it shrank the hrTSS denominator).",
-     "evidence": [
-      "docs/FLOWCHART.md:1238",
-      "Emuqu/Sources/Views/ThresholdCards+Cards.swift:8"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.detectAlpha1Crossings(samples:)": "5b701a2276624df8",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::var ThresholdCards.alpha1LT1EstimateCard": "a1a164fc69226783"
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.detectAlpha1Crossings(samples:)": "ef9c79e9211736ad",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::var ThresholdCards.alpha1LT1EstimateCard": "17c23a272557ae16"
    }
   },
   {

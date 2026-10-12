@@ -1,9 +1,10 @@
 {
  "file": "Emuqu/Sources/Collection/RRCollector+Streaming.swift",
- "hash": "0b8d61899d3ae9e0",
+ "hash": "01b95ba5d48b4d80",
  "role": "Quick-reading (3/5 min) streaming mode on CollectorSessionControl: start, 1 Hz countdown with incremental raw backup, completion alert, stop, analysis, archive. Plus file-scope publishAnalyzingSession.",
  "types": [
-  "CollectorSessionControl: extension — quick streaming session lifecycle"
+  "CollectorSessionControl: extension — quick streaming session lifecycle",
+  "RRCollector: extension — streamingHoursForBattery (battery-usage hours for a stopped stream)"
  ],
  "state": [
   "CollectorSessionControl.kCompletionSoundID = 1007 (static SystemSoundID)",
@@ -275,8 +276,8 @@
   },
   {
    "key": "func CollectorSessionControl.stopStreamingSession()",
-   "hash": "b69b8211817c0c06",
-   "does": "Stops a quick reading: returns nil if not in streaming mode; redirects to stopOvernightStreaming during overnight streaming; otherwise stops the timer and Polar stream, publishes analyzing state, writes a full raw backup, and either returns a failed session (fewer than minimumQuickReadingBeats — only a reading stopped early, since the countdown runs on for them) or analyzes, archives and returns the result; disconnects a Verity Sense afterwards.",
+   "hash": "c6218455e06d2ad1",
+   "does": "Stops a quick reading: returns nil if not in streaming mode; redirects to stopOvernightStreaming during overnight streaming; otherwise captures the battery hours (streamingHoursForBattery: wall clock since start), stops the timer and Polar stream, publishes analyzing state, writes a full raw backup, and either returns a failed session (fewer than minimumQuickReadingBeats — only a reading stopped early, since the countdown runs on for them) or analyzes, archives and returns the result; disconnects a Verity Sense afterwards.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::func RRCollector.stopOvernightStreaming()",
@@ -287,13 +288,15 @@
     "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.handleInsufficientStreamingData(baseSession:)",
     "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.disconnectVeritySenseAfterQuickSession()",
     "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.finalizeQuickStreamingSession(rrPoints:baseSession:)",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)"
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)",
+    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::var RRCollector.streamingHoursForBattery"
    ],
    "reads": [
     "mem:StreamingLifecycle.isStreamingMode",
     "mem:StreamingLifecycle.isOvernightStreaming",
     "mem:SessionState.currentSession",
-    "mem:StreamingLifecycle.streamingElapsedSeconds"
+    "mem:StreamingLifecycle.streamingElapsedSeconds",
+    "mem:RRCollector.sessionStartTime"
    ],
    "writes": [
     "mem:StreamingLifecycle.isStreamingMode",
@@ -326,7 +329,6 @@
     "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.stopStreaming()": "61f032bd39cc3856",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isOvernightStreaming": "ee98ca364404b3d4",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isStreamingMode": "d47ea010230d507a",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.streamingElapsedSeconds": "7bf2ba3c9c305fc2",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::func RRCollector.backupStreamingData(_:sessionId:)": "468d658a28ca1a26",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::func RRCollector.stopOvernightStreaming()": "035dae70c6cf74f8",
     "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.disconnectVeritySenseAfterQuickSession()": "0d66fb71ad4a003e",
@@ -334,6 +336,7 @@
     "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.handleInsufficientStreamingData(baseSession:)": "64be30e471105f32",
     "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.publishQuickStreamingStopped(rrPoints:elapsedHours:)": "3b2a5eb5453e0d4c",
     "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.stopStreamingTimer()": "7ef50bedf14e4231",
+    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::var RRCollector.streamingHoursForBattery": "06e9b81313f7ccff",
     "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
@@ -594,6 +597,31 @@
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
     "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f"
+   }
+  },
+  {
+   "key": "var RRCollector.streamingHoursForBattery",
+   "hash": "a7232a4f2aff6f5e",
+   "does": "Hours to charge to the strap's battery-usage counter for the streaming session being stopped: wall clock since sessionStartTime (clamped at 0), or streamingElapsedSeconds / 3600 when there is no start time.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.streamingElapsedSeconds"
+   ],
+   "reads": [
+    "mem:RRCollector.sessionStartTime",
+    "mem:StreamingLifecycle.streamingElapsedSeconds"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "sessionStartTime non-nil",
+     "effect": "wall-clock hours; nil: tick-counter hours"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.streamingElapsedSeconds": "7bf2ba3c9c305fc2"
    }
   }
  ],

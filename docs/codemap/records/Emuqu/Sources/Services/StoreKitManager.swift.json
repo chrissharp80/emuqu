@@ -21,24 +21,7 @@
   "mem:StoreKitManager.transactionListener"
  ],
  "toplevel": "isPurchased initializer: true when paywallEnabled is false, else UserDefaults storekit.lastKnownPurchased; hasPurchasedProduct initializer: storekit.lastKnownPurchased. isDebugBuild (#if DEBUG true) and isDeveloperInstall (isDebugBuild || ud:storekit.verifiedXcodeInstall) are computed statics that lookup.py does not list as units. debugGrantAccess/hasDebugGrant/debugPurchasedKey are compiled only under #if DEBUG.",
- "flags": [
-  {
-   "kind": "coupling",
-   "sev": "med",
-   "text": "storekit.verifiedProductionInstall and storekit.verifiedXcodeInstall are not in DataPurgeService's UserDefaults keep list, so Delete All My Data removes them while keeping the anchor. A grandfathered beta tester (isGrandfatheredBetaTester needs verifiedProductionInstall) or verified Xcode install then has no route in until a later boot()'s AppTransaction check rewrites the flag; boot() runs once per process, so in the same process the next refreshStatus computes isPurchased without the bypass.",
-   "evidence": [
-    "Emuqu/Sources/Services/DataPurgeService.swift:328",
-    "Emuqu/Sources/Services/DataPurgeService.swift:353",
-    "Emuqu/Sources/Services/StoreKitManager.swift:153",
-    "Emuqu/Sources/Services/StoreKitManager.swift:658",
-    "Emuqu/Sources/Services/StoreKitManager.swift:772",
-    "Emuqu/Sources/Services/StoreKitManager.swift:186",
-    "Emuqu/Sources/Services/StoreKitManager.swift:195",
-    "Emuqu/Sources/Services/StoreKitManager.swift:444"
-   ],
-   "found": "second read"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "init ()",
@@ -97,7 +80,7 @@
   {
    "key": "func grandfatherExistingUserIfNeeded(hasHistory:now:)",
    "hash": "8ac80e012735ca2d",
-   "does": "Outside DEBUG builds, runs EntitlementAnchor.recordHistoryCheck with whether the device already holds sessions — the one-time grandfathering of existing (beta) users. hasHistory nil (history unknown this launch) skips it with a warning so a later launch takes the look. Called from AppLaunchTasks.prepareEntitlementGate, which today passes !collector.archive.index.isEmpty.",
+   "does": "Outside DEBUG builds, runs EntitlementAnchor.recordHistoryCheck with whether the device already holds sessions — the one-time grandfathering of existing (beta) users. hasHistory nil (history unknown this launch) skips it with a warning so a later launch takes the look. Called from AppLaunchTasks.prepareEntitlementGate, which passes nil while the archive index is incomplete (SessionArchive.hasCompleteIndex false).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.recordHistoryCheck(hasHistory:wallClock:)",
@@ -123,19 +106,7 @@
      "effect": "log, return without recording"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "high",
-     "text": "The caller (AppLaunchTasks.swift:622) still passes !collector.archive.index.isEmpty, read without archiveLock and true-empty when index.json failed to read (indexReadFailed) or to decode (index reset to []); a beta tester whose index is unreadable on the first store-build launch is stamped with hasHistory=false and never re-evaluated. This function now skips the look for hasHistory nil; the archive needs a locked \"index complete\" accessor and the caller must pass nil when it is false (handed off).",
-     "evidence": [
-      "Emuqu/Sources/Services/AppLaunchTasks.swift:622",
-      "Emuqu/Sources/Storage/Archive+IndexIO.swift:125",
-      "Emuqu/Sources/Storage/Archive+IndexIO.swift:134"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.recordHistoryCheck(hasHistory:wallClock:)": "c865f24db06c46b0",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"

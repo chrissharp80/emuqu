@@ -135,8 +135,4 @@ final class StatisticsTests: XCTestCase {
         let values = [2.0, 4, 4, 4, 5, 5, 7, 9]
         XCTAssertEqual(values.sampleSD, Statistics.sampleStandardDeviation(values), accuracy: 1e-10)
     }
-
-    func testArrayRMS() {
-        XCTAssertEqual([3.0, 4.0].rms, sqrt(12.5), accuracy: 1e-10)
-    }
 }

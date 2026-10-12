@@ -1,15 +1,15 @@
 {
  "file": "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift",
- "hash": "2214012aa549f7e0",
+ "hash": "b4dd115f5eaa05b4",
  "role": "FitnessSummaryCards extension holding the workout post-summary cards: physiology (decoupling/EF), conditions/heat, splits, route-history baseline, coach report, save-to-route-library, export, DEM elevation recompute, α1 re-analysis and recap-card share, plus archive write-back helpers.",
  "types": [
   "FitnessSummaryCards: extension — post-summary cards",
   "FitnessSummaryCards.RouteHistorySummary: struct — prior-run count + pace/HR comparison rows",
   "FitnessSummaryCards.RouteHistorySummary.ComparisonRow: struct — today/baseline/delta caption strings",
-  "FitnessSummaryCards.RouteBaseline: struct — summed distance/duration and HR sum/count over prior runs"
+  "RouteBaseline: struct (file scope, outside FitnessSummaryCards) — summed distance/duration and HR sum/count over a route's prior runs, built by init(priorRuns:)"
  ],
  "state": [],
- "toplevel": "File-scope private helpers: routeHistoryHeader and routeHistoryValues (@MainActor views), and formatTemp, heatContributionLine and rebuildAnalysisSnapshot (pure, kept outside FitnessSummaryCards). All state lives in FitnessSummaryCards' @Binding properties declared in FitnessSummaryCards.swift.",
+ "toplevel": "File-scope private helpers: routeHistoryHeader and routeHistoryValues (@MainActor views), and formatTemp, heatContributionLine and rebuildAnalysisSnapshot (pure, kept outside FitnessSummaryCards). All state lives in FitnessSummaryCards' @Binding properties declared in FitnessSummaryCards.swift. RouteBaseline is declared at file scope after them.",
  "flags": [],
  "units": [
   {
@@ -319,40 +319,13 @@
    }
   },
   {
-   "key": "func FitnessSummaryCards.loadRouteHistorySummary()",
-   "hash": "2fdc13ac79c3e876",
-   "does": "Clears routeHistory when the workout has no route name; otherwise snapshots session and units and computes routeHistorySummary on a detached userInitiated task, storing the result in the routeHistory binding.",
-   "entry": "Called from FitnessPostSummaryView .task(id: session.id) (Emuqu/Sources/Views/FitnessPostSummaryView.swift:375) and reloadFromArchive (Emuqu/Sources/Views/FitnessPostSummaryView.swift:422) via Emuqu/Sources/Views/FitnessPostSummaryView+SummaryForwarding.swift:47",
-   "calls": [
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.routeHistorySummary(routeName:session:unitsResolved:)"
-   ],
-   "reads": [
-    "archive:SessionArchive (via routeHistorySummary)"
-   ],
-   "writes": [
-    "mem:FitnessPostSummaryView.routeHistory @State (binding)"
-   ],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "recognizedRouteName nil or empty",
-     "effect": "routeHistory = nil and return; else compute off-main"
-    }
-   ],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.routeHistorySummary(routeName:session:unitsResolved:)": "b2b5fb9c3eab9a32"
-   }
-  },
-  {
    "key": "func FitnessSummaryCards.routeHistorySummary(routeName:session:unitsResolved:)",
-   "hash": "a2d7c7fb96ad12b9",
-   "does": "Finds prior runs on the same named route, returns nil when there are none, otherwise builds a RouteHistorySummary with prior count and pace/HR comparison rows against the aggregated baseline.",
+   "hash": "b3a74a46f94940ed",
+   "does": "Finds prior runs on the same named route, returns nil when there are none, otherwise builds a RouteHistorySummary with prior count and pace/HR comparison rows against the RouteBaseline aggregated over those runs.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.priorRuns(ofRoute:excluding:)",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.routeBaseline(_:)",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::init RouteBaseline(priorRuns:)",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.paceComparisonRow(session:baseline:unitsResolved:)",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.hrComparisonRow(session:baseline:)"
    ],
@@ -372,7 +345,7 @@
     "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.hrComparisonRow(session:baseline:)": "6d8c18537ea872a6",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.paceComparisonRow(session:baseline:unitsResolved:)": "dd031cf1f64a7ddf",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.priorRuns(ofRoute:excluding:)": "5953ca2a21276634",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.routeBaseline(_:)": "907832d5941de0be"
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::init RouteBaseline(priorRuns:)": "554ded1060837476"
    }
   },
   {
@@ -413,77 +386,6 @@
    }
   },
   {
-   "key": "func FitnessSummaryCards.routeBaseline(_:)",
-   "hash": "ec8a20d3c4105915",
-   "does": "Folds every candidate into a RouteBaseline via accumulatePace and accumulateHR.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.accumulatePace(_:from:)",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.accumulateHR(_:from:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "for each prior run",
-     "effect": "accumulate pace and HR"
-    }
-   ],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.accumulateHR(_:from:)": "ea25d4936126e97a",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.accumulatePace(_:from:)": "6da20d4911b2dd39"
-   }
-  },
-  {
-   "key": "func FitnessSummaryCards.accumulatePace(_:from:)",
-   "hash": "203a867fabf5b1c8",
-   "does": "Adds a prior run's distance and duration to the baseline only when distance > 100 m and duration > 60 s.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "distance missing/<=100 m or duration missing/<=60 s",
-     "effect": "return without contributing; else add distance and duration"
-    }
-   ],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.totalDistance(from:to:sport:)": "c944b5480fdb06b7",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration": "2773bb6ff5712d48",
-    "Emuqu/Sources/Views/Results/SleepTimelineChart.swift::var SleepTimelineChart.totalDuration": "abb25c33674ddf70"
-   }
-  },
-  {
-   "key": "func FitnessSummaryCards.accumulateHR(_:from:)",
-   "hash": "b7072969a1f6c538",
-   "does": "Adds every positive per-sample heart rate of a prior run to the baseline sum and count (sample-weighted, so longer runs weigh more).",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "samples nil",
-     "effect": "?? [] → contributes nothing"
-    },
-    {
-     "at": "+1",
-     "cond": "hr > 0 (for-where)",
-     "effect": "positive HR added; zero/negative skipped"
-    }
-   ],
-   "flags": [],
-   "deps": {}
-  },
-  {
    "key": "func FitnessSummaryCards.paceComparisonRow(session:baseline:unitsResolved:)",
    "hash": "57fcb3079ea096b7",
    "does": "When baseline and today both exceed 100 m (and today > 60 s), computes today's and the baseline's sec/km from elapsed duration/distance and returns formatted paces with a delta caption; nil otherwise.",
@@ -517,8 +419,8 @@
     "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.totalDistance(from:to:sport:)": "c944b5480fdb06b7",
     "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration": "2773bb6ff5712d48",
     "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(secondsPerMeter:)": "2df0cb439cc6c8c6",
-    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.paceDeltaCaption(secPerKmDelta:unitsResolved:)": "cef9767d60f2c634",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::init RouteBaseline(priorRuns:)": "554ded1060837476",
     "Emuqu/Sources/Views/Results/SleepTimelineChart.swift::var SleepTimelineChart.totalDuration": "abb25c33674ddf70"
    }
   },
@@ -599,9 +501,9 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.meanHR": "a5bf3abe9c530fa0",
-    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.bpmText(_:)": "1b2368ef9970fa23",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.hrDeltaCaption(_:)": "3d053ad454532ac9"
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.hrDeltaCaption(_:)": "3d053ad454532ac9",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::init RouteBaseline(priorRuns:)": "554ded1060837476"
    }
   },
   {
@@ -1776,9 +1678,78 @@
    "deps": {
     "Emuqu/Sources/Analysis/WorkoutAnalysisSnapshotBuilder.swift::func WorkoutAnalysisSnapshotBuilder.build(_:)": "2857c29056b11e4c",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933",
-    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::init RouteBaseline(priorRuns:)": "554ded1060837476",
     "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.userMaxHR": "49805330e3ae7d57"
    }
+  },
+  {
+   "key": "init RouteBaseline(priorRuns:)",
+   "hash": "9d8c9e285b156bc5",
+   "does": "Folds every prior run into the baseline via accumulatePace and accumulateHR (distance-weighted pace totals plus a sample-weighted HR sum/count).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func RouteBaseline.accumulatePace(from:)",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func RouteBaseline.accumulateHR(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each prior run",
+     "effect": "accumulate pace and HR"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func RouteBaseline.accumulateHR(from:)": "75d4dda83ecbf2dd",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func RouteBaseline.accumulatePace(from:)": "b5d587a98ac88ba8"
+   }
+  },
+  {
+   "key": "func RouteBaseline.accumulatePace(from:)",
+   "hash": "c07598e25c256584",
+   "does": "Adds a prior run's distance and duration to the totals only when distance > 100 m and duration > 60 s.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "distance missing/<=100 m or duration missing/<=60 s",
+     "effect": "return without contributing; else add distance and duration"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration": "2773bb6ff5712d48"
+   }
+  },
+  {
+   "key": "func RouteBaseline.accumulateHR(from:)",
+   "hash": "ac3d585f49126849",
+   "does": "Adds every positive per-sample heart rate of a prior run to the HR sum and count (sample-weighted, so longer runs weigh more; zero readings are strap dropouts).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "samples nil",
+     "effect": "?? [] → contributes nothing"
+    },
+    {
+     "at": "+1",
+     "cond": "hr > 0 (for-where)",
+     "effect": "positive HR added; zero/negative skipped"
+    }
+   ],
+   "flags": [],
+   "deps": {}
   }
  ],
  "deps": {}

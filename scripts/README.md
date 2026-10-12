@@ -76,8 +76,9 @@ once. Ratchets toward zero.
 
 ### `check_localization_bundle.sh`
 
-Every `String(localized:)` / `NSLocalizedString` must name
-`LanguageManager.appBundle`. Without it the lookup reads from `Bundle.main` and
+Every `String(localized:)` / `NSLocalizedString` must name a bundle other than
+`Bundle.main`: `LanguageManager.appBundle`, or a bundle derived from it and passed in
+(`bundle: bundle`, `NarrativeLanguage.bundle`). Without it the lookup reads from `Bundle.main` and
 silently ignores the in-app language picker — the string still renders, still
 looks right in English, and still counts as 100% translated in the coverage
 gate, because the translation exists and is simply never read. 59 calls (mostly

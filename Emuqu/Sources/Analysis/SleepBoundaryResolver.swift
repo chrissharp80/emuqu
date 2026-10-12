@@ -299,8 +299,8 @@ final class SleepBoundaryResolver: Sendable {
     ) async -> (boundaries: SleepBoundaries, hasDetailedStages: Bool)? {
         do {
             let sleepData = try await healthKit.fetchSleepData(for: sessionStart, recordingEnd: recordingEnd)
-            let sleepStartMs = sleepData.sleepStart.map { Int64($0.timeIntervalSince(sessionStart) * 1_000) }
-            let wakeTimeMs = sleepData.sleepEnd.map { Int64($0.timeIntervalSince(sessionStart) * 1_000) }
+            let sleepStartMs = sleepData.sleepStart.flatMap { MillisecondOffset.between($0, and: sessionStart) }
+            let wakeTimeMs = sleepData.sleepEnd.flatMap { MillisecondOffset.between($0, and: sessionStart) }
             // Only useful with at least one boundary.
             guard sleepStartMs != nil || wakeTimeMs != nil else { return nil }
             let hasDetailed = (sleepData.deepSleepMinutes ?? 0) > 0 || (sleepData.remSleepMinutes ?? 0) > 0
@@ -317,8 +317,8 @@ final class SleepBoundaryResolver: Sendable {
     ) -> SleepBoundaries? {
         // Try static estimation from HealthKitManager (uses HR patterns)
         if let estimation = HealthKitManager.estimateSleepFromHR(rrPoints: rrPoints, recordingStart: sessionStart) {
-            let startMs = estimation.sleepStart.map { Int64($0.timeIntervalSince(sessionStart) * 1000) }
-            let endMs = estimation.sleepEnd.map { Int64($0.timeIntervalSince(sessionStart) * 1000) }
+            let startMs = estimation.sleepStart.flatMap { MillisecondOffset.between($0, and: sessionStart) }
+            let endMs = estimation.sleepEnd.flatMap { MillisecondOffset.between($0, and: sessionStart) }
             if startMs != nil || endMs != nil {
                 return SleepBoundaries(sleepStartMs: startMs, wakeTimeMs: endMs)
             }

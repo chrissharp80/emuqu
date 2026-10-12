@@ -203,6 +203,27 @@
    }
   },
   {
+   "key": "func SavedRouteStore.isLibraryReadable()",
+   "hash": "33c5a648c7544610",
+   "does": "Retries a blocked read (recoverBlockedLoad, keeping routes added in memory meanwhile) and returns whether the library is readable: false while the store file exists but still cannot be read or a damaged file could not be set aside, i.e. routes is incomplete and changes would not be saved.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.recoverBlockedLoad()"
+   ],
+   "reads": [
+    "mem:SavedRouteStore.loadFailed",
+    "file:<appGroup>/saved_routes.json (on retry)"
+   ],
+   "writes": [
+    "mem:SavedRouteStore.routes (on a successful retry)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.recoverBlockedLoad()": "a8ee836fbf005763"
+   }
+  },
+  {
    "key": "func SavedRouteStore.recoverBlockedLoad()",
    "hash": "a1f3771555caf26f",
    "does": "When the last read failed, reloads the file; on success appends the routes added in memory while it was unreadable (by id), removes the protected-data observer and returns true. Returns true at once when nothing failed, false when the read still fails.",
@@ -302,10 +323,11 @@
   },
   {
    "key": "func SavedRouteStore.rename(id:to:)",
-   "hash": "6db450b3266279ec",
-   "does": "Renames the route with `id` and saves; no-op when not found.",
-   "entry": "App-code callers: SavedRoutesPage.swift:50 (rename alert) and AppFactResolver+RoutesAndDevices.swift:151 (assistant rename).",
+   "hash": "357f31c6e3ccaffe",
+   "does": "Returns false and changes nothing while the library cannot be read (isLibraryReadable, which retries the read); otherwise renames the route with `id` and saves (no-op when not found) and returns true.",
+   "entry": "App-code callers: SavedRoutesPage.commitRename (rename alert; ignores the result) and AppFactResolver+RoutesAndDevices.renamed (assistant rename, which checks readability first).",
    "calls": [
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.isLibraryReadable()",
     "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.save()"
    ],
    "reads": [],
@@ -314,32 +336,46 @@
    ],
    "branches": [
     {
-     "at": "+1",
+     "at": "+3",
+     "cond": "library unreadable",
+     "effect": "return false, nothing changed"
+    },
+    {
+     "at": "+4",
      "cond": "route with id exists",
-     "effect": "rename and save; otherwise return"
+     "effect": "rename and save; otherwise return true"
     }
    ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.isLibraryReadable()": "1df77cc2d154ff7b",
     "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.routes(for:)": "d183aa1e85ebbd65",
     "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.save()": "e60184e21211b54b"
    }
   },
   {
    "key": "func SavedRouteStore.remove(id:)",
-   "hash": "db5e0403e2bde7b1",
-   "does": "Removes all routes with `id` and saves (saves even when nothing matched).",
-   "entry": "Called from SavedRoutesPage.swift:104 and SettingsView+Pages.swift:420.",
+   "hash": "921ebf48be818c33",
+   "does": "Returns false and changes nothing while the library cannot be read (isLibraryReadable, which retries the read); otherwise removes all routes with `id`, saves (even when nothing matched) and returns true.",
+   "entry": "Called from SavedRoutesPage.swipeActions and SettingsView+Pages (both ignore the result).",
    "calls": [
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.isLibraryReadable()",
     "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.save()"
    ],
    "reads": [],
    "writes": [
     "mem:SavedRouteStore.routes"
    ],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "library unreadable",
+     "effect": "return false, nothing changed"
+    }
+   ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.isLibraryReadable()": "1df77cc2d154ff7b",
     "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.routes(for:)": "d183aa1e85ebbd65",
     "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.save()": "e60184e21211b54b"
    }

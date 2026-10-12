@@ -1,12 +1,14 @@
 {
  "file": "EmuquTests/LiveDFAAnalyzerTests.swift",
- "hash": "b81ee053df2811c8",
- "role": "XCTest suite for LiveDFAAnalyzer.cleanRRForDFA (range and ±20% ectopic rejection, in-place interpolation, edges, short/empty series), its correctedCount/correctedFraction accounting, the 3%/6% thresholds, and the two-minute window gate in ingest.",
+ "hash": "1b5266f92e1667cb",
+ "role": "XCTest suite for LiveDFAAnalyzer.cleanRRForDFA (range and ±20% ectopic rejection, in-place interpolation, edges, short/empty series), its correctedCount/correctedFraction accounting, the 6% rejection threshold against the 3% minimal-bias band, and the two-minute window gate in ingest.",
  "types": [
   "LiveDFAAnalyzerTests: class — XCTestCase (two @MainActor methods) over LiveDFAAnalyzer"
  ],
- "state": [],
- "toplevel": "",
+ "state": [
+  "minimalBiasCorrectedFraction: static let 0.03 — the corrected fraction below which correction biases α1 minimally (Gronwald & Rogers 2022); test-local, nothing in the analyzer acts on it"
+ ],
+ "toplevel": "minimalBiasCorrectedFraction static constant.",
  "flags": [],
  "units": [
   {
@@ -389,26 +391,14 @@
   },
   {
    "key": "func LiveDFAAnalyzerTests.testRejectionThresholdsMatchThePublishedBias()",
-   "hash": "3ca3e8e373f0c6a4",
-   "does": "Asserts lowConfidenceCorrectedFraction == 0.03 and maxCorrectedFraction == 0.06.",
+   "hash": "4bb8bd68b2a588a4",
+   "does": "Asserts LiveDFAAnalyzer.maxCorrectedFraction (the threshold the live analyzer and WorkoutAlpha1Reanalyzer reject a window on) is 0.06.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [],
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "med",
-     "text": "lowConfidenceCorrectedFraction is referenced only by these tests; no production code reads it (grep: only LiveDFAAnalyzer.swift:107 comment and LiveDFAAnalyzerTests.swift:182,205), and the published LiveDFAAnalyzer.correctedFraction has no reader outside the analyzer. The comment's promise that α1 above 3% is shown as 'softer than it looks' is not implemented: windows with 3-6% interpolated beats display as fully confident.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift:213",
-      "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift:107",
-      "EmuquTests/LiveDFAAnalyzerTests.swift:182"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {}
   },
   {
@@ -445,8 +435,8 @@
   },
   {
    "key": "func LiveDFAAnalyzerTests.testARealisticStrapGlitchStaysUnderTheRejectionThreshold()",
-   "hash": "4936a45a599a6861",
-   "does": "Asserts one 2400 ms beat in 100 yields correctedCount 1 and fraction below lowConfidenceCorrectedFraction.",
+   "hash": "f985fb55c0186885",
+   "does": "Asserts one 2400 ms beat in 100 yields correctedCount 1 and a corrected fraction below the test's 3% minimal-bias band (minimalBiasCorrectedFraction).",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "EmuquTests/LiveDFAAnalyzerTests.swift::func LiveDFAAnalyzerTests.steady(_:rr:)",
@@ -464,7 +454,7 @@
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.artifactMask(_:)": "80da582be8268d18",
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.cleanRRForDFA(_:)": "84bb81d01db736b2",
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.interpolatingArtifacts(_:isArtifact:)": "1021ef9da22965b7",
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.isArtifactBeat(_:recentClean:)": "5fd6a5c4372ef4d3",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.isArtifactBeat(_:recentClean:)": "a310f1d7391372ba",
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.CleanedSeries.correctedFraction": "4ca30bfb832337b9",
     "EmuquTests/LiveDFAAnalyzerTests.swift::func LiveDFAAnalyzerTests.steady(_:rr:)": "678abc302644923c"
    }

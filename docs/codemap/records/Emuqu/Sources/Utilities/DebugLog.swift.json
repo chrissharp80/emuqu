@@ -325,33 +325,47 @@
   },
   {
    "key": "func DebugLogger.appendToRingBuffer(_:)",
-   "hash": "b9899ec4311c85dc",
-   "does": "Through mutateRingBuffer (entries and exportBuffer alike): drops entries older than 7 days (only when the oldest has aged out), appends the batch, and trims to 5000.",
+   "hash": "b7bbfa6971cdfb82",
+   "does": "Through mutateRingBuffer (entries and exportBuffer alike) applies DebugLogger.append with a 7-day cutoff and the 5000-entry cap: drops aged-out entries, appends the batch, trims.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.mutateRingBuffer(_:)"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.mutateRingBuffer(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.append(_:to:droppingOlderThan:cap:)"
    ],
    "reads": [],
    "writes": [
     "mem:DebugLogger.entries",
     "mem:DebugLogger.exportBuffer"
    ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.append(_:to:droppingOlderThan:cap:)": "e5a12b6ab941dc39",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.mutateRingBuffer(_:)": "da21c5aa7193a747"
+   }
+  },
+  {
+   "key": "func DebugLogger.append(_:to:droppingOlderThan:cap:)",
+   "hash": "848db3487125a529",
+   "does": "Nonisolated ring-buffer step on an inout buffer: drops entries older than cutoff (scanned only when the oldest has aged out), appends the batch, and trims to the newest cap entries.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
    "branches": [
     {
-     "at": "+4",
-     "cond": "oldest entry older than 7 days",
-     "effect": "removes all entries older than 7 days"
+     "at": "+3",
+     "cond": "oldest entry older than cutoff",
+     "effect": "removes all entries older than cutoff"
     },
     {
-     "at": "+8",
-     "cond": "count > maxMemoryEntries",
+     "at": "+7",
+     "cond": "count > cap",
      "effect": "removes oldest overflow"
     }
    ],
    "flags": [],
-   "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.mutateRingBuffer(_:)": "da21c5aa7193a747"
-   }
+   "deps": {}
   },
   {
    "key": "func DebugLogger.mutateRingBuffer(_:)",

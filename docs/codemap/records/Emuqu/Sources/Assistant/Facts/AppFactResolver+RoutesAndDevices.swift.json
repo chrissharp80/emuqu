@@ -44,6 +44,31 @@
    }
   },
   {
+   "key": "func RoutesLibraryNamespace.libraryUnreadable()",
+   "hash": "b67c92ab16872c9d",
+   "does": "Asks SavedRouteStore.isLibraryReadable() (MainActor.assumeIsolated; retries a blocked read); nil when readable, else .missing(notRecorded) explaining the library can't be read right now (phone not unlocked since a restart, or the file is damaged), nothing was read or changed, ask again after unlocking.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.isLibraryReadable()"
+   ],
+   "reads": [
+    "mem:SavedRouteStore.loadFailed"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "readable",
+     "effect": "nil; else the .missing value"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.isLibraryReadable()": "1df77cc2d154ff7b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+   }
+  },
+  {
    "key": "func RoutesLibraryNamespace.workoutCandidates(matching:)",
    "hash": "f30df613208d0c5e",
    "does": "Lists workout archive entries newest first: without a date the 20 most recent; with a yyyy-MM-dd date (FactLocalDay formatter) those on that local day; an unparseable date yields [].",
@@ -144,33 +169,13 @@
   },
   {
    "key": "var RoutesLibraryNamespace.routesLibraryCountEntry",
-   "hash": "62b8b3e1da0cbb7d",
-   "does": "Fixed entry 'routes.library.count' (Int): number of saved routes.",
+   "hash": "6a405732d57d106b",
+   "does": "Fixed entry 'routes.library.count' (Int): number of saved routes, or libraryUnreadable's .missing while the library can't be read (instead of a misleading 0).",
    "entry": "fact closure runs when the LLM calls tool 'routes.library.count' (FactResolverRegistry.resolveTool/resolveActionTool, FactResolverRegistry.swift:291/348); property read when the namespace's entries list is built",
    "calls": [
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.currentRoutes()"
-   ],
-   "reads": [
-    "mem:SavedRouteStore.routes"
-   ],
-   "writes": [],
-   "branches": [],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.currentRoutes()": "975f0451f47b8411",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
-   }
-  },
-  {
-   "key": "var RoutesLibraryNamespace.routesLibraryListEntry",
-   "hash": "52ea78a9d64065ae",
-   "does": "Fixed entry 'routes.library.list' (List): saved routes sorted newest-created first as summary records; .missing when none.",
-   "entry": "fact closure runs when the LLM calls tool 'routes.library.list' (FactResolverRegistry.resolveTool/resolveActionTool, FactResolverRegistry.swift:291/348); property read when the namespace's entries list is built",
-   "calls": [
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.currentRoutes()",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.renderRouteSummary(_:)"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.libraryUnreadable()"
    ],
    "reads": [
     "mem:SavedRouteStore.routes"
@@ -178,26 +183,49 @@
    "writes": [],
    "branches": [
     {
-     "at": "+11",
+     "at": "+6",
+     "cond": "library unreadable",
+     "effect": "returns libraryUnreadable's .missing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.currentRoutes()": "975f0451f47b8411",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.libraryUnreadable()": "055b87cf9617d603",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+   }
+  },
+  {
+   "key": "var RoutesLibraryNamespace.routesLibraryListEntry",
+   "hash": "fee05292e08a3361",
+   "does": "Fixed entry 'routes.library.list' (List): libraryUnreadable's .missing while the library can't be read; else saved routes sorted newest-created first as summary records; .missing when none.",
+   "entry": "fact closure runs when the LLM calls tool 'routes.library.list' (FactResolverRegistry.resolveTool/resolveActionTool, FactResolverRegistry.swift:291/348); property read when the namespace's entries list is built",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.currentRoutes()",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.renderRouteSummary(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.libraryUnreadable()"
+   ],
+   "reads": [
+    "mem:SavedRouteStore.routes"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "library unreadable",
+     "effect": "returns libraryUnreadable's .missing"
+    },
+    {
+     "at": "+12",
      "cond": "no saved routes",
      "effect": "returns .missing notRecorded 'user has no saved routes'; otherwise list"
     }
    ],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "When SavedRouteStore's load failed (file present but unreadable while the device is locked, or undecodable) the in-memory list stays empty, so routes.library.list answers 'user has no saved routes' and count answers 0 even though the library exists on disk.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift:109",
-      "Emuqu/Sources/Models/SavedRoute.swift:309",
-      "Emuqu/Sources/Models/SavedRoute.swift:313"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.currentRoutes()": "975f0451f47b8411",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.libraryUnreadable()": "055b87cf9617d603",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.renderRouteSummary(_:)": "9d1e8151ccfd5a1e",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
    }
@@ -223,10 +251,11 @@
   },
   {
    "key": "func RoutesLibraryNamespace.resolveRoutesLibraryRename(_:)",
-   "hash": "4d1616efd2b7b121",
-   "does": "Validates current_name/new_name, finds exactly one saved route whose name matches case-insensitively, and renames it.",
+   "hash": "792d220c10b1893a",
+   "does": "Validates current_name/new_name, refuses with libraryUnreadable's .missing while the library can't be read (before any change), finds exactly one saved route whose name matches case-insensitively, and renames it.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.libraryUnreadable()",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.currentRoutes()",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.ambiguousRoute(name:matches:)",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.renamed(_:to:)"
@@ -250,30 +279,22 @@
      "effect": "returns .missing invalidParameter"
     },
     {
-     "at": "+12",
+     "at": "+11",
+     "cond": "library unreadable",
+     "effect": "returns libraryUnreadable's .missing; nothing renamed"
+    },
+    {
+     "at": "+13",
      "cond": "match count != 1",
      "effect": "returns ambiguousRoute (0 → notRecorded, >1 → invalidParameter); otherwise renames"
     }
    ],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "med",
-     "text": "SavedRouteStore.add/rename mutate the in-memory list then call save(), which silently skips the disk write when the earlier load failed (loadFailed, SavedRoute.swift:322-327). The action still returns status 'saved'/'renamed', so the model confirms a change that is lost on next launch.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift:149",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift:189",
-      "Emuqu/Sources/Models/SavedRoute.swift:195",
-      "Emuqu/Sources/Models/SavedRoute.swift:200",
-      "Emuqu/Sources/Models/SavedRoute.swift:322"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.ambiguousRoute(name:matches:)": "788ce17fc622dd82",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.currentRoutes()": "975f0451f47b8411",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.renamed(_:to:)": "03f69a435db00820"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.libraryUnreadable()": "055b87cf9617d603",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.renamed(_:to:)": "6aad98759b2d3eaa"
    }
   },
   {
@@ -290,23 +311,9 @@
     "file:saved_routes.json"
    ],
    "branches": [],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "med",
-     "text": "SavedRouteStore.add/rename mutate the in-memory list then call save(), which silently skips the disk write when the earlier load failed (loadFailed, SavedRoute.swift:322-327). The action still returns status 'saved'/'renamed', so the model confirms a change that is lost on next launch.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift:149",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift:189",
-      "Emuqu/Sources/Models/SavedRoute.swift:195",
-      "Emuqu/Sources/Models/SavedRoute.swift:200",
-      "Emuqu/Sources/Models/SavedRoute.swift:322"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.rename(id:to:)": "2f4b9bc9af3b0923",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.rename(id:to:)": "72ccd603eff7558c",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
    }
   },
@@ -331,10 +338,11 @@
   },
   {
    "key": "func RoutesLibraryNamespace.resolveRoutesLibrarySaveWorkout(_:)",
-   "hash": "bf1c01af03681263",
-   "does": "Validates name, picks candidate workouts (date or 20 most recent), takes the first with a GPS polyline and hands it to addUnlessSaved, which appends it to SavedRouteStore (or reports it already saved) and returns the record.",
+   "hash": "8a4f1df28e5031bc",
+   "does": "Validates name, refuses with libraryUnreadable's .missing while the library can't be read (before any change), picks candidate workouts (date or 20 most recent), takes the first with a GPS polyline and hands it to addUnlessSaved, which appends it to SavedRouteStore (or reports it already saved) and returns the record.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.libraryUnreadable()",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.requestedDate(_:)",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.workoutCandidates(matching:)",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.firstSavableRoute(in:name:)",
@@ -355,35 +363,27 @@
      "effect": "returns .missing invalidParameter"
     },
     {
-     "at": "+7",
+     "at": "+6",
+     "cond": "library unreadable",
+     "effect": "returns libraryUnreadable's .missing; nothing saved"
+    },
+    {
+     "at": "+8",
      "cond": "no candidates",
      "effect": "returns .missing notRecorded 'no workout on <date>' or 'no recent workouts in archive'"
     },
     {
-     "at": "+8",
+     "at": "+9",
      "cond": "requestedDate nil",
      "effect": "?? 'no recent workouts in archive'"
     },
     {
-     "at": "+11",
+     "at": "+12",
      "cond": "no candidate has a polyline",
      "effect": "returns .missing invalidParameter 'no GPS polyline …'; otherwise returns addUnlessSaved's result"
     }
    ],
    "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "med",
-     "text": "SavedRouteStore.add/rename mutate the in-memory list then call save(), which silently skips the disk write when the earlier load failed (loadFailed, SavedRoute.swift:322-327). The action still returns status 'saved'/'renamed', so the model confirms a change that is lost on next launch.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift:149",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift:189",
-      "Emuqu/Sources/Models/SavedRoute.swift:195",
-      "Emuqu/Sources/Models/SavedRoute.swift:200",
-      "Emuqu/Sources/Models/SavedRoute.swift:322"
-     ],
-     "found": "first read, upheld on second"
-    },
     {
      "kind": "spec-mismatch",
      "sev": "low",
@@ -399,6 +399,7 @@
    "deps": {
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.addUnlessSaved(_:from:)": "52bae8996403c85e",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.firstSavableRoute(in:name:)": "e2fbf85fd8939a2e",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.libraryUnreadable()": "055b87cf9617d603",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.requestedDate(_:)": "57e54f2e685ad383",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.workoutCandidates(matching:)": "0cb5e42c10612459"
    }

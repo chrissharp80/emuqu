@@ -100,8 +100,8 @@ extension TrendsV2View {
     /// The dots, the baseline line, scrubbing and the audio graph all use the
     /// same readings, so they line up.
     func metricChart(points pts: [MetricPoint], band: BaselineStats) -> some View {
-        let bandLow = band.hasData ? band.mean - band.sd : nil
-        let bandHigh = band.hasData ? band.mean + band.sd : nil
+        let bandLow = band.hasData ? band.low : nil
+        let bandHigh = band.hasData ? band.high : nil
         return Chart {
             normalRangeBand(band: band, points: pts)
             dailyDots(pts, bandLow: bandLow, bandHigh: bandHigh)
@@ -119,15 +119,16 @@ extension TrendsV2View {
         )
     }
 
-    /// Shaded normal-range band — 60-day mean ±1 SD — plus its dashed mean line.
+    /// Shaded normal-range band — the 60-day `BaselineStats.low`…`high` (±1
+    /// SD, in log space for log-normal metrics) — plus its dashed mean line.
     @ChartContentBuilder
     func normalRangeBand(band: BaselineStats, points: [MetricPoint]) -> some ChartContent {
         if band.hasData, let span = Self.bandSpan(points) {
             RectangleMark(
                 xStart: .value("Start", span.start),
                 xEnd: .value("End", span.end),
-                yStart: .value("Lower", band.mean - band.sd),
-                yEnd: .value("Upper", band.mean + band.sd)
+                yStart: .value("Lower", band.low),
+                yEnd: .value("Upper", band.high)
             )
             .foregroundStyle(AppTheme.primary.opacity(0.08))
             RuleMark(y: .value("Baseline", band.mean))

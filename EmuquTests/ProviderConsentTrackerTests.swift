@@ -9,7 +9,8 @@
 //  privacy posture and the wellness-app contract documented in SECURITY.md.
 //
 //  The tracker reads `UserDefaults.standard` directly, so these tests work on
-//  the shared state and reset every provider they touch in setUp / tearDown.
+//  the shared state: setUp records which providers the host app had consent
+//  for and clears them, and tearDown puts that consent back.
 //
 
 @testable import Emuqu
@@ -20,12 +21,18 @@ final class ProviderConsentTrackerTests: XCTestCase {
 
     /// Note: ProviderConsentTracker uses `UserDefaults.standard` directly.
     /// We can't inject a custom suite
-    /// without touching production code, so we work on the shared state
-    /// and clean up after ourselves with `setUp` / `tearDown`.
+    /// without touching production code, so we work on the shared state.
     private let providersToReset: [ProviderID] = [.anthropic, .openai, .gemini, .grok, .deepseek]
+
+    /// Providers the host app had consent for before this test ran. Restored
+    /// in tearDown, so running the suite on a device or simulator does not
+    /// withdraw consent the user gave and re-prompt them. The restored grant
+    /// carries tearDown's date: the tracker has no way to set another one.
+    private var hostConsent: [ProviderID] = []
 
     override func setUp() async throws {
         try await super.setUp()
+        hostConsent = providersToReset.filter { !ProviderConsentTracker.shared.requiresConsent($0) }
         for p in providersToReset {
             ProviderConsentTracker.shared.revoke(p)
         }
@@ -35,6 +42,10 @@ final class ProviderConsentTrackerTests: XCTestCase {
         for p in providersToReset {
             ProviderConsentTracker.shared.revoke(p)
         }
+        for p in hostConsent {
+            ProviderConsentTracker.shared.acknowledge(p)
+        }
+        hostConsent = []
         try await super.tearDown()
     }
 

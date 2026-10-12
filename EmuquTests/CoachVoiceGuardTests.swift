@@ -7,8 +7,13 @@
 //  a regulated medical claim reaching the user. It had no test file at all, and
 //  its class doc described a wiring that did not exist (`AIProvider` calling it,
 //  partial-stream interception in a `ChatViewModel` that is not a type in this
-//  codebase). This file asserts the behaviour and the wiring, so the next
-//  person to read the doc comment is reading something a test agrees with.
+//  codebase). This file asserts the guard's behaviour and the sentence-split
+//  contract `StreamTextBuffer` publishes through
+//  (`testProhibitedPhraseIsNeverPublishedDuringStreaming` replays that loop
+//  with the guard's own functions). It does not drive the call sites
+//  themselves (`StreamTextBuffer.flush`, `VoiceConversationController.speak`,
+//  `AssistantViewModel.applyPostStreamEffects`), so removing one of those
+//  calls would not fail this suite.
 //
 
 @testable import Emuqu

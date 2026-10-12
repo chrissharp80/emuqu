@@ -1,23 +1,25 @@
 {
  "file": "EmuquTests/ProviderConsentTrackerTests.swift",
- "hash": "4677a19f835d1d37",
+ "hash": "5f530fdf974daa6a",
  "role": "XCTest suite for ProviderConsentTracker: Apple exempt, cloud providers need consent by default, acknowledge/revoke flip and persist across instances with a grant date, schema version ≥8 (each historical disclosure bump), every cloud provider has data-use notes (Gemini two), the consent sheet names every Overpass host, and providersRequiringConsent covers all non-Apple ProviderID cases.",
  "types": [
   "ProviderConsentTrackerTests: class — @MainActor XCTestCase over ProviderConsentTracker.shared and ProviderConsentSheet statics"
  ],
  "state": [
-  "mem:ProviderConsentTrackerTests.providersToReset ([.anthropic,.openai,.gemini,.grok,.deepseek])"
+  "mem:ProviderConsentTrackerTests.providersToReset ([.anthropic,.openai,.gemini,.grok,.deepseek])",
+  "mem:ProviderConsentTrackerTests.hostConsent ([ProviderID], per test: providers the host app had consent for before the test, restored in tearDown)"
  ],
- "toplevel": "providersToReset stored-property initializer.",
+ "toplevel": "providersToReset and hostConsent stored-property initializers.",
  "flags": [
   {
    "kind": "test-defect",
    "sev": "med",
-   "text": "setUp and tearDown revoke() every cloud provider on ProviderConsentTracker.shared, which deletes the real assistant.consent.v8.* keys in the host app's standard UserDefaults. Running the suite on a device or simulator where the user had consented wipes that consent (fails safe for privacy, but the user is re-prompted and the consent history/grant date is lost).",
+   "text": "The suite still works on ProviderConsentTracker.shared and the host app's standard UserDefaults (assistant.consent.v8.* keys): the tracker has no way to be given another store. setUp now records which providers the host had consent for and tearDown acknowledges them again, so consent is no longer withdrawn, but the restored grant carries tearDown's date (the original grant date is lost), the keys are shared with the host app and other suites while a test runs, and a crash mid-test leaves consent revoked.",
    "evidence": [
-    "EmuquTests/ProviderConsentTrackerTests.swift:30",
-    "EmuquTests/ProviderConsentTrackerTests.swift:36",
-    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift:127"
+    "EmuquTests/ProviderConsentTrackerTests.swift:35",
+    "EmuquTests/ProviderConsentTrackerTests.swift:46",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift:97",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift:118"
    ],
    "found": "first read, upheld on second"
   }
@@ -25,22 +27,31 @@
  "units": [
   {
    "key": "func ProviderConsentTrackerTests.setUp()",
-   "hash": "90207ba3805df690",
-   "does": "Revokes consent for the five cloud providers before each test.",
+   "hash": "6e794dd3ff1b3de9",
+   "does": "Records in hostConsent which of the five cloud providers the host app currently has consent for, then revokes consent for all five before each test.",
    "entry": "XCTest per-test setUp",
    "calls": [
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)",
     "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.revoke(_:)",
     "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.storageKey(for:)",
     "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.grantedDateKey(for:)"
    ],
-   "reads": [],
+   "reads": [
+    "mem:ProviderConsentTracker.shared.acknowledgedProviders"
+   ],
    "writes": [
     "ud:assistant.consent.v8.<provider> and .grantedAt (standard suite)",
-    "mem:ProviderConsentTracker.shared.acknowledgedProviders"
+    "mem:ProviderConsentTracker.shared.acknowledgedProviders",
+    "mem:ProviderConsentTrackerTests.hostConsent"
    ],
    "branches": [
     {
      "at": "+2",
+     "cond": "provider does not require consent",
+     "effect": "kept in hostConsent"
+    },
+    {
+     "at": "+3",
      "cond": "for each provider in providersToReset",
      "effect": "revoke(p)"
     }
@@ -48,34 +59,45 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.grantedDateKey(for:)": "e6302feb3c5fa09a",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)": "b36a2b8ea48a5e61",
     "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.revoke(_:)": "bda6182f0dfa3610",
     "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.storageKey(for:)": "d7cf432e48ac4980"
    }
   },
   {
    "key": "func ProviderConsentTrackerTests.tearDown()",
-   "hash": "25ffe19c39d144db",
-   "does": "Revokes consent for the five cloud providers after each test.",
+   "hash": "821467bd0780c74f",
+   "does": "Revokes consent for the five cloud providers after each test, then acknowledges again each provider recorded in hostConsent (with tearDown's date as the grant date) and clears hostConsent.",
    "entry": "XCTest per-test tearDown",
    "calls": [
     "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.revoke(_:)",
     "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.storageKey(for:)",
-    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.grantedDateKey(for:)"
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.grantedDateKey(for:)",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.acknowledge(_:)"
    ],
-   "reads": [],
+   "reads": [
+    "mem:ProviderConsentTrackerTests.hostConsent"
+   ],
    "writes": [
     "ud:assistant.consent.v8.<provider> and .grantedAt (standard suite)",
-    "mem:ProviderConsentTracker.shared.acknowledgedProviders"
+    "mem:ProviderConsentTracker.shared.acknowledgedProviders",
+    "mem:ProviderConsentTrackerTests.hostConsent"
    ],
    "branches": [
     {
      "at": "+1",
      "cond": "for each provider in providersToReset",
      "effect": "revoke(p)"
+    },
+    {
+     "at": "+4",
+     "cond": "for each provider in hostConsent",
+     "effect": "acknowledge(p): consent and a new grant date written back"
     }
    ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.acknowledge(_:)": "9fa1066b036acf46",
     "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.grantedDateKey(for:)": "e6302feb3c5fa09a",
     "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.revoke(_:)": "bda6182f0dfa3610",
     "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.storageKey(for:)": "d7cf432e48ac4980"

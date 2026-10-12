@@ -263,6 +263,40 @@ struct WorkoutSample: Codable, Equatable {
     }
 }
 
+// MARK: - Pause spans
+
+/// One pause in a recorded workout, as `PauseTimeline.Span` records it.
+struct WorkoutPauseSpan: Codable, Equatable, Sendable {
+    /// The active (pause-excluded) second the pause began at.
+    let atElapsed: Int
+    /// The pause's wall-clock length in seconds.
+    let seconds: Double
+
+    /// A recording's pauses for `WorkoutMetadata.pauseSpans`; nil when there
+    /// were none.
+    static func spans(of timeline: PauseTimeline) -> [WorkoutPauseSpan]? {
+        let spans = timeline.spans.map { WorkoutPauseSpan(atElapsed: $0.atElapsed, seconds: $0.seconds) }
+        return spans.isEmpty ? nil : spans
+    }
+}
+
+extension WorkoutMetadata {
+    /// The pause-excluded second, the clock of `WorkoutSample.offsetSec`, of a
+    /// moment `wallClockSeconds` after the workout started: wall time minus
+    /// the pauses that ended before it. A moment inside a pause maps to the
+    /// second the pause began. Without recorded pauses the clocks agree.
+    func activeOffset(forWallClockSeconds wallClockSeconds: Double) -> Int {
+        var pausedBefore = 0.0
+        for span in (pauseSpans ?? []).sorted(by: { $0.atElapsed < $1.atElapsed }) {
+            let pauseStart = Double(span.atElapsed) + pausedBefore
+            guard wallClockSeconds > pauseStart else { break }
+            if wallClockSeconds < pauseStart + span.seconds { return span.atElapsed }
+            pausedBefore += span.seconds
+        }
+        return Int(wallClockSeconds - pausedBefore)
+    }
+}
+
 // MARK: - HRR Sample
 
 /// Heart-rate recovery sample captured in the minutes after a session ends.
@@ -321,6 +355,11 @@ struct WorkoutMetadata: Codable, Equatable {
     var splits: [Split]?
     var laps: [Lap]?
     var liveMarkers: [LiveMarker]?
+    /// Each pause of the recording: the active second it began at and how
+    /// long it lasted. Maps a wall-clock moment to the pause-excluded
+    /// `offsetSec` of the per-second samples (`activeOffset(forWallClockSeconds:)`).
+    /// Nil for a workout without pauses or recorded before this existed.
+    var pauseSpans: [WorkoutPauseSpan]?
 
     // MARK: Per-tick time series
     /// Per-second samples of HR, pace, cadence, altitude, α1, METs. Drives
@@ -771,7 +810,7 @@ struct WorkoutMetadata: Codable, Equatable {
         case schemaVersion
         case sport
         case gpsPolyline, distanceMeters, elevationGainMeters, elevationLossMeters
-        case splits, laps, liveMarkers
+        case splits, laps, liveMarkers, pauseSpans
         case samples, healthKitHROffsets
         case hrrSamples, decouplingPercent, efficiencyFactor, luciaTRIMP, hrTSS
         case averagePowerWatts, normalizedPowerWatts, peakPowerWatts
@@ -804,6 +843,7 @@ struct WorkoutMetadata: Codable, Equatable {
         splits = try c.decodeIfPresent([Split].self, forKey: .splits)
         laps = try c.decodeIfPresent([Lap].self, forKey: .laps)
         liveMarkers = c.optionalValue([LiveMarker].self, .liveMarkers)
+        pauseSpans = c.optionalValue([WorkoutPauseSpan].self, .pauseSpans)
         samples = try c.decodeIfPresent([WorkoutSample].self, forKey: .samples)
         healthKitHROffsets = try c.decodeIfPresent([Int].self, forKey: .healthKitHROffsets)
         hrrSamples = c.optionalValue([HRRSample].self, .hrrSamples)
@@ -871,6 +911,7 @@ struct WorkoutMetadata: Codable, Equatable {
         try c.encodeIfPresent(splits, forKey: .splits)
         try c.encodeIfPresent(laps, forKey: .laps)
         try c.encodeIfPresent(liveMarkers, forKey: .liveMarkers)
+        try c.encodeIfPresent(pauseSpans, forKey: .pauseSpans)
         try c.encodeIfPresent(samples, forKey: .samples)
         try c.encodeIfPresent(healthKitHROffsets, forKey: .healthKitHROffsets)
     }

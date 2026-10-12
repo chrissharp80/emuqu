@@ -233,12 +233,36 @@
    }
   },
   {
-   "key": "func CSVExporter.trackpointRow(fix:cumulative:session:samples:units:iso:)",
-   "hash": "01dfc0472818b9bd",
-   "does": "Formats one CSV row: ISO timestamp, seconds from start, lat/lon (6dp), altitude and cumulative distance in user units, and HR/pace/cadence/METs/power/DFA α1 from the nearest sample within 5 s (empty cells otherwise).",
+   "key": "func CSVExporter.sample(at:of:in:)",
+   "hash": "0729be7a1ee36af5",
+   "does": "The 1 Hz sample nearest a GPS fix: maps the fix's wall-clock seconds since the session start to the pause-excluded sample clock via WorkoutMetadata.activeOffset (plain wall seconds when the session has no workout metadata), then nearestSample.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.activeOffset(forWallClockSeconds:)",
     "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.nearestSample(to:in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "session.workoutMetadata nil",
+     "effect": "Int(wall seconds)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.nearestSample(to:in:)": "dce7b3646a6968af",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.activeOffset(forWallClockSeconds:)": "bcdd2b66dec0008d"
+   }
+  },
+  {
+   "key": "func CSVExporter.trackpointRow(fix:cumulative:session:samples:units:iso:)",
+   "hash": "c66e81b1d82a46f6",
+   "does": "Formats one CSV row: ISO timestamp, wall-clock seconds from start, lat/lon (6dp), altitude and cumulative distance in user units, and HR/pace/cadence/METs/power/DFA α1 from the sample nearest the fix on the pause-excluded sample clock (sample(at:of:in:); within 5 s, empty cells otherwise).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.sample(at:of:in:)"
    ],
    "reads": [],
    "writes": [],
@@ -274,24 +298,9 @@
      "effect": "α1 %.3f else '' (most rows empty since α1 is ~20 s cadence)"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "Joins each fix to a sample by wall-clock seconds since start (fix.timestamp − startDate), but WorkoutSample.offsetSec is pause-excluded active time and the stored track carries no real fix times (GPXExporter.decode spreads them evenly over the wall-clock duration); neither the pause timeline nor per-fix times are persisted on WorkoutMetadata, so after any pause (or with a non-uniform fix rate) later rows get HR/pace/cadence/power/alpha1 from the wrong moment or an empty cell. Fixing it needs those persisted (outside this file).",
-     "evidence": [
-      "Emuqu/Sources/Analysis/CSVExporter.swift:164",
-      "Emuqu/Sources/Analysis/CSVExporter.swift:165",
-      "Emuqu/Sources/Collection/WorkoutLifecycle.swift:73",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift:548",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift:558",
-      "Emuqu/Sources/Analysis/GPXExporter.swift:155"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.nearestSample(to:in:)": "dce7b3646a6968af",
+    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.sample(at:of:in:)": "7ec6cfd7260990e0",
     "Emuqu/Sources/Collection/METLookup.swift::func METLookup.mets(sport:speedKmh:)": "99b5dc9d71b51468",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.cadenceStepsPerMin": "d9315eaf78873e8c",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.powerWatts": "ad61e93456f590a4"

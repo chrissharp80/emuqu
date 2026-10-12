@@ -167,10 +167,8 @@ enum SessionMerger {
             imported: imported, existing: existing, existingPoints: existingPoints, mergedPoints: mergedPoints,
             beats: (importedBeats.streaming + existingBeats.streaming, importedBeats.device + existingBeats.device)
         )
-        let adoptAnalysis = shouldAdoptImportedAnalysis(
-            imported: imported, existing: existing,
-            importedPoints: importedPoints, existingPoints: existingPoints
-        )
+        let adoptAnalysis = shouldAdoptImportedAnalysis(imported: imported, existing: existing,
+                                                        importedPoints: importedPoints, existingPoints: existingPoints)
         return .composite(
             mergedPoints: mergedPoints, summary: summary,
             adoptImportedSleepBounds: existingIsStreaming && !importedIsStreaming,

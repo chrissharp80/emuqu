@@ -53,6 +53,7 @@ struct TroubleshootingPage: View {
     private var diagnosticsSections: some View {
         developerSections
         problemsSection
+        quarantinedUploadsSection
         recentProblemsSection
         crashReportSection
         actionSections
@@ -359,6 +360,40 @@ struct TroubleshootingPage: View {
         if logger.errorCatalog.isEmpty || !debugModeEnabled, !hasCrashReport {
             noProblemsSection
         }
+    }
+
+    /// Sessions iCloud sync holds back after a permanent preparation error
+    /// (`CloudKitSyncManager.quarantinedCount`; the files on disk are
+    /// untouched). Try again clears the hold, so the next sync re-attempts
+    /// them. Shown only while there are any.
+    @ViewBuilder
+    private var quarantinedUploadsSection: some View {
+        let syncManager = dependencies.storage.cloudKitSyncManager
+        if syncManager.quarantinedCount > 0 {
+            quarantinedUploadsBody(syncManager)
+        }
+    }
+
+    private func quarantinedUploadsBody(_ syncManager: CloudKitSyncManager) -> some View {
+        Section {
+            quarantinedCountRow(syncManager.quarantinedCount)
+            Button(String(localized: "Try again", bundle: LanguageManager.appBundle)) {
+                syncManager.retryQuarantined(nil)
+            }
+        } header: {
+            Text(String(localized: "iCloud", bundle: LanguageManager.appBundle))
+        }
+    }
+
+    private func quarantinedCountRow(_ count: Int) -> some View {
+        HStack {
+            Label(String(localized: "Not uploaded", bundle: LanguageManager.appBundle), systemImage: "icloud.slash")
+            Spacer()
+            Text(verbatim: "\(count)")
+                .foregroundColor(AppTheme.textSecondary)
+                .monospacedDigit()
+        }
+        .accessibilityElement(children: .combine)
     }
 
     private var noProblemsSection: some View {

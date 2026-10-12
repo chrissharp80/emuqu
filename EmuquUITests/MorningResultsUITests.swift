@@ -104,16 +104,23 @@ final class MorningResultsUITests: XCTestCase {
     /// `staticTexts` match, because the ring is `accessibilityElement(children:
     /// .ignore)` — the number exists only inside that label, which is also the
     /// only form a VoiceOver user gets. The digits are ASCII in every locale
-    /// (`Int` interpolation, not a formatter), so the pattern is not an
+    /// (`Int` interpolation, not a formatter), so the check is not an
     /// English-copy match.
+    ///
+    /// The label always carries the scale ("… out of 100 …"), so any digit
+    /// at all would pass with the score missing. It must carry two numbers:
+    /// the score, first, within 0–100, and the 100 of the scale.
     func testTheScoreCardShowsANumericScore() {
         openSeededReading()
         XCTAssertTrue(
             scoreRing.waitForExistence(timeout: UITestTiming.s(10)),
             "The score ring must render — \(UITestFind.onScreen(app))"
         )
-        let hasNumber = NSPredicate(format: "label MATCHES %@", ".*[0-9]+.*").evaluate(with: scoreRing)
-        XCTAssertTrue(hasNumber, "The ring must announce a score; its label was '\(scoreRing.label)'")
+        let label = scoreRing.label
+        let numbers = label.split { !("0" ... "9").contains($0) }.compactMap { Int($0) }
+        XCTAssertEqual(numbers.count, 2, "The ring must announce a score and its scale; its label was '\(label)'")
+        XCTAssertTrue(numbers.first.map { (0 ... 100).contains($0) } ?? false,
+                      "The announced score must be within 0–100; its label was '\(label)'")
     }
 
     /// The ⓘ next to the score opens "Understanding Your Score", the first

@@ -111,7 +111,7 @@
     "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.openMicForFirstTurn()": "a8407015352418c0",
     "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.pinSTTProviderForSession()": "2b722aef1ca771dd",
     "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.returnToIdleAfterFailedStart()": "e15a0bbe7a209f33",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.ensurePermissions()": "e789cd7e9bf070ca",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.ensurePermissions()": "68aa074026c4bf83",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.refreshLanguageForSession()": "4c2ace0984d70676",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.state": "1a896ccc8ae2dce3",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
@@ -207,7 +207,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.drainPendingTriggersIfIdle()": "bf0438cde040823b",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.drainPendingTriggersIfIdle()": "417612ef6e16d45b",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.state": "1a896ccc8ae2dce3"
    }
   },
@@ -235,7 +235,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.announceVoiceChatStart()": "d80bc72e7ab56596",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.drainPendingTriggersIfIdle()": "bf0438cde040823b",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.drainPendingTriggersIfIdle()": "417612ef6e16d45b",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.beginUserTurn()": "8c08834f652e4360",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.state": "1a896ccc8ae2dce3"
    }
@@ -389,7 +389,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.playAIPromptTriggerNow(prompt:)": "1c902cb904961239",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.queueTrigger(_:)": "c41f7fde4fe6bfca",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.queueTrigger(_:)": "7fc5acdc618fd14a",
     "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.shouldQueueTrigger(_:)": "6ba90bd7e72382b7"
    }
   },
@@ -414,12 +414,13 @@
   },
   {
    "key": "func VoiceConversationController.queueTrigger(_:)",
-   "hash": "50822c1618b2c773",
-   "does": "Appends a trigger to pendingTriggers, caps the queue, logs; with voice idle (the only wait is a typed reply streaming) arms drainWhenTypedReplyEnds so the queue drains when that reply finishes.",
+   "hash": "26bb3294373339ab",
+   "does": "Enqueues the trigger on pendingTriggers (VoiceTriggerQueue.enqueue, which drops the oldest beyond 8 and the drop is logged as a warning), logs the queue size; with voice idle (the only wait is a typed reply streaming) arms drainWhenTypedReplyEnds so the queue drains when that reply finishes.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.capPendingTriggers()",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceTriggerQueue.enqueue(_:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceTriggerQueue.count",
     "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.drainWhenTypedReplyEnds()"
    ],
    "reads": [],
@@ -428,16 +429,22 @@
    ],
    "branches": [
     {
-     "at": "+5",
+     "at": "+3",
+     "cond": "enqueue dropped stale triggers",
+     "effect": "warning log with the count"
+    },
+    {
+     "at": "+7",
      "cond": "state == .idle",
      "effect": "drainWhenTypedReplyEnds"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.capPendingTriggers()": "561cde02679e6536",
     "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.drainWhenTypedReplyEnds()": "ffecdc85b5f8cd8a",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceTriggerQueue.enqueue(_:)": "ba47bb9c69678ffe",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.state": "1a896ccc8ae2dce3",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceTriggerQueue.count": "14b20b3e4a521d87",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
@@ -472,34 +479,10 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.drainPendingTriggersIfIdle()": "bf0438cde040823b",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.drainPendingTriggersIfIdle()": "417612ef6e16d45b",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.cancelAssistantObservers()": "e52ce7610c1a76ac",
     "Emuqu/Sources/Services/StoreKitManager.swift::func handle(_:)": "4ca4c631cc8c2212",
     "Emuqu/Sources/Utilities/ObservationLoop.swift::func ObservationLoop.observe(_:initial:read:onChange:)": "5ef79ca8e7bb0dc5"
-   }
-  },
-  {
-   "key": "func VoiceConversationController.capPendingTriggers()",
-   "hash": "3d0767322378633f",
-   "does": "Drops the oldest pendingTriggers so at most 8 remain, logging the drop.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
-   ],
-   "reads": [],
-   "writes": [
-    "mem:VoiceConversationController.pendingTriggers"
-   ],
-   "branches": [
-    {
-     "at": "+3",
-     "cond": "count > 8",
-     "effect": "removeFirst(count-8) and warn; else nothing"
-    }
-   ],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
   {
@@ -566,7 +549,7 @@
     "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func InterjectionGate.maySend(to:disclaimerAccepted:)": "2a6251c333cbae5a",
     "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.consumeInterjection(_:)": "4549ff5fc3b1a790",
     "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.finishInterjectionAfterError()": "ce9c4ca790727492",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.buildSystemPrompt()": "fc69acd52aec5ad4",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.buildSystemPrompt()": "6b315935300783cb",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.assistantViewModel": "0b0ba54c8303a4e2",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "3848c612cbdb11bc"
@@ -689,7 +672,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.append(delta:)": "bdd4dfc591e46762",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.speak(_:voice:scripted:)": "fe4979f15855666c"
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.speak(_:voice:scripted:)": "bf6a0dfba3dadc28"
    }
   },
   {
@@ -741,10 +724,11 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "b9254c0b8e1b4c88",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "a36b1e1e1d67d361",
     "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.finalize()": "dd0ee2d1995fab40",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.finishTriggerSpeech()": "43bb5e173a49033e",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.speak(_:voice:scripted:)": "fe4979f15855666c",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.finishTriggerSpeech()": "94eb1c412099ec29",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.speak(_:voice:scripted:)": "bf6a0dfba3dadc28",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::let VoiceConversationController.synthesizer": "a2b4f383513d2c85",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.state": "1a896ccc8ae2dce3",
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "535021bb1dd58814"
    }
@@ -787,7 +771,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.drainPendingTriggersIfIdle()": "bf0438cde040823b",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.drainPendingTriggersIfIdle()": "417612ef6e16d45b",
     "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.isBusyWithUserResponse()": "cbc4774e957799ff",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.beginUserTurn()": "8c08834f652e4360",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.state": "1a896ccc8ae2dce3"
@@ -821,7 +805,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.playSpokenTriggerNow(message:)": "639e9bef29a11eef",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.queueTrigger(_:)": "c41f7fde4fe6bfca",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.queueTrigger(_:)": "7fc5acdc618fd14a",
     "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.saveInProgressWordsToClipboard(reason:)": "338b607af2c5c659",
     "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.shouldQueueTrigger(_:)": "6ba90bd7e72382b7"
    }
@@ -885,6 +869,7 @@
    ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::let VoiceConversationController.synthesizer": "a2b4f383513d2c85",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.assistantViewModel": "0b0ba54c8303a4e2",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.state": "1a896ccc8ae2dce3"
    }
@@ -996,6 +981,7 @@
    "branches": [],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::let VoiceConversationController.synthesizer": "a2b4f383513d2c85",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.assistantViewModel": "0b0ba54c8303a4e2",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.state": "1a896ccc8ae2dce3",
     "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift::func VoiceTurnPolicy.isBusyWithUserResponse(state:hasInFlightLLMTask:isStreamingResponse:synthesizerIsSpeaking:hasPartialTranscript:)": "0afa835abcd8c59d"
@@ -1003,11 +989,13 @@
   },
   {
    "key": "func VoiceConversationController.drainPendingTriggersIfIdle()",
-   "hash": "89b2e86f83845c08",
-   "does": "Plays the next queued trigger if the queue is non-empty and nothing is busy.",
+   "hash": "2dd6b8c82fdaec92",
+   "does": "Plays the next queued trigger (popFirst) if the queue is non-empty and nothing is busy.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceTriggerQueue.isEmpty",
     "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.isBusyWithUserResponse()",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceTriggerQueue.popFirst()",
     "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.playSpokenTriggerNow(message:)",
     "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.playAIPromptTriggerNow(prompt:)"
    ],
@@ -1020,21 +1008,16 @@
    "branches": [
     {
      "at": "+2",
-     "cond": "queue empty",
-     "effect": "return"
+     "cond": "queue empty or busy",
+     "effect": "return; items stay queued"
     },
     {
-     "at": "+3",
-     "cond": "busy",
-     "effect": "return; item stays queued"
-    },
-    {
-     "at": "+6",
+     "at": "+4",
      "cond": "case .spokenLiteral",
      "effect": "playSpokenTriggerNow"
     },
     {
-     "at": "+8",
+     "at": "+6",
      "cond": "case .aiPrompt",
      "effect": "playAIPromptTriggerNow"
     }
@@ -1043,7 +1026,9 @@
    "deps": {
     "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.isBusyWithUserResponse()": "cbc4774e957799ff",
     "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.playAIPromptTriggerNow(prompt:)": "1c902cb904961239",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.playSpokenTriggerNow(message:)": "639e9bef29a11eef"
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.playSpokenTriggerNow(message:)": "639e9bef29a11eef",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceTriggerQueue.popFirst()": "683b42f37b566d6a",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceTriggerQueue.isEmpty": "7074863254b2534c"
    }
   },
   {

@@ -166,6 +166,14 @@ final class SavedRouteStore {
         save()
     }
 
+    /// False while the library file exists but still cannot be read (the
+    /// phone has not been unlocked since a restart, or a damaged file could
+    /// not be set aside): `routes` is then incomplete and changes made now
+    /// are not saved. Retries the read first, as `save()` does.
+    func isLibraryReadable() -> Bool {
+        recoverBlockedLoad()
+    }
+
     /// Reads the library again after a failed read, keeping the routes added
     /// in memory since. True when the read now succeeds (the protected-data
     /// observer is then removed); false when it still fails.
@@ -209,15 +217,25 @@ final class SavedRouteStore {
         save()
     }
 
-    func rename(id: UUID, to newName: String) {
-        guard let idx = routes.firstIndex(where: { $0.id == id }) else { return }
+    /// False, changing nothing, while the library cannot be read
+    /// (`isLibraryReadable`): the rename could not be saved.
+    @discardableResult
+    func rename(id: UUID, to newName: String) -> Bool {
+        guard isLibraryReadable() else { return false }
+        guard let idx = routes.firstIndex(where: { $0.id == id }) else { return true }
         routes[idx].name = newName
         save()
+        return true
     }
 
-    func remove(id: UUID) {
+    /// False, changing nothing, while the library cannot be read
+    /// (`isLibraryReadable`): the delete could not be saved.
+    @discardableResult
+    func remove(id: UUID) -> Bool {
+        guard isLibraryReadable() else { return false }
         routes.removeAll { $0.id == id }
         save()
+        return true
     }
 
     /// Geocode each climb's start coordinate into a road name and

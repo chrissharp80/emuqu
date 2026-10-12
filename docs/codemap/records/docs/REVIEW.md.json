@@ -49,8 +49,8 @@
   },
   {
    "key": "§ App Review — reviewer notes and release flow-walk > What the reviewer must be told > Reviewer notes template",
-   "hash": "36acbf63126dd539",
-   "does": "Claims reviewer path: Dashboard shows 'No strap yet? Explore with sample data' under 'Building your baseline'; loading adds three weeks of synthetic nights (DemoSessionSeeder.defaultNightCount = 21, DemoSessionSeeder.swift:66) scored by the real pipeline, tagged Demo, with a banner and 'Remove sample data'; same control at More → Settings → Troubleshooting → Sample data → 'Load sample data'; paywall after onboarding with $0 trial + unlock, reachable at Settings → Purchase, Restore Purchases; Flo setup strings ('Set up Flo', 'Add an API key', 'Save key', 'Send and remember for', 'Choose model', 'Report response', 'Withdraw consent', \"Don't send\") all exist in Swift sources; keys in Keychain; iCloud sync off by default and excludes Health data; background modes audio/bluetooth-central/bluetooth-peripheral/location (Info.plist:22-28); assistant declines rhythm/diagnostic questions and answers self-harm with crisis resources on device.",
+   "hash": "d681fa08b0d9fc97",
+   "does": "Claims reviewer path: Dashboard shows 'No strap yet? Explore with sample data' under 'Building your baseline'; loading adds three weeks of synthetic nights (DemoSessionSeeder.defaultNightCount = 21, DemoSessionSeeder.swift:66) scored by the real pipeline, tagged Demo, with a banner and 'Remove sample data'; same control at More → Settings → Troubleshooting → Sample data → 'Load sample data'; paywall after onboarding with $0 trial + unlock, reachable at Settings → Purchase, Restore Purchases; Flo setup strings ('Set up Flo', 'Add an API key', 'Save key', 'Send and remember for', 'Choose model', 'Report response', 'Withdraw consent', \"Don't send\") all exist in Swift sources; keys in Keychain; iCloud sync off by default and excludes Health data; background modes audio/bluetooth-central/bluetooth-peripheral/location (Info.plist:22-28), audio described as voice chat plus workout cues spoken from the background with no keep-alive (session active only while a cue is audible, BackgroundAudioManager beginCue/endCue) and sensor workouts kept running by bluetooth-central wakeups, matching BackgroundAudioManager.swift:3-21; assistant declines rhythm/diagnostic questions and answers self-harm with crisis resources on device.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.seed(_:into:pipeline:finalize:progress:)",
@@ -59,31 +59,20 @@
     "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.revoke(_:)",
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.uploadable(_:)",
     "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)",
-    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.beginCue()"
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.beginCue()",
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.endCue(_:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "Reviewer notes say the audio background mode 'holds a session during an indoor workout that will speak'; BackgroundAudioManager holds no keep-alive and activates the mixable session only while a cue is audible (beginCue/endCue), relying on bluetooth-central wakeups. MAINTAINERS §9.6 states the same as the code. The App Review notes therefore misdescribe the audio background-mode use, which is the text a 2.5.4 review checks.",
-     "evidence": [
-      "docs/REVIEW.md:120",
-      "Emuqu/Sources/Collection/BackgroundAudioManager.swift:3",
-      "Emuqu/Sources/Collection/BackgroundAudioManager.swift:16",
-      "docs/MAINTAINERS.md:910"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.setKey(_:for:)": "b26556448903f9ff",
-    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "7e13e63b0e68cfdb",
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.setKey(_:for:)": "7253ac7abb336197",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "38964b4b43ab8c9f",
     "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.revoke(_:)": "bda6182f0dfa3610",
     "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.beginCue()": "73c6ae1ce9608494",
-    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.seed(_:into:pipeline:finalize:progress:)": "89d778009ae4ee09",
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.endCue(_:)": "416d3a125402698c",
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.seed(_:into:pipeline:finalize:progress:)": "6289abf541e92267",
     "Emuqu/Sources/Services/StoreKitManager.swift::func boot()": "f240f8d7b8af3c2b",
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.uploadable(_:)": "f080778df155b85f"
    }

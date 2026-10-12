@@ -195,7 +195,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.clearConversationButton": "f56e7630db580261",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.exportChatButton": "c9060280ba9b27d0",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.exportChatButton": "1762f29958e45215",
     "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.refreshDataContextButton": "199ff0789d8e4034",
     "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.reportSpokenCoachingButton": "87f0195bd208ba02",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
@@ -693,9 +693,36 @@
   },
   {
    "key": "var AssistantChatView.exportChatButton",
-   "hash": "1ab9fde378623ff8",
-   "does": "Menu 'Export chat' button, disabled for an empty chat: on tap calls viewModel.exportConversation() (replaces any earlier export in tmp) and stores the URL, presenting the share sheet; a nil URL (write failed) sets viewModel.errorMessage 'Export failed'.",
+   "hash": "c32f43e28417e1f6",
+   "does": "Menu 'Export chat' button, disabled for an empty chat; a tap runs exportChat (builds the transcript file on tap rather than on every Menu body evaluation, which slowed the keyboard).",
    "entry": "menu tap",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::func AssistantChatView.exportChat()",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.viewModel"
+   ],
+   "reads": [
+    "mem:AssistantViewModel.turns"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+14",
+     "cond": "viewModel.turns.isEmpty",
+     "effect": "button disabled"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::func AssistantChatView.exportChat()": "d7f065b310d4c579",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.viewModel": "7a67d165d99e9732",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func AssistantChatView.exportChat()",
+   "hash": "94fa18b4a51b807c",
+   "does": "Calls viewModel.exportConversation() (replaces any earlier export in tmp) and stores the URL in exportShareURL, presenting the share sheet; a nil URL (write failed) sets viewModel.errorMessage 'Export failed'.",
+   "entry": "Export chat button tap (exportChatButton)",
    "calls": [
     "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.viewModel",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.exportConversation()"
@@ -705,11 +732,12 @@
    ],
    "writes": [
     "file:tmp/EmuquChat-<timestamp>.md",
+    "mem:AssistantChatView.exportShareURL",
     "mem:AssistantViewModel.errorMessage"
    ],
    "branches": [
     {
-     "at": "+15",
+     "at": "+2",
      "cond": "exportConversation returned nil",
      "effect": "errorMessage = 'Export failed'"
     }

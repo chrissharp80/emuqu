@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Services/DataPurgeService.swift",
- "hash": "603e122fba8dce4e",
+ "hash": "e3f5bbd124f345e3",
  "role": "'Delete All My Data' orchestrator: awaits CloudKit zone deletion, sweeps every file in App Group/Application Support/Documents/Caches/tmp and every UserDefaults key (minus keep-lists), then resets named stores (archive dirs, keychain, AI stores, settings, breadcrumbs, caches, notifications) and returns a localized Report.",
  "types": [
   "DataPurgeService: enum (@MainActor) — static purge steps",
@@ -11,7 +11,7 @@
  ],
  "state": [
   "mem:DataPurgeService.keepList = ['user_settings.json'] (file names spared by the container sweep; the App Group root also spares 'Library')",
-  "mem:DataPurgeService.defaultsKeepList = entitlement.anchor.v1, storekit.lastKnownPurchased, storekit.lastKnownTestFlight",
+  "mem:DataPurgeService.defaultsKeepList = entitlement.anchor.v1, storekit.lastKnownPurchased, storekit.lastKnownTestFlight, storekit.verifiedProductionInstall, storekit.verifiedXcodeInstall",
   "mem:DataPurgeService.systemOwnedPrefixes (Apple, NS, com.apple., WebKit, AK, PK, MSV, INNext, CarCapabilities, ADPrivacy, METAL, GEO, TVRemote, SU)",
   "file:<sharedContainer>/debug_log.txt (referenced)",
   "ud:AssistantViewModel.disclaimerKey (assistant.disclaimerAccepted, referenced)"

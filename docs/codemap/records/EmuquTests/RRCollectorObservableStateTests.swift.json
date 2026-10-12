@@ -1,27 +1,28 @@
 {
  "file": "EmuquTests/RRCollectorObservableStateTests.swift",
- "hash": "0093e84deae8acfb",
+ "hash": "3c984ce0b70e61f1",
  "role": "Characterization XCTest suite for RRCollector's observable surface: ArchiveSignal coalesced version bumps, back-compat forwarding to DeviceStatus/StreamingLifecycle/MorningCoordination/SessionState sub-observables, resetSession, MorningProcessingStatus equality, ANS config and paused-session lookup.",
  "types": [
   "RRCollectorObservableStateTests: class — @MainActor XCTestCase over RRCollector sub-observables"
  ],
  "state": [
-  "collector: lazy var RRCollector() — built on first access via the shared-dependency convenience init",
+  "collector: lazy var RRCollector built on first access with the designated init: a new PolarManager, the host's HealthKitManager, a SessionArchive in storageDirectory and a BaselineTracker on storageDirectory/HRVBaseline.json; settings, CloudKit sync and background audio default to the host's shared instances",
+  "storageDirectory: nonisolated let temp dir RRCollectorObservableState-<UUID> (created in setUp, removed in tearDown)",
+  "file:<tmp>/RRCollectorObservableState-<UUID>/ (the collector's archive and baseline file)",
   "cancellables: Set<AnyCancellable> (reset in setUp/tearDown, never used by any test)",
   "ud:RRCollector.activeRecordingStartTime / RRCollector.activeRecordingSessionId / RRCollector.activeRecordingSessionType (removed in clearPersistedState)"
  ],
- "toplevel": "lazy collector property defers RRCollector() construction until first use so setUp's clearPersistedState runs first; cancellables is declared and cleared but no test subscribes anything.",
+ "toplevel": "lazy collector property defers RRCollector construction until first use so setUp's clearPersistedState runs first, and keeps its archive and baseline in this test's temporary directory; cancellables is declared and cleared but no test subscribes anything.",
  "flags": [
   {
    "kind": "test-defect",
    "sev": "med",
-   "text": "The lazy `collector` is RRCollector() which wires the app host's shared SettingsManager, SessionArchive and CloudKitSyncManager (AppDependencies.current); the ANS tests write settingsManager.settings (vo2MaxOverride, useHealthKitVO2Max, enableTrainingLoadIntegration) on that shared manager and only restore them in defer, and setUp/tearDown wipe the real persisted-recording UserDefaults keys, so the suite shares and mutates app-host state.",
+   "text": "The lazy `collector` now keeps its archive and baseline tracker in a temporary directory, but it still uses the app host's shared SettingsManager (SettingsManager has only a private init, so a test cannot make its own): the ANS tests write settingsManager.settings (vo2MaxOverride, useHealthKitVO2Max, enableTrainingLoadIntegration) on that shared manager and only restore them in defer, and setUp/tearDown wipe the real persisted-recording UserDefaults keys, so the suite still shares and mutates app-host state.",
    "evidence": [
-    "EmuquTests/RRCollectorObservableStateTests.swift:19",
-    "EmuquTests/RRCollectorObservableStateTests.swift:22",
-    "EmuquTests/RRCollectorObservableStateTests.swift:443",
-    "EmuquTests/RRCollectorObservableStateTests.swift:474",
-    "Emuqu/Sources/Collection/RRCollector.swift:644"
+    "EmuquTests/RRCollectorObservableStateTests.swift:24",
+    "EmuquTests/RRCollectorObservableStateTests.swift:33",
+    "Emuqu/Sources/Collection/RRCollector.swift:697",
+    "Emuqu/Sources/Models/SettingsManager.swift:88"
    ],
    "found": "first read, upheld on second"
   }
@@ -67,11 +68,12 @@
   },
   {
    "key": "func RRCollectorObservableStateTests.setUp()",
-   "hash": "513ec3fe1f96c2f3",
-   "does": "XCTest setUp: clears persisted recording state and resets cancellables before each test.",
+   "hash": "956a386d3b5c0a43",
+   "does": "XCTest setUp: clears persisted recording state, resets cancellables and creates the test's temporary storage directory before each test.",
    "entry": "XCTest runner: setUp before each test",
    "calls": [
-    "EmuquTests/RRCollectorObservableStateTests.swift::func RRCollectorObservableStateTests.clearPersistedState()"
+    "EmuquTests/RRCollectorObservableStateTests.swift::func RRCollectorObservableStateTests.clearPersistedState()",
+    "ext:FileManager.createDirectory(at:withIntermediateDirectories:)"
    ],
    "reads": [],
    "writes": [
@@ -79,7 +81,8 @@
     "ud:RRCollector.dismissedInterruptedSessionIds",
     "ud:RRCollector.activeRecordingStartTime",
     "ud:RRCollector.activeRecordingSessionId",
-    "ud:RRCollector.activeRecordingSessionType"
+    "ud:RRCollector.activeRecordingSessionType",
+    "file:<tmp>/RRCollectorObservableState-<UUID>/ (created)"
    ],
    "branches": [],
    "flags": [],
@@ -89,22 +92,24 @@
   },
   {
    "key": "func RRCollectorObservableStateTests.tearDown()",
-   "hash": "dde4d5a030617b19",
-   "does": "XCTest tearDown: clears cancellables, deletes the lazy collector's currentSession from its archive if one is set (error ignored with try?), then clears persisted recording state.",
+   "hash": "2631b8d657f5b77d",
+   "does": "XCTest tearDown: clears cancellables, deletes the lazy collector's currentSession from its temporary archive if one is set (error ignored with try?), clears persisted recording state, then removes the temporary storage directory (a failure fails the test).",
    "entry": "XCTest runner: tearDown after each test",
    "calls": [
-    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()",
-    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)",
     "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:backgroundAudioManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)",
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.wireCollaborators()",
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()",
+    "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::init BaselineTracker(baselineFile:onBaselineUpdated:)",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)",
-    "EmuquTests/RRCollectorObservableStateTests.swift::func RRCollectorObservableStateTests.clearPersistedState()"
+    "EmuquTests/RRCollectorObservableStateTests.swift::func RRCollectorObservableStateTests.clearPersistedState()",
+    "ext:FileManager.removeItem(at:)"
    ],
    "reads": [
-    "mem:AppDependencies.current (shared SettingsManager, SessionArchive, CloudKitSyncManager, BackgroundAudioManager via lazy RRCollector())"
+    "mem:AppDependencies.current (shared SettingsManager, HealthKitManager, CloudKitSyncManager, BackgroundAudioManager via the lazy collector)"
    ],
    "writes": [
-    "archive:SessionArchive.delete",
+    "file:<tmp>/RRCollectorObservableState-<UUID>/ (session deleted, then directory removed)",
     "ud:UserDefaultsKeys.persistedRecordingState",
     "ud:RRCollector.dismissedInterruptedSessionIds",
     "ud:RRCollector.activeRecordingStartTime",
@@ -122,20 +127,21 @@
     {
      "kind": "test-defect",
      "sev": "low",
-     "text": "tearDown reads `collector` unconditionally, so tests that only use isolatedCollector() or none still construct a full shared-dependency RRCollector() during teardown (its init wires collaborators against the app host's AppDependencies).",
+     "text": "tearDown reads `collector` unconditionally, so tests that only use isolatedCollector() or none still construct the lazy RRCollector during teardown (its init wires collaborators against the app host's settings, CloudKit and background-audio managers).",
      "evidence": [
-      "EmuquTests/RRCollectorObservableStateTests.swift:37",
-      "EmuquTests/RRCollectorObservableStateTests.swift:19"
+      "EmuquTests/RRCollectorObservableStateTests.swift:52",
+      "EmuquTests/RRCollectorObservableStateTests.swift:24"
      ],
      "found": "first read, upheld on second"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::init BaselineTracker(baselineFile:onBaselineUpdated:)": "be93861445c19b1e",
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "b9f281895be22d44",
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.wireCollaborators()": "b79d8ead159ebe60",
-    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()": "cee8619a3d38e814",
-    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)": "77db749d2e74b6b0",
     "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:backgroundAudioManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)": "ab46982b96b81c2c",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)": "cefef470ab858af7",
+    "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)": "312605e0908fbc30",
     "EmuquTests/RRCollectorObservableStateTests.swift::func RRCollectorObservableStateTests.clearPersistedState()": "ebae0c63b34b372f"
    }
   },

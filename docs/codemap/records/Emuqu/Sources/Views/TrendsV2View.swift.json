@@ -1,12 +1,12 @@
 {
  "file": "Emuqu/Sources/Views/TrendsV2View.swift",
- "hash": "d88d5e5c22331505",
+ "hash": "62ea01ceb8a562bb",
  "role": "Trends screen (reached from More menu): loads every archived session once (lightweight), filters to reliable overnight readings within the selected range/tag, memoizes derived chart/stats/insight/direction state, and renders tag chips, range chips, the RMSSD overall-trend card, the metric chart, stats grid, insights and the History calendar (which can soft-delete a session).",
  "types": [
   "TrendsV2View: struct (View) — Trends screen",
   "TrendsV2View.TimeRange: enum Int — 7/14/30/90/all(0) range chips",
   "TrendsV2View.Metric: enum String — chart metric (rawValue English data key)",
-  "TrendsV2View.BaselineStats: struct — 60-day mean/population SD/sampleCount; hasData needs >=4",
+  "TrendsV2View.BaselineStats: struct — 60-day mean/population SD/sampleCount plus the band edges low/high (log space for log-normal metrics); hasData needs >=4",
   "TrendsV2View.Derived: struct — memoized snapshot (sessions, points, rollingBaseline, chartBand, direction, stats, insights)",
   "TrendsV2View.DirectionInfo: struct — label/glyph/color for a trend verdict"
  ],
@@ -535,25 +535,26 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.rmssdReadings(_:)": "7ed66740114a7cfd",
-    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.buildInsights(metric:points:days:totalDays:)": "87b6f69e812cfc18",
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.buildInsights(metric:points:days:totalDays:)": "67c2ef33bf6efe6b",
     "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.buildMetricPoints(from:metric:)": "e08af1fdb22d6e53",
     "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.computeStats(_:baselines:)": "e11ca7c5f218b291",
     "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.rollingBaseline(_:window:)": "a13a24688a968113",
     "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.computeDirection(_:scale:)": "51cec13b934c1292",
-    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.sixtyDayBaselines()": "dcebf659193f1cb9",
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.sixtyDayBaselines()": "3c7a3f0d541d2c9f",
     "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.rangeDays": "9786d7db97b61620",
     "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.sessions": "67ba650506b9a999"
    }
   },
   {
    "key": "func TrendsV2View.sixtyDayBaselines()",
-   "hash": "19769ec8fa6a56eb",
-   "does": "Builds a BaselineStats for every Metric from reliable overnight sessions in the last 60 days (ignores range chip and tag filter).",
+   "hash": "81864b2093c329ae",
+   "does": "Builds a BaselineStats for every Metric from reliable overnight sessions in the last 60 days (ignores range chip and tag filter); the log-normal metrics (isLogNormal: RMSSD, SDNN, HF Power, Balance) get their band in log space.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.baselineWindow(_:days:)",
     "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.buildMetricPoints(from:metric:)",
-    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.BaselineStats.from(_:)"
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.BaselineStats.from(_:logScale:)",
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.isLogNormal(_:)"
    ],
    "reads": [
     "mem:TrendsV2View.allSessions"
@@ -563,7 +564,8 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.buildMetricPoints(from:metric:)": "e08af1fdb22d6e53",
-    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.BaselineStats.from(_:)": "f2b9d765cbd2347d",
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.isLogNormal(_:)": "72f54b5a4e75d16b",
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.BaselineStats.from(_:logScale:)": "e5414e9ae39cf5f8",
     "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.baselineWindow(_:days:)": "b298d6ef866f42bb"
    }
   },
@@ -580,11 +582,14 @@
    "deps": {}
   },
   {
-   "key": "func TrendsV2View.BaselineStats.from(_:)",
-   "hash": "0110b8f05cca5447",
-   "does": "Population mean/SD of values; .empty when fewer than 4 values.",
+   "key": "func TrendsV2View.BaselineStats.from(_:logScale:)",
+   "hash": "65481a07147d065a",
+   "does": "Population mean/SD of values plus the normal-range band edges: exp(lnMean ± lnSD) over the positive values when logScale (logEdges), else mean ± SD (also the fallback when fewer than four positive values); .empty when fewer than 4 values.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.BaselineStats.standardDeviation(_:mean:)",
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.BaselineStats.logEdges(_:)"
+   ],
    "reads": [],
    "writes": [],
    "branches": [
@@ -592,10 +597,58 @@
      "at": "+1",
      "cond": "values.count < 4",
      "effect": "return .empty (hasData false)"
+    },
+    {
+     "at": "+4",
+     "cond": "logScale",
+     "effect": "logEdges; else no log edges"
+    },
+    {
+     "at": "+7",
+     "cond": "no log edges (??)",
+     "effect": "low/high = mean ∓ sd"
     }
    ],
    "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func ExplanationCopy.low(_:)": "0dbc3b9bab439012",
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.BaselineStats.logEdges(_:)": "3330faf9e2a0d337",
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.BaselineStats.standardDeviation(_:mean:)": "f63184d7d33898ed"
+   }
+  },
+  {
+   "key": "func TrendsV2View.BaselineStats.standardDeviation(_:mean:)",
+   "hash": "eb142f5879376ac2",
+   "does": "Population standard deviation of values about the given mean.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
    "deps": {}
+  },
+  {
+   "key": "func TrendsV2View.BaselineStats.logEdges(_:)",
+   "hash": "ae6f12f2684c6c51",
+   "does": "exp(lnMean − lnSD), exp(lnMean + lnSD) over the positive values' natural logs; nil with fewer than four positive values.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.BaselineStats.standardDeviation(_:mean:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "fewer than 4 positive values",
+     "effect": "nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.BaselineStats.standardDeviation(_:mean:)": "f63184d7d33898ed"
+   }
   },
   {
    "key": "func TrendsV2View.BaselineStats.deltaPercent(_:)",
