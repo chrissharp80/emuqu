@@ -75,8 +75,9 @@ pre-commit hook fail until the records for what you changed are current.
 2. Make the change.
 3. `make codemap-guard` lists every record to bring up to date. Rewrite each
    against the code as it now is, and remove the flags your change fixed.
-4. "re-check" lines are callers whose callee now does something different.
-   Re-read each one; if its own behaviour changed, change it or its record too.
+4. "re-check" lines (`codemap.py status` lists them) are callers whose callee
+   now does something different. Re-read each one; if its own behaviour
+   changed, change it or its record too.
 5. Stamp each record after you have re-read it, callees before callers:
    `.venv-codemap/bin/python scripts/codemap/codemap.py stamp <path> [<key> ...]`.
 6. Fixing a high- or medium-severity finding lowers

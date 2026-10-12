@@ -107,8 +107,8 @@
   },
   {
    "key": "§ How a change lands in Emuqu > While you work > The code map is part of the change",
-   "hash": "e8e2d84f618224e1",
-   "does": "Says every function, script target, workflow step and doc section has a record in docs/codemap/records and that CI, make ci and the pre-commit hook fail until the records for a change are current. Steps: impact before the change (make codemap-impact or codemap.py impact <path::key>); make the change; make codemap-guard and rewrite each listed record, removing fixed flags; re-read each re-check caller and change it or its record if its behaviour changed; stamp after re-reading, callees before callers; lowering .ci/codemap_open_high.txt or .ci/codemap_open_med.txt when a high/medium finding is fixed. Links docs/codemap/README.md. Every command named exists.",
+   "hash": "91ef1081e25cefae",
+   "does": "Says every function, script target, workflow step and doc section has a record in docs/codemap/records and that CI, make ci and the pre-commit hook fail until the records for a change are current. Steps: impact before the change (make codemap-impact or codemap.py impact <path::key>); make the change; make codemap-guard and rewrite each listed record, removing fixed flags; re-read each re-check caller (codemap.py status lists them) and change it or its record if its behaviour changed; stamp after re-reading, callees before callers; lowering .ci/codemap_open_high.txt or .ci/codemap_open_med.txt when a high/medium finding is fixed. Links docs/codemap/README.md. Every command named exists.",
    "entry": null,
    "calls": [
     "Makefile::target codemap-impact",
