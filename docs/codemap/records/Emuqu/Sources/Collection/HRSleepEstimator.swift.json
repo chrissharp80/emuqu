@@ -98,13 +98,14 @@
   },
   {
    "key": "func HRSleepEstimator.hrEstimatedSleepData(rrPoints:recordingStart:sleepOnsetMs:wakeMs:stageResult:)",
-   "hash": "24b125a0c82dff5f",
-   "does": "Converts onset/wake from beat-sum to wall clock, builds dates from recordingStart, inBed = last exportTimeMs minutes, total sleep = classifier deep+REM+core when the classifier staged any (nil result or zero staged minutes fall back to the onset→wake duration), efficiency = total/inBed, and returns SleepData with boundarySource .hrEstimated, classifier stages/intervals and no segments.",
+   "hash": "451e2c8064f1d4a6",
+   "does": "Converts onset/wake from beat-sum to wall clock, builds dates from recordingStart, inBed = last exportTimeMs minutes, total sleep = classifier deep+REM+core when the classifier staged any (nil result or zero staged minutes fall back to the onset→wake duration), efficiency via SleepData.efficiencyPercent (total/inBed, 0 with no in-bed time), and returns SleepData with boundarySource .hrEstimated, classifier stages/intervals and no segments.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)",
     "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.estimateSleepDuration(rrPoints:sleepOnsetMs:wakeMs:)",
     "Emuqu/Sources/Collection/HealthExportIdentity.swift::var RRPoint.exportTimeMs",
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.efficiencyPercent(sleep:inBed:)",
     "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)"
    ],
    "reads": [],
@@ -119,11 +120,6 @@
      "at": "+13",
      "cond": "classifier staged > 0 minutes",
      "effect": "true: deep+rem+core minutes (summarise already folded .unspecified into core, HRVSleepStageClassifier.swift:154); false (nil result or 0 staged): estimateSleepDuration onset->wake"
-    },
-    {
-     "at": "+14",
-     "cond": "inBedMinutes > 0",
-     "effect": "true: classified/inBed*100; false: 0"
     },
     {
      "at": "+21",
@@ -143,6 +139,7 @@
     "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.estimateSleepDuration(rrPoints:sleepOnsetMs:wakeMs:)": "743fd736a764bc62",
     "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)": "5950e566f77c54d0",
     "Emuqu/Sources/Collection/HealthExportIdentity.swift::var RRPoint.exportTimeMs": "64723cc7502a0ba5",
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.efficiencyPercent(sleep:inBed:)": "ae07c84713af3546",
     "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722",
     "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.stageIntervals()": "4cec6874d7fcb65a"
    }
@@ -396,23 +393,19 @@
   },
   {
    "key": "func HRSleepEstimator.estimatedSleepData(sleepStart:sleepEnd:sleepMinutes:)",
-   "hash": "3a644bce26708617",
-   "does": "Builds the passive-HR SleepData: inBed = sleepStart..sleepEnd minutes, total = sleepMinutes, awake 0, stages nil, efficiency total/inBed (100% by construction), boundarySource .healthKitHREstimated.",
+   "hash": "e6075c105d39e6e6",
+   "does": "Builds the passive-HR SleepData: inBed = sleepStart..sleepEnd minutes, total = sleepMinutes, awake 0, stages nil, efficiency via SleepData.efficiencyPercent (total/inBed, 100% by construction; 0 with no in-bed time), boundarySource .healthKitHREstimated.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.efficiencyPercent(sleep:inBed:)",
     "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)"
    ],
    "reads": [],
    "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "inBedMinutes > 0",
-     "effect": "true: ratio*100; false: 0"
-    }
-   ],
+   "branches": [],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.efficiencyPercent(sleep:inBed:)": "ae07c84713af3546",
     "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722"
    }
   },

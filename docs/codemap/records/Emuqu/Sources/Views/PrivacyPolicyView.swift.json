@@ -454,21 +454,27 @@
   },
   {
    "key": "var PrivacyPolicyView.contactLink",
-   "hash": "c61ce04d5757025b",
-   "does": "mailto link to chrissharp80@gmail.com with subject 'Emuqu Privacy', falling back to plain text if the URL does not parse.",
+   "hash": "6f9379583e360b8f",
+   "does": "Link titled AppConfig.contactEmail opening AppConfig.contactMailURL(subject: 'Emuqu Privacy'), falling back to the address as verbatim text if the URL cannot be built.",
    "entry": "SwiftUI view-body evaluation (composed into PrivacyPolicyView.body)",
-   "calls": [],
-   "reads": [],
+   "calls": [
+    "Emuqu/Sources/Utilities/Constants.swift::func AppConfig.contactMailURL(subject:body:)"
+   ],
+   "reads": [
+    "mem:AppConfig.contactEmail"
+   ],
    "writes": [],
    "branches": [
     {
      "at": "+2",
-     "cond": "URL(string: mailto…) parses",
-     "effect": "true: Link opening Mail; false: verbatim Text (constant string, so false never happens in practice)"
+     "cond": "AppConfig.contactMailURL returns a URL",
+     "effect": "true: Link opening Mail; false: verbatim Text of the address (not expected for this constant address)"
     }
    ],
    "flags": [],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Utilities/Constants.swift::func AppConfig.contactMailURL(subject:body:)": "b6b2510f75c158f9"
+   }
   },
   {
    "key": "func PrivacyPolicyView.policyBlock(_:)",

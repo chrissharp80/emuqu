@@ -1,7 +1,7 @@
 {
  "file": "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift",
- "hash": "f2c2e38b3e3f18b9",
- "role": "Onboarding page 4: explains which Apple Health categories are read/written, fires HealthKitManager.requestAuthorization on Connect, then infers granted scopes from 30-day data presence and shows a status card; Skip for now records the skip in UserDefaults.",
+ "hash": "80ede66e474322ed",
+ "role": "Onboarding page 4: explains which Apple Health categories are read/written, fires HealthKitManager.requestAuthorization on Connect, then infers granted scopes from 30-day data presence and shows a status card; a request that throws keeps Connect and shows the failure reason instead; Skip for now records the skip in UserDefaults.",
  "types": [
   "OnboardingHealthPage: struct — Apple Health permission page"
  ],
@@ -9,7 +9,7 @@
   "@State requesting (Bool) — auth in flight",
   "@State didAttempt (Bool) — Connect completed",
   "@State grantedScopes (Set<String>) — result of grantedScopeSummary",
-  "@State authorizationError (String?) — reason the Health request threw, shown instead of the scope status",
+  "@State authError (String?) — localized reason the last Health request threw (sheet never shown); shown in place of the status card while didAttempt is false",
   "static statusCardID = \"onboarding.health.status\" (scroll anchor id)",
   "ud:healthAccessSkippedInOnboarding written (key declared in Constants.swift:83)"
  ],
@@ -48,9 +48,9 @@
   },
   {
    "key": "func OnboardingHealthPage.healthPageScroll(_:)",
-   "hash": "85492556ae0cadfa",
-   "does": "ScrollView of healthPageContent with flashing indicators, pinnedButtons as bottom safe-area inset; when didAttempt becomes true scrolls to the status card anchor.",
-   "entry": "Called from body; .onChange(of: didAttempt) SwiftUI callback.",
+   "hash": "a5fc8e6f79ddfc9d",
+   "does": "ScrollView of healthPageContent with flashing indicators, pinnedButtons as bottom safe-area inset; when (didAttempt || authError != nil) becomes true — the status card or the failure reason has appeared — scrolls to the status card anchor.",
+   "entry": "Called from body; .onChange(of: didAttempt || authError != nil) SwiftUI callback.",
    "calls": [
     "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::var OnboardingHealthPage.healthPageContent",
     "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::var OnboardingHealthPage.pinnedButtons"
@@ -60,7 +60,7 @@
    "branches": [
     {
      "at": "+7",
-     "cond": "attempted (guard)",
+     "cond": "showsStatus (didAttempt || authError != nil) (guard)",
      "effect": "false: return (no scroll). true: animated proxy.scrollTo(statusCardID, anchor: .bottom)."
     }
    ],
@@ -174,8 +174,8 @@
   },
   {
    "key": "var OnboardingHealthPage.authFailureNotice",
-   "hash": "f2d345d0d0eed50f",
-   "does": "Shows statusCard only after an authorization attempt.",
+   "hash": "1b02ae6974d9b045",
+   "does": "Shows statusCard after a completed authorization attempt; otherwise, when the last request threw, the authError reason as caption text (secondary colour); otherwise nothing.",
    "entry": "SwiftUI view composition.",
    "calls": [
     "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::var OnboardingHealthPage.statusCard"
@@ -186,12 +186,18 @@
     {
      "at": "+2",
      "cond": "didAttempt",
-     "effect": "true: statusCard. false: empty."
+     "effect": "true: statusCard."
+    },
+    {
+     "at": "+4",
+     "cond": "authError set",
+     "effect": "caption Text(authError); neither: empty."
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::var OnboardingHealthPage.statusCard": "f91964d940b2df1f"
+    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::var OnboardingHealthPage.statusCard": "c0db1a9a60c9158b",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
    }
   },
   {
@@ -313,11 +319,10 @@
   },
   {
    "key": "var OnboardingHealthPage.statusCard",
-   "hash": "b1ccc0648e315d19",
-   "does": "Chooses the status row: the failure row when the Health request threw, else by grantedScopes size.",
+   "hash": "493e3f14e62900c1",
+   "does": "Chooses the status row by grantedScopes size: all four → allScopesGrantedRow, none → noDataVisibleRow, 1–3 → scopesPendingRow.",
    "entry": "SwiftUI view composition.",
    "calls": [
-    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::func OnboardingHealthPage.authorizationFailedRow(_:)",
     "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::var OnboardingHealthPage.allScopesGrantedRow",
     "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::var OnboardingHealthPage.noDataVisibleRow",
     "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::var OnboardingHealthPage.scopesPendingRow"
@@ -326,24 +331,18 @@
    "writes": [],
    "branches": [
     {
-     "at": "+1",
-     "cond": "authorizationError set",
-     "effect": "authorizationFailedRow with the reason"
-    },
-    {
-     "at": "+3",
+     "at": "+2",
      "cond": "grantedScopes.count >= 4",
      "effect": "allScopesGrantedRow (\"You're connected\"); max count is 4, so this needs a workout sample in the last 30 days"
     },
     {
-     "at": "+5",
+     "at": "+4",
      "cond": "grantedScopes.isEmpty",
      "effect": "noDataVisibleRow (caution + Open Settings); 1-3 scopes: scopesPendingRow"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::func OnboardingHealthPage.authorizationFailedRow(_:)": "a24c5275f90cb84c",
     "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::var OnboardingHealthPage.allScopesGrantedRow": "2900356b22bcce5b",
     "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::var OnboardingHealthPage.noDataVisibleRow": "de7b2851eceb51e3",
     "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::var OnboardingHealthPage.scopesPendingRow": "c1851d0ee972af7e"
@@ -405,23 +404,6 @@
    }
   },
   {
-   "key": "func OnboardingHealthPage.authorizationFailedRow(_:)",
-   "hash": "56dd1c1f6388d57f",
-   "does": "Caution row 'Apple Health authorization failed: <reason>' (wongCaution triangle, caution-tinted background).",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
-   }
-  },
-  {
    "key": "var OnboardingHealthPage.scopesPendingRow",
    "hash": "1479fce146daf012",
    "does": "Info row: some categories have no recent data; check Settings → Privacy & Security → Health.",
@@ -441,13 +423,14 @@
   },
   {
    "key": "func OnboardingHealthPage.requestHealthAuthorization()",
-   "hash": "5ec485b12b0943dd",
-   "does": "Sets requesting and clears authorizationError; awaits HealthKitManager.requestAuthorization (clears the skip key, prompts if not yet requested this process); a thrown error is logged as a warning and its localizedDescription stored in authorizationError, so the status card reports the failure instead of an empty grant; then sets grantedScopes = await grantedScopeSummary(), requesting=false, didAttempt=true.",
+   "hash": "71a10bfaaf72ec3f",
+   "does": "Sets requesting and clears authError; awaits HealthKitManager.requestAuthorization (clears the skip key, prompts if not yet requested this process). If it throws: logs a warning, sets authError to the localized 'Apple Health authorization failed: <reason>', requesting=false and returns without probing or setting didAttempt, so the page keeps Connect (retry possible) and shows the reason. Otherwise sets grantedScopes = await grantedScopeSummary(), requesting=false, didAttempt=true.",
    "entry": "Task from connectHealthButton tap.",
    "calls": [
     "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.requestAuthorization()",
     "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.grantedScopeSummary()",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [
     "hk:sleepAnalysis",
@@ -458,19 +441,20 @@
    "writes": [
     "ud:healthAccessSkippedInOnboarding (removed inside requestAuthorization)",
     "mem:HealthKitManager.authorizationRequested (set on success)",
-    "mem:OnboardingHealthPage.authorizationError"
+    "mem:OnboardingHealthPage.authError"
    ],
    "branches": [
     {
-     "at": "+5",
+     "at": "+6",
      "cond": "hk.requestAuthorization throws",
-     "effect": "logged and shown via authorizationError; continues to the probe"
+     "effect": "log warning, authError = localized failure reason, requesting = false, return (no scope probe, didAttempt stays false)"
     }
    ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.grantedScopeSummary()": "ac0ee30701f16f8b",
     "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.requestAuthorization()": "0554c5246dd39562",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
     "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::var OnboardingHealthPage.hk": "23efcb0768e580dc"
    }

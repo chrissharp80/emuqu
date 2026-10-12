@@ -210,18 +210,11 @@ struct ChatBubble: View, Equatable {
     /// The quote can carry health details from the reply; the user reviews
     /// the whole email in their mail app before choosing to send it.
     static func reportURL(quoting text: String) -> URL? {
-        var components = URLComponents()
-        components.scheme = "mailto"
-        components.path = reportAddress
-        components.queryItems = [
-            URLQueryItem(name: "subject", value: "Emuqu: reported AI response"),
-            URLQueryItem(name: "body", value: String(localized: "What is wrong with this response?", bundle: LanguageManager.appBundle) + "\n\n\n---\n" + PhoneticOverrides.stripForDisplay(text))
-        ]
-        return components.url
+        AppConfig.contactMailURL(
+            subject: "Emuqu: reported AI response",
+            body: String(localized: "What is wrong with this response?", bundle: LanguageManager.appBundle) + "\n\n\n---\n" + PhoneticOverrides.stripForDisplay(text)
+        )
     }
-
-    /// Where reports go; also named in `reportMailUnavailableAlert`.
-    static let reportAddress = "chrissharp80@gmail.com"
 
     private var avatar: some View {
         Image(systemName: turn.roleSymbol)
@@ -390,7 +383,7 @@ extension View {
         alert(String(localized: "Report response", bundle: LanguageManager.appBundle), isPresented: isPresented) {
             Button(String(localized: "OK", bundle: LanguageManager.appBundle)) {}
         } message: {
-            Text(String(localized: "No mail account is set up on this device. Send your report to chrissharp80@gmail.com.", bundle: LanguageManager.appBundle))
+            Text(String(localized: "No mail account is set up on this device. Send your report to \(AppConfig.contactEmail).", bundle: LanguageManager.appBundle))
         }
     }
 }

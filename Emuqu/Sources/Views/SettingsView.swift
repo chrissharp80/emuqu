@@ -442,15 +442,17 @@ struct SettingsView: View {
         }
     }
 
-    /// How to reach the developer with a question or a problem. The
-    /// `mailto:` literal is a valid URL, so the link always shows.
+    /// How to reach the developer with a question or a problem: a `mailto:`
+    /// link, or the address as text if the link cannot be built.
     @ViewBuilder
     private var supportLink: some View {
-        if let mail = URL(string: "mailto:chrissharp80@gmail.com?subject=Emuqu%20Support") {
+        if let mail = AppConfig.contactMailURL(subject: "Emuqu Support") {
             Link(destination: mail) {
                 Label(String(localized: "Contact Support", bundle: LanguageManager.appBundle), systemImage: "envelope")
             }
             .accessibilityIdentifier("settings.contactSupport")
+        } else {
+            Text(verbatim: AppConfig.contactEmail)
         }
     }
 

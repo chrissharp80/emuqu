@@ -1,7 +1,7 @@
 {
  "file": "Emuqu/Sources/Assistant/Views/ChatBubble.swift",
- "hash": "3cfbde921e41f18d",
- "role": "Chat bubble view for one ChatTurn (avatar, subsystem chip, inline-Markdown text with citation links and phonetic stripping, provider·model·tier footer, long-press menu incl. App-Review report mailto) plus SwiftUI-side helpers for AssistantSubsystem / SmartProviderRouter.Tier / ChatTurn and the ChatMarkdown heading normaliser.",
+ "hash": "aad671cb34ee5df5",
+ "role": "Chat bubble view for one ChatTurn (avatar, subsystem chip, inline-Markdown text with citation links and phonetic stripping, provider·model·tier footer, long-press menu incl. App-Review report mailto to AppConfig.contactEmail) plus SwiftUI-side helpers for AssistantSubsystem / SmartProviderRouter.Tier / ChatTurn and the ChatMarkdown heading normaliser.",
  "types": [
   "AssistantSubsystem: private extension — tint, chipName",
   "SmartProviderRouter.Tier: private extension — indicatorColor, label",
@@ -11,8 +11,7 @@
   "ChatMarkdown: enum — heading → bold-line rewrite"
  ],
  "state": [
-  "@State ChatBubble.reportMailUnavailable",
-  "static ChatBubble.reportAddress = chrissharp80@gmail.com (report mailto); the same address is spelled in the localized no-mail alert text of reportMailUnavailableAlert"
+  "@State ChatBubble.reportMailUnavailable"
  ],
  "toplevel": "No global code. ChatBubble's nonisolated == compares turn and availableActions only. Declares a View extension (reportMailUnavailableAlert) shared with AssistantChatView.",
  "flags": [],
@@ -378,19 +377,24 @@
   },
   {
    "key": "func ChatBubble.reportURL(quoting:)",
-   "hash": "4c6478a47fa8efc4",
-   "does": "Builds mailto:<reportAddress> with subject 'Emuqu: reported AI response' and body 'What is wrong with this response?' + separator + the quoted text with phonetic [[word|IPA]] markup stripped (as the user saw it). The user reviews the email (which can quote health details) before sending.",
+   "hash": "1a6c1dbe3283dbb9",
+   "does": "Builds the report mail link via AppConfig.contactMailURL (mailto:<AppConfig.contactEmail>) with subject 'Emuqu: reported AI response' and body 'What is wrong with this response?' + separator + the quoted text with phonetic [[word|IPA]] markup stripped (as the user saw it); nil only if the URL cannot be formed. The user reviews the email (which can quote health details) before sending.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.stripForDisplay(_:)"
+    "Emuqu/Sources/Utilities/Constants.swift::func AppConfig.contactMailURL(subject:body:)",
+    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.stripForDisplay(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
-   "reads": [],
+   "reads": [
+    "mem:AppConfig.contactEmail"
+   ],
    "writes": [],
    "branches": [],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.stripForDisplay(_:)": "119339496bdd7dc0",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Utilities/Constants.swift::func AppConfig.contactMailURL(subject:body:)": "b6b2510f75c158f9"
    }
   },
   {
@@ -689,13 +693,15 @@
   },
   {
    "key": "func View.reportMailUnavailableAlert(isPresented:)",
-   "hash": "264325b393a25063",
-   "does": "View modifier: the 'Report response' alert telling the user no mail account is set up and to send the report to chrissharp80@gmail.com, with an OK button. Used by ChatBubble and AssistantChatView.",
+   "hash": "95d8022a59008672",
+   "does": "View modifier: the 'Report response' alert telling the user no mail account is set up and to send the report to AppConfig.contactEmail (interpolated into the localized key 'No mail account is set up on this device. Send your report to %@.'), with an OK button. Used by ChatBubble and AssistantChatView.",
    "entry": "Alert presentation driven by the caller's binding",
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
-   "reads": [],
+   "reads": [
+    "mem:AppConfig.contactEmail"
+   ],
    "writes": [],
    "branches": [],
    "flags": [],

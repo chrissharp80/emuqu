@@ -367,7 +367,7 @@ struct VitalsDetailV2View: View {
             return String(localized: "Not measured · tap to learn why", bundle: LanguageManager.appBundle)
         }
         if spo2PenaltyInScore { return String(localized: "Below 95% — flat -10 score penalty applied", bundle: LanguageManager.appBundle) }
-        if v < 95 { return String(localized: "Below 95% — not in the current score, so no penalty applied", bundle: LanguageManager.appBundle) }
+        if v < RecoveryVitals.concerningSpO2Below { return String(localized: "Below 95% — not in the current score, so no penalty applied", bundle: LanguageManager.appBundle) }
         return String(localized: "95% or above — no penalty", bundle: LanguageManager.appBundle)
     }
 

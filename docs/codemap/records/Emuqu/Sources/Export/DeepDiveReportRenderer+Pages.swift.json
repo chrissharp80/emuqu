@@ -1670,13 +1670,15 @@
   },
   {
    "key": "func vitalsConcerns(_:bundle:)",
-   "hash": "4d96342f82ce412b",
-   "does": "Lists flagged vitals: respiratory rate more than 1.0 br/min above its baseline, wrist temperature deviation above +0.3°C, SpO2 below 95%.",
+   "hash": "9a97156123bfbadb",
+   "does": "Lists flagged vitals: respiratory rate more than 1.0 br/min above its baseline, wrist temperature deviation above +0.3°C, SpO2 below RecoveryVitals.concerningSpO2Below (95%).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
-   "reads": [],
+   "reads": [
+    "mem:RecoveryVitals.concerningSpO2Below"
+   ],
    "writes": [],
    "branches": [
     {
@@ -1691,7 +1693,7 @@
     },
     {
      "at": "+13",
-     "cond": "oxygenSaturation present and < 95",
+     "cond": "oxygenSaturation present and < RecoveryVitals.concerningSpO2Below (95)",
      "effect": "appends \"low blood oxygen\""
     }
    ],

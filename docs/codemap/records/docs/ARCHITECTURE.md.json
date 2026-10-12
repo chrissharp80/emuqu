@@ -1483,8 +1483,8 @@
   },
   {
    "key": "§ Emuqu — Architecture & Algorithms > In-App Purchase > `EntitlementAnchor`",
-   "hash": "4cf03b4a53472c94",
-   "does": "Claims EntitlementAnchor infers beta testers from archived sessions at the first unchecked store-build launch (evaluatedHistory, storeHistoryCheckedAt; legacy historyCheckedAt ignored), grants only on a production-verified install, stores records in UserDefaults (cache) and a kSecAttrSynchronizable Keychain item (authoritative), persist()/resolve() write/merge both; merge: beta OR, device trial start earliest, store trial start later, high-water mark latest; UserSettings.trialStartDate is bridged by SettingsManager.adoptTrialStart. Code matches EntitlementAnchor.merged (earlier/later/max at :137-140), evaluatedHistory (:151), persist (:318, kSecAttrSynchronizable true at :355), resolve (:204), adoptTrialStart (:278), SettingsManager.adoptTrialStart (:422).",
+   "hash": "2ba25b382a61cdd7",
+   "does": "Claims EntitlementAnchor infers beta testers from archived sessions at the first unchecked store-build launch (evaluatedHistory, storeHistoryCheckedAt; legacy historyCheckedAt ignored), grants only on a production-verified install, stores records in UserDefaults (cache) and a kSecAttrSynchronizable Keychain item (authoritative), written together and merged on read; merge: beta OR, device trial start earliest, store trial start later, high-water mark latest. Says UserSettings.trialStartDate is a third copy outside the anchor: StoreKitManager records the App Store start in the anchor (recordStoreTrialStart), SettingsManager.adoptTrialStart(_:) then mirrors the anchor's start into settings, every trial-clock reader falls back to the settings copy when the anchor has none, nothing reads it back into the anchor, and the anchor does not write settings. Code matches merged (earlier/later/max at EntitlementAnchor.swift:153-156), evaluatedHistory (:167), resolve (:223), the write path update(wallClock:_:) (:330) → saveToDefaults (:353) / saveToKeychain (:445, kSecAttrSynchronizable true at :387), recordStoreTrialStart (:287), adoptTrialStart (:268), SettingsManager.adoptTrialStart (SettingsManager.swift:536) and the fallback reads (SettingsManager.swift:520, StoreKitManager.swift:603); see flags for the two statements the code contradicts.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.merged(_:_:)",
@@ -1492,21 +1492,50 @@
     "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.resolve(wallClock:)",
     "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.adoptTrialStart(_:wallClock:)",
     "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.recordStoreTrialStart(_:wallClock:)",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.persist(_:)",
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.adoptTrialStart(_:)"
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.update(wallClock:_:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.saveToDefaults(_:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.saveToKeychain(_:)",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.adoptTrialStart(_:)",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.restoreFromJSON(_:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "\"nothing reads it back into the anchor\" is wrong: SettingsManager.restoreFromJSON passes a restored UserSettings.trialStartDate to SettingsManager.adoptTrialStart, which feeds it to EntitlementAnchor.adoptTrialStart as a device start whenever it is earlier than the anchor's (the EntitlementAnchor.swift header comment says so).",
+     "evidence": [
+      "docs/ARCHITECTURE.md:835",
+      "Emuqu/Sources/Models/SettingsManager.swift:456",
+      "Emuqu/Sources/Models/SettingsManager.swift:541",
+      "Emuqu/Sources/Services/EntitlementAnchor.swift:62"
+     ],
+     "found": "merge re-read"
+    },
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Names `EntitlementAnchor.persist()`, which does not exist; the tiers are written by update(wallClock:_:) through saveToDefaults and saveToKeychain.",
+     "evidence": [
+      "docs/ARCHITECTURE.md:827",
+      "Emuqu/Sources/Services/EntitlementAnchor.swift:330"
+     ],
+     "found": "merge re-read"
+    }
+   ],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.adoptTrialStart(_:)": "357fbb7428dfc716",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.adoptTrialStart(_:wallClock:)": "f3f98f46bf9dd55c",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.evaluatedHistory(_:hasHistory:wallClock:)": "e8c584ec46ea1431",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.adoptTrialStart(_:)": "d8ef07680d3672b4",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.restoreFromJSON(_:)": "61b251dd243df0cb",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.adoptTrialStart(_:wallClock:)": "249e6d9ec5a584ec",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.evaluatedHistory(_:hasHistory:wallClock:)": "01bdea8bd341e170",
     "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.merged(_:_:)": "004de710422586ad",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.persist(_:)": "829445d8ebb86069",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.recordStoreTrialStart(_:wallClock:)": "f14ed2057ec54b1f",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.resolve(wallClock:)": "ac55d5528623c3fb"
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.recordStoreTrialStart(_:wallClock:)": "a9299d190447ce30",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.resolve(wallClock:)": "5d7580185fddb525",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.saveToDefaults(_:)": "fa4b1a579d50305c",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.saveToKeychain(_:)": "7708c28ab0c2d552",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.update(wallClock:_:)": "7e1458111b702982"
    }
   },
   {

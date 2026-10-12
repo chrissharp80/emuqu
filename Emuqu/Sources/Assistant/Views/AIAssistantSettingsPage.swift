@@ -256,9 +256,10 @@ struct APIKeyEditorView: View {
         if !removed {
             debugLog("[Settings] \(provider.id.rawValue) key removal failed — the key is still in the keychain", level: .warning)
         }
-        // The Claude key is one of web search's two routes; with neither left,
-        // search goes off rather than sitting on behind a greyed-out toggle.
-        if removed, provider.id == .anthropic, !keys.hasServiceKey(for: .tavilyWebSearch) {
+        // The Claude key is one of web search's two routes; with no route
+        // left, search goes off rather than sitting on behind a greyed-out
+        // toggle.
+        if removed, !keys.hasWebSearchRoute {
             dependencies.app.settingsManager.settings.enableWebSearch = false
         }
         hasExistingKey = keys.hasKey(for: provider.id)

@@ -779,12 +779,13 @@
   },
   {
    "key": "func SleepScienceAnalyzer.rebuiltSleepData(original:state:segments:intervals:envelopeUnspecified:)",
-   "hash": "f051f27eeecb0fc9",
+   "hash": "583c737c71d77bfe",
    "does": "Assembles the edited SleepData: total sleep = interval non-awake minutes + envelope minutes, inBed = total + awake, deep/REM only if the original had them, efficiency recomputed (original when inBed 0), boundaries from min/max segment edges, edits = state.edits; napSleepMinutes and the other fields copied from original, so a timeline edit keeps the night's qualifying nap.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.accumulateStageMinutes(_:)",
     "Emuqu/Sources/Collection/SleepMergingPipeline.swift::var StageMinutes.totalSleep",
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.efficiencyPercent(sleep:inBed:)",
     "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)"
    ],
    "reads": [],
@@ -813,7 +814,7 @@
     {
      "at": "+19",
      "cond": "inBedMinutes > 0",
-     "effect": "true: total/inBed*100; false: original efficiency"
+     "effect": "true: SleepData.efficiencyPercent(total, inBed); false: original efficiency"
     }
    ],
    "flags": [],
@@ -822,6 +823,7 @@
     "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepScienceAnalyzer.EnhancedScoreSections.total": "c25a3dccb3e08207",
     "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.accumulateStageMinutes(_:)": "4f07e52bbfe7eb09",
     "Emuqu/Sources/Collection/SleepMergingPipeline.swift::var StageMinutes.totalSleep": "fc89852f0545e95c",
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.efficiencyPercent(sleep:inBed:)": "ae07c84713af3546",
     "Emuqu/Sources/Models/SleepData.swift::func SleepData.segments(fromStages:splitGapMinutes:)": "428ceef7932431a2",
     "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722"
    }

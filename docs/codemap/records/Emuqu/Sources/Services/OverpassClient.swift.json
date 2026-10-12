@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Services/OverpassClient.swift",
- "hash": "1aa1102249a24a43",
+ "hash": "d404d5465d10fdc7",
  "role": "Actor that sends every OpenStreetMap Overpass request for the app (trail discovery and road graph): one-at-a-time with a minimum gap, per-host cooldowns for busy/refused replies, endpoint fallback, and an optional short reply cache.",
  "types": [
   "OverpassClient: actor — serialized Overpass POST client",
@@ -9,12 +9,12 @@
  ],
  "state": [
   "static endpoints: overpass.private.coffee, overpass-api.de (OverpassClient.swift:59)",
-  "static userAgent 'Emuqu/<version> iOS (chrissharp80@gmail.com)' (OverpassClient.swift:66)",
+  "static userAgent 'Emuqu/<version> iOS (<AppConfig.contactEmail>)' (OverpassClient.swift:73)",
   "static busyCooldown 60 s, refusalCooldown 300 s (OverpassClient.swift:68-69)",
   "actor state: lastRequestAt, requestInFlight, queuedCallers [(ticket UUID, CheckedContinuation<Bool>)], cooling[URL], replies cache (max 16) (OverpassClient.swift:72-80)",
   "static malformedQueryStatus = 400: a malformed-query reply, not held against any host"
  ],
- "toplevel": "endpoints built by compactMap(URL(string:)); userAgent reads Bundle.main.appVersion at first access. One shared instance is created in AppDependencies.OverpassServices.client.",
+ "toplevel": "endpoints built by compactMap(URL(string:)); userAgent reads Bundle.main.appVersion and AppConfig.contactEmail at first access. One shared instance is created in AppDependencies.OverpassServices.client.",
  "flags": [],
  "units": [
   {

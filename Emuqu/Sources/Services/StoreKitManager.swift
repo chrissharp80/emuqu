@@ -276,30 +276,36 @@ final class StoreKitManager {
 
     func purchase() async {
         // Pre-launch: paywall fenced off, no purchases possible.
-        guard Self.paywallEnabled else { return }
-        guard let product else {
-            await loadProducts()
-            guard let product else {
-                errorMessage = String(localized: "Unable to load product. Check your connection and try again.", bundle: LanguageManager.appBundle)
-                return
-            }
-            return await purchaseProduct(product)
-        }
-        await purchaseProduct(product)
+        guard Self.paywallEnabled, let product = await loaded(\.product) else { return }
+        await buy(product, handle: handle)
     }
 
-    private func purchaseProduct(_ product: Product) async {
+    /// Buys `product` and hands the App Store's answer to `handle`. Backing
+    /// out of the Apple ID sign-in the purchase can raise is not a failure and
+    /// says nothing; any other error is reported as a failed purchase.
+    private func buy(_ product: Product, handle: (Product.PurchaseResult) async throws -> Void) async {
         isPurchasing = true
         defer { isPurchasing = false }
         do {
             try await handle(product.purchase())
         } catch StoreKitError.userCancelled {
-            // Backing out of the Apple ID sign-in the purchase can raise.
             return
         } catch {
             errorMessage = String(localized: "Purchase failed. Please try again.", bundle: LanguageManager.appBundle)
-            debugLog("[StoreKit] Purchase error: \(error)")
+            debugLog("[StoreKit] Purchase of \(product.id) failed: \(error)")
         }
+    }
+
+    /// The product at `keyPath`, fetched on the tap if the paywall has not
+    /// loaded it. Nil, with the reason already shown, when the App Store has
+    /// no answer.
+    private func loaded(_ keyPath: KeyPath<StoreKitManager, Product?>) async -> Product? {
+        if self[keyPath: keyPath] == nil { await loadProducts() }
+        guard let product = self[keyPath: keyPath] else {
+            errorMessage = String(localized: "Unable to load product. Check your connection and try again.", bundle: LanguageManager.appBundle)
+            return nil
+        }
+        return product
     }
 
     private func handle(_ result: Product.PurchaseResult) async throws {
@@ -329,18 +335,8 @@ final class StoreKitManager {
     /// that cannot be loaded, or a purchase that fails, is reported like any
     /// other failed purchase and starts nothing.
     func startFreeTrial() async {
-        guard Self.paywallEnabled, let trialProduct = await loadedTrialProduct() else { return }
-        isPurchasing = true
-        defer { isPurchasing = false }
-        do {
-            try await handleTrial(trialProduct.purchase())
-        } catch StoreKitError.userCancelled {
-            // Backing out of the Apple ID sign-in the purchase can raise.
-            return
-        } catch {
-            errorMessage = String(localized: "Purchase failed. Please try again.", bundle: LanguageManager.appBundle)
-            debugLog("[StoreKit] Trial purchase error: \(error)")
-        }
+        guard Self.paywallEnabled, let trialProduct = await loaded(\.trialProduct) else { return }
+        await buy(trialProduct, handle: handleTrial)
     }
 
     /// `.userCancelled` starts nothing. `.pending` (Ask to Buy) starts nothing
@@ -372,16 +368,6 @@ final class StoreKitManager {
     private static func adoptStoreTrialStart(_ start: Date) {
         EntitlementAnchor.recordStoreTrialStart(start, wallClock: Date())
         AppDependencies.current.app.settingsManager.adoptTrialStart(start)
-    }
-
-    /// The trial product, fetched on the tap if the paywall has not loaded it.
-    /// Nil, with the reason already shown, when the App Store has no answer.
-    private func loadedTrialProduct() async -> Product? {
-        if trialProduct == nil { await loadProducts() }
-        if trialProduct == nil {
-            errorMessage = String(localized: "Unable to load product. Check your connection and try again.", bundle: LanguageManager.appBundle)
-        }
-        return trialProduct
     }
 
     // MARK: - Restore
@@ -747,7 +733,10 @@ final class StoreKitManager {
     }
 
     private func verifyAppTransactionInBackground() {
-        Task.detached(priority: .utility) { await Self.verifyAppTransactionWithRetries() }
+        Task.detached(priority: .utility) { [weak self] in
+            guard await Self.verifyAppTransactionWithRetries() else { return }
+            await self?.refreshStatus()
+        }
     }
 
     /// Delays before each AppTransaction attempt. A lookup that fails (offline
@@ -756,32 +745,34 @@ final class StoreKitManager {
     /// back instead of meeting the paywall until the next launch.
     nonisolated private static let appTransactionAttemptDelays: [TimeInterval] = [0, 30, 120, 600]
 
-    private static func verifyAppTransactionWithRetries() async {
+    /// Tries until AppTransaction answers. Returns whether it verified the
+    /// environment; a verified environment can open a route the launch gate
+    /// could not see yet, so the caller refreshes the entitlement after it and
+    /// the `isPurchased` flip takes down a paywall that no longer applies.
+    private static func verifyAppTransactionWithRetries() async -> Bool {
         for delay in appTransactionAttemptDelays {
             if delay > 0 { await sleepQuietly(UInt64(delay * 1_000_000_000), context: "AppTransaction retry") }
-            if await verifyAppTransaction() { return }
+            if let verified = await verifyAppTransaction() { return verified }
         }
+        return false
     }
 
-    /// True once AppTransaction answered (verified or unverified); false when
-    /// the lookup failed, so the caller tries again. A verified environment
-    /// can open a route the launch gate could not see yet, so the entitlement
-    /// is refreshed after it; the `isPurchased` flip then takes down a paywall
-    /// that no longer applies.
-    private static func verifyAppTransaction() async -> Bool {
+    /// True when AppTransaction verified the environment, false when it
+    /// answered unverified, nil when the lookup failed (the caller tries again).
+    private static func verifyAppTransaction() async -> Bool? {
         do {
             switch try await AppTransaction.shared {
             case let .verified(appTransaction):
                 recordVerifiedEnvironment(appTransaction)
-                await AppDependencies.current.services.storeKitManager.refreshStatus()
+                return true
             case .unverified:
                 UserDefaults.standard.set(false, forKey: lastKnownTestFlightKey)
                 debugLog("[StoreKit] AppTransaction unverified — legacy TestFlight flag cleared", level: .warning)
+                return false
             }
-            return true
         } catch {
             debugLog("[StoreKit] AppTransaction lookup failed: \(error)", level: .warning)
-            return false
+            return nil
         }
     }
 

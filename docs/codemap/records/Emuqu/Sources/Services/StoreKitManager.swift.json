@@ -237,50 +237,40 @@
   },
   {
    "key": "func purchase()",
-   "hash": "9bf026cff99a8bce",
-   "does": "Buys the lifetime unlock: loads the product if needed (error message when still unavailable) then purchaseProduct. Called from PaywallView purchase button.",
+   "hash": "c96c20a1e98e7ac0",
+   "does": "Buys the lifetime unlock: does nothing while the paywall is disabled; otherwise gets the product via loaded(\\.product) (loading it if needed; nil with 'Unable to load product' already shown) and buys it via buy(_:handle:) with handle. Called from PaywallView purchase button.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Services/StoreKitManager.swift::func loadProducts()",
-    "Emuqu/Sources/Services/StoreKitManager.swift::func purchaseProduct(_:)",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+    "Emuqu/Sources/Services/StoreKitManager.swift::func loaded(_:)",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func buy(_:handle:)",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func handle(_:)"
    ],
    "reads": [],
-   "writes": [
-    "mem:StoreKitManager.errorMessage"
-   ],
+   "writes": [],
    "branches": [
     {
      "at": "+2",
-     "cond": "paywallEnabled false",
-     "effect": "returns"
-    },
-    {
-     "at": "+3",
-     "cond": "product not loaded",
-     "effect": "loads products first"
-    },
-    {
-     "at": "+5",
-     "cond": "still no product after load",
-     "effect": "sets 'Unable to load product' error and returns; else purchases"
+     "cond": "paywallEnabled false, or loaded(\\.product) nil",
+     "effect": "returns (loaded already set the error when the product is unavailable)"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/StoreKitManager.swift::func loadProducts()": "44d0e6cc3ae26171",
-    "Emuqu/Sources/Services/StoreKitManager.swift::func purchaseProduct(_:)": "6e88b9b1a0a2a22f"
+    "Emuqu/Sources/Services/StoreKitManager.swift::func buy(_:handle:)": "ab0c9eabda8a9cae",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func handle(_:)": "4ca4c631cc8c2212",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func loaded(_:)": "e329aa54bcf75960"
    }
   },
   {
-   "key": "func purchaseProduct(_:)",
-   "hash": "9070902422a16e25",
-   "does": "Runs product.purchase() with isPurchasing set, handling the result; user cancel is silent; other errors set a localized failure message.",
+   "key": "func buy(_:handle:)",
+   "hash": "c17c29202490db5c",
+   "does": "Shared purchase path: sets isPurchasing (cleared on exit via defer), awaits product.purchase() and passes the result to the given handler (handle for the lifetime unlock, handleTrial for the trial). StoreKitError.userCancelled (backing out of the Apple ID sign-in) returns silently; any other thrown error (from purchase or the handler, e.g. an unverified transaction) sets errorMessage 'Purchase failed. Please try again.' and logs the product id and error.",
    "entry": null,
    "calls": [
     "ext:StoreKit.Product.purchase",
+    "dyn:handle parameter (handle(_:) from purchase, handleTrial(_:) from startFreeTrial)",
     "Emuqu/Sources/Services/StoreKitManager.swift::func handle(_:)",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func handleTrial(_:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
@@ -298,17 +288,52 @@
      "effect": "returns silently"
     },
     {
-     "at": "+8",
+     "at": "+7",
      "cond": "any other error",
-     "effect": "errorMessage 'Purchase failed', logged"
+     "effect": "errorMessage 'Purchase failed', logged with product id"
     }
    ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Services/StoreKitManager.swift::func handle(_:)": "4ca4c631cc8c2212",
-    "Emuqu/Sources/Services/StoreKitManager.swift::func purchase()": "8b7618dd90500267",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func handleTrial(_:)": "e3656343c85219cc",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func purchase()": "9448035434dd0b63",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func loaded(_:)",
+   "hash": "e4d95bb79d4fe113",
+   "does": "Returns the product at keyPath (\\.product or \\.trialProduct), calling loadProducts() first when it is nil; when it is still nil after that, sets errorMessage 'Unable to load product. Check your connection and try again.' and returns nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/StoreKitManager.swift::func loadProducts()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:StoreKitManager.product",
+    "mem:StoreKitManager.trialProduct"
+   ],
+   "writes": [
+    "mem:StoreKitManager.errorMessage"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "product at keyPath nil",
+     "effect": "await loadProducts()"
+    },
+    {
+     "at": "+2",
+     "cond": "still nil after loading",
+     "effect": "sets errorMessage, returns nil; else returns the product"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func loadProducts()": "44d0e6cc3ae26171"
    }
   },
   {
@@ -357,47 +382,28 @@
   },
   {
    "key": "func startFreeTrial()",
-   "hash": "dc7b7fe7514bf8b2",
-   "does": "Starts the free trial by purchasing the $0 trial product (loading it if needed), with isPurchasing set; cancel silent, other errors set 'Purchase failed'. Called from PaywallView start-trial button.",
+   "hash": "c4c54bc263f47cb5",
+   "does": "Starts the free trial: does nothing while the paywall is disabled; otherwise gets the $0 trial product via loaded(\\.trialProduct) (loading it if needed; nil with the error already shown) and buys it via buy(_:handle:) with handleTrial (isPurchasing set; cancel silent; other errors 'Purchase failed'). Called from PaywallView start-trial button.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Services/StoreKitManager.swift::func loadedTrialProduct()",
-    "Emuqu/Sources/Services/StoreKitManager.swift::func handleTrial(_:)",
-    "ext:StoreKit.Product.purchase",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+    "Emuqu/Sources/Services/StoreKitManager.swift::func loaded(_:)",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func buy(_:handle:)",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func handleTrial(_:)"
    ],
-   "reads": [
-    "net:App Store (StoreKit 2)"
-   ],
-   "writes": [
-    "mem:StoreKitManager.isPurchasing",
-    "mem:StoreKitManager.errorMessage"
-   ],
+   "reads": [],
+   "writes": [],
    "branches": [
     {
      "at": "+1",
      "cond": "paywall disabled or trial product unavailable",
-     "effect": "returns (loadedTrialProduct already set the error)"
-    },
-    {
-     "at": "+6",
-     "cond": "StoreKitError.userCancelled",
-     "effect": "returns silently"
-    },
-    {
-     "at": "+9",
-     "cond": "other error",
-     "effect": "errorMessage 'Purchase failed', logged"
+     "effect": "returns (loaded already set the error)"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func buy(_:handle:)": "ab0c9eabda8a9cae",
     "Emuqu/Sources/Services/StoreKitManager.swift::func handleTrial(_:)": "e3656343c85219cc",
-    "Emuqu/Sources/Services/StoreKitManager.swift::func loadedTrialProduct()": "87d2b0d51a02a971",
-    "Emuqu/Sources/Services/StoreKitManager.swift::func purchase()": "8b7618dd90500267",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Services/StoreKitManager.swift::func loaded(_:)": "e329aa54bcf75960"
    }
   },
   {
@@ -485,37 +491,6 @@
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "320e181d89b608eb"
-   }
-  },
-  {
-   "key": "func loadedTrialProduct()",
-   "hash": "277452ab9c35dadd",
-   "does": "Returns trialProduct, loading products first if needed; sets 'Unable to load product' when still nil.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Services/StoreKitManager.swift::func loadProducts()",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
-   ],
-   "reads": [],
-   "writes": [
-    "mem:StoreKitManager.errorMessage"
-   ],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "trialProduct nil",
-     "effect": "loadProducts()"
-    },
-    {
-     "at": "+2",
-     "cond": "still nil",
-     "effect": "sets errorMessage"
-    }
-   ],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/StoreKitManager.swift::func loadProducts()": "44d0e6cc3ae26171"
    }
   },
   {
@@ -1206,24 +1181,32 @@
   },
   {
    "key": "func verifyAppTransactionInBackground()",
-   "hash": "0d24d057974aba07",
-   "does": "Spawns a detached utility task running verifyAppTransactionWithRetries.",
+   "hash": "fc1f146beb1a1311",
+   "does": "Spawns a detached utility task running verifyAppTransactionWithRetries; when that reports a verified environment, refreshes the entitlement on this manager (weakly captured), so a route the launch gate could not yet see flips isPurchased and takes down the paywall.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Services/StoreKitManager.swift::func verifyAppTransactionWithRetries()"
+    "Emuqu/Sources/Services/StoreKitManager.swift::func verifyAppTransactionWithRetries()",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func refreshStatus()"
    ],
    "reads": [],
    "writes": [],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "verifyAppTransactionWithRetries returns false (unverified, or every attempt failed)",
+     "effect": "returns without refreshing; true: await self?.refreshStatus() (no-op if the manager is gone)"
+    }
+   ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/StoreKitManager.swift::func verifyAppTransactionWithRetries()": "86f9f9a27dbe27ef"
+    "Emuqu/Sources/Services/StoreKitManager.swift::func refreshStatus()": "8bfb2b667c2317f7",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func verifyAppTransactionWithRetries()": "f2a11afeaf554ecf"
    }
   },
   {
    "key": "func verifyAppTransactionWithRetries()",
-   "hash": "77aff77711617611",
-   "does": "Static: tries verifyAppTransaction at 0, 30, 120 and 600 s, stopping at the first attempt AppTransaction answers, so a lookup that fails (offline launch after a reinstall or on a new phone) is retried within the process.",
+   "hash": "f876816f0a7a7bea",
+   "does": "Static: tries verifyAppTransaction at 0, 30, 120 and 600 s, stopping at the first attempt AppTransaction answers, so a lookup that fails (offline launch after a reinstall or on a new phone) is retried within the process. Returns true when the answer was verified, false when it was unverified or every attempt failed.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/StoreKitManager.swift::func verifyAppTransaction()",
@@ -1239,28 +1222,29 @@
     },
     {
      "at": "+3",
-     "cond": "AppTransaction answered",
-     "effect": "return"
+     "cond": "AppTransaction answered (non-nil)",
+     "effect": "return its verified/unverified Bool"
+    },
+    {
+     "at": "+5",
+     "cond": "all attempts failed",
+     "effect": "return false"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/StoreKitManager.swift::func verifyAppTransaction()": "af7a8dc0f6caa060",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func verifyAppTransaction()": "fb8369a454caf6f0",
     "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "c0fa5e77e7dfe851"
    }
   },
   {
    "key": "func verifyAppTransaction()",
-   "hash": "781588fcca9b9483",
-   "does": "Awaits AppTransaction.shared: verified → record environment flags and refresh entitlement; unverified → set legacy TestFlight flag false; either way returns true. Lookup error → logged, state unchanged, returns false so the caller retries.",
+   "hash": "6b6ddb938bcae468",
+   "does": "Awaits AppTransaction.shared: verified → record environment flags, return true (the caller refreshes the entitlement); unverified → set legacy TestFlight flag false, log, return false. Lookup error → logged, state unchanged, returns nil so the caller retries.",
    "entry": null,
    "calls": [
     "ext:StoreKit.AppTransaction.shared",
     "Emuqu/Sources/Services/StoreKitManager.swift::func recordVerifiedEnvironment(_:)",
-    "Emuqu/Sources/Services/StoreKitManager.swift::func refreshStatus()",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppServices.storeKitManager",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [
@@ -1275,26 +1259,22 @@
     {
      "at": "+3",
      "cond": "verified",
-     "effect": "record + refresh, return true"
+     "effect": "recordVerifiedEnvironment, return true"
     },
     {
      "at": "+6",
      "cond": "unverified",
-     "effect": "clear legacy flag, return true"
+     "effect": "clear legacy flag, return false"
     },
     {
      "at": "+11",
      "cond": "lookup throws",
-     "effect": "log, return false"
+     "effect": "log, return nil"
     }
    ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/StoreKitManager.swift::func recordVerifiedEnvironment(_:)": "8000c796682fd5ac",
-    "Emuqu/Sources/Services/StoreKitManager.swift::func refreshStatus()": "8bfb2b667c2317f7",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "8f71f3de23c47a6a",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppServices.storeKitManager": "4be01038d1a2e60a",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },

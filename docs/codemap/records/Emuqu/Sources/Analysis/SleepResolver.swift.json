@@ -978,8 +978,8 @@
   },
   {
    "key": "func SleepResolver.assemble(stages:envelope:ctx:source:)",
-   "hash": "5295f7f805b21e5a",
-   "does": "Builds SleepData from stages: total = non-awake minutes, awake, inBed = total+awake, deep/REM via stageTotals, sleepStart/End = min/max of non-awake stages, efficiency, segments, inBedStart (inBedStart(ctx:sleepStages:), never the envelope).",
+   "hash": "cdd461d57c8d0820",
+   "does": "Builds SleepData from stages: total = non-awake minutes, awake, inBed = total+awake, deep/REM via stageTotals, sleepStart/End = min/max of non-awake stages, efficiency via SleepData.efficiencyPercent (0 when inBed is 0), segments, inBedStart (inBedStart(ctx:sleepStages:), never the envelope).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.totalMinutes(_:)",
@@ -987,17 +987,12 @@
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.stageTotals(_:)",
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.inBedStart(ctx:sleepStages:)",
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.buildSegments(stages:splitGapMinutes:)",
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.inBedStart(ctx:sleepStages:)"
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.efficiencyPercent(sleep:inBed:)",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)"
    ],
    "reads": [],
    "writes": [],
-   "branches": [
-    {
-     "at": "+19",
-     "cond": "inBed > 0",
-     "effect": "efficiency = total/inBed*100; else 0"
-    }
-   ],
+   "branches": [],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "5814b8c071cb8591",
@@ -1005,6 +1000,7 @@
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.inBedStart(ctx:sleepStages:)": "e886c94430ea6083",
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.stageTotals(_:)": "36bd41e6b3c60dab",
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.totalMinutes(_:)": "3a870945beba90a9",
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.efficiencyPercent(sleep:inBed:)": "ae07c84713af3546",
     "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722"
    }
   },
