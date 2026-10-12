@@ -435,14 +435,16 @@
   },
   {
    "key": "func oxygenSaturationBox(_:)",
-   "hash": "9e4c70b09ce676c2",
-   "does": "SpO2 box: '%.0f%%' plus ' (min NN%)' when a minimum exists; red when < 95; nil without a reading.",
+   "hash": "804e1c910b31b45a",
+   "does": "SpO2 box: '%.0f%%' plus ' (min NN%)' when a minimum exists; red when < RecoveryVitals.concerningSpO2Below (95); nil without a reading.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
-   "reads": [],
+   "reads": [
+    "mem:RecoveryVitals.concerningSpO2Below"
+   ],
    "writes": [],
    "branches": [
     {
@@ -457,7 +459,7 @@
     },
     {
      "at": "+6",
-     "cond": "spo2 < 95",
+     "cond": "spo2 < RecoveryVitals.concerningSpO2Below (95)",
      "effect": "red; else darkGray"
     }
    ],

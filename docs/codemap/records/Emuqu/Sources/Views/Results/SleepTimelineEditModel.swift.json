@@ -115,30 +115,27 @@
   },
   {
    "key": "func SleepTimelineState.attaching(_:to:)",
-   "hash": "680e1718b2f03920",
-   "does": "Returns segments with interval merged into the last segment starting at or before it (else the first), widening that segment to cover it; with no segments, a new segment for the interval.",
+   "hash": "b3a6f039a5bf775d",
+   "does": "Returns segments with interval merged into the last segment starting at or before it (else the first), widening that segment to cover it and keeping its intervals sorted by start; with no segments, one new Segment (fresh UUID) spanning exactly that interval.",
    "entry": null,
-   "calls": [
-    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.segment(spanning:)"
-   ],
+   "calls": [],
    "reads": [],
    "writes": [],
    "branches": [
     {
      "at": "+4",
      "cond": "segments empty",
-     "effect": "returns [segment(spanning:[interval])] ?? [] (empty only if segment() nil, which cannot happen for one interval)"
+     "effect": "returns [Segment(id: UUID(), start/end = interval, intervals: [interval])]"
     },
     {
-     "at": "+6",
+     "at": "+8",
      "cond": "no segment starts at or before interval",
      "effect": "?? index 0 (first segment)"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.intervals(in:from:)": "cab2cc006b4ecb88",
-    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.segment(spanning:)": "2ee5bbb0b258ce4d"
+    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.intervals(in:from:)": "cab2cc006b4ecb88"
    }
   },
   {

@@ -684,24 +684,29 @@
   },
   {
    "key": "var SettingsView.supportLink",
-   "hash": "dc8b989d2d018076",
-   "does": "Contact Support Link to mailto:chrissharp80@gmail.com?subject=Emuqu%20Support (the constant literal always parses, so the link always shows).",
+   "hash": "d4cfa7aa30564fd1",
+   "does": "Contact Support Link (identifier settings.contactSupport) to AppConfig.contactMailURL(subject: 'Emuqu Support'); if the URL cannot be built, shows the address AppConfig.contactEmail as verbatim text instead.",
    "entry": "SwiftUI evaluates this view-builder member while rendering the parent",
    "calls": [
+    "Emuqu/Sources/Utilities/Constants.swift::func AppConfig.contactMailURL(subject:body:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
     "ext:SwiftUI Link (mailto)"
    ],
-   "reads": [],
+   "reads": [
+    "mem:AppConfig.contactEmail"
+   ],
    "writes": [],
    "branches": [
     {
      "at": "+2",
-     "cond": "URL(string: mailto literal) parses",
-     "effect": "renders the mail Link; else nothing (cannot happen for this literal)"
+     "cond": "AppConfig.contactMailURL returns a URL",
+     "effect": "renders the mail Link; else verbatim Text of the address (not expected for this constant address)"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Utilities/Constants.swift::func AppConfig.contactMailURL(subject:body:)": "b6b2510f75c158f9"
    }
   },
   {

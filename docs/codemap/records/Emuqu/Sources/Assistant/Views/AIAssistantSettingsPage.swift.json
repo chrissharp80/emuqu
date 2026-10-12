@@ -588,15 +588,15 @@
   },
   {
    "key": "func APIKeyEditorView.removeKeyAndConsent()",
-   "hash": "94a75b8af56db9b0",
-   "does": "Deletes the provider's keychain key and revokes its consent either way. When the delete failed it logs a warning, leaves web search alone, re-reads hasExistingKey (still true) and shows no 'Key removed.' status, so the page keeps showing the saved key. When it succeeded, turns enableWebSearch off if this was the Anthropic key and no Tavily key exists, then hasExistingKey=false, saveStatus=.removed. Calls onChange.",
+   "hash": "87eac1cb084633fd",
+   "does": "Deletes the provider's keychain key and revokes its consent either way. When the delete failed it logs a warning, leaves web search alone, re-reads hasExistingKey (still true) and shows no 'Key removed.' status, so the page keeps showing the saved key. When it succeeded, turns enableWebSearch off if no web-search route is left (APIKeyStore.hasWebSearchRoute false: no Tavily key and no Anthropic key, whichever provider was removed), then hasExistingKey=false, saveStatus=.removed. Calls onChange.",
    "entry": "'Remove key' button tap",
    "calls": [
     "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var APIKeyEditorView.keys",
     "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.removeKey(for:)",
     "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var APIKeyEditorView.consent",
     "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.revoke(_:)",
-    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.hasServiceKey(for:)",
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::var APIKeyStore.hasWebSearchRoute",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager",
     "closure:onChange — AIAssistantSettingsPage.keysChanged",
@@ -605,7 +605,8 @@
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [
-    "kc:service.tavily_web_search"
+    "kc:com.chrissharp.flowrecovery.assistant.apikey/service.tavily_web_search",
+    "kc:com.chrissharp.flowrecovery.assistant.apikey/anthropic"
    ],
    "writes": [
     "kc:com.chrissharp.flowrecovery.assistant.apikey/<provider>",
@@ -621,12 +622,12 @@
      "effect": "log warning"
     },
     {
-     "at": "+8",
-     "cond": "removed AND provider is Anthropic AND no Tavily key is stored",
+     "at": "+9",
+     "cond": "removed AND !APIKeyStore.hasWebSearchRoute (no Tavily key and no Anthropic key left)",
      "effect": "settings.enableWebSearch = false (persisted by SettingsManager didSet)"
     },
     {
-     "at": "+12",
+     "at": "+13",
      "cond": "removed",
      "effect": "saveStatus .removed ('Key removed.'); else .idle (masked preview of the still-saved key)"
     }
@@ -634,8 +635,8 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.hasKey(for:)": "227ac15ee3157ece",
-    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.hasServiceKey(for:)": "31dbad94c3cc4e39",
     "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.removeKey(for:)": "7c731dddf0d09d7a",
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::var APIKeyStore.hasWebSearchRoute": "e55c736af02abde7",
     "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.revoke(_:)": "bda6182f0dfa3610",
     "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::func AIAssistantSettingsPage.keysChanged()": "b064c2c4bf5e0e8f",
     "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var APIKeyEditorView.consent": "aaf612cd1adc3d0e",

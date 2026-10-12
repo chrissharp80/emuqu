@@ -1,9 +1,9 @@
 {
  "file": "Emuqu/Sources/Utilities/Constants.swift",
- "hash": "21d0128a2d346783",
+ "hash": "cb0fcb554aeac98d",
  "role": "Central constants: app/group/iCloud/keychain identifiers and container lookup, the UserDefaults key registry, unit conversions, HRV/sleep/training thresholds, composite recovery-score weights (ScoringWeights), score bounds and Kubios-style stress normative references.",
  "types": [
-  "AppConfig: enum — identifiers + sharedContainerURL()",
+  "AppConfig: enum — identifiers, developer contact address + contactMailURL(subject:body:), sharedContainerURL()",
   "UserDefaultsKeys: enum — UD key strings",
   "UnitConstants / SessionConstants: enum — unit conversions and session age limit",
   "HRVConstants (RRInterval, MinimumDuration, MinimumBeats, FrequencyBands, DFA, Artifacts, RRValidity): enum — HRV analysis thresholds",
@@ -20,6 +20,7 @@
   "kc:service com.chrissharp.flowrecovery.encryption (Constants.swift:15)",
   "file:HRVArchive directory name (Constants.swift:18)",
   "file:RRBackup directory name (Constants.swift:21)",
+  "mem:AppConfig.contactEmail = chrissharp80@gmail.com (static let; support, privacy, AI-report mail and the contact in third-party User-Agent strings)",
   "ud:RRCollector.persistedRecordingState",
   "ud:RRCollector.activeRecordingStartTime",
   "ud:RRCollector.activeRecordingSessionId",
@@ -41,6 +42,33 @@
  "toplevel": "Only static let constants outside the units (AppConfig.resolvedSharedContainerURL is initialised lazily from resolveSharedContainerURL() on first use); no conformances or #if blocks.",
  "flags": [],
  "units": [
+  {
+   "key": "func AppConfig.contactMailURL(subject:body:)",
+   "hash": "ae7e5822e475b476",
+   "does": "Builds a mailto: URL to AppConfig.contactEmail via URLComponents with a 'subject' query item and, when body is non-nil, a 'body' query item (percent-encoded by URLComponents); returns components.url (nil only if URLComponents cannot form a URL).",
+   "entry": null,
+   "calls": [
+    "ext:Foundation URLComponents"
+   ],
+   "reads": [
+    "mem:AppConfig.contactEmail"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "body != nil",
+     "effect": "adds a body query item; otherwise subject only"
+    },
+    {
+     "at": "+6",
+     "cond": "components.url nil",
+     "effect": "returns nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
   {
    "key": "func AppConfig.sharedContainerURL()",
    "hash": "29899a41e0dc38aa",

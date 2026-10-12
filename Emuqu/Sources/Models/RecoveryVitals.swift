@@ -59,11 +59,15 @@ struct RecoveryVitals: Codable, Sendable, Equatable {
         return deviation > 2.0
     }
 
-    /// Is SpO2 concerning? (average below 95%; `oxygenSaturationMin` is not
-    /// consulted)
+    /// Nightly SpO2 (%) below which the recovery score's SpO2 penalty applies;
+    /// every screen and report that flags low SpO2 reads this.
+    static let concerningSpO2Below: Double = 95.0
+
+    /// Is SpO2 concerning? (average below `concerningSpO2Below`;
+    /// `oxygenSaturationMin` is not consulted)
     var isSpO2Concerning: Bool {
         guard let spo2 = oxygenSaturation else { return false }
-        return spo2 < 95.0
+        return spo2 < Self.concerningSpO2Below
     }
 
     /// Tonight's wrist temperature against the user's own baseline, in °C

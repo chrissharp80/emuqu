@@ -843,8 +843,8 @@
   },
   {
    "key": "var VitalsDetailV2View.spo2Deviation",
-   "hash": "119b1a18a3330035",
-   "does": "SpO2 line: 'Not measured · tap to learn why' without a reading; 'flat -10 score penalty applied' when spo2PenaltyInScore; 'not in the current score, so no penalty applied' when the shown reading is below 95 but the score has no deduction; else '95% or above — no penalty'.",
+   "hash": "7a0f2384fe79b327",
+   "does": "SpO2 line: 'Not measured · tap to learn why' without a reading; 'flat -10 score penalty applied' when spo2PenaltyInScore; 'not in the current score, so no penalty applied' when the shown reading is below RecoveryVitals.concerningSpO2Below (95) but the score has no deduction; else '95% or above — no penalty'.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.effectiveVitals",
@@ -852,7 +852,8 @@
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [
-    "mem:LanguageManager.shared.bundle"
+    "mem:LanguageManager.shared.bundle",
+    "mem:RecoveryVitals.concerningSpO2Below"
    ],
    "writes": [],
    "branches": [
@@ -868,7 +869,7 @@
     },
     {
      "at": "+12",
-     "cond": "shown SpO2 < 95",
+     "cond": "shown SpO2 < RecoveryVitals.concerningSpO2Below (95)",
      "effect": "not in current score"
     }
    ],

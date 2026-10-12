@@ -53,7 +53,7 @@ enum TopoElevationService {
 
     /// Identifies the app to the OpenTopoData operator, so a misbehaving
     /// version can be told apart and its author reached.
-    static let userAgent = "Emuqu/\(Bundle.main.appVersion) iOS (chrissharp80@gmail.com)"
+    static let userAgent = "Emuqu/\(Bundle.main.appVersion) iOS (\(AppConfig.contactEmail))"
 
     enum ServiceError: Error {
         case badResponse(String)

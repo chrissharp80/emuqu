@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Analysis/TopoElevationService.swift",
- "hash": "d666815720cc505d",
+ "hash": "f83a6b8fd3e1b838",
  "role": "Retroactive DEM elevation lookup: downsamples a workout track to <=100 points, queries OpenTopoData (ned10m for US-ish coords, then srtm30m), and computes sustained-climb gain/loss with a 15 m threshold.",
  "types": [
   "TopoElevationService: enum — namespace",
@@ -10,11 +10,11 @@
   "Envelope/Point: Decodable structs local to decodeOpenTopoData"
  ],
  "state": [
-  "static let userAgent = \"Emuqu/<appVersion> iOS (chrissharp80@gmail.com)\"",
+  "static let userAgent = \"Emuqu/<appVersion> iOS (<AppConfig.contactEmail>)\"",
   "static let requestSpacingNanoseconds = 1_000_000_000 (gap before the SRTM retry after a failed NED call)",
   "net:api.opentopodata.org/v1/{ned10m|srtm30m}"
  ],
- "toplevel": "Global static userAgent built from Bundle.main.appVersion. No mutable state.",
+ "toplevel": "Global static userAgent built from Bundle.main.appVersion and AppConfig.contactEmail. No mutable state.",
  "flags": [
   {
    "kind": "privacy",

@@ -938,14 +938,16 @@
   },
   {
    "key": "func oxygenSaturationRow(vitals:bundle:)",
-   "hash": "d49c4df3acf10af2",
-   "does": "SpO2 row: average (and min when present) with explanation and ≥95 typical / <95 penalized interpretation; nil without SpO2.",
+   "hash": "cc2fc31dbd6c8699",
+   "does": "SpO2 row: average (and min when present) with explanation; interpretation 'Below 95% — flat -10 score penalty applied' when spo2 < RecoveryVitals.concerningSpO2Below (95), else 'Within typical range'; nil without SpO2.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
-   "reads": [],
+   "reads": [
+    "mem:RecoveryVitals.concerningSpO2Below"
+   ],
    "writes": [],
    "branches": [
     {
@@ -960,8 +962,8 @@
     },
     {
      "at": "+9",
-     "cond": "spo2 >= 95",
-     "effect": "typical; else 'penalized (−10)'"
+     "cond": "spo2 < RecoveryVitals.concerningSpO2Below (95)",
+     "effect": "'Below 95% — flat -10 score penalty applied'; else 'Within typical range'"
     }
    ],
    "flags": [],

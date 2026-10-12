@@ -1,13 +1,15 @@
 {
  "file": "Emuqu/Sources/Models/RecoveryVitals.swift",
- "hash": "b807df5f8a9faed7",
+ "hash": "5b9eaf246290e6c0",
  "role": "Codable value type for overnight recovery vitals (resp rate + baseline, SpO2 avg/min, wrist temperature + baseline, resting/nocturnal HR) with derived deviation/elevation/status flags; stored as HRVSession.vitalsSnapshot.",
  "types": [
   "RecoveryVitals: struct (Codable, Sendable, Equatable) — vitals values",
   "RecoveryVitals.VitalsStatus: enum — normal/elevated/warning"
  ],
- "state": [],
- "toplevel": "Struct declaration; synthesized Codable.",
+ "state": [
+  "mem:RecoveryVitals.concerningSpO2Below (static let 95.0) — nightly SpO2 % below which the recovery-score SpO2 penalty applies; read by every screen and report that flags low SpO2"
+ ],
+ "toplevel": "Struct declaration; synthesized Codable; static let concerningSpO2Below = 95.0.",
  "flags": [],
  "units": [
   {
@@ -64,17 +66,24 @@
   },
   {
    "key": "var RecoveryVitals.isSpO2Concerning",
-   "hash": "361b8b69ffdf787e",
-   "does": "True when oxygenSaturation < 95 %.",
+   "hash": "6d0eab28bc8f392a",
+   "does": "True when oxygenSaturation < concerningSpO2Below (95 %); oxygenSaturationMin is not consulted.",
    "entry": null,
    "calls": [],
-   "reads": [],
+   "reads": [
+    "mem:RecoveryVitals.concerningSpO2Below"
+   ],
    "writes": [],
    "branches": [
     {
      "at": "+1",
      "cond": "oxygenSaturation nil",
      "effect": "false"
+    },
+    {
+     "at": "+2",
+     "cond": "oxygenSaturation < concerningSpO2Below",
+     "effect": "true; otherwise false"
     }
    ],
    "flags": [],
