@@ -359,7 +359,7 @@ final class SavedRouteStore {
     /// the copy is in place.
     private static func setAsideUndecodable(_ url: URL, reason: Error) -> Bool {
         let backup = url.deletingLastPathComponent().appendingPathComponent(undecodableBackupName)
-        let copied = attempt("savedRoutes.setAside") {
+        let copied = attempt("savedRoutes.setAside") { () throws -> Void in
             if FileManager.default.fileExists(atPath: backup.path) { try FileManager.default.removeItem(at: backup) }
             try FileManager.default.copyItem(at: url, to: backup)
         } != nil
