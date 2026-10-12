@@ -208,6 +208,17 @@ extension WorkoutMetadata {
         }
         return Int(wallClockSeconds - pausedBefore)
     }
+
+    /// The inverse of `activeOffset(forWallClockSeconds:)`: seconds after the
+    /// workout started, on the wall clock, of the pause-excluded second
+    /// `activeOffset` — the active second plus every pause that began before
+    /// it. The second a pause began at maps to the start of that pause.
+    func wallClockSeconds(forActiveOffset activeOffset: Int) -> Double {
+        let pausedBefore = (pauseSpans ?? []).reduce(0.0) { total, span in
+            span.atElapsed < activeOffset ? total + span.seconds : total
+        }
+        return Double(activeOffset) + pausedBefore
+    }
 }
 
 // MARK: - HRR Sample

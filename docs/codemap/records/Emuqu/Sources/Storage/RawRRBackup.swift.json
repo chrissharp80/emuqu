@@ -354,7 +354,7 @@
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.reindex(sessionId:entry:fileName:beatCount:replacing:)": "c2207b1ec020e5b1",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.removeReplacedFile(_:keeping:)": "7a668f2439d3f896",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.replaceableIndexEntry(_:newCount:)": "2a38fad629432aca",
-    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.writeEntry(_:to:sessionId:)": "cf1c83b4d33d7062",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.writeEntry(_:to:sessionId:)": "f7380e6d6a868ec5",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
@@ -375,14 +375,15 @@
   },
   {
    "key": "func RawRRBackup.writeEntry(_:to:sessionId:)",
-   "hash": "fd6810caccef19c5",
-   "does": "Encodes the entry (encrypted when possible), records/clears the session in the raw-backup PendingEncryptionLedger, then writes bytes atomically with .completeFileProtectionUntilFirstUserAuthentication when encrypted, .completeFileProtection when plaintext.",
+   "hash": "b3a24f679ba9dfa0",
+   "does": "Encodes the entry (encrypted when possible). Plaintext is recorded in the raw-backup PendingEncryptionLedger before its write; the bytes are written atomically with .completeFileProtectionUntilFirstUserAuthentication when encrypted, .completeFileProtection when plaintext. A write that throws puts the ledger back as it was (an id that was not pending is cleared; one that was stays queued, so a failed re-encryption keeps its retry) and rethrows. An encrypted write clears the entry only after it lands. Internal (not private) so tests can drive a failing write.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.encodedEntry(_:)",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.pending(in:)",
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)",
-    "ext:Data.write"
+    "ext:Data.write",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)"
    ],
    "reads": [],
    "writes": [
@@ -392,19 +393,30 @@
    ],
    "branches": [
     {
-     "at": "+2",
-     "cond": "encoded.encrypted",
-     "effect": "true: ledger.clear; false: ledger.record (logged at .error)"
+     "at": "+3",
+     "cond": "not encrypted",
+     "effect": "ledger.record before the write (logged at .error)"
     },
     {
-     "at": "+7",
+     "at": "+4",
      "cond": "encoded.encrypted",
      "effect": "true: until-first-auth protection; false: complete protection"
+    },
+    {
+     "at": "+9",
+     "cond": "write throws",
+     "effect": "id not pending before: ledger.clear; pending before: left queued; rethrow"
+    },
+    {
+     "at": "+13",
+     "cond": "encrypted and written",
+     "effect": "ledger.clear"
     }
    ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)": "164c97dd6c7ce201",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.pending(in:)": "bb41fa12d89ea28f",
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)": "fc2ac13ffc3aa3f6",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.encodedEntry(_:)": "53fa4cd2e426efea"
    }
@@ -466,7 +478,7 @@
    "deps": {
     "Emuqu/Sources/Storage/EncryptionManager.swift::var EncryptionManager.isAvailable": "660c20ec52781b17",
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.pending(in:)": "bb41fa12d89ea28f",
-    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.reencryptBackup(_:)": "5610b09113aebf56",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.reencryptBackup(_:)": "d9067469dfe59bd2",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
@@ -475,7 +487,7 @@
   {
    "key": "func RawRRBackup.reencryptBackup(_:)",
    "hash": "2dcf513ceb330ca1",
-   "does": "For one pending id: if its index row has no one-shot fileName, clears it from the ledger; otherwise decodes the file and rewrites it via writeEntry (encrypted → ledger cleared).",
+   "does": "For one pending id: if its index row has no one-shot fileName, clears it from the ledger; otherwise decodes the file and rewrites it via writeEntry (encrypted and written → ledger cleared; a failed write leaves it queued).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.existingIndexEntry(_:)",
@@ -501,7 +513,7 @@
     {
      "at": "+8",
      "cond": "decode or write throws",
-     "effect": "catch: log warning, stays queued for next launch"
+     "effect": "catch: log warning; writeEntry kept it queued for the next launch"
     }
    ],
    "flags": [],
@@ -509,7 +521,7 @@
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)": "164c97dd6c7ce201",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.decodeLegacyBackup(at:)": "fc8e5d2d1f1cbf7e",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.existingIndexEntry(_:)": "117f0884623d4388",
-    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.writeEntry(_:to:sessionId:)": "cf1c83b4d33d7062",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.writeEntry(_:to:sessionId:)": "f7380e6d6a868ec5",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },

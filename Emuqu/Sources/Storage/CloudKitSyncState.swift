@@ -34,6 +34,12 @@ struct CloudKitSyncState {
     /// only: a relaunch starts every session's backoff over.
     var uploadFailureCounts: [UUID: Int] = [:]
 
+    /// The server record version (`CKRecord.recordChangeTag`) each session's
+    /// copy here matches: set when this device saves the record or imports
+    /// it. Two copies stamped in the same second are told apart by it
+    /// (`CloudKitSessionFreshness.onTie`). Written with the uploaded set.
+    private(set) var recordVersions: [UUID: String] = [:]
+
     /// False until `loadAll` has read the files (or `resetAll` emptied
     /// them). The saves wait for it: written before then, the near-empty
     /// in-memory sets replaced `sync_state.json`, and the load that followed
@@ -60,6 +66,10 @@ struct CloudKitSyncState {
         syncStateURL.deletingLastPathComponent().appendingPathComponent("local_only_sessions.json")
     }
 
+    private var recordVersionsURL: URL {
+        syncStateURL.deletingLastPathComponent().appendingPathComponent("record_versions.json")
+    }
+
     init(syncStateURL: URL) {
         self.syncStateURL = syncStateURL
     }
@@ -75,6 +85,7 @@ struct CloudKitSyncState {
         loadPendingQueue()
         loadQuarantineQueue()
         localOnlySessionIds.formUnion(Self.readUUIDs(at: localOnlyURL, label: "local-only list"))
+        recordVersions.merge(Self.readVersions(at: recordVersionsURL)) { current, _ in current }
         isLoaded = true
         uploadedRemovedBeforeLoad.removeAll()
         pendingRemovedBeforeLoad.removeAll()
@@ -132,14 +143,18 @@ struct CloudKitSyncState {
     func saveSyncState() {
         guard isLoaded else { return Self.logSkippedSave("sync state") }
         Self.writeUUIDsSync(uploadedSessionIds, to: syncStateURL, label: "sync state")
+        Self.writeVersionsSync(recordVersions, to: recordVersionsURL)
     }
 
     func saveSyncStateAsync() async {
         guard isLoaded else { return Self.logSkippedSave("sync state") }
         let snapshot = uploadedSessionIds
+        let versions = recordVersions
         let url = syncStateURL
+        let versionsURL = recordVersionsURL
         await Task.detached(priority: .utility) {
             Self.writeUUIDsSync(snapshot, to: url, label: "sync state")
+            Self.writeVersionsSync(versions, to: versionsURL)
         }.value
     }
 
@@ -193,6 +208,35 @@ struct CloudKitSyncState {
         }
     }
 
+    /// The versions stored at `url`; empty, with the failure logged, when the
+    /// file is missing or unreadable. Every session then counts as one whose
+    /// version is not known (`CloudKitSessionFreshness.onTie`).
+    private static func readVersions(at url: URL) -> [UUID: String] {
+        guard FileManager.default.fileExists(atPath: url.path) else { return [:] }
+        do {
+            return keyedByUUID(try JSONDecoder().decode([String: String].self, from: Data(contentsOf: url)))
+        } catch {
+            debugLog("[CloudKit] Failed to load record versions: \(error)")
+            return [:]
+        }
+    }
+
+    /// The stored map with its keys parsed; a key that is not a UUID is
+    /// dropped, and of two spellings of one UUID the first is kept.
+    private static func keyedByUUID(_ stored: [String: String]) -> [UUID: String] {
+        let pairs = stored.compactMap { idString, version in UUID(uuidString: idString).map { ($0, version) } }
+        return Dictionary(pairs) { first, _ in first }
+    }
+
+    private static func writeVersionsSync(_ versions: [UUID: String], to url: URL) {
+        do {
+            let stored = Dictionary(uniqueKeysWithValues: versions.map { ($0.key.uuidString, $0.value) })
+            try JSONEncoder().encode(stored).write(to: url, options: .atomic)
+        } catch {
+            debugLog("[CloudKit] Failed to save record versions: \(error)")
+        }
+    }
+
     /// The marks stay in memory and are written by the first save after
     /// `loadAll` merges them with the files.
     private static func logSkippedSave(_ label: String) {
@@ -227,6 +271,14 @@ struct CloudKitSyncState {
     private mutating func removePending(_ sessionId: UUID) {
         _ = pendingUploadIds.remove(sessionId)
         if !isLoaded { pendingRemovedBeforeLoad.insert(sessionId) }
+    }
+
+    /// The server version this device's copy now matches, after it saved the
+    /// record or imported it. A save or fetch that returned no change tag
+    /// leaves the version as it was.
+    mutating func noteRecordVersion(_ version: String?, of sessionId: UUID) {
+        guard let version else { return }
+        recordVersions[sessionId] = version
     }
 
     mutating func markFailed(_ sessionId: UUID) {
@@ -287,6 +339,7 @@ struct CloudKitSyncState {
         removeUploaded(sessionId)
         removePending(sessionId)
         uploadFailureCounts.removeValue(forKey: sessionId)
+        recordVersions.removeValue(forKey: sessionId)
     }
 
     /// Wipe all in-memory and on-disk sync state. Called by the user-initiated
@@ -300,6 +353,7 @@ struct CloudKitSyncState {
         quarantinedSessionIds.removeAll()
         localOnlySessionIds.removeAll()
         uploadFailureCounts.removeAll()
+        recordVersions.removeAll()
         uploadedRemovedBeforeLoad.removeAll()
         pendingRemovedBeforeLoad.removeAll()
         UserDefaults.standard.removeObject(forKey: UserDefaultsKeys.cloudKitChangeToken)
@@ -308,5 +362,6 @@ struct CloudKitSyncState {
         _ = attempt("CloudKitSyncState.remove") { try fm.removeItem(at: pendingQueueURL) }
         _ = attempt("CloudKitSyncState.remove") { try fm.removeItem(at: quarantineQueueURL) }
         _ = attempt("CloudKitSyncState.remove") { try fm.removeItem(at: localOnlyURL) }
+        _ = attempt("CloudKitSyncState.remove") { try fm.removeItem(at: recordVersionsURL) }
     }
 }

@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Storage/CloudKitSyncState.swift",
- "hash": "c17aadfc78013dc8",
+ "hash": "1358bce78c077e9a",
  "role": "Value type holding CloudKit sync bookkeeping (uploaded / pending / quarantined / local-only id sets and in-memory failure counts) and persisting each set as a JSON array of UUID strings next to sync_state.json.",
  "types": [
   "CloudKitSyncState: struct — durable sync bookkeeping with load/save/mutation helpers"
@@ -10,12 +10,13 @@
   "file:pending_uploads.json (pendingUploadIds)",
   "file:quarantined_uploads.json (quarantinedSessionIds)",
   "file:local_only_sessions.json (localOnlySessionIds)",
+  "file:record_versions.json (recordVersions: session id → server change tag)",
   "mem:CloudKitSyncState.uploadFailureCounts (NOT persisted)",
   "mem:CloudKitSyncState.isLoaded",
   "ud:UserDefaultsKeys.cloudKitChangeToken (only removed, legacy cleanup)",
   "mem:CloudKitSyncState.uploadedRemovedBeforeLoad / pendingRemovedBeforeLoad (ids removed before loadAll; kept out of the load's merge, cleared by loadAll/resetAll)"
  ],
- "toplevel": "All sets default empty; isLoaded false until loadAll or resetAll. The three sibling file URLs are derived from syncStateURL's directory. uploadFailureCounts is in memory only (documented): backoff restarts at each launch.",
+ "toplevel": "All sets default empty; isLoaded false until loadAll or resetAll. The four sibling file URLs are derived from syncStateURL's directory. uploadFailureCounts is in memory only (documented): backoff restarts at each launch.",
  "flags": [],
  "units": [
   {
@@ -55,6 +56,18 @@
    "deps": {}
   },
   {
+   "key": "var CloudKitSyncState.recordVersionsURL",
+   "hash": "b6da8a3b0c37e7e6",
+   "does": "Returns record_versions.json beside sync_state.json.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
    "key": "init CloudKitSyncState(syncStateURL:)",
    "hash": "fa281cf021a8f6c5",
    "does": "Stores the sync_state.json URL; all sets empty, isLoaded false.",
@@ -68,36 +81,43 @@
   },
   {
    "key": "func CloudKitSyncState.loadAll()",
-   "hash": "f526a54389bdbbc9",
-   "does": "Merges the four on-disk id lists into the in-memory sets: ids added before the load stay, ids removed from uploaded/pending before the load are not read back. Sets isLoaded so saves are allowed, clears the removed-before-load sets, and removes the legacy cloudKitChangeToken UserDefaults value.",
+   "hash": "03c8430d354e1463",
+   "does": "Merges the four on-disk id lists into the in-memory sets: ids added before the load stay, ids removed from uploaded/pending before the load are not read back. Merges record_versions.json into recordVersions, keeping a version noted before the load over the file's. Sets isLoaded so saves are allowed, clears the removed-before-load sets, and removes the legacy cloudKitChangeToken UserDefaults value.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.loadSyncState()",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.loadPendingQueue()",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.loadQuarantineQueue()",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.readUUIDs(at:label:)",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.localOnlyURL"
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.localOnlyURL",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.readVersions(at:)",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.recordVersionsURL"
    ],
    "reads": [
     "file:sync_state.json",
     "file:pending_uploads.json",
     "file:quarantined_uploads.json",
-    "file:local_only_sessions.json"
+    "file:local_only_sessions.json",
+    "file:record_versions.json"
    ],
    "writes": [
     "mem:CloudKitSyncState.isLoaded",
     "mem:CloudKitSyncState.uploadedRemovedBeforeLoad",
     "mem:CloudKitSyncState.pendingRemovedBeforeLoad",
-    "ud:UserDefaultsKeys.cloudKitChangeToken (removed)"
+    "ud:UserDefaultsKeys.cloudKitChangeToken (removed)",
+    "mem:CloudKitSyncState.recordVersions"
    ],
    "branches": [],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.merge(_:sleepSchedule:)": "301cdd78533bd624",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.loadPendingQueue()": "69043922bc15fde6",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.loadQuarantineQueue()": "bf4f42ce369dff62",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.loadSyncState()": "2527c714fcbd8a99",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.readUUIDs(at:label:)": "4c29dc3f0c59462c",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.localOnlyURL": "77c0577af97ac7b5"
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.readVersions(at:)": "f1e780875d8ffd1d",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.localOnlyURL": "77c0577af97ac7b5",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.recordVersionsURL": "50576e2eadb4d4f7"
    }
   },
   {
@@ -203,16 +223,19 @@
   },
   {
    "key": "func CloudKitSyncState.saveSyncState()",
-   "hash": "e55d0b0753f9d8fc",
-   "does": "Synchronously writes uploadedSessionIds to sync_state.json once loaded.",
+   "hash": "48d0a69e716b7d67",
+   "does": "Synchronously writes uploadedSessionIds to sync_state.json and recordVersions to record_versions.json once loaded.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.logSkippedSave(_:)",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.writeUUIDsSync(_:to:label:)"
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.writeUUIDsSync(_:to:label:)",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.writeVersionsSync(_:to:)",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.recordVersionsURL"
    ],
    "reads": [],
    "writes": [
-    "file:sync_state.json"
+    "file:sync_state.json",
+    "file:record_versions.json"
    ],
    "branches": [
     {
@@ -224,21 +247,26 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.logSkippedSave(_:)": "027faff2678d4a7f",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.writeUUIDsSync(_:to:label:)": "5ae5c8d7c99fa0e5"
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.writeUUIDsSync(_:to:label:)": "5ae5c8d7c99fa0e5",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.writeVersionsSync(_:to:)": "1dbdcc813b688990",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.recordVersionsURL": "50576e2eadb4d4f7"
    }
   },
   {
    "key": "func CloudKitSyncState.saveSyncStateAsync()",
-   "hash": "faf4db0c00abea36",
-   "does": "Snapshots uploadedSessionIds and writes sync_state.json on a detached utility task, awaiting completion; skipped before load.",
+   "hash": "1e7e325158486e3f",
+   "does": "Snapshots uploadedSessionIds and recordVersions and writes sync_state.json and record_versions.json on a detached utility task, awaiting completion; skipped before load.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.logSkippedSave(_:)",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.writeUUIDsSync(_:to:label:)"
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.writeUUIDsSync(_:to:label:)",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.writeVersionsSync(_:to:)",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.recordVersionsURL"
    ],
    "reads": [],
    "writes": [
-    "file:sync_state.json"
+    "file:sync_state.json",
+    "file:record_versions.json"
    ],
    "branches": [
     {
@@ -250,7 +278,9 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.logSkippedSave(_:)": "027faff2678d4a7f",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.writeUUIDsSync(_:to:label:)": "5ae5c8d7c99fa0e5"
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.writeUUIDsSync(_:to:label:)": "5ae5c8d7c99fa0e5",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.writeVersionsSync(_:to:)": "1dbdcc813b688990",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.recordVersionsURL": "50576e2eadb4d4f7"
    }
   },
   {
@@ -424,6 +454,84 @@
    }
   },
   {
+   "key": "func CloudKitSyncState.readVersions(at:)",
+   "hash": "e202d8d3d74a9c41",
+   "does": "Decodes the [id string: change tag] map at url and converts it with keyedByUUID; empty when the file is missing, and empty with the failure logged when it does not read or decode (every session then counts as having no known version).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.keyedByUUID(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "file:record_versions.json"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "file missing",
+     "effect": "[:]"
+    },
+    {
+     "at": "+4",
+     "cond": "read or decode throws",
+     "effect": "logged; [:]"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.keyedByUUID(_:)": "10aaeb3ffa1fafb7",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func CloudKitSyncState.keyedByUUID(_:)",
+   "hash": "e4abd4952c5d8c91",
+   "does": "Turns the stored [id string: change tag] map into [UUID: String], dropping keys that are not UUIDs; when two spellings parse to one UUID the first seen is kept rather than trapping.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "key not a UUID",
+     "effect": "dropped"
+    },
+    {
+     "at": "+2",
+     "cond": "duplicate UUID",
+     "effect": "first kept"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func CloudKitSyncState.writeVersionsSync(_:to:)",
+   "hash": "25ece9e79ba7a97c",
+   "does": "Encodes the versions as [uuidString: tag] JSON and writes it atomically to url; a failure is logged.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:record_versions.json"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "encode or write throws",
+     "effect": "logged"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
    "key": "func CloudKitSyncState.logSkippedSave(_:)",
    "hash": "ebae7b037143d3d7",
    "does": "Debug-logs that a save of <label> was held until the state loads.",
@@ -526,6 +634,26 @@
      "at": "+2",
      "cond": "!isLoaded",
      "effect": "record in pendingRemovedBeforeLoad"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func CloudKitSyncState.noteRecordVersion(_:of:)",
+   "hash": "8d2583078f5ebbe0",
+   "does": "Records the server change tag this device's copy of the session now matches (after a save or an import); a nil tag leaves the known version as it was.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:CloudKitSyncState.recordVersions"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "version nil",
+     "effect": "no change"
     }
    ],
    "flags": [],
@@ -648,8 +776,8 @@
   },
   {
    "key": "func CloudKitSyncState.markDeleted(_:)",
-   "hash": "4da4ed69f2023d93",
-   "does": "Removes the id from uploaded, pending (removeUploaded/removePending) and failure counts (session no longer exists).",
+   "hash": "54a44e9a8540ff38",
+   "does": "Removes the id from uploaded, pending (removeUploaded/removePending), failure counts and recordVersions (session no longer exists).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.removeUploaded(_:)",
@@ -661,7 +789,8 @@
     "mem:CloudKitSyncState.pendingUploadIds",
     "mem:CloudKitSyncState.uploadFailureCounts",
     "mem:CloudKitSyncState.uploadedRemovedBeforeLoad",
-    "mem:CloudKitSyncState.pendingRemovedBeforeLoad"
+    "mem:CloudKitSyncState.pendingRemovedBeforeLoad",
+    "mem:CloudKitSyncState.recordVersions"
    ],
    "branches": [],
    "flags": [],
@@ -672,15 +801,16 @@
   },
   {
    "key": "func CloudKitSyncState.resetAll()",
-   "hash": "ceabfa81190098ca",
-   "does": "Marks loaded, empties all sets, failure counts and the removed-before-load sets, removes the legacy change-token UserDefaults value and deletes the four state files (errors routed through attempt()).",
+   "hash": "f80b30546eeb70dc",
+   "does": "Marks loaded, empties all sets, failure counts, recordVersions and the removed-before-load sets, removes the legacy change-token UserDefaults value and deletes the five state files (errors routed through attempt()).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
     "ext:FileManager.removeItem",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.pendingQueueURL",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.quarantineQueueURL",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.localOnlyURL"
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.localOnlyURL",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.recordVersionsURL"
    ],
    "reads": [],
    "writes": [
@@ -691,7 +821,9 @@
     "file:quarantined_uploads.json",
     "file:local_only_sessions.json",
     "mem:CloudKitSyncState.uploadedRemovedBeforeLoad",
-    "mem:CloudKitSyncState.pendingRemovedBeforeLoad"
+    "mem:CloudKitSyncState.pendingRemovedBeforeLoad",
+    "mem:CloudKitSyncState.recordVersions",
+    "file:record_versions.json"
    ],
    "branches": [],
    "flags": [],
@@ -699,6 +831,7 @@
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.localOnlyURL": "77c0577af97ac7b5",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.pendingQueueURL": "5e7dc9fc09cde187",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.quarantineQueueURL": "8f75fafa223c7b8a",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.recordVersionsURL": "50576e2eadb4d4f7",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
    }
   }

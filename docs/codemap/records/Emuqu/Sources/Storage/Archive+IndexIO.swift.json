@@ -90,7 +90,7 @@
   {
    "key": "func SessionArchive.upgradeExistingFileProtection()",
    "hash": "2a87f562ef4b06ec",
-   "does": "Enumerates every path under archiveDirectory, applying the protection class to each and counting failures; logs a capped-count warning when >5 failed.",
+   "does": "Enumerates every path under archiveDirectory, applying the until-first-unlock protection class to each (applyProtectionAttributes skips session files still pending re-encryption, which keep .completeFileProtection) and counting failures; logs a capped-count warning when >5 failed.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.applyProtectionAttributes(at:filename:failureCount:)",
@@ -119,41 +119,57 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.applyProtectionAttributes(at:filename:failureCount:)": "a0a74094143db78a",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.applyProtectionAttributes(at:filename:failureCount:)": "706908bfdce2af61",
     "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)": "312605e0908fbc30",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
   {
    "key": "func SessionArchive.applyProtectionAttributes(at:filename:failureCount:)",
-   "hash": "b32c62d823a471e1",
-   "does": "Sets protection attributes on one path; on failure logs (first 5) and, under archiveLock, rewrites the file with the explicit protection option, returning false.",
+   "hash": "35eec51a162801db",
+   "does": "Under archiveLock (which every session write holds, so a plaintext write cannot slip between the check and the attribute change): leaves a session file still pending re-encryption (isPendingPlaintextSessionFile against PendingEncryptionLedger.pending) at its stricter class and returns true; otherwise sets the until-first-unlock protection attributes, and when that throws rewrites the file with the explicit protection option. After the lock, a failure is logged (first 5) and returns false.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:NSLock.withLock",
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func isPendingPlaintextSessionFile(_:pending:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::var PendingEncryptionLedger.pending",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func rewriteWithProtection(at:)",
-    "ext:NSLock.withLock"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
-   "reads": [],
+   "reads": [
+    "mem:PendingEncryptionLedger.cache (session store)"
+   ],
    "writes": [
     "file:<archiveDirectory>/<file>"
    ],
    "branches": [
     {
-     "at": "+4",
-     "cond": "catch setAttributes error",
-     "effect": "logs (if under cap) and rewrites under lock; returns false"
+     "at": "+2",
+     "cond": "file is <id>.json of a pending plaintext session",
+     "effect": "skipped; returns true (protection kept)"
     },
     {
-     "at": "+5",
+     "at": "+6",
+     "cond": "setAttributes throws",
+     "effect": "rewriteWithProtection under the lock; the error is returned out"
+    },
+    {
+     "at": "+11",
+     "cond": "no failure",
+     "effect": "returns true"
+    },
+    {
+     "at": "+12",
      "cond": "failureCount < 5",
-     "effect": "log line emitted; else suppressed"
+     "effect": "log line emitted; else suppressed; returns false"
     }
    ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func rewriteWithProtection(at:)": "d3f617adf2ce2347",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::var SessionArchive.protectionAttributes": "ec4e32f446370e53",
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func isPendingPlaintextSessionFile(_:pending:)": "31b3b37f10035ee5",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::var PendingEncryptionLedger.pending": "704f946253c65bf4",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },

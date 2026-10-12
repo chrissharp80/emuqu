@@ -38,6 +38,7 @@
     "mem:CloudKitSyncManager.lastPullErrorMessage",
     "mem:CloudKitSyncManager.pullVersion",
     "file:<archiveDir>/sync_state.json",
+    "file:<archiveDir>/record_versions.json",
     "file:<archiveDir>/pending_uploads.json"
    ],
    "branches": [
@@ -71,13 +72,13 @@
    "deps": {
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "8e9dc5b9d24c750a",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.fetchAllRemoteRecords()": "c2dd86060c1ae574",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.handleMissingZone(_:)": "5b80e9ac68975317",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.handleMissingZone(_:)": "da07501f26c8e6be",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.handlePullFailure(_:)": "b4329032801f4056",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.processRemoteRecords(_:)": "d60a1bdb8e234e5d",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.reuploadSessionsMissingFromCloud(_:)": "c5af88ad8dc75790",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.runPostPullBackfills(_:)": "895c11fa9a7f85aa",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.savePendingQueueAsync()": "705d909e0a0aa689",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveSyncStateAsync()": "cc75df03f19d3ff4"
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveSyncStateAsync()": "776b745694c4c0f0"
    }
   },
   {
@@ -202,7 +203,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.noteListingFailure(_:)": "2f02a3651eb7d875",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.processRemoteRecord(_:)": "762c9d4b0e20a68b",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.processRemoteRecord(_:)": "519b5ae7b1882fab",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.noteSyncProgress()": "0d538f934e3bb295"
    }
   },
@@ -269,6 +270,7 @@
     "mem:CloudKitSyncState.uploadedSessionIds",
     "mem:CloudKitSyncState.pendingUploadIds",
     "file:<archiveDir>/sync_state.json",
+    "file:<archiveDir>/record_versions.json",
     "file:<archiveDir>/pending_uploads.json",
     "mem:CloudKitSyncManager.lastPullErrorMessage",
     "ck:zone HRVSessions"
@@ -292,7 +294,7 @@
     "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.recreateZoneAfterNotFound()": "74172d1b0c2f1bdc",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markRemoved(_:)": "ebf11c4da93767ab",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.savePendingQueueAsync()": "705d909e0a0aa689",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveSyncStateAsync()": "cc75df03f19d3ff4",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveSyncStateAsync()": "776b745694c4c0f0",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
@@ -329,8 +331,8 @@
   },
   {
    "key": "func CloudPullCoordinator.processRemoteRecord(_:)",
-   "hash": "5748d4ddff27387a",
-   "does": "Per record: non-UUID name → nothing; tombstone (isDeleted == 1) not locally restored → delete local copy; already held or intentionally deleted → refreshIfRemoteIsNewer; else fetch asset and import as new.",
+   "hash": "d56dd6984b7b30eb",
+   "does": "Per record: non-UUID name → nothing; tombstone (isDeleted == 1) not locally restored → delete local copy; already held or intentionally deleted → refreshIfRemoteIsNewer; else fetch asset and import as new, passing the record's change tag.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/TrashRestoreCoordinator.swift::func TrashRestoreCoordinator.isRestored(_:)",
@@ -338,11 +340,12 @@
     "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.isKnownLocally(_:)",
     "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudPullCoordinator.refreshIfRemoteIsNewer(_:sessionId:)",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.assetURL(for:)",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.importPulledSession(from:sessionId:sessionIdString:)"
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.importPulledSession(from:sessionId:sessionIdString:version:)"
    ],
    "reads": [
     "ck:HRVSession.isDeleted",
-    "ud:restoredFromTrash list (TrashRestoreCoordinator)"
+    "ud:restoredFromTrash list (TrashRestoreCoordinator)",
+    "ck:CKRecord.recordChangeTag"
    ],
    "writes": [],
    "branches": [
@@ -374,10 +377,10 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudPullCoordinator.refreshIfRemoteIsNewer(_:sessionId:)": "626fcb186a786feb",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudPullCoordinator.refreshIfRemoteIsNewer(_:sessionId:)": "b132f93070af13b4",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.assetURL(for:)": "ed497841e27ddf56",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.handleDeletedRecord(sessionId:sessionIdString:)": "85b88c3036c3ea51",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.importPulledSession(from:sessionId:sessionIdString:)": "abe38fdf61ffc885",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.handleDeletedRecord(sessionId:sessionIdString:)": "16cc7cd3837e3671",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.importPulledSession(from:sessionId:sessionIdString:version:)": "073aa1a0dc992192",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.isKnownLocally(_:)": "dda4e1b90145416d",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.trashRestore": "c06a7370dc0f2a56",
     "Emuqu/Sources/Storage/TrashRestoreCoordinator.swift::func TrashRestoreCoordinator.isRestored(_:)": "15c730e038134d0a"
@@ -484,14 +487,15 @@
    }
   },
   {
-   "key": "func CloudPullCoordinator.importPulledSession(from:sessionId:sessionIdString:)",
-   "hash": "6a392ae89575bd25",
-   "does": "Decodes the asset off-main, archives it with skipSameNightMerge: true (on main actor), marks uploaded; returns new=1 with backfillId; failures go to importFailure.",
+   "key": "func CloudPullCoordinator.importPulledSession(from:sessionId:sessionIdString:version:)",
+   "hash": "0cb416dd044629a2",
+   "does": "Decodes the asset off-main, archives it with skipSameNightMerge: true (on main actor), marks uploaded and remembers the record's change tag (version) as the one this copy matches; returns new=1 with backfillId; failures go to importFailure.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.decodeSessionAsset(at:)",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markUploaded(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.noteRecordVersion(_:of:)",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.importFailure(_:sessionIdString:)"
    ],
    "reads": [
@@ -501,11 +505,12 @@
     "file:<archiveDir>/<id>.json",
     "file:<archiveDir>/index.json",
     "notif:flowRecoveryArchiveChanged",
-    "mem:CloudKitSyncState.uploadedSessionIds"
+    "mem:CloudKitSyncState.uploadedSessionIds",
+    "mem:CloudKitSyncState.recordVersions"
    ],
    "branches": [
     {
-     "at": "+10",
+     "at": "+11",
      "cond": "decode or archive throws",
      "effect": "importFailure"
     }
@@ -516,7 +521,8 @@
     "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.assetURL(for:)": "ed497841e27ddf56",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.decodeSessionAsset(at:)": "8706cc7b863388cb",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.importFailure(_:sessionIdString:)": "d68a5f48b5e3ea2d",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markUploaded(_:)": "f7f8c1ad85cef5dc"
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markUploaded(_:)": "f7f8c1ad85cef5dc",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.noteRecordVersion(_:of:)": "d2e0793294cf2785"
    }
   },
   {
@@ -595,7 +601,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.handleDeletedRecord(sessionId:sessionIdString:)": "85b88c3036c3ea51",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.handleDeletedRecord(sessionId:sessionIdString:)": "16cc7cd3837e3671",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
@@ -619,7 +625,8 @@
     "mem:SessionArchive.deletedSessionIds",
     "ud:archive.deletionTimes",
     "mem:CloudKitSyncState.uploadedSessionIds",
-    "mem:CloudKitSyncState.pendingUploadIds"
+    "mem:CloudKitSyncState.pendingUploadIds",
+    "mem:CloudKitSyncState.recordVersions"
    ],
    "branches": [
     {
@@ -638,7 +645,7 @@
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)": "cefef470ab858af7",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.discardTrashed(_:)": "e29a7846681f7347",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "129adb95a00b9a83",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markDeleted(_:)": "6392ca5f0e9c18b2",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markDeleted(_:)": "7a8569689483db44",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   }

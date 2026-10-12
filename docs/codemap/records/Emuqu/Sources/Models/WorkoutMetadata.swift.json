@@ -153,7 +153,31 @@
     }
    ],
    "flags": [],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.wallClockSeconds(forActiveOffset:)": "529feacf74cbee54"
+   }
+  },
+  {
+   "key": "func WorkoutMetadata.wallClockSeconds(forActiveOffset:)",
+   "hash": "c35a124488168126",
+   "does": "Inverse of activeOffset(forWallClockSeconds:): the wall-clock seconds after the start of active (pause-excluded) second activeOffset — activeOffset plus the lengths of every pause span whose atElapsed is before it. The second a pause began at maps to the start of that pause. Without pause spans the clocks agree.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:WorkoutMetadata.pauseSpans"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "span.atElapsed < activeOffset",
+     "effect": "its seconds added; else not"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.activeOffset(forWallClockSeconds:)": "bcdd2b66dec0008d"
+   }
   },
   {
    "key": "var WorkoutMetadata.TrainingLoadSource.displayLabel",

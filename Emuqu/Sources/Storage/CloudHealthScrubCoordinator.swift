@@ -119,6 +119,7 @@ struct CloudHealthScrubCoordinator {
         }
         defaults.set(remaining, forKey: Self.remainingKey)
         if handled > 0 {
+            await manager.state.saveSyncStateAsync()
             debugLog("[CloudKit] Health scrub (sync off): \(handled) records handled, \(remaining.count) remaining")
         }
     }
@@ -141,7 +142,9 @@ struct CloudHealthScrubCoordinator {
 
     /// Replace the record's payload with its own contents stripped, or delete
     /// it when the session came out of Apple Health whole. The record keeps
-    /// its edit stamp, so no device takes it for a newer copy.
+    /// its edit stamp; its new version is remembered here, so this device does
+    /// not download its own rewrite, and each other device downloads it once
+    /// (`CloudKitSessionFreshness.onTie`).
     ///
     /// Only a tombstone (`isDeleted == 1`) is a deleted session; a session
     /// restored from the Trash carries `TrashRestoreCoordinator.restoredMarker`
@@ -183,7 +186,8 @@ struct CloudHealthScrubCoordinator {
         // A save that loses to another device's newer save throws
         // `.serverRecordChanged`; the id stays listed and the next pass
         // fetches that newer copy.
-        try await manager.privateDB.save(record)
+        let saved = try await manager.privateDB.save(record)
+        manager.state.noteRecordVersion(saved.recordChangeTag, of: session.id)
     }
 
     /// A tombstone holds no recording; one still carrying a payload has it

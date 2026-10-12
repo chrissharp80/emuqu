@@ -135,6 +135,26 @@ final class CloudKitSyncStateTests: XCTestCase {
         XCTAssertNil(state.uploadFailureCounts[id])
     }
 
+    /// The server version a session's copy matches survives a relaunch, and
+    /// a deletion forgets it.
+    func testRecordVersionsRoundTripAndADeletionForgetsOne() {
+        var state = makeSyncState()
+        state.loadAll()
+        let kept = UUID()
+        let deleted = UUID()
+        state.noteRecordVersion("v1", of: kept)
+        state.noteRecordVersion("v2", of: deleted)
+        state.noteRecordVersion(nil, of: kept)
+        state.markDeleted(deleted)
+        state.saveSyncState()
+
+        var loaded = makeSyncState()
+        loaded.loadAll()
+
+        XCTAssertEqual(loaded.recordVersions[kept], "v1", "a save that returned no tag replaced the known version")
+        XCTAssertNil(loaded.recordVersions[deleted])
+    }
+
     // MARK: - Empty State
 
     func testLoadAllWithNoFilesStartsEmpty() {
