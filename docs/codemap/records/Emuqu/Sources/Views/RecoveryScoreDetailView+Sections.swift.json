@@ -159,7 +159,8 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.buildExplanations()": "afbd64eab00cec9e",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.explanationCard(index:title:body:badge:badgeColor:)": "84cba3f93a301bab"
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.explanationCard(index:title:body:badge:badgeColor:)": "84cba3f93a301bab",
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::var AccessorySensorRow.badge": "9e63178649453650"
    }
   },
   {
@@ -471,7 +472,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.explanationHeader(title:badge:badgeColor:)": "cef455f860a5c4bf",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.body": "759b5fb9c65a102a",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.body": "87d0076b5c3cbf84",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
@@ -1146,6 +1147,43 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.verdict": "29a6c3c9c67a84d6"
+   }
+  },
+  {
+   "key": "func RecoveryDetailCopy.dataSourceLabel(_:)",
+   "hash": "def7f40574a7bb76",
+   "does": "Maps a DataSourceSummary.selectedSource tag (an internal tag, not display text) to its catalog label for the engine room's Source row.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "'streaming'",
+     "effect": "'Streaming'"
+    },
+    {
+     "at": "+3",
+     "cond": "'internal'",
+     "effect": "'Strap recording'"
+    },
+    {
+     "at": "+4",
+     "cond": "'composite'",
+     "effect": "'Merged'"
+    },
+    {
+     "at": "+5",
+     "cond": "any other tag",
+     "effect": "the raw tag string shown untranslated"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }
   },
   {

@@ -139,8 +139,8 @@
   },
   {
    "key": "func UserSettings.decodeFitnessMarkers(from:)",
-   "hash": "576d0afebba6838d",
-   "does": "Decodes fitness markers: vo2MaxOverride, useHealthKitVO2Max (false), maxHR (a stored value under MaxHeartRate.minimumUserEntered, 80, decodes as nil — a half-typed field value — and one above 240 is clamped to 240), LTHR, bodyWeightKg, userRestingHR, homeAddress, running/cycling FTP (all nil default), enableZwiftBroadcast and enableWebSearch (false).",
+   "hash": "68fa80810e63748f",
+   "does": "Decodes fitness markers: vo2MaxOverride, useHealthKitVO2Max (false), maxHR (a stored value under MaxHeartRate.minimumUserEntered, 80, decodes as nil — a half-typed field value — and one above MaxHeartRate.maximumUserEntered (240) is clamped to it), LTHR, bodyWeightKg, userRestingHR, homeAddress, running/cycling FTP (all nil default), enableZwiftBroadcast and enableWebSearch (false).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decoded(_:_:from:default:)",
@@ -152,7 +152,7 @@
     {
      "at": "+4",
      "cond": "stored maxHR >= MaxHeartRate.minimumUserEntered",
-     "effect": "min(240, value); below it → nil (unset, so MaxHeartRate.effective uses the formula)"
+     "effect": "min(MaxHeartRate.maximumUserEntered, value); below it → nil (unset, so MaxHeartRate.effective uses the formula)"
     }
    ],
    "flags": [],

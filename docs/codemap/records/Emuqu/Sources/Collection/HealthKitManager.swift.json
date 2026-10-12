@@ -954,6 +954,50 @@
    }
   },
   {
+   "key": "func HealthKitManager.authorizationWasEverRequested()",
+   "hash": "456f1a01303efd62",
+   "does": "Asks HealthKit (healthStore.statusForAuthorizationRequest with the same share/read sets performAuthorization requests) whether the permission sheet still has anything to ask: true only for .unnecessary (already answered on this device, in any launch). False when HealthKit or a core type is unavailable, or the status query throws (logged as a warning).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.coreAuthorizationTypes()",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.writeTypes(core:)",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.readTypes(core:)",
+    "ext:HKHealthStore.statusForAuthorizationRequest(toShare:read:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "hk:authorization request status"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "HealthKit unavailable or core types missing",
+     "effect": "false"
+    },
+    {
+     "at": "+7",
+     "cond": "status == .unnecessary",
+     "effect": "true; else false"
+    },
+    {
+     "at": "+8",
+     "cond": "status query throws",
+     "effect": "warning log, false"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.coreAuthorizationTypes()": "fd75a894b14a638a",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.readTypes(core:)": "e8721d4334c95c3f",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.status(_:)": "e269c6dccfb8bd8b",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.writeTypes(core:)": "a36f68d5292a7253",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable": "6a80ac7c585d4e2f",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
    "key": "func HealthKitManager.coreAuthorizationTypes()",
    "hash": "aba23c71f0905eaf",
    "does": "Builds CoreAuthTypes (sleep, SDNN, HR, VO2max, active energy, respiratory rate, SpO2, resting HR) or nil if any identifier is unavailable.",

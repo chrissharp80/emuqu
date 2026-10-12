@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Models/WorkoutMetadata.swift",
- "hash": "dc0a7723f10aa898",
+ "hash": "fa9f3bd1e5ba3f2b",
  "role": "Workout data model: Sport enum, Split/Lap/LiveMarker/WorkoutSample/HRRSample value types, WorkoutMetadata (all workout-specific fields stored on HRVSession.workoutMetadata, with explicit additive Codable and the cross-source training-load resolver), WorkoutWeatherSnapshot, PartialDataReason, and [HRRSample] best-reading helpers.",
  "types": [
   "Sport: enum (String, Codable, CaseIterable, Identifiable) — 10 activities with names, icons, GPS use",
@@ -9,6 +9,7 @@
   "LiveMarker: struct (Codable) + Kind enum — timeline markers (never placed; kept for decode)",
   "WorkoutSample: struct (Codable) — per-second tick row with custom tolerant decode",
   "HRRSample: struct (Codable) + Provenance enum — post-stop HR recovery",
+  "WorkoutPauseSpan: struct (Codable, Equatable, Sendable) — one recorded pause (active second it began at, wall-clock length)",
   "WorkoutMetadata: struct (Codable, Equatable) — workout extras, load resolver, explicit Codable",
   "WorkoutMetadata.TrainingLoadSource: enum — power/hr/mets/banister/routeHistory with display label",
   "WorkoutWeatherSnapshot: struct (Codable, Sendable) + extension init from HealthKit metadata",
@@ -22,7 +23,7 @@
   "archive: WorkoutMetadata is persisted inside HRVSession (CodingKeys at Emuqu/Sources/Models/WorkoutMetadata.swift:770-786)",
   "hk:HKMetadataKeyWeatherTemperature / HKMetadataKeyWeatherHumidity (read by WorkoutWeatherSnapshot init)"
  ],
- "toplevel": "Split, Lap, LiveMarker, HRRSample, WorkoutWeatherSnapshot, Sport, PartialDataReason and TrainingLoadSource use synthesized conformances. WorkoutSample.CodingKeys lists all 9 fields. WorkoutMetadata.CodingKeys (770-786) covers every stored property except unrecognizedSportRawValue (written back under the sport key) plus schemaVersion; the split encoder writes every key (hrTSS is written by encodePowerMetrics, not encodeLoadMetrics as its doc comment groups it). WorkoutMetadata.unrecognizedSportRawValue (private(set), nil by default) holds a sport string this build does not know.",
+ "toplevel": "Split, Lap, LiveMarker, HRRSample, WorkoutWeatherSnapshot, Sport, PartialDataReason and TrainingLoadSource use synthesized conformances. WorkoutSample.CodingKeys lists all 9 fields. WorkoutMetadata.CodingKeys (770-786) covers every stored property except unrecognizedSportRawValue (written back under the sport key) plus schemaVersion; the split encoder writes every key (hrTSS is written by encodePowerMetrics, not encodeLoadMetrics as its doc comment groups it). WorkoutMetadata.unrecognizedSportRawValue (private(set), nil by default) holds a sport string this build does not know. WorkoutPauseSpan uses synthesized Codable; WorkoutMetadata.pauseSpans is coded under key pauseSpans (tolerant decode).",
  "flags": [
   {
    "kind": "dead",
@@ -336,6 +337,52 @@
    "reads": [],
    "writes": [],
    "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutPauseSpan.spans(of:)",
+   "hash": "fafb091eb401dea7",
+   "does": "Maps a PauseTimeline's spans to WorkoutPauseSpan values for WorkoutMetadata.pauseSpans; nil when there were no pauses.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "no spans",
+     "effect": "nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutMetadata.activeOffset(forWallClockSeconds:)",
+   "hash": "c32f8a48bdba7b54",
+   "does": "Pause-excluded second (the clock of WorkoutSample.offsetSec) for a moment wallClockSeconds after the start: walks pauseSpans in order, subtracting each pause that ended before the moment; a moment inside a pause maps to that pause's atElapsed; truncates to Int. Inverse of PauseTimeline.wallClock(forOffset:). Without pauseSpans returns Int(wallClockSeconds).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each pause span in atElapsed order",
+     "effect": "compute its wall-clock start"
+    },
+    {
+     "at": "+4",
+     "cond": "moment not after the pause start",
+     "effect": "stop scanning"
+    },
+    {
+     "at": "+5",
+     "cond": "moment inside the pause",
+     "effect": "return atElapsed"
+    }
+   ],
    "flags": [],
    "deps": {}
   },
@@ -665,8 +712,8 @@
   },
   {
    "key": "init WorkoutMetadata(from:)",
-   "hash": "23bbc30113735236",
-   "does": "Decodes WorkoutMetadata: sport via decodedSport (an unknown sport reads as .run, its string kept in unrecognizedSportRawValue; a missing sport throws), liveMarkers / hrrSamples / partialDataReason through the tolerant optionalValue (unreadable, e.g. an enum case from a newer build → nil and logged), decodeIfPresent for every other field (missing keys → nil). schemaVersion is not read. Throws only on a missing sport or a malformed value in the remaining fields.",
+   "hash": "05ce63002e8a490f",
+   "does": "Decodes WorkoutMetadata: sport via decodedSport (an unknown sport reads as .run, its string kept in unrecognizedSportRawValue; a missing sport throws), liveMarkers / pauseSpans / hrrSamples / partialDataReason through the tolerant optionalValue (unreadable, e.g. an enum case from a newer build → nil and logged), decodeIfPresent for every other field (missing keys → nil). schemaVersion is not read. Throws only on a missing sport or a malformed value in the remaining fields.",
    "entry": "Decodable requirement, invoked when an HRVSession is decoded from the archive, CloudKit or Watch payloads.",
    "calls": [
     "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.decodedSport(from:)",
@@ -762,8 +809,8 @@
   },
   {
    "key": "func WorkoutMetadata.encodeRouteAndSamples(into:)",
-   "hash": "b792d6120da7d459",
-   "does": "Writes schemaVersion (1), sport (unrecognizedSportRawValue when set, else sport.rawValue), gpsPolyline, distance, elevation gain/loss, splits, laps, liveMarkers, samples, healthKitHROffsets (optionals only when present).",
+   "hash": "1530756808733b74",
+   "does": "Writes schemaVersion (1), sport (unrecognizedSportRawValue when set, else sport.rawValue), gpsPolyline, distance, elevation gain/loss, splits, laps, liveMarkers, pauseSpans, samples, healthKitHROffsets (optionals only when present).",
    "entry": null,
    "calls": [
     "ext:KeyedEncodingContainer.encode/encodeIfPresent"

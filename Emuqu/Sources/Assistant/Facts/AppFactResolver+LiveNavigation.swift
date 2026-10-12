@@ -325,13 +325,15 @@ extension WorkoutLiveCoachingNamespace {
 
     // Forward-geocode is async; suspend on it directly.
     // Suspending timeout race (no semaphore bridge), so the MainActor is
-    // never parked. 7 s budget: the queued geocode can take its own 5 s
-    // CLGeocoder timeout plus the 1 s rate floor, so a shorter cap would
-    // report a slow but valid address as unmatched. A timeout is kept
+    // never parked. 12 s budget: the queued forward geocode can wait for an
+    // in-flight geocoder call (≤5 s, its own timeout), then the 1 s rate
+    // floor (no failure backoff for forward geocodes), then make its own
+    // ≤5 s call, so a shorter cap would report a slow but valid address as
+    // unmatched. A timeout is kept
     // apart from a no-match so the model doesn't ask the user to rephrase
     // an address that was never checked.
     @MainActor private func geocodedRoadContext(_ query: String) async -> AddressLookup? {
-        await FactResolveTimeout.withTimeout(seconds: 7) {
+        await FactResolveTimeout.withTimeout(seconds: 12) {
             if let context = await RoadGeocodingService.geocodeAddress(query) {
                 return AddressLookup.matched(context)
             }
@@ -361,26 +363,30 @@ extension WorkoutLiveCoachingNamespace {
     private var directionsRouteToEntry: FactEntry {
         .actionAsync(
             key: "directions.routeTo",
-            description: """
-            Compute a walking (or driving) route from the user's CURRENT position to a meaningful destination, using MapKit / MKDirections. Use this when the user says 'get me back to where I started' / 'where's the nearest parking' \
-            / 'walk me back to the trailhead' / 'hospital nearest me' / 'lead me home'. The breadcrumb origin only exists when the user has engaged Get Me Back mode (see the Fitness tab's 'Get Me Back' card) — if the user hasn't, the 'origin' \
-            destination returns notRecorded; route to a typed address or a POI category instead. Returns destination label, lat/lon, total distance in meters, expected travel time in seconds, transport mode, and the first 1–3 turn-by-turn \
-            step instructions ready to read aloud. Network-required: MKLocalSearch + MKDirections both call out, so this tool returns notRecorded when offline (the offline compass-arrow back to the breadcrumb origin lives in the Get \
-            Me Back screen, not this tool).
-            """,
+            description: Self.directionsRouteToDescription,
             parameters: [
-                ActionParam("destination", """
-                What to route to. One of: 'origin' (the breadcrumb origin where the user dropped the pin via Get Me Back mode), 'home' (the user's saved home address from Settings — returns notRecorded if unset, hint-the-user to add it), 'parking' \
-                (nearest parking lot), 'park' (nearest park), 'help' (nearest hospital, when the user asks to be routed to one), 'police' (nearest police station), 'fire' (nearest fire station), 'address' (forward-geocode \
-                the `address` argument). 'start', 'where i started' and 'trailhead' also mean 'origin'. \
-                Pick 'origin' for 'lead me back' / 'back to the trailhead', 'home' for 'lead me home', 'help' for 'nearest hospital', 'address' when the user names a specific place ('Lakeside Park trailhead'). This is not an emergency \
-                service: a hospital result carries `safety_first`, which you say before anything else. If the user says they are hurt, injured or unwell, tell them to call their local emergency number first.
-                """),
+                ActionParam("destination", Self.directionsRouteToDestinationDescription),
                 ActionParam("address", "Required when destination=='address'. Free-text address — Apple's geocoder handles loose phrasings like 'corner of Elm Pkwy and Hill Rd, Springfield'. Ignored for the other destinations."),
                 ActionParam("mode", "Transport mode. 'walking' (default — best for breadcrumb-back / get-me-help scenarios) or 'driving'.")
             ]
         ) { args in await self.resolveDirectionsRouteTo(args) }
     }
+
+    private static let directionsRouteToDescription = """
+    Compute a walking (or driving) route from the user's CURRENT position to a meaningful destination, using MapKit / MKDirections. Use this when the user says 'get me back to where I started' / 'where's the nearest parking' \
+    / 'walk me back to the trailhead' / 'hospital nearest me' / 'lead me home'. The breadcrumb origin only exists when the user has engaged Get Me Back mode (see the Fitness tab's 'Get Me Back' card) — if the user hasn't, the 'origin' \
+    destination returns notRecorded; route to a typed address or a POI category instead. Returns destination label, lat/lon, total distance in meters, expected travel time in seconds, transport mode, and the first 1–3 turn-by-turn \
+    step instructions ready to read aloud. Network-required: MKLocalSearch + MKDirections both call out, so this tool returns notRecorded when offline (the offline compass-arrow back to the breadcrumb origin lives in the Get \
+    Me Back screen, not this tool).
+    """
+
+    private static let directionsRouteToDestinationDescription = """
+    What to route to. One of: 'origin' (the breadcrumb origin where the user dropped the pin via Get Me Back mode), 'home' (the user's saved home address from Settings — returns notRecorded if unset, hint-the-user to add it), 'parking' \
+    (nearest parking lot), 'park' (nearest park), 'help' (nearest hospital, when the user asks to be routed to one), 'police' (nearest police station), 'fire' (nearest fire station), 'address' (forward-geocode \
+    the `address` argument). 'start', 'where i started' and 'trailhead' also mean 'origin'. \
+    Pick 'origin' for 'lead me back' / 'back to the trailhead', 'home' for 'lead me home', 'help' for 'nearest hospital', 'address' when the user names a specific place ('Lakeside Park trailhead'). This is not an emergency \
+    service: a hospital result carries `safety_first`, which you say before anything else. If the user says they are hurt, injured or unwell, tell them to call their local emergency number first.
+    """
 
     @MainActor private func resolveDirectionsRouteTo(_ args: [String: String]) async -> FactValue {
         let destinationKey = (args["destination"]?

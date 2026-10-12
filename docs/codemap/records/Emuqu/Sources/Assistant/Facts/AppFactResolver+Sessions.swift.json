@@ -904,7 +904,7 @@
    "deps": {
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::var WalksNamespace.walksCountPeriodEntry": "ba839bb3e28bb203",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::var WalksNamespace.walksHardestPeriodEntry": "14bdaf6e7ccc32db",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::var WalksNamespace.walksListPeriodEntry": "c38519db26dc981c",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::var WalksNamespace.walksListPeriodEntry": "977321ef40ced5bc",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::var WalksNamespace.walksTotalDistanceMPeriodEntry": "11558c5a1a4ba3a6",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::var WalksNamespace.walksTotalTrimpPeriodEntry": "b916fe64d47be4df"
    }
@@ -1034,14 +1034,14 @@
   },
   {
    "key": "var WalksNamespace.walksListPeriodEntry",
-   "hash": "13cf4c24843c8b6a",
-   "does": "Declares walks.list($period): via withWalks, list of full workout records for walks in period (empty list when none; invalidParameter for an unknown period).",
+   "hash": "b18cc8bed59f048e",
+   "does": "Declares walks.list($period): via withWalks, walkList of the walks in period (empty list when none; invalidParameter for an unknown period).",
    "entry": "Invoked by FactResolverRegistry when the assistant's tool-use loop (or CompactToolRouter) resolves this fact key; availability closure is evaluated during tool-schema build.",
    "calls": [
     "ext:FactEntry.parameterized enum case",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func WalksNamespace.walksAvailability()",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func WalksNamespace.withWalks(in:_:)",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.fullRecord(for:)"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func WalksNamespace.walkList(of:)"
    ],
    "reads": [
     "mem:SessionArchive.index (archive.entries)"
@@ -1050,9 +1050,25 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.fullRecord(for:)": "36449474fed1fa1e",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func WalksNamespace.walkList(of:)": "433a9bb4a6215f23",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func WalksNamespace.walksAvailability()": "d58d772e05f22570",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func WalksNamespace.withWalks(in:_:)": "9ed51320c9363e2a"
+   }
+  },
+  {
+   "key": "func WalksNamespace.walkList(of:)",
+   "hash": "bbf388094e7676ee",
+   "does": "The walks as a .list of their full session records (SessionNamespace.fullRecord), in the order given; an empty list for no walks.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.fullRecord(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.fullRecord(for:)": "36449474fed1fa1e"
    }
   },
   {

@@ -941,15 +941,14 @@
    "branches": [],
    "flags": [
     {
-     "kind": "broken",
-     "sev": "med",
-     "text": "SessionReanalysisCoordinator.reanalyzeAllSessions (Settings → Diagnostics) still calls this overload, so bulk reanalysis (and AppLaunchTasks' temp-asymmetry rescore, which calls reanalyzeSession directly) skips the coordinator's loadPastDayTrainingLoad/warm-cache step and in-flight guard: for a past-day session with training integration on, analyze() runs with trainingLoadAdjustment 0 and no HealthKit VO2max, so the ANS readiness differs from single-session Reanalyze. The reanalyzeOne overload exists for the coordinator to pass its own reanalyzeSession; the callers are outside this file (handed off).",
+     "kind": "dead",
+     "sev": "low",
+     "text": "No caller left: SessionReanalysisCoordinator.reanalyzeAllSessions now passes its own reanalyzeSession through the reanalyzeOne overload, and the temp-asymmetry rescore goes through RRCollector.reanalyzeSession. This overload's pass skips the past-day training load, so a new caller would reintroduce the mismatch.",
      "evidence": [
-      "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift:350",
-      "Emuqu/Sources/Services/AppLaunchTasks.swift:858",
-      "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift:98"
+      "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift:355",
+      "Emuqu/Sources/Services/AppLaunchTasks.swift:863"
      ],
-     "found": "second read"
+     "found": "h_src2 handoff pass"
     }
    ],
    "deps": {

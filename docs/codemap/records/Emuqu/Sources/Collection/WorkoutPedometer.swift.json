@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Collection/WorkoutPedometer.swift",
- "hash": "2deca0fc45bb9d76",
+ "hash": "6a8b0154c90a4b2c",
  "role": "CMPedometer wrapper for workout distance/steps/cadence plus the Sendable PedometerSample value used to hop CoreMotion callbacks to the main actor with NaN/negative rejection.",
  "types": [
   "WorkoutPedometer: class (@Observable, @MainActor) — live pedometer distance/steps/cadence",
@@ -11,7 +11,8 @@
   "mem:WorkoutPedometer.stepCount",
   "mem:WorkoutPedometer.cadenceStepsPerMin",
   "mem:WorkoutPedometer.isAvailable",
-  "private: pedometer (CMPedometer), sessionStart"
+  "private: pedometer (CMPedometer), sessionStart",
+  "PedometerSample.maximumPlausibleMeters = 1_000_000"
  ],
  "toplevel": "isAvailable initialiser evaluates CMPedometer.isDistanceAvailable() && isStepCountingAvailable() at construction (line 21). Instance is WorkoutRecorder.pedometer.",
  "flags": [],
@@ -154,8 +155,8 @@
   },
   {
    "key": "var PedometerSample.publishableDistanceMeters",
-   "hash": "1c9e919005199a80",
-   "does": "Returns rawDistanceMeters when finite and >=0, else nil.",
+   "hash": "038470e326ed82af",
+   "does": "Returns rawDistanceMeters when finite, >= 0 and <= PedometerSample.maximumPlausibleMeters (1,000,000 m), else nil, so a huge reading cannot reach the Int(...) conversions downstream.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -163,7 +164,7 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "nil, non-finite or negative",
+     "cond": "nil, non-finite, negative or above 1,000,000 m",
      "effect": "returns nil; else the value"
     }
    ],

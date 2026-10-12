@@ -88,8 +88,8 @@
   },
   {
    "key": "func EmailContactStore.add(_:)",
-   "hash": "473ff0297de99f04",
-   "does": "Appends a contact (after re-reading the file if the last load failed) and enqueues a save of the full list.",
+   "hash": "c37c8ac4c3274c5c",
+   "does": "Re-reads the file if the last load failed; while it still cannot be read returns false and adds nothing (memory stays matching disk); otherwise appends the contact, enqueues a save of the full list and returns true.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.retryLoadIfBlocked()",
@@ -100,7 +100,13 @@
     "mem:EmailContactStore.contacts",
     "file:email_contacts.json"
    ],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "loadFailed after the retry",
+     "effect": "return false, nothing added"
+    }
+   ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.retryLoadIfBlocked()": "9a408cb5bcdee313",
@@ -109,8 +115,8 @@
   },
   {
    "key": "func EmailContactStore.remove(id:)",
-   "hash": "240aaf033625e9d1",
-   "does": "Removes every contact with the given id (after a blocked-load retry) and saves.",
+   "hash": "28c3b7fa049661d0",
+   "does": "Re-reads the file if the last load failed; while it still cannot be read returns false and removes nothing; otherwise removes every contact with the id, saves and returns true.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.retryLoadIfBlocked()",
@@ -121,7 +127,13 @@
     "mem:EmailContactStore.contacts",
     "file:email_contacts.json"
    ],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "loadFailed after the retry",
+     "effect": "return false, nothing removed"
+    }
+   ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.retryLoadIfBlocked()": "9a408cb5bcdee313",

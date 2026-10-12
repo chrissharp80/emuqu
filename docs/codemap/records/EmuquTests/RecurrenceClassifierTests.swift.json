@@ -1,12 +1,15 @@
 {
  "file": "EmuquTests/RecurrenceClassifierTests.swift",
- "hash": "6726d081c8eff260",
- "role": "Tests RecurrenceClassifier geometry helpers: roundCoord metre-grid bucketing (with longitude cosine correction), median, and cumulativeDistances.",
+ "hash": "06249a220af75686",
+ "role": "Tests RecurrenceClassifier: geometry helpers (roundCoord metre-grid bucketing with longitude cosine correction, median, cumulativeDistances) and match(current:archive:) on synthetic trails — a three-walk recurrence matched mid-walk, too few prior walks, too early in the walk, two routes sharing a start kept apart, and a start in another bucket.",
  "types": [
-  "RecurrenceClassifierTests: class — XCTestCase for RecurrenceClassifier static helpers"
+  "RecurrenceClassifierTests: class — XCTestCase for RecurrenceClassifier"
  ],
- "state": [],
- "toplevel": "",
+ "state": [
+  "originLatitude / originLongitude: static fixture origin (51.5, -0.12)",
+  "referenceDay: static Date(1_750_000_000) the synthetic trails are dated from"
+ ],
+ "toplevel": "Static fixture origin and reference day for the synthetic trails.",
  "flags": [],
  "units": [
   {
@@ -295,6 +298,203 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.cumulativeDistances(along:)": "437d003ef89933d2"
+   }
+  },
+  {
+   "key": "func RecurrenceClassifierTests.testThreePriorWalksOfTheSameRouteMatchMidWalk()",
+   "hash": "2838e3732ada809c",
+   "does": "Archives three 08:00 walks of the same straight 2 km northward route (40, 45, 50 min, on the three previous days) and matches a current walk that has covered its first 600 m in 8 minutes; asserts a Match with 3 prior occurrences, median duration 45 min, median path length ≈ 2 km (±20 m) and a label containing 'morning'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RecurrenceClassifierTests.swift::func RecurrenceClassifierTests.path(northMeters:thenEastMeters:startEastMeters:)",
+    "EmuquTests/RecurrenceClassifierTests.swift::func RecurrenceClassifierTests.trail(daysAgo:along:minutes:)",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.match(current:archive:)",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.sameBucketCandidates(for:in:)",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.bucketKey(for:)",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.signature(for:upToMeters:)",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.scoreCandidates(_:against:walkedMeters:)",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.coherentCluster(_:)",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.clusterMatch(_:current:)",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.describeLabel(for:originLabel:)",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbTrail.walkedTrailLengthMeters()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbTrail.walkedTrailLengthMeters()": "7d07246a8ccabe1d",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.bucketKey(for:)": "73dd7f5315c16ef2",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.clusterMatch(_:current:)": "d413d3222fd285bc",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.coherentCluster(_:)": "57774dac2157311a",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.describeLabel(for:originLabel:)": "462fd7bef75129d2",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.match(current:archive:)": "884b9e453c030b9f",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.sameBucketCandidates(for:in:)": "cea970a1d88774f0",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.scoreCandidates(_:against:walkedMeters:)": "a5d986b82f24f48c",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.signature(for:upToMeters:)": "df06f5dd37ab34f0",
+    "EmuquTests/RecurrenceClassifierTests.swift::func RecurrenceClassifierTests.path(northMeters:thenEastMeters:startEastMeters:)": "5dfb57511549f1b6",
+    "EmuquTests/RecurrenceClassifierTests.swift::func RecurrenceClassifierTests.trail(daysAgo:along:minutes:)": "1ea275f5543b4470"
+   }
+  },
+  {
+   "key": "func RecurrenceClassifierTests.testASingleEarlierWalkIsNotARecurrence()",
+   "hash": "bdfdab05936c2277",
+   "does": "With only one archived walk of the route, matching the current 600 m walk returns nil (fewer than two candidates).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RecurrenceClassifierTests.swift::func RecurrenceClassifierTests.path(northMeters:thenEastMeters:startEastMeters:)",
+    "EmuquTests/RecurrenceClassifierTests.swift::func RecurrenceClassifierTests.trail(daysAgo:along:minutes:)",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.match(current:archive:)",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.sameBucketCandidates(for:in:)",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.bucketKey(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.bucketKey(for:)": "73dd7f5315c16ef2",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.match(current:archive:)": "884b9e453c030b9f",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.sameBucketCandidates(for:in:)": "cea970a1d88774f0",
+    "EmuquTests/RecurrenceClassifierTests.swift::func RecurrenceClassifierTests.path(northMeters:thenEastMeters:startEastMeters:)": "5dfb57511549f1b6",
+    "EmuquTests/RecurrenceClassifierTests.swift::func RecurrenceClassifierTests.trail(daysAgo:along:minutes:)": "1ea275f5543b4470"
+   }
+  },
+  {
+   "key": "func RecurrenceClassifierTests.testUnderFiveMinutesIntoTheWalkIsTooEarlyToMatch()",
+   "hash": "cc82e6b1027621f4",
+   "does": "With three archived walks of the route, a current walk only 4 minutes long returns nil (under the 5-minute minimum).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RecurrenceClassifierTests.swift::func RecurrenceClassifierTests.path(northMeters:thenEastMeters:startEastMeters:)",
+    "EmuquTests/RecurrenceClassifierTests.swift::func RecurrenceClassifierTests.trail(daysAgo:along:minutes:)",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.match(current:archive:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.match(current:archive:)": "884b9e453c030b9f",
+    "EmuquTests/RecurrenceClassifierTests.swift::func RecurrenceClassifierTests.path(northMeters:thenEastMeters:startEastMeters:)": "5dfb57511549f1b6",
+    "EmuquTests/RecurrenceClassifierTests.swift::func RecurrenceClassifierTests.trail(daysAgo:along:minutes:)": "1ea275f5543b4470"
+   }
+  },
+  {
+   "key": "func RecurrenceClassifierTests.testTwoRoutesSharingAStartAreNotMixedIntoOneCluster()",
+   "hash": "ce34659d49e8da0f",
+   "does": "Archives two walks of a 2 km northward route (40, 44 min) and two of a route that goes 600 m north then 2 km east (60, 64 min), all matching the current 600 m walk; asserts the Match has 2 prior occurrences, a median path length of one route (≈2 km or ≈2.6 km, not the 2.3 km mix) and the median duration of that same route (42 or 62 min).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RecurrenceClassifierTests.swift::func RecurrenceClassifierTests.path(northMeters:thenEastMeters:startEastMeters:)",
+    "EmuquTests/RecurrenceClassifierTests.swift::func RecurrenceClassifierTests.trail(daysAgo:along:minutes:)",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.match(current:archive:)",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.sameBucketCandidates(for:in:)",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.bucketKey(for:)",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.signature(for:upToMeters:)",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.scoreCandidates(_:against:walkedMeters:)",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.coherentCluster(_:)",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.clusterMatch(_:current:)",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.describeLabel(for:originLabel:)",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbTrail.walkedTrailLengthMeters()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+20",
+     "cond": "median length is the northward route's",
+     "effect": "expects a 42-minute median duration; otherwise (eastward route) 62 minutes"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbTrail.walkedTrailLengthMeters()": "7d07246a8ccabe1d",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.bucketKey(for:)": "73dd7f5315c16ef2",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.clusterMatch(_:current:)": "d413d3222fd285bc",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.coherentCluster(_:)": "57774dac2157311a",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.describeLabel(for:originLabel:)": "462fd7bef75129d2",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.match(current:archive:)": "884b9e453c030b9f",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.sameBucketCandidates(for:in:)": "cea970a1d88774f0",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.scoreCandidates(_:against:walkedMeters:)": "a5d986b82f24f48c",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.signature(for:upToMeters:)": "df06f5dd37ab34f0",
+    "EmuquTests/RecurrenceClassifierTests.swift::func RecurrenceClassifierTests.path(northMeters:thenEastMeters:startEastMeters:)": "5dfb57511549f1b6",
+    "EmuquTests/RecurrenceClassifierTests.swift::func RecurrenceClassifierTests.trail(daysAgo:along:minutes:)": "1ea275f5543b4470"
+   }
+  },
+  {
+   "key": "func RecurrenceClassifierTests.testTrailsStartingFiveHundredMetresAwayAreADifferentBucket()",
+   "hash": "43f3e217932c8915",
+   "does": "Archives three walks of a 2 km route that starts 500 m east of the current walk's start; matching returns nil because their start rounds to a different 100 m bucket.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RecurrenceClassifierTests.swift::func RecurrenceClassifierTests.path(northMeters:thenEastMeters:startEastMeters:)",
+    "EmuquTests/RecurrenceClassifierTests.swift::func RecurrenceClassifierTests.trail(daysAgo:along:minutes:)",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.match(current:archive:)",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.sameBucketCandidates(for:in:)",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.bucketKey(for:)",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.roundCoord(_:toMeters:isLongitude:latitudeForCorrection:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.bucketKey(for:)": "73dd7f5315c16ef2",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.match(current:archive:)": "884b9e453c030b9f",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.roundCoord(_:toMeters:isLongitude:latitudeForCorrection:)": "75db7a14c31de924",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.sameBucketCandidates(for:in:)": "cea970a1d88774f0",
+    "EmuquTests/RecurrenceClassifierTests.swift::func RecurrenceClassifierTests.path(northMeters:thenEastMeters:startEastMeters:)": "5dfb57511549f1b6",
+    "EmuquTests/RecurrenceClassifierTests.swift::func RecurrenceClassifierTests.trail(daysAgo:along:minutes:)": "1ea275f5543b4470"
+   }
+  },
+  {
+   "key": "func RecurrenceClassifierTests.point(north:east:)",
+   "hash": "02e4e229a640a2cf",
+   "does": "The coordinate `north` metres north and `east` metres east of the fixture origin (51.5, -0.12), using 111,320 m per degree of latitude and that times cos(latitude) per degree of longitude.",
+   "entry": "Called by path(northMeters:thenEastMeters:startEastMeters:)",
+   "calls": [
+    "ext:CLLocationCoordinate2D(latitude:longitude:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RecurrenceClassifierTests.path(northMeters:thenEastMeters:startEastMeters:)",
+   "hash": "cdddb01318601279",
+   "does": "A route as coordinates every 100 m: northMeters north from a start startEastMeters east of the origin, then eastMeters east (no eastward leg when it is 0).",
+   "entry": "Called by the match tests",
+   "calls": [
+    "EmuquTests/RecurrenceClassifierTests.swift::func RecurrenceClassifierTests.point(north:east:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/RecurrenceClassifierTests.swift::func RecurrenceClassifierTests.point(north:east:)": "9b0c476a23497ea2"
+   }
+  },
+  {
+   "key": "func RecurrenceClassifierTests.trail(daysAgo:along:minutes:)",
+   "hash": "3295bcd883f4dff9",
+   "does": "A BreadcrumbTrail started at 08:00 local time daysAgo days before a fixed reference day, with one BreadcrumbFix per coordinate (5 m accuracy, no altitude) spread evenly over `minutes`, origin = the first fix, no labels. Throws if the calendar cannot form the date.",
+   "entry": "Called by the match tests",
+   "calls": [
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::init BreadcrumbFix(from:)",
+    "ext:Calendar.date(byAdding:value:to:)",
+    "ext:Calendar.date(bySettingHour:minute:second:of:)",
+    "ext:CLLocation(coordinate:altitude:horizontalAccuracy:verticalAccuracy:timestamp:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::init BreadcrumbFix(from:)": "bfaeb7475391b53c"
    }
   }
  ],

@@ -345,8 +345,8 @@
   },
   {
    "key": "§ Emuqu User Manual > Dashboard Tab > Before Your First Reading",
-   "hash": "c98d87b726b14d4c",
-   "does": "Claims a Get started checklist (Pair device, Connect Apple Health, Take your first reading) replaces chips with no readings.",
+   "hash": "8a209e0785b12940",
+   "does": "Claims a Get started checklist (Pair device, Connect Apple Health, Take your first reading) replaces chips and strip with no readings; its Take your first reading row (firstReadingRow -> onStartRecording) opens the Record tab.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.dashboardBodySections",
@@ -354,31 +354,18 @@
     "Emuqu/Sources/Views/DashboardV2View+Cards.swift::var DashboardV2View.pairDeviceRow",
     "Emuqu/Sources/Views/DashboardV2View+Cards.swift::var DashboardV2View.connectHealthRow",
     "Emuqu/Sources/Views/DashboardV2View+Cards.swift::var DashboardV2View.firstReadingRow",
-    "Emuqu/Sources/Views/DashboardV2View+Chips.swift::var DashboardV2View.fullReportLink"
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::func DashboardV2View.day1Row(done:glyph:title:subtitle:action:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "Manual says the Get started checklist has a 'Take your first reading' button below it. fullReportLink renders that button only when daysCollected == 0, but it is placed only in revealedDashboardSections, which dashboardBodySections shows only when daysCollected != 0. The button can never render (dead code); only the checklist row of the same name exists.",
-     "evidence": [
-      "docs/USERS_MANUAL.md:137",
-      "Emuqu/Sources/Views/DashboardV2View.swift:374",
-      "Emuqu/Sources/Views/DashboardV2View.swift:399",
-      "Emuqu/Sources/Views/DashboardV2View+Chips.swift:360"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::var DashboardV2View.connectHealthRow": "1fc4374cd05a5549",
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::func DashboardV2View.day1Row(done:glyph:title:subtitle:action:)": "49f5b5b06c08c8ab",
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::var DashboardV2View.connectHealthRow": "a3c2fa1b28f3041e",
     "Emuqu/Sources/Views/DashboardV2View+Cards.swift::var DashboardV2View.day1Checklist": "81e2908b58579e0f",
     "Emuqu/Sources/Views/DashboardV2View+Cards.swift::var DashboardV2View.firstReadingRow": "6dd87c88d7096ef5",
     "Emuqu/Sources/Views/DashboardV2View+Cards.swift::var DashboardV2View.pairDeviceRow": "73c9e2571af6c265",
-    "Emuqu/Sources/Views/DashboardV2View+Chips.swift::var DashboardV2View.fullReportLink": "d4f1d0d6e6d56ebd",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.dashboardBodySections": "273dacd825fe76c6"
    }
   },
@@ -428,8 +415,8 @@
   },
   {
    "key": "§ Emuqu User Manual > Detail Views > Sleep Detail View > Adjust Sleep Screen",
-   "hash": "99b0971efd951280",
-   "does": "Claims an Adjust Sleep timeline editor with draggable handles that can extend past the recording, live stage recompute, per-session exclusion, and that saving rescores the session; opening the app does not rewrite history.",
+   "hash": "db09a6407669d645",
+   "does": "Describes SleepTimelineEditorView opened from Adjust (adjustSleepButton) or Edit sleep (editSleepButton): one timeline of segments, tap to select, drag handles (no crossing a neighbour, 1-minute snap), Split with preview / Carve Awake / Merge / Delete, long-press to add stage-less sleep, live stage pills, TOTAL SLEEP with a signed delta, Undo (5 steps), Reset, Refresh from Apple Health; Done saves and rescores, Cancel discards; opening the app does not rewrite history.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.adjustSleepButton(_:)",
@@ -441,37 +428,29 @@
     "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applyingAdjustBoundary(id:side:newTime:)",
     "Emuqu/Sources/Views/DashboardV2View.swift::func DashboardV2View.saveSleepBoundaries(_:for:)",
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.applySleepBoundaries(to:sleepData:sleepStart:sleepEnd:isUserAdjustment:)"
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.applySleepBoundaries(to:sleepData:sleepStart:sleepEnd:isUserAdjustment:)",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.editSleepButton(_:)",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.inspectorActions(_:)",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineUndoStack.push(_:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "Manual describes an 'Adjust Sleep' button opening Session Tiles that expand into a per-session editor, an 'Exclude session' toggle, a multi-session Totals Card and '+12m from original' text. The editor (SleepTimelineEditorView) is one timeline of segments with drag handles, add-sleep, carve-awake, split, merge, undo, reset and refresh-from-Health; the entry is labelled 'Adjust' / 'Edit sleep'. There are no tiles, no exclude toggle and no totals card, so users cannot do what the manual tells them (exclude a session).",
-     "evidence": [
-      "docs/USERS_MANUAL.md:180",
-      "docs/USERS_MANUAL.md:192",
-      "docs/USERS_MANUAL.md:194",
-      "Emuqu/Sources/Views/Results/SleepTimelineEditorView.swift:139",
-      "Emuqu/Sources/Views/SleepDetailV2View.swift:478"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.applySleepBoundaries(to:sleepData:sleepStart:sleepEnd:isUserAdjustment:)": "43dd522102956b1d",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)": "aad8499a0f784cde",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.applySleepBoundaries(to:sleepData:sleepStart:sleepEnd:isUserAdjustment:)": "2ed99c680a1aa771",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)": "814ac02a5cea0163",
     "Emuqu/Sources/Views/DashboardV2View.swift::func DashboardV2View.saveSleepBoundaries(_:for:)": "c4280ff01c4c961e",
-    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applyingAdjustBoundary(id:side:newTime:)": "c484d21e21f12e05",
-    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.boundaryDragGesture(seg:side:vp:width:)": "bd3bbf22f185e268",
-    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.commit()": "6ff3b452dcdf6ad7",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applyingAdjustBoundary(id:side:newTime:)": "c24d537ab36a6d48",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineUndoStack.push(_:)": "08461c95f85e2354",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.boundaryDragGesture(seg:side:vp:width:)": "52cc1271a14faa9a",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.commit()": "94776c46d1b21904",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.inspectorActions(_:)": "1b672b856ca6773e",
     "Emuqu/Sources/Views/Results/SleepTimelineEditorView.swift::var SleepTimelineEditorView.editorToolbar": "27cd55f9ac17549c",
     "Emuqu/Sources/Views/Results/SleepTimelineEditorView.swift::var SleepTimelineEditorView.summaryCard": "b927970597b39690",
     "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.adjustSleepButton(_:)": "73385b7e28f226a8",
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.sleepEditor(_:)": "49d14b90561dc864"
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.editSleepButton(_:)": "10a6e53d48552c04",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.sleepEditor(_:)": "c74adadcd83053d4"
    }
   },
   {
@@ -772,8 +751,8 @@
   },
   {
    "key": "§ Emuqu User Manual > Record Tab > Data Recovery",
-   "hash": "908a435a7d4164d3",
-   "does": "Claims device-memory recovery alerts (Recover Data / Discard & Start Fresh / Retry Fetch) and a Dashboard interrupted-recording banner with Resume / Save as is / Dismiss (which discards backed-up beats).",
+   "hash": "0141a7dc0540d3d4",
+   "does": "Claims device-memory recovery alerts (Recover Data / Discard & Start Fresh / Retry Fetch) and, after a crash mid-recording, a launch 'Session Interrupted' alert with Resume, Save as Complete (Save to Archive when not resumable) and Dismiss, where Dismiss only stops the alert for that session and the backup stays recoverable from Settings → iCloud & Data → Recover Lost Sessions.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift::var RecoverableDataCard.body",
@@ -781,29 +760,18 @@
     "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resumeInterruptedSession()",
     "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.recoverInterruptedSession()",
     "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.dismissInterruptedSession()",
-    "Emuqu/EmuquApp.swift::func EmuquApp.interruptedSessionAlerts(_:)"
+    "Emuqu/EmuquApp.swift::func EmuquApp.interruptedSessionAlerts(_:)",
+    "Emuqu/EmuquApp.swift::func EmuquApp.resumableInterruptionAlert(_:)",
+    "Emuqu/EmuquApp.swift::func EmuquApp.unresumableInterruptionAlert(_:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "Manual describes a Dashboard banner ('Resume your walk?' / 'Interrupted recording detected') with Resume, 'Save as is' and an x Dismiss whose confirmation says it 'discards the backed-up beats'. No such banner or strings exist. The app shows a launch alert 'Session Interrupted' with Resume / 'Save as Complete' (or 'Save to Archive') / Dismiss, and Dismiss only marks the session dismissed: the backup stays on disk and is recoverable from Recover Lost Sessions. Users are told to avoid Dismiss for a data-loss reason that is not true, and are not told where a dismissed session went.",
-     "evidence": [
-      "docs/USERS_MANUAL.md:410",
-      "docs/USERS_MANUAL.md:416",
-      "Emuqu/EmuquApp.swift:581",
-      "Emuqu/EmuquApp.swift:595",
-      "Emuqu/Sources/Services/AppLaunchRecovery.swift:156",
-      "Emuqu/Sources/Services/AppLaunchRecovery.swift:163"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/EmuquApp.swift::func EmuquApp.interruptedSessionAlerts(_:)": "41cf243c18061a87",
+    "Emuqu/EmuquApp.swift::func EmuquApp.resumableInterruptionAlert(_:)": "5221bc66fbcbd1ba",
+    "Emuqu/EmuquApp.swift::func EmuquApp.unresumableInterruptionAlert(_:)": "8b066b9dfb9aa0c3",
     "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.checkForInterruptedSession()": "d0144e6bfc52eb61",
     "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.dismissInterruptedSession()": "9c336cc06e0af47c",
     "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.recoverInterruptedSession()": "f15986c899237725",
@@ -813,47 +781,38 @@
   },
   {
    "key": "§ Emuqu User Manual > Flo Tab (the AI Assistant)",
-   "hash": "b87510a95324a5f1",
-   "does": "Claims Flo chats with one of six providers and every message is given live recovery context (today, yesterday, last 14 days, baselines, 7/30-day trends, load, morning feeling).",
+   "hash": "9ec93e580ef65ceb",
+   "does": "Claims Flo chats with one of six providers; every message carries the current time and training-load headline; Apple Intelligence also gets the rendered recovery context (today, yesterday, 14 days, baselines, 7/30-day trends, morning feeling) via compactRender; a cloud model gets only the today/yesterday live-state block (AssistantContext.renderLiveStateForCloud, plus location during a live workout) and fetches the rest with tools.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.assembleContextAndTools(provider:model:)",
     "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.variableSections(priorSummary:contextRendered:)",
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.build(latestSession:yesterdaySession:recentSessions:sleepInput:sleepTrend:trainingContext:userSettings:customTagNames:baseline:baselineStats:yesterdayBaselineStats:trends7Day:trends30Day:liveLoadSnapshot:)",
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.recentLiteSnapshots(_:liveLoad:)",
     "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::var ProviderRegistry.allProviders",
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var AssistantSubsystem.voiceAnnouncement"
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var AssistantSubsystem.voiceAnnouncement",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.renderLiveStateForCloud(now:)",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.nowSnapshot()",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.trainingLoadSections()"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "Manual says every message is automatically given the live recovery context (today, yesterday, last 14 days, baselines, 7/30-day trends, load, morning feeling). assembleContextAndTools builds that rendered context only for Apple (rendered = provider.id != .apple ? \"\" : compactRender()). Cloud providers get only the now/training-load headline sections and must call tools to fetch the rest, which contradicts the manual's own tool-use section at line 502. Users and reviewers get a wrong picture of what is sent to cloud vendors on each turn.",
-     "evidence": [
-      "docs/USERS_MANUAL.md:426",
-      "docs/USERS_MANUAL.md:504",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift:510",
-      "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift:290"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.build(latestSession:yesterdaySession:recentSessions:sleepInput:sleepTrend:trainingContext:userSettings:customTagNames:baseline:baselineStats:yesterdayBaselineStats:trends7Day:trends30Day:liveLoadSnapshot:)": "aac5024f6b848ae2",
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.recentLiteSnapshots(_:liveLoad:)": "33265c0c5b8133af",
-    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.variableSections(priorSummary:contextRendered:)": "c45e112f4774b840",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.renderLiveStateForCloud(now:)": "cc6577a7f3dcdd80",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.build(latestSession:yesterdaySession:recentSessions:sleepInput:sleepTrend:trainingContext:userSettings:customTagNames:baseline:baselineStats:yesterdayBaselineStats:trends7Day:trends30Day:liveLoadSnapshot:)": "f490d7e48800e2ca",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.nowSnapshot()": "24cf72076d0d30a6",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.trainingLoadSections()": "9b8b1adefbb8dbeb",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.variableSections(priorSummary:contextRendered:)": "43dcfab0221b3feb",
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var AssistantSubsystem.voiceAnnouncement": "7672e776d1f17081",
     "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::var ProviderRegistry.allProviders": "ac9ddbe514f8e580",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.assembleContextAndTools(provider:model:)": "537ce92b7a789bc8"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.assembleContextAndTools(provider:model:)": "261099fdc261c4b1"
    }
   },
   {
    "key": "§ Emuqu User Manual > Flo Tab (the AI Assistant) > Adaptive Routing — Quick / Auto / Deep / Manual",
-   "hash": "55b4652bbb7f12ef",
-   "does": "Claims routing acts only with Apple Intelligence selected; Quick answers typed questions on Apple; Auto classifies four capability axes (keyword AND embedding >= 0.55) and sends flagged turns to consented Grok then DeepSeek; 3 settling turns then sticky-up unless zero flags; daily cap of 50 top-tier turns downgrading to Auto; Deep uses the same consented model; voice and action requests go to the first consented cloud; earcon 'Flo here. Sonnet.'; 14-pattern deterministic catalog; tier dot sage/blue/purple; AFM prewarm 'during init'; cache-health card.",
+   "hash": "761a72365d2d2662",
+   "does": "Claims routing acts only with Apple Intelligence selected and that with Apple there is no text field (suggestion chips or voice only; ChatInputBar.appleOnlyComposerHint), voice skipping tiers, so the modes route chip questions; Quick answers on Apple; Auto classifies four capability axes (keyword AND embedding >= 0.55) and sends flagged turns to consented Grok then DeepSeek; 3 settling turns then sticky-up unless zero flags; after 50 cloud Deep turns a day further Deep turns are marked Auto, which with Apple selected maps to the same Grok/DeepSeek model so the cap does not reduce cloud use; Deep uses the same consented model; voice and action requests go to the first consented cloud; earcon; 14-pattern deterministic catalog; tier dot; AFM prewarm 'during init'; cache-health card.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.preTierDecision(inputs:)",
@@ -867,35 +826,15 @@
     "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)",
     "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.tryMatch(_:in:)",
     "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.prewarm()",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.dispatchToProvider(_:fromVoice:)"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.dispatchToProvider(_:fromVoice:)",
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var ChatInputBar.composer",
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var ChatInputBar.appleOnlyComposerHint",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.makeTierStageInputs(mode:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "Manual describes Quick/Auto/Deep classifying typed questions (e.g. 'email this', 'save this route') while Apple Intelligence is selected, but with Apple selected the chat shows no text composer at all (only the 10 prefab chips and the hint 'Free typing requires a connected model'), and routing is inert with any other model selected; free-typed turns therefore never reach the classifier or the action-intent override.",
-     "evidence": [
-      "docs/USERS_MANUAL.md:438",
-      "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift:125",
-      "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift:478",
-      "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift:156"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "The 50-turn adversarial-spend cap downgrades Deep to Auto, but with Apple selected both tiers map to the same consented Grok/DeepSeek model, so the cap never reduces paid usage.",
-     "evidence": [
-      "docs/USERS_MANUAL.md:448",
-      "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift:80",
-      "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift:92"
-     ],
-     "found": "first read, upheld on second"
-    },
     {
      "kind": "spec-mismatch",
      "sev": "low",
@@ -910,18 +849,21 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)": "67f299962bb530f2",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)": "9a3773197d367c38",
     "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.tryMatch(_:in:)": "bfb830f7af5aef07",
-    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.recordTier3UsageAndCheck()": "3ef922608ce1ed67",
-    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.stickyTier(proposed:requirement:session:)": "7716bbd58cb2dd39",
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.recordTier3UsageAndCheck()": "1221909e4059a410",
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.stickyTier(proposed:requirement:session:)": "e68b27c975e4e4a2",
     "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.autoMapping(_:)": "b317efb1271b6fb2",
-    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.deepMapping(_:)": "0241aba5ad7acbb6",
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.prewarm()": "889410db7635f17e",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.dispatchToProvider(_:fromVoice:)": "8c62009b2ebea89e",
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.deepMapping(_:)": "14236e71b1e1036a",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.prewarm()": "0635f198058ff4d0",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.makeTierStageInputs(mode:)": "076e446307c74397",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.dispatchToProvider(_:fromVoice:)": "0a3037db116bee4f",
     "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.actionIntentOverride(inputs:stage:mapping:logLines:)": "aa49beb2ffd15915",
     "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.appleVoiceBypass(inputs:)": "efe8e9a74fd5aea1",
     "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.preTierDecision(inputs:)": "914e5a48e368e73f",
-    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.tierDecision(inputs:)": "8f03b3e5b50f334d"
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.tierDecision(inputs:)": "8f03b3e5b50f334d",
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var ChatInputBar.appleOnlyComposerHint": "a1cb284cd4ccc1d4",
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var ChatInputBar.composer": "8c16019740c8a15f"
    }
   },
   {
@@ -1761,17 +1703,19 @@
   },
   {
    "key": "§ Emuqu User Manual > Trends",
-   "hash": "191227c91a4aee7d",
-   "does": "Claims Trends (More → Trends) over overnight readings only: tag chips, 7/14/30/90/All ranges, overall trend, metric chart with ±1 SD band once 4 overnight readings in the last 60 days, stats grid, insights needing >= 3 readings, training-load calendar. Verified band text (TrendsV2View+Charts.swift:206).",
+   "hash": "074f503c67ce6c3a",
+   "does": "Claims Trends (More → Trends) over overnight readings only: tag chips, 7/14/30/90/All ranges, overall trend, metric chart with ±1 SD band once 4 overnight readings in the last 60 days, stats grid, insights needing >= 3 readings, training-load calendar whose day sheet lists that day's readings with headline numbers, deletes by long-press and opens nothing (open from History); an overnight sits on its wake morning.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.body"
+    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.body",
+    "Emuqu/Sources/Views/HistoryCalendarView.swift::func DaySummarySheet.workoutDetailRow(meta:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Views/HistoryCalendarView.swift::func DaySummarySheet.workoutDetailRow(meta:)": "d0f0e20466cbb9b2",
     "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.body": "f094d4b468e91dc6"
    }
   },
@@ -1820,8 +1764,8 @@
   },
   {
    "key": "§ Emuqu User Manual > Detailed Report View (MorningResultsView) > Key Metrics Section",
-   "hash": "04bc6990e439669e",
-   "does": "Claims HRV hero with Excellent/Good/Fair/Reduced/Low labels and age-adjusted context; HR stats row.",
+   "hash": "9131d572e50b5925",
+   "does": "Claims the report's half-width HRV card (beside the Sleep card) shows RMSSD with Excellent/Good/Fair/Reduced/Low from AppTheme.hrvCategory against the scoring baseline, falling back to age- and sex-adjusted bands without one, and navigates to SessionHRVDetailView, which uses the same baseline label plus HR stats; the Sleep card opens Sleep detail.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.primaryMetricsSections",
@@ -1830,35 +1774,24 @@
     "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.hrvHeroSection",
     "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.heroHRVLabel",
     "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.hrStatsRow",
-    "Emuqu/Sources/Views/Theme.swift::func AppTheme.hrvLabel(_:baseline:)"
+    "Emuqu/Sources/Views/Theme.swift::func AppTheme.hrvLabel(_:baseline:)",
+    "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.hrvDetailLink",
+    "Emuqu/Sources/Views/Theme.swift::func AppTheme.hrvCategory(_:baseline:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "Manual says the report's HRV Hero shows Excellent/Good/Fair/Reduced/Low with age-adjusted context, a tap-for-explanation popover, and an HR stats row. In the report the HRV card is a half-width card whose label is relative to the personal baseline, and tapping it navigates to SessionHRVDetailView. That view's hero calls AppTheme.hrvLabel(rmssd) with no baseline, so it uses absolute 60/45/30 ms cut-offs, never says 'Reduced', and has no age adjustment. The same night can show two different HRV verdicts on the report and the detail screen.",
-     "evidence": [
-      "docs/USERS_MANUAL.md:882",
-      "docs/USERS_MANUAL.md:884",
-      "docs/USERS_MANUAL.md:885",
-      "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift:355",
-      "Emuqu/Sources/Views/SessionHRVDetailView.swift:105",
-      "Emuqu/Sources/Views/Theme.swift:424"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift::var MorningDetailCards.hrvMetricCard": "5fb846298d731b53",
     "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift::var MorningDetailCards.hrvReadout": "c60fb79d9c787751",
+    "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.hrvDetailLink": "9ba8eeefe8766f22",
     "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.primaryMetricsSections": "b91474a3cf64977c",
-    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.heroHRVLabel": "275ab564c953a6e5",
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.heroHRVLabel": "b7fdf3eaf7b6641a",
     "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.hrStatsRow": "ac9871964160a803",
     "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.hrvHeroSection": "408e4a4d04814404",
-    "Emuqu/Sources/Views/Theme.swift::func AppTheme.hrvLabel(_:baseline:)": "fddd02dc7436d16d"
+    "Emuqu/Sources/Views/Theme.swift::func AppTheme.hrvCategory(_:baseline:)": "48bf4341199366c9",
+    "Emuqu/Sources/Views/Theme.swift::func AppTheme.hrvLabel(_:baseline:)": "4eddb3bcb120e01f"
    }
   },
   {
@@ -1954,8 +1887,8 @@
   },
   {
    "key": "§ Emuqu User Manual > Detailed Report View (MorningResultsView) > Analysis Window",
-   "hash": "bc2876da207e057c",
-   "does": "Claims window method picker (Best Recovery default, Highest RMSSD/SDNN/Total Power) re-running analysis instantly, and a manual Choose Window mode with Auto/Yours/Diff compare banner; Apply replaces the night's analysis while keeping the auto pick.",
+   "hash": "71aeb46bc22e9b63",
+   "does": "Claims window method picker (Best Recovery default, Highest RMSSD/SDNN, Highest Total Power using SDNN so it picks the Highest SDNN window) re-running this night's analysis; the pick is stored as settings.defaultWindowSelectionMethod, seeds every later report's picker (MorningResultsViewModel.init) and the Dashboard re-analyze (refreshDashboard), while new recordings always use Best Recovery; manual Choose Window mode with Auto/Yours/Diff compare banner; Apply replaces the night's analysis while keeping the auto pick.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/MorningResultsView.swift::func MorningResultsView.interChartSections(_:)",
@@ -1973,30 +1906,20 @@
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.persistentWindowComparisonBanner()",
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.provenanceView",
     "Emuqu/Sources/Models/WindowSelectionMethod.swift::var WindowSelectionMethod.displayName",
-    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::init MorningResultsViewModel(session:result:recentSessions:settingsManager:healthKit:)"
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::init MorningResultsViewModel(session:result:recentSessions:settingsManager:healthKit:)",
+    "Emuqu/Sources/Views/DashboardV2View+Chips.swift::func DashboardV2View.refreshDashboard()"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "Manual presents the method dropdown as re-running this night's analysis. selectWindowMethod also writes settings.defaultWindowSelectionMethod. MorningResultsViewModel.init seeds selectedMethod from that setting for every report opened afterwards, but nothing else reads it, so new recordings are not analysed with it. After one change, every other night's picker shows e.g. 'Highest RMSSD' although that night was analysed with Best Recovery.",
-     "evidence": [
-      "docs/USERS_MANUAL.md:912",
-      "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift:85",
-      "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift:358"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/WindowSelectionMethod.swift::var WindowSelectionMethod.displayName": "921e5727692ec43d",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::init MorningResultsViewModel(session:result:recentSessions:settingsManager:healthKit:)": "ad0f0854abe74aef",
-    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.applyManualWindowChoice(_:)": "d1124ed7cb0bc7ab",
+    "Emuqu/Sources/Views/DashboardV2View+Chips.swift::func DashboardV2View.refreshDashboard()": "750353ff2f0133c7",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.applyManualWindowChoice(_:)": "a642ab289f5231c0",
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.finishManualApply(_:)": "99aa4018387ae216",
-    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.handleManualReanalysis(timestampMs:)": "e453da90a1781701",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.handleManualReanalysis(timestampMs:)": "32285428a2807c01",
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.manualComparisonBanner(manual:)": "5da7ac06599f7741",
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.manualWindowActions(_:)": "a0a2a0e2d6d101e0",
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.persistentWindowComparisonBanner()": "c86a53bd6e11092b",
@@ -2117,46 +2040,34 @@
   },
   {
    "key": "§ Emuqu User Manual > Detailed Report View (MorningResultsView) > Notes Section",
-   "hash": "614f9b0c6174f437",
-   "does": "Claims a notes field that auto-saves.",
+   "hash": "486c8242ef0dc003",
+   "does": "Claims notes and tag changes are saved on Done or when the report closes, swipe included (saveTagsAndNotesIfChanged from the Done button and .onDisappear, only when they differ from what was last stored).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/TagsAndNotesCard.swift::var TagsAndNotesCard.body",
     "Emuqu/Sources/Views/MorningResultsView+Actions.swift::var MorningResultsView.doneButton",
     "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.sessionDetailContent(session:result:)",
     "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.sessionDetailSheet(for:)",
-    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.updateTags(session:tags:notes:)",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.updateTags(_:tags:notes:)"
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.updateTags(_:tags:notes:)",
+    "Emuqu/Sources/Views/MorningResultsView+Actions.swift::func MorningResultsView.saveTagsAndNotesIfChanged()"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "Doc says the notes field auto-saves when changed; code binds the TextField to vm.notes and only persists tags+notes inside the Done/Discard button action (onUpdateTags). There is no onChange/onDisappear save, and History presents the view as a swipe-dismissable sheet, so notes (and tag changes) typed and then dismissed by swipe or by Delete are silently lost.",
-     "evidence": [
-      "docs/USERS_MANUAL.md:953",
-      "Emuqu/Sources/Views/MorningResultsView+Actions.swift:249",
-      "Emuqu/Sources/Views/HistoryView.swift:304"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.updateTags(_:tags:notes:)": "1bf6c9d59b14e9d7",
-    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.sessionDetailContent(session:result:)": "47a6bc7cb9d99041",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.sessionDetailContent(session:result:)": "ddba50cd2e5ad4a4",
     "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.sessionDetailSheet(for:)": "e1b3037d9f6ff8ee",
-    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.updateTags(session:tags:notes:)": "d0299a5a761b72d1",
-    "Emuqu/Sources/Views/MorningResultsView+Actions.swift::var MorningResultsView.doneButton": "a1af69db2fec5227",
+    "Emuqu/Sources/Views/MorningResultsView+Actions.swift::func MorningResultsView.saveTagsAndNotesIfChanged()": "acc1219a9706e066",
+    "Emuqu/Sources/Views/MorningResultsView+Actions.swift::var MorningResultsView.doneButton": "a765bbaeecdf5673",
     "Emuqu/Sources/Views/TagsAndNotesCard.swift::var TagsAndNotesCard.body": "b46c0a00a62c33a8"
    }
   },
   {
    "key": "§ Emuqu User Manual > Detailed Report View (MorningResultsView) > Action Buttons",
-   "hash": "6741b1a6f1622645",
-   "does": "Claims Email Report builds a PDF with selectable sections (Metrics & Data, Visualizations for raw-RR sessions, Analysis Summary), Delete from History, Reanalyze.",
+   "hash": "89c1e23942950090",
+   "does": "Claims Email Report builds a PDF with selectable sections (Metrics & Data, Visualizations for raw-RR sessions, Analysis Summary); Delete from History confirms then moves the reading to the Trash, restorable from Settings → iCloud & Data → Trash for 90 days (ArchiveStore.moveToTrash, expiredDeletionIds keepDays 90); Reanalyze.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/MorningResultsView+Actions.swift::var MorningResultsView.actionButtons",
@@ -2165,33 +2076,21 @@
     "Emuqu/Sources/Export/ReportSectionPicker.swift::var ReportSectionPicker.sectionsSection",
     "Emuqu/Sources/Export/ReportSectionPicker.swift::var ReportSectionPicker.presetsSection",
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.availableReportSections",
-    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.emailReport(style:sections:)",
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.renderPDFAsync(style:sections:)",
     "Emuqu/Sources/Views/MorningResultsView+Actions.swift::var MorningResultsView.deleteButton",
     "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.deleteReadingActions",
     "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.deleteReadingMessage",
     "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.deleteAndDismiss(_:)",
-    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.deleteSession(_:)",
     "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.moveToTrash(_:id:)",
     "Emuqu/Sources/Views/MorningResultsView+Actions.swift::var MorningResultsView.reanalyzeRow",
     "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.reanalyzeActions",
-    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.performReanalysis()"
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.performReanalysis()",
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.expiredDeletionIds(keepDays:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "Doc says Delete 'Permanently deletes session'; code's confirmation says it moves the reading to the Trash (restorable from Settings -> iCloud & Data -> Trash) and archive.delete routes to moveToTrash. Users are told the opposite of what happens to their data.",
-     "evidence": [
-      "docs/USERS_MANUAL.md:960",
-      "Emuqu/Sources/Views/MorningResultsView.swift:525",
-      "Emuqu/Sources/Storage/Archive+Internal.swift:656"
-     ],
-     "found": "second read"
-    },
     {
      "kind": "spec-mismatch",
      "sev": "low",
@@ -2217,18 +2116,17 @@
    "deps": {
     "Emuqu/Sources/Export/ReportSectionPicker.swift::var ReportSectionPicker.presetsSection": "76b290f820e0b64e",
     "Emuqu/Sources/Export/ReportSectionPicker.swift::var ReportSectionPicker.sectionsSection": "2606f57c8ade9038",
-    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.moveToTrash(_:id:)": "0772351f78b03bbb",
-    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.deleteAndDismiss(_:)": "e4cd037b98f0b913",
-    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.deleteSession(_:)": "7d092790f5709dc1",
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.expiredDeletionIds(keepDays:)": "e30d5d7080897eb4",
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.moveToTrash(_:id:)": "521815bdf0560389",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.deleteAndDismiss(_:)": "48f14c8ee1eadceb",
     "Emuqu/Sources/Views/MorningResultsView+Actions.swift::var MorningResultsView.actionButtons": "d75972ec9373038e",
     "Emuqu/Sources/Views/MorningResultsView+Actions.swift::var MorningResultsView.deleteButton": "1f7f1c815ad50bdc",
     "Emuqu/Sources/Views/MorningResultsView+Actions.swift::var MorningResultsView.emailReportAction": "eb92799552d4bb8d",
     "Emuqu/Sources/Views/MorningResultsView+Actions.swift::var MorningResultsView.emailReportButton": "7dbdab37033df4a5",
     "Emuqu/Sources/Views/MorningResultsView+Actions.swift::var MorningResultsView.reanalyzeRow": "9e54d9310a0e4104",
-    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.emailReport(style:sections:)": "5a0a904c60a8ab92",
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.performReanalysis()": "43503e0c93dc4787",
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.renderPDFAsync(style:sections:)": "3e181c1c3dcca38a",
-    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.availableReportSections": "048fae7e88b1d1f8",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.availableReportSections": "0f9dbf3e96c49573",
     "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.deleteReadingActions": "50bd930dd7ea0f4d",
     "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.deleteReadingMessage": "807c2477f6b6b697",
     "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.reanalyzeActions": "756868221a525197"
@@ -2290,13 +2188,12 @@
   },
   {
    "key": "§ Emuqu User Manual > Fitness Tab > Starting a workout",
-   "hash": "c52c5079bbb7fbb8",
-   "does": "Claims Start auto-reconnects the paired strap and Stryd, strap stays ~120 s for HRR then disconnects; sport list; HR source Strap/Watch/None; target zone nudges after >= 30 s drift; interval plans; ambient-coach thresholds with debounce/cooldown; route binding via trail discovery (2-50 km radius), GPX, or saved-route recognition after ~500 m.",
+   "hash": "a6889c885f3fb415",
+   "does": "Claims Start auto-reconnects the paired strap and Stryd, strap stays ~120 s for HRR then disconnects; sport list; HR source automatic (strap when connected or paired, else Watch; WorkoutPlanModel.resolvedSource); target zone with no spoken drift nudge (zone.drifted rules are .silent); interval plans; ambient-coach thresholds in plain words (HR bpm, %FTP, elevation gain, grade, elapsed time, distance per WorkoutThreshold.parsePlainText) with debounce/cooldown; route binding via trail discovery (2-50 km radius), GPX, or saved-route recognition after ~500 m.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.startWorkout(sport:targetZone:source:plan:thresholds:route:)",
     "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.start(sport:source:intervalPlan:thresholds:route:)",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.applyStartParametersAndGuardIdle(thresholds:route:)",
     "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.resolveEffectiveSource(requested:)",
     "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.reconnectOrDisconnectSecondarySensors(sport:)",
     "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func manageFootPod(for:)",
@@ -2304,7 +2201,6 @@
     "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.reconnectLast()",
     "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.disconnectFootPodPostWorkout()",
     "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.launchHRRCaptureAndRearchive(stopDate:endHR:finished:)",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.captureHRRAndRearchive(captureService:stopDate:endHR:wasStrap:polarRef:archive:sessionId:)",
     "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.zoneDriftedHighRule()",
     "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.zoneDriftedHighCondition(_:)",
     "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.zoneDriftedLowRule()",
@@ -2315,48 +2211,37 @@
     "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.pickTrail(_:)",
     "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.importGPX(from:)",
     "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.findMatch(currentTrack:sport:store:)",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.attemptAutoRouteDetection(sport:)"
+    "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.attemptAutoRouteDetection(sport:)",
+    "Emuqu/Sources/Views/WorkoutPlanModel.swift::func WorkoutPlanModel.resolvedSource(strapConnected:hasKnownStrap:)",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.parsePlainText(_:languageCode:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "Doc says with a target zone set the voice coach nudges you after drifting out of zone for >=30 s. Code: zone.drifted.high/low rules are tier .silent, and WorkoutVoiceCoach.dispatch speaks only .spoken events, so zone-drift is never voiced; the conditions also have no 30 s sustain (high fires on the first tick >3 %HRmax over the band after 60 s elapsed, low only after 180 s and never for zone 1).",
-     "evidence": [
-      "docs/USERS_MANUAL.md:1044",
-      "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift:342",
-      "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift:360",
-      "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift:255"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.findMatch(currentTrack:sport:store:)": "26547ccaed8e1da6",
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.findMatch(currentTrack:sport:store:)": "5d0533a9a1f15147",
     "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.dueThresholds(_:state:)": "2e537396fabdd980",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.userThresholdBreachRule()": "2b522daa2308f09d",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.userThresholdBreachRule()": "d0e3c4b935dd4c11",
     "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.zoneDriftedHighCondition(_:)": "771d665319bdb23b",
     "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.zoneDriftedHighRule()": "50cba58de930ebe3",
     "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.zoneDriftedLowRule()": "aa793f8cb1a153d4",
-    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.dispatch(event:)": "9e3fab6955112398",
+    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.dispatch(event:)": "56e99d22bdf96403",
     "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.reconnectLast()": "784b084b0d30c712",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.attemptAutoRouteDetection(sport:)": "a32b9c80668294cc",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.applyStartParametersAndGuardIdle(thresholds:route:)": "6cd06078f1af8846",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.attemptAutoRouteDetection(sport:)": "ba143ddda3ac30c5",
     "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.reconnectOrDisconnectSecondarySensors(sport:)": "39d6072429d8506b",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.resolveEffectiveSource(requested:)": "c6883566e5ad7ff1",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.start(sport:source:intervalPlan:thresholds:route:)": "14dd715369a65cc9",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func footPodManagerServes(_:pod:)": "9ab5b2d3814ced1d",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func manageFootPod(for:)": "3a4259d0f00929f6",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.captureHRRAndRearchive(captureService:stopDate:endHR:wasStrap:polarRef:archive:sessionId:)": "e071df1e5caaede7",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.disconnectFootPodPostWorkout()": "fdbc1aa32c17b8c4",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.launchHRRCaptureAndRearchive(stopDate:endHR:finished:)": "b5611c3673c7a99c",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.resolveEffectiveSource(requested:)": "db317e58153453d8",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.start(sport:source:intervalPlan:thresholds:route:)": "662bb386b53ba4ff",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func footPodManagerServes(_:pod:)": "c514b0abc1ab96c4",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func manageFootPod(for:)": "aad385559db9bf20",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.disconnectFootPodPostWorkout()": "a113964a3d38f379",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.launchHRRCaptureAndRearchive(stopDate:endHR:finished:)": "8f316c1cf6656588",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.parsePlainText(_:languageCode:)": "b5c317f9b7480dd1",
     "Emuqu/Sources/Views/DiscoverTrailsView+Filters.swift::var DiscoverTrailsView.searchRadiusStack": "27bf1cb867693c3c",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.pickTrail(_:)": "e13e039e1a3809d1",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.pickTrail(_:)": "fa79d81fe531abfa",
     "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.importGPX(from:)": "bb9ecbc1646db22c",
-    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.startWorkout(sport:targetZone:source:plan:thresholds:route:)": "3b5c358bf50cff27"
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.startWorkout(sport:targetZone:source:plan:thresholds:route:)": "d49802b34261eb68",
+    "Emuqu/Sources/Views/WorkoutPlanModel.swift::func WorkoutPlanModel.resolvedSource(strapConnected:hasKnownStrap:)": "dc5e684c97697f03"
    }
   },
   {
@@ -2381,8 +2266,8 @@
   },
   {
    "key": "§ Emuqu User Manual > Fitness Tab > Power meters",
-   "hash": "5b14d47bef612960",
-   "does": "Claims Stryd over Cycling Power + RSC at 1 Hz, FTMS trainers, PM5; running/cycling FTP set separately; NP, IF, power load (NP/FTP)² × h × 100, VI; metrics sit out without FTP.",
+   "hash": "89dbf560130547b3",
+   "does": "Claims Stryd over Cycling Power + RSC at 1 Hz, FTMS trainers, PM5; running/cycling FTP set separately; every power workout records average/peak power, NP and VI (applyPowerAggregates), IF and power load only with an FTP (applyFTPAnchoredMetrics), no set-FTP prompt; post-summary LOAD tile shows power load when present with an HRSS tile beside it; NP shown in the History calendar row; IF and VI shown nowhere, read by Flo.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.bindMeasurementCharacteristics(_:on:)",
@@ -2398,29 +2283,18 @@
     "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.sportFTP(for:settings:)",
     "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.functionalThresholdPowerRow",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.appendLoadTile(_:)",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.appendSecondaryLoadTile(_:)"
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.appendSecondaryLoadTile(_:)",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.loadTileLabel(_:)",
+    "Emuqu/Sources/Views/HistoryCalendarView.swift::func DaySummarySheet.workoutDetailRow(meta:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "Doc says the post-workout summary surfaces NP, IF, power-based load and Variability Index, and that without FTP 'the card tells you where to set it'. No view renders intensityFactor or variabilityIndex at all (only the assistant fact resolver reads them); NP appears only in the History calendar row; the post-summary shows just a 'LOAD' tile (powerTSS) plus an HRSS tile, and there is no 'set your FTP' prompt. NP and VI are also computed without an FTP (only IF/TSS need it), contrary to 'power-derived metrics sit out'.",
-     "evidence": [
-      "docs/USERS_MANUAL.md:1104",
-      "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift:449",
-      "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift:283",
-      "Emuqu/Sources/Views/HistoryCalendarView.swift:859"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.applyStrokeData(_:)": "5365f62c9c9e1f4b",
+    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.applyStrokeData(_:)": "4baa68311be7df0c",
     "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.bindRowingCharacteristics(_:on:)": "5b6d0a69074d3c11",
-    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.parseGeneralData(data:)": "8627dbe494fbd65f",
+    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.parseGeneralData(data:)": "d6a2d401374f0eea",
     "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.bindMeasurementCharacteristics(_:on:)": "901dd94468ef7294",
     "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.parseIndoorBikeData(data:)": "7922c3941cb9653a",
     "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.parsePower(data:)": "b778c188549ff45e",
@@ -2428,10 +2302,12 @@
     "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.sportFTP(for:settings:)": "f0fc91068b327c86",
     "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.applyPowerAggregates(to:sport:startDate:stopDate:)": "9db2d52fea4e36f5",
     "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func applyFTPAnchoredMetrics(to:ftp:np:durationSeconds:)": "999ebef033741fd8",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.computeNormalizedPower(samples:)": "c6637e6f56feefc1",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.computeNormalizedPower(samples:)": "b67511c7c2b6fe63",
     "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.functionalThresholdPowerRow": "5e414444060c0f72",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.appendLoadTile(_:)": "adeacdec2309a7bc",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.appendSecondaryLoadTile(_:)": "a5fa11e1a3082bcb"
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.appendSecondaryLoadTile(_:)": "43bde40e9064cb19",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.loadTileLabel(_:)": "b83d1ff171a49890",
+    "Emuqu/Sources/Views/HistoryCalendarView.swift::func DaySummarySheet.workoutDetailRow(meta:)": "d0f0e20466cbb9b2"
    }
   },
   {
@@ -2599,20 +2475,17 @@
   },
   {
    "key": "§ Emuqu User Manual > Fitness Tab > Voice coach",
-   "hash": "f4c4a18ce443e982",
-   "does": "Claims the voice coach evaluates a rule engine each tick and speaks only on real signals, with a full live snapshot available to the AI.",
+   "hash": "367417e3bf0cb28f",
+   "does": "Claims the voice coach evaluates a rule engine each tick; only user-added thresholds (user.threshold.breach, .spoken) are voiced; α1, HR drift, zone drift, climb-ahead and strap-down rules are .silent/.haptic and WorkoutVoiceCoach.dispatch drops them, so a dropped strap is not announced; a full live snapshot is available to the AI.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.tickVoiceCoach(sport:)",
     "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.tick(context:)",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::func WorkoutTriggerEngine.evaluate(context:now:)",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::func WorkoutTriggerEngine.defaultRules()",
     "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.dispatch(event:)",
     "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.dispatchSpoken(_:)",
     "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.alpha1BelowAeTRule()",
     "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.alpha1AboveVT2Rule()",
     "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.zoneDriftedHighRule()",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.terrainClimbAheadRule()",
     "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.equipmentStrapDownRule()",
     "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.userThresholdBreachRule()",
     "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.buildContext(sport:)",
@@ -2622,34 +2495,18 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "high",
-     "text": "Doc says the voice coach speaks when a real signal fires (alpha1 crossing, HR drift, zone drift, climb ahead, strap dropped). In the rule table alpha1.belowAeT, alpha1.aboveVT2, hr.driftHigh, terrain.climbAhead, route.climbAhead and zone.drifted.* are tier .silent and equipment.strapDown is .haptic; WorkoutVoiceCoach.dispatch drops both (case .silent, .haptic: break). Only user.threshold.breach is .spoken, so none of the advertised signals, including the strap-drop safety cue, is ever voiced.",
-     "evidence": [
-      "docs/USERS_MANUAL.md:1170",
-      "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift:255",
-      "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift:477",
-      "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift:15"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.asFactSheet()": "7e95617405d9b444",
+    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.asFactSheet()": "b71c8ca8e01c6ca9",
     "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.alpha1AboveVT2Rule()": "8e2dfbf58ab62742",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.alpha1BelowAeTRule()": "134d492d72c408cb",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.equipmentStrapDownRule()": "9e7da6e7a2663200",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.terrainClimbAheadRule()": "246e34773524a81d",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.userThresholdBreachRule()": "2b522daa2308f09d",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.alpha1BelowAeTRule()": "bf5d80642ed17071",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.equipmentStrapDownRule()": "cf3de251e34950a8",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.userThresholdBreachRule()": "d0e3c4b935dd4c11",
     "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.zoneDriftedHighRule()": "50cba58de930ebe3",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::func WorkoutTriggerEngine.defaultRules()": "47c07da0361ba637",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::func WorkoutTriggerEngine.evaluate(context:now:)": "876160b8dace8b52",
-    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.dispatch(event:)": "9e3fab6955112398",
-    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.dispatchSpoken(_:)": "6fa33235476f9b42",
-    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.tick(context:)": "25cf548ead54e485",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.buildContext(sport:)": "2f7988dcf59bf374",
+    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.dispatch(event:)": "56e99d22bdf96403",
+    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.dispatchSpoken(_:)": "1cccbf832563c9e6",
+    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.tick(context:)": "810105b87e215217",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.buildContext(sport:)": "7f8361ac55445b1d",
     "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.buildBrokerSnapshot(sport:loc:heading:speedMS:lastSample:strapSilent:liveZoneBreakdown:)": "46f2fd300f0df5cc",
     "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.tickVoiceCoach(sport:)": "641b4fdb0365e6b1"
    }
@@ -3347,14 +3204,14 @@
    "calls": [
     "Emuqu/Sources/Views/ImportDataView.swift::var ImportDataView.body",
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::var ExportDataView.body",
-    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.expireTrash(keepDays:)"
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.expiredDeletionIds(keepDays:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.expireTrash(keepDays:)": "309d6b418de50c1f",
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.expiredDeletionIds(keepDays:)": "e30d5d7080897eb4",
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::var ExportDataView.body": "763f75757225cbd8",
     "Emuqu/Sources/Views/ImportDataView.swift::var ImportDataView.body": "5996792ab39be46d"
    }
@@ -3525,14 +3382,14 @@
    "does": "Claims trash rows with restore (re-analyzes) and permanent delete, 90-day footer, Permanently Delete All with confirmation.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.expireTrash(keepDays:)"
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.expiredDeletionIds(keepDays:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.expireTrash(keepDays:)": "309d6b418de50c1f"
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.expiredDeletionIds(keepDays:)": "e30d5d7080897eb4"
    }
   },
   {
@@ -3860,14 +3717,14 @@
    "does": "Claims Recover Lost Sessions, Trash with 90-day retention.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.expireTrash(keepDays:)"
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.expiredDeletionIds(keepDays:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.expireTrash(keepDays:)": "309d6b418de50c1f"
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.expiredDeletionIds(keepDays:)": "e30d5d7080897eb4"
    }
   },
   {

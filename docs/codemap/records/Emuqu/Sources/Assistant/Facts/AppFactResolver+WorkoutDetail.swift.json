@@ -1077,16 +1077,16 @@
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.noWorkout(on:)": "597fa67bd157ab7b",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.sessionByDate(_:)": "4fcd12e3eb606afa",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutAvailability()": "ecbce9562515951d",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutDetail.swift::func WorkoutNamespace.timelineRecord(for:samples:)": "e7d11ad28fd05253"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutDetail.swift::func WorkoutNamespace.timelineRecord(for:samples:)": "bd0d1ee2f943c1cb"
    }
   },
   {
    "key": "func WorkoutNamespace.timelineRecord(for:samples:)",
-   "hash": "98100a2e6a859904",
-   "does": "Sorts samples, sets bucketSec = ceil(lastOffset/200) (min 1), groups samples by offset/bucketSec clamped to bucket 199 (so the final offset never opens a 201st bucket) and returns envelope {date, duration_sec, bucket_sec, bucket_count, buckets, sport?}.",
+   "hash": "528252b49b7359fc",
+   "does": "Sorts samples, sets bucketSec = ceil(lastOffset/200) (min 1), takes the per-bucket median records from timelineBuckets (at most 200 buckets) and returns envelope {date, duration_sec, bucket_sec, bucket_count, buckets, sport?}.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutDetail.swift::func WorkoutNamespace.bucketRecord(_:startingAt:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutDetail.swift::func WorkoutNamespace.timelineBuckets(_:bucketSec:maxBuckets:)",
     "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.displayName"
    ],
    "reads": [],
@@ -1098,25 +1098,42 @@
      "effect": "nil → 1; then max(...,1)"
     },
     {
-     "at": "+8",
-     "cond": "for each sample",
-     "effect": "appended to bucket min(offset/bucketSec, 199)"
-    },
-    {
-     "at": "+10",
-     "cond": "bucket non-empty",
-     "effect": "always true for existing keys; else dropped"
-    },
-    {
-     "at": "+18",
+     "at": "+11",
      "cond": "sport displayName present",
      "effect": "adds sport"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutDetail.swift::func WorkoutNamespace.bucketRecord(_:startingAt:)": "66926b10b784f090",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutDetail.swift::func WorkoutNamespace.timelineBuckets(_:bucketSec:maxBuckets:)": "d0ef3bbc40cb4c84",
     "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.displayName": "77a6486ffa8861f3"
+   }
+  },
+  {
+   "key": "func WorkoutNamespace.timelineBuckets(_:bucketSec:maxBuckets:)",
+   "hash": "2e943effeb609ca4",
+   "does": "Groups the (sorted) samples by offset/bucketSec, clamped to bucket maxBuckets-1 so the final offset never opens an extra bucket, and returns one bucketRecord (medians keyed by the bucket's start offset) per non-empty bucket in time order.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutDetail.swift::func WorkoutNamespace.bucketRecord(_:startingAt:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "for each sample",
+     "effect": "appended to bucket min(offset/bucketSec, maxBuckets-1)"
+    },
+    {
+     "at": "+6",
+     "cond": "bucket non-empty",
+     "effect": "always true for existing keys; else dropped"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutDetail.swift::func WorkoutNamespace.bucketRecord(_:startingAt:)": "66926b10b784f090"
    }
   },
   {

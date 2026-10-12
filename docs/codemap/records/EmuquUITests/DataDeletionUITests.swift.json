@@ -151,12 +151,13 @@
   },
   {
    "key": "func DataDeletionUITests.testDeleteAllDataCancelDoesNotFirePurge()",
-   "hash": "db7451d4a41e5595",
-   "does": "Opens Delete-All-Data, taps the first navigation-bar button (skips if none), asserts the delete row is shown again, then relaunches with only -UITests (no fresh install) and asserts the health disclaimer does not appear within 10s (evidence the purge did not run).",
+   "hash": "7768a2f6a8f071a7",
+   "does": "Opens Delete-All-Data, taps the first navigation-bar button (skips if none), asserts the delete row is shown again, backgrounds and re-activates the app so the disclaimer acceptance setUp wrote is flushed (backgroundToPersist), then terminates, relaunches with only -UITests (no fresh install) and asserts the health disclaimer does not appear within 10s (evidence the purge did not run).",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "EmuquUITests/DataDeletionUITests.swift::func DataDeletionUITests.navigateToDeleteAllData()",
     "EmuquUITests/EmuquUITests.swift::func UITestFind.row(in:identifier:label:timeout:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.backgroundToPersist(_:)",
     "ext:XCUIApplication.launch",
     "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
    ],
@@ -170,16 +171,6 @@
     }
    ],
    "flags": [
-    {
-     "kind": "fragile",
-     "sev": "med",
-     "text": "The relaunch check relies on the disclaimer acceptance written during setUp's gate walk having been flushed; the harness says terminate() can lose that flag (EmuquUITests.swift:577-582) and backgroundToPersist is not called here, so the test can fail with 'the purge ran' when no purge happened",
-     "evidence": [
-      "EmuquUITests/DataDeletionUITests.swift:145",
-      "EmuquUITests/EmuquUITests.swift:577"
-     ],
-     "found": "first read, upheld on second"
-    },
     {
      "kind": "test-defect",
      "sev": "low",
@@ -205,6 +196,7 @@
     "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)": "35f7ec6a1e50e9a0",
     "EmuquUITests/DataDeletionUITests.swift::func DataDeletionUITests.navigateToDeleteAllData()": "66638f3d277f40cd",
     "EmuquUITests/EmuquUITests.swift::func UITestFind.row(in:identifier:label:timeout:)": "3baa26cf27145a90",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.backgroundToPersist(_:)": "b4902c0b81652495",
     "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
    }
   }

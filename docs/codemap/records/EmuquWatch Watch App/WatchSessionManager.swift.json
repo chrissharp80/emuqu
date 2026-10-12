@@ -805,19 +805,7 @@
      "effect": "error shown in status line; intent not queued"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "med",
-     "text": "A queued End is now stamped to expire after 12 h, but the iPhone also drops any queued intent whose ts is over 120 s old (WatchConnectivityBridge+Session.swift maxQueuedIntentAge), so if the iPhone stays out of reach for over two minutes after a wrist End (which already ended the Watch's own session) the phone workout keeps recording. Needs the iOS side to exempt stopWorkoutFromWatch from maxQueuedIntentAge (handoff b38).",
-     "evidence": [
-      "EmuquWatch Watch App/WatchSessionManager.swift:376",
-      "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift:151",
-      "EmuquWatch Watch App/WatchWorkoutManager.swift:196"
-     ],
-     "found": "first read, upheld on second; partly fixed b38"
-    }
-   ],
+   "flags": [],
    "deps": {
     "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.wouldDisplaceQueuedStop(payloadType:pending:phoneRecording:now:)": "3df4395e4b3df107",
     "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.showControlStatus(_:)": "49489d10ba3592f3",

@@ -223,13 +223,13 @@ mutate "gps_negative_accuracy_reads_good" "EmuquTests/GPSAccuracyLevelTests" \
 # read as hard. Widening the rejection threshold is the quiet way to break that.
 mutate "dfa_ectopic_threshold_widened" "EmuquTests/LiveDFAAnalyzerTests" \
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift');s=p.read_text();o='let ectopicRatio: Double = 0.20';assert s.count(o)==1;p.write_text(s.replace(o,'let ectopicRatio: Double = 0.50'))"
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift');s=p.read_text();o='let ectopicRatio = HRVThresholds.ectopicThresholdPercent';assert s.count(o)==1;p.write_text(s.replace(o,'let ectopicRatio = 0.50'))"
 
 # Scrubbing genuine beat-to-beat variation flattens alpha-1 the other way, so
 # the lower bound matters as much as the upper one.
 mutate "dfa_cleans_normal_variation" "EmuquTests/LiveDFAAnalyzerTests" \
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift');s=p.read_text();o='let ectopicRatio: Double = 0.20';assert s.count(o)==1;p.write_text(s.replace(o,'let ectopicRatio: Double = 0.05'))"
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift');s=p.read_text();o='let ectopicRatio = HRVThresholds.ectopicThresholdPercent';assert s.count(o)==1;p.write_text(s.replace(o,'let ectopicRatio = 0.05'))"
 
 # The route-TRIMP "whole loop" test is a BAND. As a floor with no upper bound,
 # `max` below it is unreachable and every user who runs past their saved route
@@ -311,12 +311,12 @@ mutate "resting_hr_accepts_implausible" "EmuquTests/EffectiveSettingsTests" \
 # it were ridden steadily.
 mutate "normalized_power_not_fourth_power" "EmuquTests/NormalizedPowerTests" \
     "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift');s=p.read_text();o='        let fourths = windowMeans.map { pow(' + chr(36) + '0, 4) }';assert s.count(o)==1;p.write_text(s.replace(o,'        let fourths = windowMeans.map { pow(' + chr(36) + '0, 2) }'))"
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift');s=p.read_text();o='windowMeans.reduce(0) { ' + chr(36) + '0 + pow(' + chr(36) + '1, 4) }';assert s.count(o)==1;p.write_text(s.replace(o,'windowMeans.reduce(0) { ' + chr(36) + '0 + pow(' + chr(36) + '1, 2) }'))"
 
 # The 30-second window is what separates a sustained surge from sample noise.
 mutate "normalized_power_window_shrunk" "EmuquTests/NormalizedPowerTests" \
     "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift');s=p.read_text();o='            let mean = slice.reduce(0, +) / 30.0';assert s.count(o)==1;p.write_text(s.replace(o,'            let mean = slice.reduce(0, +) / 10.0'))"
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift');s=p.read_text();o='reduce(0, +) / 30.0 }';assert s.count(o)==1;p.write_text(s.replace(o,'reduce(0, +) / 10.0 }'))"
 
 # The overnight merge offset re-anchors every beat of a child segment onto its
 # parent's clock. Truncating instead of rounding loses a millisecond off each
@@ -548,7 +548,7 @@ mutate "zone_label_uses_session_peak_as_denominator" "EmuquTests/WorkoutMileMark
 # a 60 bpm sentinel biases the RHR z-score the recovery score is built on.
 mutate "stored_hr_fabricates_a_sentinel" "EmuquTests/TimeDomainTests" \
     "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/TimeDomainAnalysis.swift');s=p.read_text();o='        guard !hrValues.isEmpty else { return nil }';assert s.count(o)==1;p.write_text(s.replace(o,'        guard !hrValues.isEmpty else { return statistics(of: [60]) }'))"
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/TimeDomainAnalysis.swift');s=p.read_text();o='        guard !hrValues.isEmpty, hrValues.count == cleanBeats else { return nil }';assert s.count(o)==1;p.write_text(s.replace(o,'        guard !hrValues.isEmpty, hrValues.count == cleanBeats else { return statistics(of: [60]) }'))"
 
 # The classifier's SDNN is POPULATION variance (divisor N) on purpose, kept
 # out of `Statistics` because that offers only the sample form (N-1). The two
@@ -728,7 +728,7 @@ mutate "ppi_error_cap_relaxed" "EmuquTests/StrapPPIFilterTests" \
 # that does not advance stacks the whole recording at t=0.
 mutate "ppi_timeline_does_not_advance" "EmuquTests/StrapPPIFilterTests" \
     "Emuqu/Sources/Collection/StrapPPIFilter.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/StrapPPIFilter.swift');s=p.read_text();o='            cumulativeMs += Int64(interval)';assert s.count(o)==1;p.write_text(s.replace(o,'            cumulativeMs += 0'))"
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/StrapPPIFilter.swift');s=p.read_text();o='            beatMs += Int64(interval)';assert s.count(o)==1;p.write_text(s.replace(o,'            beatMs += 0'))"
 
 # The H10 keeps ONE exercise file. Starting a second recording abandons the
 # first, and the night already on the strap is gone. `isRecordingOnDevice` is
@@ -815,7 +815,7 @@ mutate "maxhr_floor_removed" "EmuquTests/MaxHeartRateTests" \
 # A max HR the user measured in a lab must beat the population estimate.
 mutate "maxhr_user_entry_ignored" "EmuquTests/MaxHeartRateTests" \
     "Emuqu/Sources/Analysis/MaxHeartRate.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/MaxHeartRate.swift');s=p.read_text();o='        if let userEntered, userEntered >= minimumUserEntered { return userEntered }';assert s.count(o)==1;p.write_text(s.replace(o,'        if let userEntered, userEntered >= minimumUserEntered, birthday == nil { return userEntered }'))"
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/MaxHeartRate.swift');s=p.read_text();o='        if let userEntered, userEntered >= minimumUserEntered { return min(userEntered, maximumUserEntered) }';assert s.count(o)==1;p.write_text(s.replace(o,'        if let userEntered, userEntered >= minimumUserEntered, birthday == nil { return min(userEntered, maximumUserEntered) }'))"
 
 # A workout that bounced between the phone and the Watch has interleaved
 # timestamps. Out of order, successive differences become enormous — and
@@ -909,7 +909,7 @@ mutate "crash_stack_drops_nested_frames" "EmuquTests/MetricKitCrashStackTests" \
 # `Int(Double.nan)` traps. Dropping the finiteness guard publishes NaN.
 mutate "pedometer_publishes_unvalidated_distance" "EmuquTests/PedometerSampleTests" \
     "Emuqu/Sources/Collection/WorkoutPedometer.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/WorkoutPedometer.swift');s=p.read_text();o='guard let meters = rawDistanceMeters, meters.isFinite, meters >= 0 else { return nil }';assert s.count(o)==1;p.write_text(s.replace(o,'guard let meters = rawDistanceMeters else { return nil }'))"
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/WorkoutPedometer.swift');s=p.read_text();o='guard let meters = rawDistanceMeters, meters.isFinite, meters >= 0,'+chr(10)+'              meters <= Self.maximumPlausibleMeters else { return nil }';assert s.count(o)==1;p.write_text(s.replace(o,'guard let meters = rawDistanceMeters else { return nil }'))"
 
 # CMPedometer reports cadence in steps per SECOND; every display in the app is
 # steps per minute. Dropping the conversion under-reports cadence 60x.

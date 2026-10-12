@@ -85,7 +85,7 @@
   {
    "key": "func HealthKitManager.fetchDaytimeNapMinutes(nightAnchoredAt:)",
    "hash": "13502e141cb63c53",
-   "does": "Forwards fetchDaytimeNapMinutes(nightAnchoredAt:) to SleepHealthQueries; protocol witness overriding the protocol's 0 default; called by MorningProcessingService+Sleep/+Merging and the nap-repair migration.",
+   "does": "Forwards fetchDaytimeNapMinutes(nightAnchoredAt:) to SleepHealthQueries; protocol witness overriding the protocol's 0 default; called by MorningProcessingService+Sleep/+Merging, ReanalysisService and SessionAcceptanceService (the nap-repair migration uses fetchDaytimeNapMinutesIfReadable).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::var HealthKitManager.sleepQueries",
@@ -98,7 +98,27 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.fetchDaytimeNapMinutes(nightAnchoredAt:)": "2816636397311714",
+    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.fetchDaytimeNapMinutes(nightAnchoredAt:)": "4dc209255b924c16",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::var HealthKitManager.sleepQueries": "b71f40faaccbddbd"
+   }
+  },
+  {
+   "key": "func HealthKitManager.fetchDaytimeNapMinutesIfReadable(nightAnchoredAt:)",
+   "hash": "93ebb9a937a24573",
+   "does": "Forwards fetchDaytimeNapMinutesIfReadable(nightAnchoredAt:) to SleepHealthQueries (nil = could not read); used by the nap-repair migration.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::var HealthKitManager.sleepQueries",
+    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.fetchDaytimeNapMinutesIfReadable(nightAnchoredAt:)"
+   ],
+   "reads": [
+    "hk:sleepAnalysis"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.fetchDaytimeNapMinutesIfReadable(nightAnchoredAt:)": "ff60273b0d933f5b",
     "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::var HealthKitManager.sleepQueries": "b71f40faaccbddbd"
    }
   },

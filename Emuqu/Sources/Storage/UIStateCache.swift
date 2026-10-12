@@ -49,6 +49,9 @@ final class UIStateCache {
         var todayAttributedSteps: Int
         var todayAttributedDistanceMeters: Double
         var todayAttributedFlights: Int
+        /// Start of the day the `today*` figures belong to, so a repaint on a
+        /// later day can skip them. Nil in snapshots written before it existed.
+        var day: Date? = nil
     }
 
     // MARK: - In-memory read model (O(1) property access)

@@ -209,18 +209,19 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ImportDataView.swift::func ImportDataView.importedResults(session:result:)": "db85a705286bc8b3",
+    "Emuqu/Sources/Views/ImportDataView.swift::func ImportDataView.importedResults(session:result:)": "e354c482fecbb7d1",
     "Emuqu/Sources/Views/ImportDataView.swift::var ImportDataView.saveImportToolbarItem": "cbfbc7aded638ef0"
    }
   },
   {
    "key": "func ImportDataView.importedResults(session:result:)",
-   "hash": "23e86116c8d4b391",
-   "does": "Builds MorningResultsView with the imported session/result and cachedRecentSessions; onDiscard clears the import; onUpdateSleep (measured Apple Health sleep handed over by the results screen) is kept in importedSleep and applied to the reading when Done saves it, since the unsaved reading is not in the archive yet.",
+   "hash": "28099351ebaf44fe",
+   "does": "Builds MorningResultsView with the imported session/result and cachedRecentSessions; onDiscard clears the import; onUpdateTags hands the report's Tags & Notes edits to applyReportTags (onto the reading Done saves and its archived copy); onUpdateSleep (measured Apple Health sleep handed over by the results screen) is kept in importedSleep and applied to the reading when Done saves it, since the unsaved reading is not in the archive yet.",
    "entry": "SwiftUI view builder; closures fired by MorningResultsView buttons",
    "calls": [
     "Emuqu/Sources/Views/MorningResultsView.swift::init MorningResultsView(session:result:recentSessions:onDiscard:onDelete:onReanalyze:onUpdateTags:onReanalyzeAt:onApplyManualResult:onUpdateSleep:onAdjustSleep:onUnlinkSegment:linkedSegments:)",
-    "Emuqu/Sources/Views/ImportDataView.swift::func ImportDataView.discardImport()"
+    "Emuqu/Sources/Views/ImportDataView.swift::func ImportDataView.discardImport()",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.applyReportTags(_:notes:sessionId:)"
    ],
    "reads": [
     "mem:ImportDataView @State (view-local)"
@@ -231,6 +232,7 @@
    "branches": [],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.applyReportTags(_:notes:sessionId:)": "1a1b0ae05d9b68c4",
     "Emuqu/Sources/Views/ImportDataView.swift::func ImportDataView.discardImport()": "e96de0a448e12cdb",
     "Emuqu/Sources/Views/MorningResultsView.swift::init MorningResultsView(session:result:recentSessions:onDiscard:onDelete:onReanalyze:onUpdateTags:onReanalyzeAt:onApplyManualResult:onUpdateSleep:onAdjustSleep:onUnlinkSegment:linkedSegments:)": "708e5b20f5522dc7"
    }

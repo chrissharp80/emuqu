@@ -8,24 +8,7 @@
  ],
  "state": [],
  "toplevel": "Comment at top notes the content was split out of SessionHRVDetailView.swift for the 500-line ceiling; private struct TrendStats at line 343-349 is a plain value type.",
- "flags": [
-  {
-   "kind": "duplicate",
-   "sev": "med",
-   "text": "Session-detail trend rows compare RMSSD/HR with the scoring baseline only when baselineStats is passed; the only production constructor (MorningResultsView.hrvDetailLink) does not pass it, so they still use an arithmetic mean of prior reliable overnights, while TrendComparisonCard (same morning flow) uses the geometric ln(RMSSD) / mean-HR baseline and says its figure must match the hero's '+x% vs your average'. Until the caller passes baselineStats the two screens show different 'vs average' percentages; stress/readiness averages also differ in which nights count (prior-only here, all overnights and >= 2 there).",
-   "evidence": [
-    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift:355",
-    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift:356",
-    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift:370",
-    "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift:154",
-    "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift:162",
-    "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift:165",
-    "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift:186",
-    "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift:201"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "var SessionHRVDetailView.metricsGridSection",
@@ -519,24 +502,7 @@
      "effect": "true: trendRows(stats); false: trendEmptyState"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "med",
-     "text": "Session-detail trend rows compare RMSSD/HR with the scoring baseline only when baselineStats is passed; the only production constructor (MorningResultsView.hrvDetailLink) does not pass it, so they still use an arithmetic mean of prior reliable overnights, while TrendComparisonCard (same morning flow) uses the geometric ln(RMSSD) / mean-HR baseline and says its figure must match the hero's '+x% vs your average'. Until the caller passes baselineStats the two screens show different 'vs average' percentages; stress/readiness averages also differ in which nights count (prior-only here, all overnights and >= 2 there).",
-     "evidence": [
-      "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift:355",
-      "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift:356",
-      "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift:370",
-      "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift:154",
-      "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift:162",
-      "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift:165",
-      "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift:186",
-      "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift:201"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.computeTrendStats()": "cd89dfeb94ddecf7",
     "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.trendRows(_:)": "acd30eded0464904",
@@ -838,24 +804,7 @@
      "effect": "meanHRBaseline; else mean, else 0"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "med",
-     "text": "Session-detail trend rows compare RMSSD/HR with the scoring baseline only when baselineStats is passed; the only production constructor (MorningResultsView.hrvDetailLink) does not pass it, so they still use an arithmetic mean of prior reliable overnights, while TrendComparisonCard (same morning flow) uses the geometric ln(RMSSD) / mean-HR baseline and says its figure must match the hero's '+x% vs your average'. Until the caller passes baselineStats the two screens show different 'vs average' percentages; stress/readiness averages also differ in which nights count (prior-only here, all overnights and >= 2 there).",
-     "evidence": [
-      "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift:355",
-      "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift:356",
-      "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift:370",
-      "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift:154",
-      "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift:162",
-      "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift:165",
-      "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift:186",
-      "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift:201"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.meanHR": "a5bf3abe9c530fa0",
     "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.readinessScore": "3bb644a1151f4f3f",

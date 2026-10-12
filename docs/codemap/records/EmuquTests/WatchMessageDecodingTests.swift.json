@@ -9,16 +9,14 @@
  "toplevel": "",
  "flags": [
   {
-   "kind": "test-defect",
-   "sev": "med",
-   "text": "Wrong-type tests box Swift-native Int/Bool literals in [String: Any]; WCSession delivers property-list NSNumbers, for which `as? Double` of an integer and `as? Bool` of 1 succeed, so 'treated as absent rather than coerced' is not what happens on the shipping path and the test cannot catch it.",
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "WatchMessageDecoding.decode's doc says any wrong-typed value is treated as absent rather than coerced; on the shipping path NSNumber bridges between Int, Double and Bool (an integer distance reads as a Double, 1 as true), which testNumbersBridgeBetweenIntAndDoubleOnTheWire pins for Int/Double. Only string-versus-number mismatches are absent.",
    "evidence": [
-    "EmuquTests/WatchMessageDecodingTests.swift:89",
-    "EmuquTests/WatchMessageDecodingTests.swift:90",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift:101",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift:117"
+    "EmuquWatch Watch App/WatchMessageDecoding.swift:89",
+    "EmuquTests/WatchMessageDecodingTests.swift:109"
    ],
-   "found": "first read, upheld on second"
+   "found": "t2 test pass"
   }
  ],
  "units": [
@@ -106,10 +104,11 @@
   },
   {
    "key": "func WatchMessageDecodingTests.testWrongTypedValuesAreTreatedAsAbsent()",
-   "hash": "8f9e5877af5b0323",
-   "does": "Asserts String heartRate, Int distanceMeters, Int isRecording and Int band decode as nil.",
+   "hash": "6453481aa4289457",
+   "does": "Passes a message through overTheWire (a binary property-list round trip, as WatchConnectivity delivers it) with String heartRate, distanceMeters and isRecording and a number for band, and asserts all four decode as nil.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
+    "EmuquTests/WatchMessageDecodingTests.swift::func WatchMessageDecodingTests.overTheWire(_:)",
     "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)",
     "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)",
     "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)",
@@ -124,6 +123,7 @@
    "branches": [],
    "flags": [],
    "deps": {
+    "EmuquTests/WatchMessageDecodingTests.swift::func WatchMessageDecodingTests.overTheWire(_:)": "4e0f5e71e27c2f15",
     "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "a878d42f78450ae2",
     "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bandLabel(fromCode:)": "9e4e8799c80f233e",
     "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "3968e8278c7e0f73",
@@ -133,6 +133,55 @@
     "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "d8eab7f6f652881a",
     "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.paceDisplay(_:)": "52141efa8c0cbe2b"
    }
+  },
+  {
+   "key": "func WatchMessageDecodingTests.testNumbersBridgeBetweenIntAndDoubleOnTheWire()",
+   "hash": "5dcaf9f8bf3afb30",
+   "does": "Through overTheWire, asserts an integer distanceMeters 5012 decodes as 5012.0, a whole-number Double heartRate 142.0 as 142, and a fractional peakHR 171.5 (no exact Int) as nil: on the wire a number bridges to any numeric type it fits exactly.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/WatchMessageDecodingTests.swift::func WatchMessageDecodingTests.overTheWire(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.paceDisplay(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bandLabel(fromCode:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.peakHR": "6e06787e1d321c6d",
+    "EmuquTests/WatchMessageDecodingTests.swift::func WatchMessageDecodingTests.overTheWire(_:)": "4e0f5e71e27c2f15",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "a878d42f78450ae2",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bandLabel(fromCode:)": "9e4e8799c80f233e",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "3968e8278c7e0f73",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "39dec6c2e01740e8",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b9183feba5f06d10",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "ce12742bac2c8d75",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "d8eab7f6f652881a",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.paceDisplay(_:)": "52141efa8c0cbe2b"
+   }
+  },
+  {
+   "key": "func WatchMessageDecodingTests.overTheWire(_:)",
+   "hash": "61df4b67b56997df",
+   "does": "Test helper: serialises the message as a binary property list and reads it back as [String: Any], so values arrive as the NSString/NSNumber objects WatchConnectivity delivers rather than Swift literals; throws when either step fails or the result is not a dictionary.",
+   "entry": "Called by testWrongTypedValuesAreTreatedAsAbsent and testNumbersBridgeBetweenIntAndDoubleOnTheWire.",
+   "calls": [
+    "ext:PropertyListSerialization.data(fromPropertyList:format:options:)",
+    "ext:PropertyListSerialization.propertyList(from:options:format:)",
+    "ext:XCTUnwrap"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
   },
   {
    "key": "func WatchMessageDecodingTests.testOnlyALiveStateTickIsASnapshot()",

@@ -75,7 +75,7 @@ extension WorkoutTriggerEngine {
     }
 
     private static func alpha1BelowAeTMessage(_ ctx: WorkoutAIContext) -> String {
-        let a = String(format: "%.2f", ctx.alpha1 ?? 0.75)
+        let a = String(format: "%.2f", locale: .current, ctx.alpha1 ?? 0.75)
         return String(localized: "Your α1 just hit \(a) — you're at your aerobic edge. Back off to keep it easy, or hold this for tempo, your call.", bundle: LanguageManager.appBundle)
     }
 
@@ -146,7 +146,7 @@ extension WorkoutTriggerEngine {
     }
 
     private static func alpha1AboveVT2Message(_ ctx: WorkoutAIContext, state: Alpha1VT2State) -> String {
-        let a = String(format: "%.2f", ctx.alpha1 ?? 0)
+        let a = String(format: "%.2f", locale: .current, ctx.alpha1 ?? 0)
         return String(localized: "α1 at \(a) — you're above your anaerobic threshold. If that's on purpose, nice. If not, easing up wouldn't hurt.", bundle: LanguageManager.appBundle)
     }
 
@@ -202,10 +202,10 @@ extension WorkoutTriggerEngine {
     }
 
     private static func hrDriftHighMessage(_ ctx: WorkoutAIContext) -> String {
-        let d = String(format: "%.0f", ctx.liveHRDriftPercent ?? 0)
+        let d = String(format: "%.0f", locale: .current, ctx.liveHRDriftPercent ?? 0)
         // Include current HR + grade
         // so the user has the context, not just the verdict.
-        let grade = ctx.currentGradePercent.map { String(format: "%+.1f%%", $0) }
+        let grade = ctx.currentGradePercent.map { String(format: "%+.1f%%", locale: .current, $0) }
         switch (ctx.heartRate, grade) {
         case let (hr?, g?):
             return String(localized: "HR's at \(hr), grade \(g), drifted \(d)% higher for the same pace — could be fueling, heat, or just a long day. Easing off for a bit is an option.", bundle: LanguageManager.appBundle)
@@ -284,7 +284,7 @@ extension WorkoutTriggerEngine {
     }
 
     private static func hrSpikeNoPaceMessage(_ ctx: WorkoutAIContext, state: HRSpikeState) -> String {
-        let grade = ctx.currentGradePercent.map { String(format: "%+.1f%%", $0) }
+        let grade = ctx.currentGradePercent.map { String(format: "%+.1f%%", locale: .current, $0) }
         switch (ctx.heartRate, grade) {
         case let (hr?, g?):
             return String(localized: "HR's at \(hr), grade \(g) — pace didn't pick up. Stress, heat, or fatigue maybe. Just flagging it.", bundle: LanguageManager.appBundle)
@@ -447,11 +447,11 @@ extension WorkoutTriggerEngine {
             let mi = lengthMeters / 1609.344
             let feet = Int((lengthMeters * UnitConstants.feetPerMeter).rounded())
             guard mi >= 0.1 else { return String(localized: "\(feet) feet", bundle: LanguageManager.appBundle) }
-            return String(localized: "\(String(format: "%.1f", mi)) miles", bundle: LanguageManager.appBundle)
+            return String(localized: "\(String(format: "%.1f", locale: .current, mi)) miles", bundle: LanguageManager.appBundle)
         }
         let km = lengthMeters / 1000.0
         guard km >= 0.1 else { return String(localized: "\(Int(lengthMeters.rounded())) meters", bundle: LanguageManager.appBundle) }
-        return String(localized: "\(String(format: "%.1f", km)) kilometers", bundle: LanguageManager.appBundle)
+        return String(localized: "\(String(format: "%.1f", locale: .current, km)) kilometers", bundle: LanguageManager.appBundle)
     }
 
     // Strap health, user-set thresholds, cadence. Split markers are
@@ -599,7 +599,7 @@ extension WorkoutTriggerEngine {
                 return drift < -5.0 && ctx.elapsedSeconds > 15 * 60
             },
             message: { ctx in
-                let d = String(format: "%.0f", abs(ctx.cadenceDriftSpm ?? 0))
+                let d = String(format: "%.0f", locale: .current, abs(ctx.cadenceDriftSpm ?? 0))
                 return String(localized: "Cadence is down about \(d) steps per minute from where you started — stride's getting heavy. Maybe shorten and quicken if that's bothering you.", bundle: LanguageManager.appBundle)
             }
         )
@@ -645,7 +645,7 @@ extension WorkoutTriggerEngine {
                 return true
             },
             message: { ctx in
-                let d = String(format: "%.0f", ctx.aerobicDecouplingPercent ?? 0)
+                let d = String(format: "%.0f", locale: .current, ctx.aerobicDecouplingPercent ?? 0)
                 return "Aerobic decoupling has hit \(d) percent. Speak ONE short " +
                     "sentence acknowledging the drift, naming what it usually means " +
                     "(fueling / heat / fatigue), and offering an optional pace easeoff. " +

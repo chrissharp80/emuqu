@@ -63,6 +63,7 @@ extension WorkoutFinalizer {
         applyElevationMetrics(to: &metadata)
         applyAnalyzerMetrics(to: &metadata, computed: analysis.computed, hrrSamples: hrrSamples)
         await backfillHRAndAttachSamples(metadata: &metadata, startDate: startDate, stopDate: stopDate)
+        metadata.pauseSpans = WorkoutPauseSpan.spans(of: recorder.lifecycle.pauseTimeline)
         applyPowerAggregates(to: &metadata, sport: analysis.sport, startDate: startDate, stopDate: stopDate)
         applyRouteTRIMPEstimate(to: &metadata, sport: analysis.sport)
         applyRowingTelemetry(to: &metadata, sport: analysis.sport)

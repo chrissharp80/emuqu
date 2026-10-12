@@ -273,7 +273,7 @@
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.zToRecoveryScore(_:parameters:)": "2f5772bdaa1b8b54",
     "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.DescribedDetail.note(_:)": "a76e785a36f0e4e6",
     "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.ansBalanceAdjustments(_:)": "7ce75310d4eb97b9",
-    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.baselineStalenessAdjustments(stats:referenceDate:)": "4b7c3885cbef6bb2",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.baselineStalenessAdjustments(stats:referenceDate:)": "24e19d13962af54a",
     "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.cvAdjustments(_:)": "2e9893058a194a77",
     "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.dfaAlpha1Adjustments(_:)": "23c0cd14abd3bbac",
     "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.missingReadingNote(hasBaseline:usesReadiness:)": "c3afd59a29ce1ac4",
@@ -348,18 +348,18 @@
   },
   {
    "key": "func ScoreDetailBuilder.baselineStalenessAdjustments(stats:referenceDate:)",
-   "hash": "c362d178bdb291c9",
-   "does": "RecoveryScoreCalculator.baselineStaleness (the score's own staleness penalty) as [.staleBaseline(days, rounded penalty)]; [] when not stale or the penalty rounds to 0.",
+   "hash": "94fbe3b50d39981e",
+   "does": "RecoveryScoreCalculator.baselineStalenessPenalty (the score's own staleness penalty) as [.staleBaseline(days, rounded penalty)]; [] when not stale or the penalty rounds to 0.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.baselineStaleness(stats:referenceDate:)"
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.baselineStalenessPenalty(stats:referenceDate:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
      "at": "+4",
-     "cond": "baselineStaleness returns nil",
+     "cond": "baselineStalenessPenalty returns nil",
      "effect": "returns []"
     },
     {
@@ -370,7 +370,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.baselineStaleness(stats:referenceDate:)": "66664776677e00f4",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.baselineStalenessPenalty(stats:referenceDate:)": "cc52dd7b92d9d3e4",
     "Emuqu/Sources/Analysis/TrendAnalysis.swift::var TrendAnalyzer.TimePeriod.days": "36f2819ab6740ce8"
    }
   },

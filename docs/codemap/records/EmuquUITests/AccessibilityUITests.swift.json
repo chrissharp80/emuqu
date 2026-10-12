@@ -146,30 +146,23 @@
   },
   {
    "key": "func AccessibilityUITests.testAppReachesDashboardWithoutAnimationCrashes()",
-   "hash": "383b8cd642f05514",
-   "does": "Walks gates and asserts the tab bar exists within 16s.",
+   "hash": "1bbac5175110df6f",
+   "does": "Asserts UITestLaunch.toMainUI returns true (no launch gate up and the tab bar takes taps), then that the Dashboard root (dashboard.root) appears within 16 s; both messages carry the on-screen dump.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.anyElement(in:identifier:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)",
     "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "med",
-     "text": "The only assertion is tabBar exists, which the harness documents is true while the disclaimer cover is still up (EmuquUITests.swift:593-596); toMainUI's Bool is discarded. The test cannot detect animation problems or a failure to reach the Dashboard, contrary to its name",
-     "evidence": [
-      "EmuquUITests/AccessibilityUITests.swift:103",
-      "EmuquUITests/EmuquUITests.swift:593"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.dashboardRoot": "1f05f416ecad4647",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.anyElement(in:identifier:)": "7c7096c59b35ed60",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
     "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)": "747ec38364b540cd",
     "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
    }

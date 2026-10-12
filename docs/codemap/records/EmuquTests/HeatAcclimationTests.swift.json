@@ -542,8 +542,8 @@
   },
   {
    "key": "func HeatTrackingConsentTests.testTheAssistantPathDoesNotComputeWhileTrackingIsOff()",
-   "hash": "0c613f75de3391ca",
-   "does": "Sets SettingsManager.shared.settings.heatTrackingEnabled=false (restored in defer), builds HeatAcclimationCache over a default SessionArchive(), awaits currentAwaitingRefresh and asserts it returns nil and lastUpdated stays nil.",
+   "hash": "05db331e83f2eb0a",
+   "does": "Sets SettingsManager.shared.settings.heatTrackingEnabled=false (restored in defer), builds HeatAcclimationCache over a SessionArchive in a fresh HeatConsent-<uuid> temporary directory (removed in defer), awaits currentAwaitingRefresh and asserts it returns nil and lastUpdated stays nil.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)",
@@ -553,45 +553,71 @@
     "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.currentAwaitingRefresh()",
     "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::var HeatAcclimationCache.trackingEnabled",
     "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings",
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.save()"
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.save()",
+    "EmuquTests/HeatAcclimationTests.swift::func HeatTrackingConsentTests.removeDirectory(_:)"
    ],
    "reads": [
     "mem:SettingsManager.shared.settings",
     "ud:FlowRecovery.heat.lastReadout",
-    "file:SessionArchive default App Group directory"
+    "file:<tmp>/HeatConsent-<uuid> (hermetic SessionArchive)"
    ],
    "writes": [
     "mem:SettingsManager.shared.settings",
     "file:settings JSON (SettingsManager.save via enqueueDiskWrite)",
     "ud:UserSettings.PerformanceFlagKey mirror keys",
-    "notif:flowRecoverySettingsChanged"
+    "notif:flowRecoverySettingsChanged",
+    "file:<tmp>/HeatConsent-<uuid> (removed in defer)"
    ],
    "branches": [],
    "flags": [
     {
      "kind": "test-defect",
      "sev": "med",
-     "text": "Mutates the app host's SettingsManager.shared.settings twice (set false, then restore in defer); each assignment runs didSet → save() which writes the real settings file and UserDefaults mirror keys and posts flowRecoverySettingsChanged (SettingsManager.swift:20-37, 223-238). It also builds SessionArchive() with no directory, which points at the shared on-disk App Group archive (Archive.swift:201-208 comment). State is shared with the app host and other suites.",
+     "text": "Mutates the app host's SettingsManager.shared.settings twice (set false, then restore in defer); each assignment runs didSet → save() which writes the real settings file and UserDefaults mirror keys and posts flowRecoverySettingsChanged. HeatAcclimationCache reads the switch from AppDependencies.current.app.settingsManager and SettingsManager has only a private init, so the test cannot give the cache its own settings; state is shared with the app host and other suites. (The archive is now a temporary one.)",
      "evidence": [
-      "EmuquTests/HeatAcclimationTests.swift:235",
-      "EmuquTests/HeatAcclimationTests.swift:238",
       "EmuquTests/HeatAcclimationTests.swift:240",
-      "Emuqu/Sources/Models/SettingsManager.swift:34",
-      "Emuqu/Sources/Storage/Archive.swift:202"
+      "EmuquTests/HeatAcclimationTests.swift:242",
+      "EmuquTests/HeatAcclimationTests.swift:243",
+      "Emuqu/Sources/Analysis/HeatAcclimationCache.swift:55",
+      "Emuqu/Sources/Models/SettingsManager.swift:88"
      ],
      "found": "first read, upheld on second"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.currentAwaitingRefresh()": "d259729c0e2f72e9",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.currentAwaitingRefresh()": "29cfcfb21ccff2c3",
     "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.loadPersistedReadout()": "48f6b2e298daae55",
     "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.makeArchiveObserver(_:)": "515f98457d5daf23",
-    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::init HeatAcclimationCache(archive:)": "74ca64419bd499f1",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::init HeatAcclimationCache(archive:)": "d7c63d5183bc8a4f",
     "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::var HeatAcclimationCache.trackingEnabled": "405c8d72e8a5a787",
     "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.save()": "2b2393e8376b4c26",
-    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
-    "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)": "a892db29af7907c0"
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "201177101ead59c4",
+    "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)": "312605e0908fbc30",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4",
+    "EmuquTests/HeatAcclimationTests.swift::func HeatTrackingConsentTests.removeDirectory(_:)": "9920d958c36d6f4e"
    }
+  },
+  {
+   "key": "func HeatTrackingConsentTests.removeDirectory(_:)",
+   "hash": "90f011907f2e8e77",
+   "does": "Deletes the given directory; a missing directory (an archive that never wrote) is ignored.",
+   "entry": "Called from testTheAssistantPathDoesNotComputeWhileTrackingIsOff's defer",
+   "calls": [
+    "ext:FileManager.removeItem(at:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<tmp>/HeatConsent-<uuid> (deleted)"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "removeItem throws",
+     "effect": "swallowed (directory absent)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
   },
   {
    "key": "func HeatExposureAttributionTests.weather(tempC:rh:)",

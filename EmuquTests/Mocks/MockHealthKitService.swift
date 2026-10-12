@@ -1,74 +1,24 @@
-import Combine
 @testable import Emuqu
 import Foundation
-import os
 
-/// Mock HealthKit service for testing without real HealthKit access.
-/// Returns configurable sleep data, training load, and vitals.
+/// HealthKit stand-in for the services that take a `HealthKitServiceProtocol`
+/// (`MorningProcessingService`, `HRVAnalysisPipeline`, `ReanalysisService`,
+/// `SleepBoundaryResolver`, `SessionAcceptanceService`).
+///
+/// It implements only the protocol's requirements and answers every query
+/// with "no HealthKit data": empty sleep, no Watch HR estimate, zero training
+/// load, no vitals, and exports that succeed. `daytimeRestingHR` is the one
+/// answer a test sets. A test that needs another answer (a HealthKit error,
+/// real sleep, vitals) adds a settable property here and uses it, rather than
+/// the mock carrying knobs no test drives. `fetchDaytimeNapMinutes` and
+/// `estimateSleepFromRR` come from the protocol's extension (no naps; the
+/// strap's own RR estimate).
 @MainActor
 final class MockHealthKitService: HealthKitServiceProtocol {
-    // MARK: - Sleep Data Observation
+    nonisolated var isHealthKitAvailable: Bool { true }
 
-    var startObservingSleepDataCallCount = 0
-    var stopObservingSleepDataCallCount = 0
-    func startObservingSleepData() {
-        startObservingSleepDataCallCount += 1
-    }
-
-    func stopObservingSleepData() {
-        stopObservingSleepDataCallCount += 1
-    }
-
-    // MARK: - Configurable Responses
-    /// The protocol reads this `nonisolated`, so the mock keeps it behind a
-    /// lock rather than on the main actor with the rest of its state.
-    nonisolated var isHealthKitAvailable: Bool {
-        get { availableBox.withLock { $0 } }
-        set { availableBox.withLock { $0 = newValue } }
-    }
-    private let availableBox = OSAllocatedUnfairLock<Bool>(initialState: true)
-    @MainActor var authorizationRequested: Bool = true
-
-    var authorizationError: Error?
-
-    var sleepData: SleepData = .empty
-    var sleepDataError: Error?
-
+    /// What `fetchDaytimeRestingHR(for:)` returns.
     var daytimeRestingHR: Double?
-    var daytimeRestingHRError: Error?
-
-    var trainingLoad: HealthKitManager.TrainingLoad = .init(
-        vo2Max: nil,
-        recentWorkouts: [],
-        weeklyLoadScore: 0,
-        daysSinceHardWorkout: nil,
-        acuteChronicRatio: nil,
-        metrics: nil
-    )
-
-    var vo2Max: Double?
-
-    var recoveryVitals: RecoveryVitals = .init(
-        respiratoryRate: nil,
-        respiratoryRateBaseline: nil,
-        oxygenSaturation: nil,
-        oxygenSaturationMin: nil,
-        wristTemperature: nil,
-        wristTemperatureBaseline: nil,
-        restingHeartRate: nil
-    )
-    var recoveryVitalsError: Error?
-
-    // MARK: - Protocol Implementation
-
-    func requestAuthorization() async throws {
-        if let error = authorizationError { throw error }
-    }
-
-    func fetchLastNightSleep(relativeTo _: Date = Date()) async throws -> SleepData {
-        if let error = sleepDataError { throw error }
-        return sleepData
-    }
 
     func fetchSleepData(
         for _: Date,
@@ -76,108 +26,41 @@ final class MockHealthKitService: HealthKitServiceProtocol {
         rrPoints _: [RRPoint]?,
         autoSleepExtension _: SleepResolver.AutoSleepExtension?
     ) async throws -> SleepData {
-        if let error = sleepDataError { throw error }
-        return sleepData
+        .empty
     }
 
     func fetchDaytimeRestingHR(for _: Date) async throws -> Double? {
-        if let error = daytimeRestingHRError { throw error }
-        return daytimeRestingHR
+        daytimeRestingHR
     }
 
-    func calculateTrainingLoad(relativeTo _: Date = Date()) async -> HealthKitManager.TrainingLoad {
-        trainingLoad
-    }
-
-    func fetchVO2Max() async -> Double? {
-        vo2Max
-    }
-
-    /// Stub for protocol conformance with the real service's trend
-    /// overload. Always returns nil (no trend); the class is final, so a
-    /// test that needs a trend adds a settable property here.
-    func fetchVO2MaxTrend(days _: Int) async -> (latest: Double, oldestInWindow: Double, sampleCount: Int)? {
-        nil
-    }
-
-    func fetchRecoveryVitals(relativeTo _: Date = Date()) async -> RecoveryVitals {
-        recoveryVitals
-    }
-
-    // MARK: - Background HR Sleep Estimation
-
-    var healthKitHRSleepData: SleepData?
-
-    func estimateSleepFromHealthKitHR(windowStart _: Date, windowEnd _: Date, minimumSamples _: Int = 12, minimumSleepMinutes _: Int = 120) async -> SleepData? {
-        healthKitHRSleepData
-    }
-
-    // MARK: - Heart Rate Samples
-
-    var heartRateSamples: [(date: Date, hr: Double)] = []
-    var heartRateSamplesError: Error?
-
-    func fetchHeartRateSamples(from _: Date, to _: Date) async throws -> [(date: Date, hr: Double)] {
-        if let error = heartRateSamplesError { throw error }
-        return heartRateSamples
-    }
-
-    // MARK: - Apple Health Export
-
-    var exportSessionMetricsError: Error?
-
-    func exportSessionMetrics(from _: HRVSession) async throws {
-        if let error = exportSessionMetricsError { throw error }
-    }
-
-    var exportSleepError: Error?
-
-    func exportSleepToHealthKit(sleepData _: SleepData, sessionId _: UUID) async throws {
-        if let error = exportSleepError { throw error }
-    }
-
-    // MARK: - Dashboard Queries
-
-    var trainingMetrics = TrainingMetrics.empty
-
-    func calculateTrainingMetrics(forMorningReading _: Bool) async -> TrainingMetrics {
-        trainingMetrics
-    }
-
-    var workoutInRange = false
-
-    func hasWorkoutInRange(from _: Date, to _: Date) async -> Bool {
-        workoutInRange
-    }
-
-    var additionalSleepEnd: Date?
-    var additionalSleepStart: Date?
-
-    func findAdditionalSleepRange(after anchor: Date, before _: Date) async -> (start: Date, end: Date)? {
-        guard let end = additionalSleepEnd else { return nil }
-        return (additionalSleepStart ?? anchor, end)
-    }
-
-    var sleepTrend: [SleepData] = []
-    var sleepTrendError: Error?
-
-    func fetchSleepTrend(days _: Int) async throws -> [SleepData] {
-        if let error = sleepTrendError { throw error }
-        return sleepTrend
-    }
-
-    func analyzeSleepTrend(from _: [SleepData]) -> SleepTrendStats {
-        SleepTrendStats(
-            averageSleepMinutes: 0, averageDeepSleepMinutes: nil,
-            averageEfficiency: nil, trend: .stable, nightsAnalyzed: 0
+    func calculateTrainingLoad(relativeTo _: Date) async -> HealthKitManager.TrainingLoad {
+        HealthKitManager.TrainingLoad(
+            vo2Max: nil,
+            recentWorkouts: [],
+            weeklyLoadScore: 0,
+            daysSinceHardWorkout: nil,
+            acuteChronicRatio: nil,
+            metrics: nil
         )
     }
 
-    var hrStats: HeartRateStats?
-    var hrStatsError: Error?
-
-    func calculateHRStats(from _: Date, to _: Date) async throws -> HeartRateStats? {
-        if let error = hrStatsError { throw error }
-        return hrStats
+    func fetchRecoveryVitals(relativeTo _: Date) async -> RecoveryVitals {
+        RecoveryVitals(
+            respiratoryRate: nil,
+            respiratoryRateBaseline: nil,
+            oxygenSaturation: nil,
+            oxygenSaturationMin: nil,
+            wristTemperature: nil,
+            wristTemperatureBaseline: nil,
+            restingHeartRate: nil
+        )
     }
+
+    func estimateSleepFromHealthKitHR(
+        windowStart _: Date, windowEnd _: Date, minimumSamples _: Int, minimumSleepMinutes _: Int
+    ) async -> SleepData? {
+        nil
+    }
+
+    func exportSessionMetrics(from _: HRVSession) async throws {}
 }

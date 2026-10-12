@@ -233,13 +233,21 @@ final class DebugLogger {
         let sevenDaysAgo = Date().addingTimeInterval(-7 * 24 * 60 * 60)
         let cap = Self.maxMemoryEntries
         mutateRingBuffer { buffer in
-            if let oldest = buffer.first, oldest.timestamp < sevenDaysAgo {
-                buffer.removeAll { $0.timestamp < sevenDaysAgo }
-            }
-            buffer.append(contentsOf: batch)
-            if buffer.count > cap {
-                buffer.removeFirst(buffer.count - cap)
-            }
+            Self.append(batch, to: &buffer, droppingOlderThan: sevenDaysAgo, cap: cap)
+        }
+    }
+
+    /// One ring-buffer step: drop entries older than `cutoff` (only scanned
+    /// when the oldest has aged out), append `batch`, keep the newest `cap`.
+    nonisolated private static func append(
+        _ batch: [LogEntry], to buffer: inout [LogEntry], droppingOlderThan cutoff: Date, cap: Int
+    ) {
+        if let oldest = buffer.first, oldest.timestamp < cutoff {
+            buffer.removeAll { $0.timestamp < cutoff }
+        }
+        buffer.append(contentsOf: batch)
+        if buffer.count > cap {
+            buffer.removeFirst(buffer.count - cap)
         }
     }
 

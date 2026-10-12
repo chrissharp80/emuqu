@@ -172,7 +172,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.metricChart(points:band:)": "c4eb096b388ec109",
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.metricChart(points:band:)": "846d732a47c9564c",
     "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.nearestPoint(to:in:)": "2034dabf6b605bda",
     "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.scrubPill(point:band:)": "b6c96057ca8687ec",
     "Emuqu/Sources/Views/TrendsV2View+Charts.swift::var TrendsV2View.buildingBaselineOverlay": "839ff0471fba8a11",
@@ -181,8 +181,8 @@
   },
   {
    "key": "func TrendsV2View.metricChart(points:band:)",
-   "hash": "e6846c277794b103",
-   "does": "Builds the Swift Chart for every reading in the selected period (no cap): 60-day ±1 SD band + mean rule, daily dots tinted by side when outside the band, 7-reading rolling line, scrub crosshair; binds chartXSelection to scrubbedDate and attaches an AudioGraph accessibility descriptor over the same readings.",
+   "hash": "e5818c2e06ee81c3",
+   "does": "Builds the Swift Chart for every reading in the selected period (no cap): 60-day normal-range band (BaselineStats.low…high: ±1 SD, in log space for log-normal metrics) + mean rule, daily dots tinted by side when outside the band, 7-reading rolling line, scrub crosshair; binds chartXSelection to scrubbedDate and attaches an AudioGraph accessibility descriptor over the same readings.",
    "entry": "SwiftUI view composition; chartXSelection writes scrubbedDate on drag",
    "calls": [
     "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.normalRangeBand(band:points:)",
@@ -204,21 +204,22 @@
     {
      "at": "+1",
      "cond": "band.hasData",
-     "effect": "true: bandLow = mean - sd; false: nil (no dot tinting)"
+     "effect": "true: bandLow = band.low; false: nil (no dot tinting)"
     },
     {
      "at": "+2",
      "cond": "band.hasData",
-     "effect": "true: bandHigh = mean + sd; false: nil"
+     "effect": "true: bandHigh = band.high; false: nil"
     }
    ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func ExplanationCopy.low(_:)": "0dbc3b9bab439012",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/AudioGraphHelpers.swift::func AudioGraphDescriptor.line(title:xLabel:yLabel:points:)": "30acaeef99b7e535",
     "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.baselineLine(from:)": "6147b26095607ba5",
-    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.dailyDots(_:bandLow:bandHigh:)": "97a2682a3b12597e",
-    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.normalRangeBand(band:points:)": "00966cd71ebf15d1",
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.dailyDots(_:bandLow:bandHigh:)": "4e325e750dfc5a5d",
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.normalRangeBand(band:points:)": "8e0b43483508a21c",
     "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.scrubMarks(points:)": "9909f2eba0c842ea",
     "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.BaselineStats.hasData": "58b3b540d9784f0e",
     "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.Metric.localizedName": "15087af78edc1f72"
@@ -226,8 +227,8 @@
   },
   {
    "key": "func TrendsV2View.normalRangeBand(band:points:)",
-   "hash": "7b509ea071d02db2",
-   "does": "Emits a RectangleMark over bandSpan(points) between mean-sd and mean+sd plus a dashed RuleMark at the mean, only when the band has >=4 samples and there are points.",
+   "hash": "f7312a46c19ccd69",
+   "does": "Emits a RectangleMark over bandSpan(points) between band.low and band.high (±1 SD, in log space for log-normal metrics) plus a dashed RuleMark at the mean, only when the band has >=4 samples and there are points.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.bandSpan(_:)",
@@ -246,6 +247,7 @@
    ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func ExplanationCopy.low(_:)": "0dbc3b9bab439012",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
     "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.bandSpan(_:)": "16d77762f09bc171",
@@ -290,22 +292,7 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "The band is a raw arithmetic mean ±1 SD (population) from BaselineStats.from (TrendsV2View.swift), so ~1/3 of normally distributed nights are tinted, and for log-normal RMSSD/SDNN/HF it is the raw mean±SD treatment the #19 comment says mis-flags readings. (The side-blind caution tint is fixed: dotColor tints the better side optimal.) Needs a log-space band in BaselineStats, outside this file.",
-     "evidence": [
-      "Emuqu/Sources/Views/TrendsV2View+Charts.swift:145",
-      "Emuqu/Sources/Views/TrendsV2View+Charts.swift:151",
-      "Emuqu/Sources/Views/TrendsV2View+Charts.swift:253",
-      "Emuqu/Sources/Views/TrendsV2View.swift:320",
-      "Emuqu/Sources/Views/TrendsV2View.swift:321",
-      "Emuqu/Sources/Views/TrendsV2View+Charts.swift:527"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.dotColor(_:bandLow:bandHigh:higherIsBetter:)": "d411cbd6e92b8941",
     "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.higherIsBetter(_:)": "91489d901e0d23ac",

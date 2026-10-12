@@ -78,11 +78,11 @@
   },
   {
    "key": "var MorningFeelingPrompt.body",
-   "hash": "606735d510003aa4",
-   "does": "Card with a title (new vs edit wording), the feeling scale, tag picker and Skip/Done actions; on appear preselects the existing feeling and tags; on disappear (including a swipe-down of the sheet) cancels any pending 1 s auto-commit so a dismissed prompt saves nothing.",
+   "hash": "500c3b1dce134784",
+   "does": "Card with the title (promptTitle: new vs edit wording), the feeling scale, tag picker and Skip/Done actions; on appear preselects the existing feeling and tags; on disappear (including a swipe-down of the sheet) cancels any pending 1 s auto-commit so a dismissed prompt saves nothing.",
    "entry": "SwiftUI View.body evaluation; .onAppear/.onDisappear closures run by SwiftUI",
    "calls": [
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::var MorningFeelingPrompt.promptTitle",
     "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::var MorningFeelingPrompt.feelingScale",
     "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::var MorningFeelingPrompt.feelingTagPicker",
     "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::var MorningFeelingPrompt.feelingPromptActions"
@@ -95,33 +95,50 @@
    ],
    "branches": [
     {
-     "at": "+2",
-     "cond": "existing == nil",
-     "effect": "new answer → 'How do you feel this morning?'; editing → 'Change your feeling'"
-    },
-    {
-     "at": "+16",
+     "at": "+14",
      "cond": "existing feeling present (onAppear)",
      "effect": "selected = existing; else no preselection"
     },
     {
-     "at": "+17",
+     "at": "+15",
      "cond": "existingTags non-empty (onAppear)",
      "effect": "selectedTags seeded; else empty set kept"
     },
     {
-     "at": "+21",
+     "at": "+19",
      "cond": "view disappears",
      "effect": "pending auto-commit cancelled (no-op when none)"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::var MorningFeelingPrompt.feelingPromptActions": "d9abce7e9b94dcaf",
     "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::var MorningFeelingPrompt.feelingScale": "d2432b6244dc9c12",
     "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::var MorningFeelingPrompt.feelingTagPicker": "0ec287417ad96387",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::var MorningFeelingPrompt.promptTitle": "84d4a41d3940ce0a",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e"
+   }
+  },
+  {
+   "key": "var MorningFeelingPrompt.promptTitle",
+   "hash": "58f63c11762b9bb6",
+   "does": "The prompt's semibold subheadline title: 'How do you feel this morning?' for a new answer, 'Change your feeling' when editing an existing one.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "existing == nil",
+     "effect": "new answer → 'How do you feel this morning?'; editing → 'Change your feeling'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
    }
   },
@@ -313,7 +330,7 @@
     "Emuqu/Sources/Models/MorningFeelingTag.swift::var MorningFeelingTag.cluster": "84f5f488ff069969",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingPrompt.chipRow(title:tags:)": "321e3cbfe14adcd9",
-    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::var MorningFeelingPrompt.body": "790dbd7a2f9ee9cb",
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::var MorningFeelingPrompt.body": "6117be36341144ca",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
    }
   },

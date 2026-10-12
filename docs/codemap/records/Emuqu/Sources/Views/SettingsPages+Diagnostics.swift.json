@@ -106,7 +106,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.diagnosticsSections": "e403e4829ad145d3",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.diagnosticsSections": "9d0cecc4a2d12a25",
     "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.logCopiedAction": "80bbf2a9483b1bf6",
     "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.logCopiedMessage": "9fa833baf8536e58",
     "Emuqu/Sources/Views/Theme.swift::func View.zenFormBackground()": "fde01388fd5e4e8c"
@@ -114,15 +114,16 @@
   },
   {
    "key": "var TroubleshootingPage.diagnosticsSections",
-   "hash": "dbde9331dfdee0a7",
-   "does": "Order: developerSections, No-Problems card, recent problems, crash report, actionSections.",
+   "hash": "72e3292554126d8d",
+   "does": "Order: developerSections, No-Problems card, sessions held back from iCloud (quarantinedUploadsSection), recent problems, crash report, actionSections.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.actionSections",
     "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.developerSections",
     "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.problemsSection",
     "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.recentProblemsSection",
-    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.crashReportSection"
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.crashReportSection",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.quarantinedUploadsSection"
    ],
    "reads": [],
    "writes": [],
@@ -133,6 +134,7 @@
     "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.crashReportSection": "8f24768d8399c700",
     "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.developerSections": "828616a191fb03e5",
     "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.problemsSection": "75d36b9e1c9cfdb7",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.quarantinedUploadsSection": "b8d87ddffc509f19",
     "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.recentProblemsSection": "1e02f77b53162fa0"
    }
   },
@@ -764,6 +766,79 @@
     "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.hasCrashReport": "136203def1d3033a",
     "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.logger": "2e176c615c703f2b",
     "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.noProblemsSection": "f41e93dc33b6f80e"
+   }
+  },
+  {
+   "key": "var TroubleshootingPage.quarantinedUploadsSection",
+   "hash": "9fddf6aad54a5fd0",
+   "does": "Shown only while iCloud sync holds sessions back after a permanent preparation error (CloudKitSyncManager.quarantinedCount > 0; the files on disk are untouched): the quarantinedUploadsBody section.",
+   "entry": "SwiftUI view builder (via diagnosticsSections)",
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.cloudKitSyncManager",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.quarantinedCount",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::func TroubleshootingPage.quarantinedUploadsBody(_:)"
+   ],
+   "reads": [
+    "mem:CloudKitSyncState.quarantinedSessionIds"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "quarantinedCount > 0",
+     "effect": "section shown; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.quarantinedCount": "449c2fb5263531f7",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.cloudKitSyncManager": "b2c1f986e338fb12",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::func TroubleshootingPage.quarantinedUploadsBody(_:)": "74517004109515fc"
+   }
+  },
+  {
+   "key": "func TroubleshootingPage.quarantinedUploadsBody(_:)",
+   "hash": "ac408d93b0f3671b",
+   "does": "'iCloud' section with the 'Not uploaded' count row and a 'Try again' button that clears the quarantine for every held-back session (retryQuarantined(nil), persisted) so the next sync re-attempts them; the section then disappears.",
+   "entry": "Try again tap; SwiftUI view builder",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::func TroubleshootingPage.quarantinedCountRow(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.quarantinedCount",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.retryQuarantined(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:CloudKitSyncState.quarantinedSessionIds"
+   ],
+   "writes": [
+    "mem:CloudKitSyncState.quarantinedSessionIds (cleared on Try again)",
+    "file:CloudKit quarantine queue (saveQuarantineQueue)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.retryQuarantined(_:)": "086a60a95f1c28fa",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.quarantinedCount": "449c2fb5263531f7",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::func TroubleshootingPage.quarantinedCountRow(_:)": "76e31659bd33bbcb"
+   }
+  },
+  {
+   "key": "func TroubleshootingPage.quarantinedCountRow(_:)",
+   "hash": "a4a419e560dc358f",
+   "does": "Row 'Not uploaded' (icloud.slash) with the count right-aligned, read by VoiceOver as one element.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
    }
   },
   {

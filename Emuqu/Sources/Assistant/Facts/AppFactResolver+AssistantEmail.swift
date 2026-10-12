@@ -62,7 +62,9 @@ extension AssistantMemoryNamespace {
         guard Self.latestUserMessageContains(args["user_quote"]) else {
             return Self.userRequestRequired("add a contact")
         }
-        let contact = addContact(name: name, email: email, notes: args["notes"])
+        guard let contact = addContact(name: name, email: email, notes: args["notes"]) else {
+            return Self.contactsUnreadable()
+        }
         return .record([
             "status": .string("added"),
             "id": .string(contact.id.uuidString),
@@ -81,17 +83,24 @@ extension AssistantMemoryNamespace {
         return nil
     }
 
-    private func addContact(name: String, email: String, notes rawNotes: String?) -> EmailContact {
+    /// The answer when the address book cannot be read (and so not saved).
+    private static func contactsUnreadable() -> FactValue {
+        .missing(
+            reason: .notRecorded,
+            detail: "the address book couldn't be read (phone not unlocked since a restart?) so nothing was changed — ask the user to unlock and try again"
+        )
+    }
+
+    /// The contact as saved, or nil when the address book could not be read.
+    private func addContact(name: String, email: String, notes rawNotes: String?) -> EmailContact? {
         let notes = rawNotes?.trimmingCharacters(in: .whitespacesAndNewlines)
         let contact = EmailContact(
             name: name,
             email: email,
             notes: (notes?.isEmpty ?? true) ? nil : notes
         )
-        MainActor.assumeIsolated {
-            AppDependencies.current.app.emailContactStore.add(contact)
-        }
-        return contact
+        let added = MainActor.assumeIsolated { AppDependencies.current.app.emailContactStore.add(contact) }
+        return added ? contact : nil
     }
 
     private static let assistantContactsAddDescription = """
@@ -129,9 +138,8 @@ extension AssistantMemoryNamespace {
         guard matches.count == 1, let target = matches.first else {
             return ambiguousContact(name: name, matches: matches.count)
         }
-        MainActor.assumeIsolated {
-            AppDependencies.current.app.emailContactStore.remove(id: target.id)
-        }
+        let removed = MainActor.assumeIsolated { AppDependencies.current.app.emailContactStore.remove(id: target.id) }
+        guard removed else { return Self.contactsUnreadable() }
         return .record([
             "status": .string("removed"),
             "name": .string(target.name),

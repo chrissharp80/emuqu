@@ -638,18 +638,7 @@
      "effect": "subLocality as locality fallback"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "location.set_address races geocodeAddress against a 7 s FactResolveTimeout. The failure backoff no longer applies to the forward call, but it still queues behind an in-flight reverse geocode (up to 5 s) and the 1 s floor before its own 5 s attempt, so the worst case (11 s) exceeds the 7 s budget and reports 'didn't answer in time'. The budget lives in AppFactResolver+LiveNavigation.swift (handed off).",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift:332",
-      "Emuqu/Sources/Services/RoadGeocodingService.swift:129"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.context(from:at:)": "020b7cb9f188f804",
     "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.forwardGeocodeQueued(_:)": "7b8134f41c6ca57a",

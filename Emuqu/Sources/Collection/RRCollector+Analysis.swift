@@ -37,7 +37,8 @@ extension MorningSessionPipeline {
         return RecoveryScoreOutcome(
             score: RecoveryScoreCalculator.toTenScale(breakdown.compositeScore),
             breakdown: breakdown,
-            sleepSnapshot: snapshots.sleep, vitalsSnapshot: snapshots.vitals
+            sleepSnapshot: snapshots.sleep, vitalsSnapshot: snapshots.vitals,
+            trainingContext: training
         )
     }
 
@@ -130,7 +131,8 @@ extension MorningSessionPipeline {
     }
 }
 
-/// The four values a recovery-score computation yields.
+/// The values a recovery-score computation yields: the score, its breakdown,
+/// and the sleep, vitals and training context it was scored with.
 ///
 /// Was a 4-tuple, which tripped `large_tuple` at every declaration site the
 /// closure travelled through (SessionRecoveryService takes it as a parameter
@@ -142,4 +144,7 @@ struct RecoveryScoreOutcome {
     let breakdown: RecoveryScoreCalculator.ScoreBreakdown
     let sleepSnapshot: SleepData?
     let vitalsSnapshot: RecoveryVitals?
+    /// The training context the score used: the result's own frozen one, or
+    /// the fresh one fetched when the result had none.
+    let trainingContext: TrainingContext?
 }

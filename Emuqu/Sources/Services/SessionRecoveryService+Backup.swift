@@ -122,6 +122,12 @@ extension SessionRecoveryService {
         session.recoveryScore = result.score
         session.scoreBreakdown = result.breakdown
         stampSnapshots(from: result, on: &session)
+        // Keep the training context the score was computed with, so the
+        // frozen readiness below and later reads use the same load.
+        if let training = result.trainingContext {
+            session.analysisResult?.trainingContext = training
+            if session.trainingSnapshot == nil { session.trainingSnapshot = training }
+        }
         session.frozenReadiness = ReanalysisService.computeFrozenReadiness(
             compositeScore: result.breakdown.compositeScore,
             trainingContext: session.trainingSnapshot ?? session.analysisResult?.trainingContext

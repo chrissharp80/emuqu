@@ -14,18 +14,7 @@
   "mem:MorningCoordination.vitalsDataVersion"
  ],
  "toplevel": "Stored-property defaults only: morningStatus nil, isDeviceFetchInProgress false, recoveredWorkoutReview nil, sleepDataVersion 0, vitalsDataVersion 0. No units.",
- "flags": [
-  {
-   "kind": "dead",
-   "sev": "med",
-   "text": "vitalsDataVersion is written (RRCollector+Bindings.swift:195) but no code reads MorningCoordination.vitalsDataVersion; its doc says views observe it to re-fetch vitals and re-archive the snapshot so SleepDetailView is not blank, and the named reader RecoveryDashboardView no longer exists, so that refresh trigger does nothing.",
-   "evidence": [
-    "Emuqu/Sources/Collection/MorningCoordination.swift:42-48",
-    "Emuqu/Sources/Collection/RRCollector+Bindings.swift:191-195"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [],
  "deps": {}
 }

@@ -31,6 +31,19 @@ final class ArchiveMigrationParityTests: XCTestCase {
     lazy var archive = SessionArchive(directory: archiveDirectory)
     var testSessionIds: [UUID] = []
 
+    /// The done flags `runIndexMigration` checks before each backfill
+    /// (`MigrationFlag` in Archive+Migrations.swift). They live in the host
+    /// app's standard defaults, so once any earlier run or launch set them
+    /// every backfill here would return at once. Each test clears them and
+    /// puts the host's values back afterwards.
+    private static let migrationDoneFlags = [
+        "FlowRecovery.migration.recoveryScores.v1.done",
+        "FlowRecovery.migration.endDates.v1.done",
+        "FlowRecovery.migration.metrics.v1.done",
+        "FlowRecovery.migration.sleepIndexFields.v1.done"
+    ]
+    private var savedMigrationFlags: [String: Bool] = [:]
+
     /// Capture-and-restore, not fire-and-forget.
     ///
     /// `NSTimeZone.default` is **process-global**. Ten test classes set it to
@@ -64,6 +77,7 @@ final class ArchiveMigrationParityTests: XCTestCase {
             sessionMergeModeProvider: { .off }
         )
         testSessionIds = []
+        clearMigrationFlags()
     }
 
     override func tearDown() {
@@ -72,7 +86,39 @@ final class ArchiveMigrationParityTests: XCTestCase {
         }
         testSessionIds = []
         try? FileManager.default.removeItem(at: archiveDirectory)
+        restoreMigrationFlags()
         super.tearDown()
+    }
+
+    private func clearMigrationFlags() {
+        let defaults = UserDefaults.standard
+        savedMigrationFlags = [:]
+        for key in Self.migrationDoneFlags {
+            if let value = defaults.object(forKey: key) as? Bool { savedMigrationFlags[key] = value }
+            defaults.removeObject(forKey: key)
+        }
+    }
+
+    private func restoreMigrationFlags() {
+        let defaults = UserDefaults.standard
+        for key in Self.migrationDoneFlags {
+            if let value = savedMigrationFlags[key] {
+                defaults.set(value, forKey: key)
+            } else {
+                defaults.removeObject(forKey: key)
+            }
+        }
+    }
+
+    /// A backfill sets its flag only after a pass that read every session in
+    /// its work list, and the flags were cleared in setUp, so all four set
+    /// after a run means each backfill ran over this archive and none failed
+    /// to read a session it picked (the bare session here is picked by the
+    /// sleep-index backfill: no sleepEnd, no segment count).
+    private func assertEveryBackfillRan(file: StaticString = #filePath, line: UInt = #line) {
+        for key in Self.migrationDoneFlags {
+            XCTAssertTrue(UserDefaults.standard.bool(forKey: key), "\(key) not set: that backfill did not run or failed to read a session", file: file, line: line)
+        }
     }
 
     // MARK: - `runDeferredMigrations` is idempotent
@@ -89,6 +135,7 @@ final class ArchiveMigrationParityTests: XCTestCase {
         XCTAssertNotNil(before)
 
         archive.runDeferredMigrations()
+        assertEveryBackfillRan()
         let afterFirstRun = archive.entries.first { $0.sessionId == session.id }
 
         archive.runDeferredMigrations()
@@ -115,6 +162,7 @@ final class ArchiveMigrationParityTests: XCTestCase {
         }
 
         archive.runDeferredMigrations()
+        assertEveryBackfillRan()
 
         guard let after = archive.entries.first(where: { $0.sessionId == session.id }) else {
             return XCTFail("Session dropped from index by migration")

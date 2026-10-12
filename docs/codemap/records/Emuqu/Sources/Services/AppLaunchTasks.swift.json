@@ -765,15 +765,16 @@
   },
   {
    "key": "func EmuquApp.scheduleMigrationJobs(lowPower:)",
-   "hash": "96aba00b1b47553f",
-   "does": "Schedules two housekeeping-phase background jobs (archive file-protection upgrade + deferred migrations + trash expiry; collector session migrations) and the backup reconcile; never skipped in LPM.",
+   "hash": "3db9823c7c02c075",
+   "does": "Schedules two housekeeping-phase background jobs (archive file-protection upgrade + deferred migrations + 90-day Trash expiry, which permanently deletes each expired deleted session via RRCollector.permanentlyDelete: trashed file, raw backup locally and in iCloud, deletion mark; collector session migrations) and the backup reconcile; never skipped in LPM.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.launchCoordinator",
     "Emuqu/Sources/Views/LaunchCoordinator.swift::func LaunchCoordinator.run(phase:priority:skipInLowPower:lowPower:_:)",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.upgradeExistingFileProtection()",
     "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::func SessionArchive.runDeferredMigrations()",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.expireTrash(keepDays:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.expiredDeletionIds(keepDays:)",
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.permanentlyDelete(_:)",
     "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.runDeferredSessionMigrationsIfNeeded()",
     "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.scheduleBackupReconcile(coord:archive:backup:lowPower:)"
    ],
@@ -781,17 +782,26 @@
    "writes": [
     "archive:file protection upgrade",
     "archive:deferred migrations",
-    "archive:trash expiry (90 days)",
+    "archive:trash expiry (90 days: trashed file, deletion mark)",
+    "file:raw RR backups of expired deleted sessions",
+    "ck:live backups of expired deleted sessions",
     "archive:session-data migrations"
    ],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+12",
+     "cond": "for each expired deleted id",
+     "effect": "await RRCollector.permanentlyDelete(id) on the main actor"
+    }
+   ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.runDeferredSessionMigrationsIfNeeded()": "1091eb2b5fe70c17",
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.permanentlyDelete(_:)": "117c47d9e7116293",
     "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.scheduleBackupReconcile(coord:archive:backup:lowPower:)": "04a5bd7de7260474",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.upgradeExistingFileProtection()": "194a623929f47a91",
     "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::func SessionArchive.runDeferredMigrations()": "58f2ac150ca0a682",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.expireTrash(keepDays:)": "b8d933549e6a9233",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.expiredDeletionIds(keepDays:)": "e997c0216bda3f1c",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.launchCoordinator": "2257379aa8cbc059",
@@ -1012,28 +1022,40 @@
   },
   {
    "key": "func EmuquApp.prepareEntitlementGate()",
-   "hash": "f2fbbe5036d12f2c",
-   "does": "Migrates the legacy TestFlight flag, then runs the one-time history check (grandfatherExistingUserIfNeeded → EntitlementAnchor.recordHistoryCheck, which resolves every tier and so promotes the keychain anchor into the fast tier on non-Debug builds), and NSLogs access state.",
+   "hash": "9c166cbb0f71b451",
+   "does": "Migrates the legacy TestFlight flag, then runs the one-time history check (grandfatherExistingUserIfNeeded → EntitlementAnchor.recordHistoryCheck, which resolves every tier and so promotes the keychain anchor into the fast tier on non-Debug builds) with hasHistory = !archive.entries.isEmpty when the archive index is complete (hasCompleteIndex), else nil so the check is deferred to a later launch; NSLogs access state.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/StoreKitManager.swift::func migrateLegacyTestFlightFlag(now: Date)",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::var SessionArchive.hasCompleteIndex",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
     "Emuqu/Sources/Services/StoreKitManager.swift::func grandfatherExistingUserIfNeeded(hasHistory:now:)",
     "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.trialDaysRemaining"
    ],
    "reads": [
     "kc:EntitlementAnchor",
-    "archive:SessionArchive.index"
+    "archive:SessionArchive.entries (locked)",
+    "mem:SessionArchive.indexReadFailed",
+    "mem:SessionArchive.indexDecodeFailed"
    ],
    "writes": [
     "ud:EntitlementAnchor fast tier",
     "kc:EntitlementAnchor (grandfather/beta)"
    ],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "archive.hasCompleteIndex",
+     "effect": "true: hasHistory = !entries.isEmpty; false: nil (history check skipped this launch)"
+    }
+   ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.trialDaysRemaining": "42d686db341dd612",
-    "Emuqu/Sources/Services/StoreKitManager.swift::func grandfatherExistingUserIfNeeded(hasHistory:now:)": "5b950cdb1d5a71cc",
-    "Emuqu/Sources/Services/StoreKitManager.swift::func migrateLegacyTestFlightFlag(now: Date)": "0a96e2bb61904cf4"
+    "Emuqu/Sources/Services/StoreKitManager.swift::func grandfatherExistingUserIfNeeded(hasHistory:now:)": "f1b9926c2643105f",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func migrateLegacyTestFlightFlag(now: Date)": "0a96e2bb61904cf4",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::var SessionArchive.hasCompleteIndex": "fc1897b34cf218f2",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e"
    }
   },
   {
@@ -1331,13 +1353,12 @@
   },
   {
    "key": "func EmuquApp.rescoreForTempAsymmetry(_:collector:)",
-   "hash": "cb6e2a018d82880c",
-   "does": "Retrieves the session detached at background priority. A thrown read logs a warning and returns false (retry). A missing session, a user-adjusted window or no RR points returns true (settled, nothing to do). Otherwise reanalyzes via ReanalysisService (preserveManualWindows), which persists the rescored session, and returns whether it produced a result.",
+   "hash": "6b06890aa685b1c8",
+   "does": "Retrieves the session detached at background priority. A thrown read logs a warning and returns false (retry). A missing session, a user-adjusted window or no RR points returns true (settled, nothing to do). Otherwise reanalyzes via RRCollector.reanalyzeSession (the coordinator path: past-day training load, warm cache, in-flight guard, then ReanalysisService), which persists the rescored session, and returns whether it produced a result.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)",
-    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::var RRCollector.reanalysisService",
-    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.reanalyzeSession(_:method:preserveManualWindows:)",
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.reanalyzeSession(_:method:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [
@@ -1366,8 +1387,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::var RRCollector.reanalysisService": "3b6ebd7162c9a28b",
-    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.reanalyzeSession(_:method:preserveManualWindows:)": "a1c2d43f8a08de77",
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.reanalyzeSession(_:method:)": "4fa12f1dba8fbc1e",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "8782e72ec2fc6000",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }

@@ -58,20 +58,27 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "med",
-     "text": "The test's doc comment says a distance 'past Int.max' traps and 'neither may ever be published', but no case covers a huge finite value and the code only checks isFinite && >= 0, so e.g. 1e300 m is published and later Int(...)-converted (split index / mile marker / MET pace) where it traps — the stated guard is neither implemented nor tested.",
-     "evidence": [
-      "EmuquTests/PedometerSampleTests.swift:26",
-      "EmuquTests/PedometerSampleTests.swift:27",
-      "Emuqu/Sources/Collection/WorkoutPedometer.swift:120",
-      "Emuqu/Sources/Collection/WorkoutPedometer.swift:113"
-     ],
-     "found": "second read"
-    }
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutPedometer.swift::init PedometerSample(distanceMeters:steps:cadenceStepsPerSecond:)": "b059e9948e45875e",
+    "Emuqu/Sources/Collection/WorkoutPedometer.swift::var PedometerSample.publishableDistanceMeters": "a8ce356e9586e3ff",
+    "EmuquTests/PedometerSampleTests.swift::func PedometerSampleTests.sample(distance:steps:cadence:)": "53c9015d1db87285"
+   }
+  },
+  {
+   "key": "func PedometerSampleTests.testDistancePastAnyRealWorkoutIsRejected()",
+   "hash": "fd6c4e7ea4c23b54",
+   "does": "Asserts a finite but impossibly large distance (1e300, Double.greatestFiniteMagnitude, Double(Int.max) metres) publishes nil, the other half of the reject rule: a value whose division passes Int.max traps Int(...) downstream.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/PedometerSampleTests.swift::func PedometerSampleTests.sample(distance:steps:cadence:)",
+    "Emuqu/Sources/Collection/WorkoutPedometer.swift::init PedometerSample(distanceMeters:steps:cadenceStepsPerSecond:)",
+    "Emuqu/Sources/Collection/WorkoutPedometer.swift::var PedometerSample.publishableDistanceMeters"
    ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/WorkoutPedometer.swift::init PedometerSample(distanceMeters:steps:cadenceStepsPerSecond:)": "b059e9948e45875e",
     "Emuqu/Sources/Collection/WorkoutPedometer.swift::var PedometerSample.publishableDistanceMeters": "901274fe6a13e980",

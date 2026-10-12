@@ -37,18 +37,7 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "Only used by avgPaceDisplay (tests-only caller) and estimatedCaloriesDisplay (no callers); not reached by any production view.",
-     "evidence": [
-      "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift:34",
-      "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift:127"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration": "2773bb6ff5712d48",
     "Emuqu/Sources/Views/WorkoutStatsCards.swift::func WorkoutActiveTime.seconds(samples:wallClock:)": "903803b5c4ac8e80"
@@ -71,26 +60,7 @@
      "effect": "H:MM:SS, else formatMMSS"
     }
    ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "Only callers are ViewSnapshotTests.testDerivedDisplayStrings (EmuquTests/ViewSnapshotTests.swift:188-190); grep finds no production call (other formatDuration matches are different functions).",
-     "evidence": [
-      "EmuquTests/ViewSnapshotTests.swift:188"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Same H:MM:SS / M:SS formatting is re-implemented in FitnessPostSummaryView.heroDurationLabel, which is what production shows (it could call activeDurationDisplay).",
-     "evidence": [
-      "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift:269"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.formatMMSS(_:)": "20b1392066bc3d57"
    }
@@ -140,28 +110,7 @@
      "effect": "false: returns nil; true: returns UnitsPreference.formatPace(elapsedSec:distanceMeters:) (itself nil if distance ≤ 50 / elapsed ≤ 10, unreachable here)."
     }
    ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "Only caller is ViewSnapshotTests.testDerivedDisplayStrings; the production hero uses heroPaceLabel, which duplicates this logic with session.duration (wall clock incl. pauses) instead of activeDuration.",
-     "evidence": [
-      "EmuquTests/ViewSnapshotTests.swift:184",
-      "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift:301"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "duplicate",
-     "sev": "med",
-     "text": "heroPaceLabel (production) has the identical guard (>100 m, >10 s) and formatter call but uses wall-clock duration, so the pace the user sees includes paused time while this unpaused version is never shown.",
-     "evidence": [
-      "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift:301",
-      "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift:33"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(elapsedSec:distanceMeters:)": "10aef8a5289537eb",
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d",

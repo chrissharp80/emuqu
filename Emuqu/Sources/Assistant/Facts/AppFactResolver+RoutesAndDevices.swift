@@ -32,6 +32,17 @@ struct RoutesLibraryNamespace: FactNamespaceResolver {
         MainActor.assumeIsolated { AppDependencies.current.location.savedRouteStore.routes }
     }
 
+    /// The answer while the saved-route library cannot be read: its list
+    /// would read as empty and a change would not be saved. Nil when readable.
+    private func libraryUnreadable() -> FactValue? {
+        let readable = MainActor.assumeIsolated { AppDependencies.current.location.savedRouteStore.isLibraryReadable() }
+        guard !readable else { return nil }
+        return .missing(
+            reason: .notRecorded,
+            detail: "the saved-route library can't be read right now (phone not unlocked since a restart, or the file is damaged); nothing was read or changed — ask again after unlocking the phone"
+        )
+    }
+
     /// Workouts that could be saved, newest first: the ones started on
     /// `dateISO`, or without a date the 20 most recent.
     private func workoutCandidates(matching dateISO: String?) -> [SessionArchiveEntry] {
@@ -91,7 +102,8 @@ struct RoutesLibraryNamespace: FactNamespaceResolver {
             description: "How many routes the user has saved in their route library. Cheap; call this first if you only need a count.",
             valueType: "Int"
         ) {
-            .integer(self.currentRoutes().count)
+            if let unreadable = self.libraryUnreadable() { return unreadable }
+            return .integer(self.currentRoutes().count)
         }
     }
 
@@ -104,6 +116,7 @@ struct RoutesLibraryNamespace: FactNamespaceResolver {
             """,
             valueType: "List"
         ) {
+            if let unreadable = self.libraryUnreadable() { return unreadable }
             let routes = self.currentRoutes()
                 .sorted { $0.createdAt > $1.createdAt }
             if routes.isEmpty {
@@ -139,6 +152,7 @@ struct RoutesLibraryNamespace: FactNamespaceResolver {
         else {
             return .missing(reason: .invalidParameter, detail: "new_name is required and must be non-empty")
         }
+        if let unreadable = libraryUnreadable() { return unreadable }
         let matches = self.currentRoutes().filter { $0.name.caseInsensitiveCompare(current) == .orderedSame }
         guard matches.count == 1 else {
             return ambiguousRoute(name: current, matches: matches.count)
@@ -179,6 +193,7 @@ struct RoutesLibraryNamespace: FactNamespaceResolver {
         else {
             return .missing(reason: .invalidParameter, detail: "name is required and must be non-empty")
         }
+        if let unreadable = libraryUnreadable() { return unreadable }
         let candidates = workoutCandidates(matching: requestedDate(args))
         guard !candidates.isEmpty else {
             let detail = requestedDate(args).map { "no workout on \($0)" } ?? "no recent workouts in archive"

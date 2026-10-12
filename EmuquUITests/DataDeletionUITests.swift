@@ -141,7 +141,10 @@ final class DataDeletionUITests: XCTestCase {
 
         // The purge resets the disclaimer acceptance, so a relaunch that
         // keeps this run's state (no `-UITests-FreshInstall`) would open on
-        // the disclaimer again had it fired.
+        // the disclaimer again had it fired. Background first: `terminate()`
+        // alone can lose the disclaimer acceptance setUp wrote, and the
+        // relaunch would then show the disclaimer with no purge at all.
+        UITestLaunch.backgroundToPersist(app)
         app.terminate()
         app.launchArguments = ["-UITests"] + UITestLanguage.english
         app.launch()

@@ -689,36 +689,30 @@
   },
   {
    "key": "func FakeStrapRadio.removeOfflineRecord(_:entry:)",
-   "hash": "52b3bc937f7e16d6",
-   "does": "Records .removeOfflineRecord(path); if any listing row shares the path's recording key, removes every row with that key (whole recording directory); otherwise does nothing. Data map entries are not removed.",
+   "hash": "cbb9f9517566942a",
+   "does": "Records .removeOfflineRecord(path); under the lock, finds every listing row whose path shares the entry's recording key (the whole recording directory), drops their offlineData and removes them from the listing, so later listings and getOfflineRecord no longer see the recording. Throws PolarErrors.deviceError(\"no such recording\") when no row matched — a second removal for the same recording fails, as the sensor does.",
    "entry": "StrapRadio.removeOfflineRecord protocol witness: invoked by the app's strap coordinators (PolarManager/strap arming, transfer, night and recovery flows) when a test injects FakeStrapRadio; used by StrapArmingTests, StrapTransferTests, StrapNightTests, StrapRecoveryFlowTests, StrapConnectionBadgeTests",
    "calls": [
     "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.record(_:)",
     "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)",
     "Emuqu/Sources/Collection/StrapOfflineRecordingEntries.swift::func StrapOfflineRecordingEntries.recordingKey(forPath:)"
    ],
-   "reads": [],
-   "writes": [],
+   "reads": [
+    "mem:FakeStrapRadio.value.offlineEntries"
+   ],
+   "writes": [
+    "mem:FakeStrapRadio.value.calls",
+    "mem:FakeStrapRadio.value.offlineEntries",
+    "mem:FakeStrapRadio.value.offlineData"
+   ],
    "branches": [
     {
-     "at": "+7",
-     "cond": "a row with the same recording key exists",
-     "effect": "true: removes all rows of that recording; false: returns without change"
+     "at": "+18",
+     "cond": "removed (some row matched the recording key)",
+     "effect": "false: throws PolarErrors.deviceError(description: \"no such recording\"); true: returns"
     }
    ],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "med",
-     "text": "The comment says a second removal for the same recording \"finds nothing — the real failure behind the duplicated-download bug\", but the fake then just returns (guard ... else { return }) without throwing, and offlineData is never cleared, so getOfflineRecord after removal still succeeds. A regression that removes once per sub-file again (PolarManager+Recording.swift:304 loop) passes against this fake; no test counts removeOfflineRecord calls (grep EmuquTests).",
-     "evidence": [
-      "EmuquTests/FakeStrapRadio.swift:291",
-      "EmuquTests/FakeStrapRadio.swift:297",
-      "Emuqu/Sources/Collection/PolarManager+Recording.swift:304"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/StrapOfflineRecordingEntries.swift::func StrapOfflineRecordingEntries.recordingKey(forPath:)": "452a39a1b30c2224",
     "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.record(_:)": "7dbc7ca6c0606cf2",

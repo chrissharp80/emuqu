@@ -9,8 +9,11 @@ import XCTest
 /// existing users rather than a formatting choice — and until now only four of
 /// roughly eighty fields were asserted anywhere.
 ///
-/// These two tests cover all of them at once, which is what makes it safe to
-/// touch that file at all.
+/// Two tests cover all of them: the empty payload pins every decode default
+/// against `init()`, and the round trip moves every stored field off its
+/// default (and checks that it did) so a field coded under mismatched keys,
+/// or not decoded at all, cannot pass. That is what makes it safe to touch
+/// that file at all.
 final class UserSettingsDecodeContractTests: XCTestCase {
     /// An empty payload must produce exactly the designated initializer's
     /// settings. Any decoder default that drifts from its `init()` counterpart
@@ -26,21 +29,18 @@ final class UserSettingsDecodeContractTests: XCTestCase {
             """)
     }
 
-    /// A populated round trip must survive intact. Catches a field that
-    /// encodes under one key and decodes from another, and a field the
-    /// decoder forgets entirely.
+    /// A round trip with every stored field moved off its default must survive
+    /// intact. Catches a field that encodes under one key and decodes from
+    /// another, and a field the decoder forgets entirely — for every field:
+    /// the first assertion fails if the fixture leaves any field at its
+    /// default, which a field added later without a fixture value would be.
     func testPopulatedSettingsSurviveARoundTrip() throws {
-        var settings = UserSettings()
-        settings.fitnessLevel = .athlete
-        settings.biologicalSex = .female
-        settings.birthday = Date(timeIntervalSince1970: 500_000_000)
-        settings.temperatureUnit = .celsius
-        settings.hasCompletedOnboarding = true
-        settings.baselineRMSSD = 62.5
-        settings.baselineHR = 48
-        settings.typicalSleepHours = 7.25
-        settings.customTags = [.morning]
-        settings.trialStartDate = Date(timeIntervalSince1970: 1_700_000_000)
+        let settings = Self.everyFieldChanged()
+        let allFields = Set(Mirror(reflecting: settings).children.compactMap(\.label))
+        XCTAssertEqual(
+            Set(Self.differingFields(settings, UserSettings())).union(Self.notRoundTripped), allFields,
+            "Every stored field must differ from init() here, or the round trip cannot see it"
+        )
 
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
@@ -51,6 +51,107 @@ final class UserSettingsDecodeContractTests: XCTestCase {
         // `sourceSchemaVersion` is stamped by the encoder and read back by the
         // decoder; it is nil only on settings that never went through either.
         XCTAssertEqual(Set(Self.differingFields(decoded, settings)), ["sourceSchemaVersion"])
+    }
+
+    /// Fields the round trip cannot carry off their default, each by design:
+    ///
+    ///   * `sourceSchemaVersion` — the encoder writes the current version
+    ///     whatever the value; it is nil only before any coding.
+    ///   * `defaultEmailRecipient`, `defaultEmailCC` — legacy fields the
+    ///     decoder consumes into the per-category recipients and then clears.
+    static let notRoundTripped: Set<String> = ["sourceSchemaVersion", "defaultEmailRecipient", "defaultEmailCC"]
+
+    /// Every stored field except `notRoundTripped` set to a value other than
+    /// `init()`'s, each within the range the decoder accepts (it clamps sleep
+    /// hours, merge gap and max HR). Dates are whole seconds, as ISO 8601
+    /// keeps them; the Health-marker set has one member, so its description
+    /// cannot depend on set order; and it is set last, because setting a
+    /// profile field clears its marker.
+    static func everyFieldChanged() -> UserSettings {
+        var s = UserSettings()
+        s.customTags = [.morning]
+        s.birthday = Date(timeIntervalSince1970: 500_000_000)
+        s.fitnessLevel = .athlete
+        s.biologicalSex = .female
+        s.baselineRMSSD = 62.5
+        s.baselineHR = 48
+        s.typicalSleepHours = 7.25
+        s.expectedBedtimeMinuteOfDay = 23 * 60 + 15
+        s.sessionMergeMode = .custom
+        s.customMergeGapHours = 6
+        s.sleepSplitGapMinutes = 45
+        s.defaultWindowSelectionMethod = .peakRMSSD
+        s.vo2MaxOverride = 52.5
+        s.useHealthKitVO2Max = true
+        s.bodyWeightKg = 70
+        s.homeAddress = "1 Test Street"
+        s.maxHR = 185
+        s.lactateThresholdHR = 165
+        s.runningFTPWatts = 280
+        s.cyclingFTPWatts = 250
+        s.enableZwiftBroadcast = true
+        s.enablePeriodicCoachUpdates = false
+        s.periodicCoachCadenceSec = 600
+        s.enableAutoCoachReport = true
+        s.enableWebSearch = true
+        s.defaultRecoveryEmailRecipient = "recovery@example.com"
+        s.defaultRecoveryEmailCC = "recovery-cc@example.com"
+        s.defaultTrainingEmailRecipient = "training@example.com"
+        s.defaultTrainingEmailCC = "training-cc@example.com"
+        s.userRestingHR = 52
+        s.enableSleepIntegration = false
+        s.enableHRVSleepAugmentation = true
+        s.penalizeMissingSleep = true
+        s.enableTrainingLoadIntegration = false
+        s.trainingBreakStartDate = Date(timeIntervalSince1970: 1_700_000_000)
+        s.trainingBreakEndDate = Date(timeIntervalSince1970: 1_700_600_000)
+        s.trainingBreakReason = "Travel"
+        s.comebackModeStartDate = Date(timeIntervalSince1970: 1_701_000_000)
+        s.peakingDetectionEnabled = false
+        s.dailyReportEnabled = true
+        s.dailyReportDelivery = .fixed
+        s.dailyReportFixedMinuteOfDay = 6 * 60 + 30
+        s.dailyReportFormat = .teaser
+        s.hrvAnomalyAlertsEnabled = true
+        s.avatarImageData = Data([1, 2, 3])
+        s.batteryLowAlertsEnabled = false
+        s.coachAlertsEnabled = false
+        s.preserveClipboardForPaste = false
+        s.preferredSTTProvider = .whisperKit
+        s.enableMileMarkerNotifications = true
+        s.mileMarkerInterval = .everyKilometer
+        s.enableTurnByTurnAlerts = true
+        s.enableTurnMarkerUpdates = true
+        s.syncFailureAlertsEnabled = false
+        s.intentionalOverreachActive = true
+        s.intentionalOverreachEndDate = Date(timeIntervalSince1970: 1_702_000_000)
+        s.temperatureUnit = UserSettings().temperatureUnit == .celsius ? .fahrenheit : .celsius
+        s.trainingGoal = .build
+        s.routingMode = .auto
+        s.watchDisplayOnlyMode = false
+        s.hasCompletedOnboarding = true
+        s.hasAcknowledgedScoreArchitectureChange = true
+        s.hasRunScoreHistoryRecompute = true
+        s.hasFixedTempAsymmetry = false
+        s.trialStartDate = Date(timeIntervalSince1970: 1_700_000_000)
+        s.iCloudSyncEnabled = true
+        s.heatTrackingEnabled = true
+        s.appearanceTheme = .dark
+        s.colorTheme = .teal
+        s.forceAIEnglish = true
+        s.hideFitnessTab = true
+        s.enableAIAssistant = false
+        s.enableVoiceMode = false
+        s.enableWatchConnectivity = false
+        s.keepScreenOnDuringRecording = false
+        s.enableHealthKitExport = true
+        s.exportSDNN = false
+        s.exportHeartRate = false
+        s.exportRestingHeartRate = false
+        s.exportSleepData = true
+        s.defaultCaptureMode = "rr"
+        s.profileFieldsFromHealth = [.bodyWeight]
+        return s
     }
 
     /// A value of the wrong TYPE is not a missing value. The decoder is

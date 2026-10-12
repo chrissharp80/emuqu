@@ -147,7 +147,7 @@ extension FitnessSummaryCards {
     /// pace/HR data on the prior sessions.
     ///
     /// Reads the `routeHistory` @State populated by
-    /// `loadRouteHistorySummary()` instead of running the archive walk
+    /// `FitnessPostSummaryView.loadRouteHistorySummary()` instead of running the archive walk
     /// inline. While the async load is in flight `routeHistory` is nil,
     /// which renders the same nothing-at-all as the nil-summary cases
     /// above — no separate loading UI.
@@ -203,32 +203,8 @@ extension FitnessSummaryCards {
         }
     }
 
-    /// Async loader for the route-history card. Snapshots
-    /// the session + resolved units on the MainActor, runs the archive
-    /// walk (disk reads + decodes) on a detached task, and lands the
-    /// result in the `routeHistory` @State the card reads. Called from
-    /// the `.task(id: session.id)` block on open and again from
-    /// `reloadFromArchive()` whenever the archive-change signal fires.
-    func loadRouteHistorySummary() async {
-        guard let routeName = session.workoutMetadata?.recognizedRouteName,
-              !routeName.isEmpty
-        else {
-            routeHistory = nil
-            return
-        }
-        let sessionSnapshot = session
-        let unitsResolved = units.resolved
-        routeHistory = await Task.detached(priority: .userInitiated) {
-            Self.routeHistorySummary(
-                routeName: routeName,
-                session: sessionSnapshot,
-                unitsResolved: unitsResolved
-            )
-        }.value
-    }
-
     /// Pure summary walk — static with explicit
-    /// inputs so `loadRouteHistorySummary()` can run it off the main
+    /// inputs so `FitnessPostSummaryView.loadRouteHistorySummary()` can run it off the main
     /// thread without capturing the view.
     nonisolated static func routeHistorySummary(
         routeName: String,
@@ -237,7 +213,7 @@ extension FitnessSummaryCards {
     ) -> RouteHistorySummary? {
         let candidates = priorRuns(ofRoute: routeName, excluding: session.id)
         guard !candidates.isEmpty else { return nil }
-        let baseline = routeBaseline(candidates)
+        let baseline = RouteBaseline(priorRuns: candidates)
         return RouteHistorySummary(
             priorCount: candidates.count,
             paceRow: paceComparisonRow(session: session, baseline: baseline, unitsResolved: unitsResolved),
@@ -256,40 +232,6 @@ extension FitnessSummaryCards {
             .filter { $0.workoutMetadata?.recognizedRouteName == routeName }
             .prefix(20)
             .sorted { $0.startDate > $1.startDate }
-    }
-
-    /// Distance-weighted pace baseline plus a sample-weighted mean HR.
-    nonisolated private static func routeBaseline(_ candidates: [HRVSession]) -> RouteBaseline {
-        var baseline = RouteBaseline()
-        for prior in candidates {
-            accumulatePace(&baseline, from: prior)
-            accumulateHR(&baseline, from: prior)
-        }
-        return baseline
-    }
-
-    /// Only efforts long enough to be a real repeat of the route contribute
-    /// (>100 m and >60 s).
-    nonisolated private static func accumulatePace(_ baseline: inout RouteBaseline, from prior: HRVSession) {
-        guard let dist = prior.workoutMetadata?.distanceMeters, dist > 100,
-              let dur = prior.duration, dur > 60
-        else { return }
-        baseline.totalDistance += dist
-        baseline.totalDuration += dur
-    }
-
-    nonisolated private static func accumulateHR(_ baseline: inout RouteBaseline, from prior: HRVSession) {
-        for hr in (prior.workoutMetadata?.samples ?? []).compactMap(\.heartRate) where hr > 0 {
-            baseline.hrSum += Double(hr)
-            baseline.hrCount += 1
-        }
-    }
-
-    struct RouteBaseline {
-        var totalDistance: Double = 0
-        var totalDuration: Double = 0
-        var hrSum: Double = 0
-        var hrCount: Int = 0
     }
 
     /// Today's pace from this session's metadata, against the weighted baseline.
@@ -1033,4 +975,38 @@ private func rebuildAnalysisSnapshot(_ stored: inout HRVSession, settings: UserS
         samples: samples, splits: meta.splits ?? [], trimp: meta.luciaTRIMP,
         decouplingPercent: meta.decouplingPercent
     ))
+}
+
+/// Distance-weighted pace baseline plus a sample-weighted mean HR over the
+/// prior runs of a route (`FitnessSummaryCards.routeHistorySummary`).
+struct RouteBaseline {
+    var totalDistance: Double = 0
+    var totalDuration: Double = 0
+    var hrSum: Double = 0
+    var hrCount: Int = 0
+
+    init(priorRuns candidates: [HRVSession]) {
+        for prior in candidates {
+            accumulatePace(from: prior)
+            accumulateHR(from: prior)
+        }
+    }
+
+    /// Only efforts long enough to be a real repeat of the route contribute
+    /// (>100 m and >60 s).
+    private mutating func accumulatePace(from prior: HRVSession) {
+        guard let dist = prior.workoutMetadata?.distanceMeters, dist > 100,
+              let dur = prior.duration, dur > 60
+        else { return }
+        totalDistance += dist
+        totalDuration += dur
+    }
+
+    /// Zero readings (strap dropouts) are left out.
+    private mutating func accumulateHR(from prior: HRVSession) {
+        for hr in (prior.workoutMetadata?.samples ?? []).compactMap(\.heartRate) where hr > 0 {
+            hrSum += Double(hr)
+            hrCount += 1
+        }
+    }
 }

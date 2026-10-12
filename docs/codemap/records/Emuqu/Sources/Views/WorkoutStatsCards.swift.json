@@ -73,21 +73,7 @@
      "effect": "true: returns last offset as TimeInterval; false: returns wallClock (nil when the session has no endDate)."
     }
    ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "med",
-     "text": "Only caller is WorkoutStatsCards.activeDuration, whose only callers are avgPaceDisplay (tests only) and estimatedCaloriesDisplay (no callers). The production summary hero instead shows duration and pace from session.duration (endDate − startDate, wall clock incl. pauses) in heroDurationLabel/heroPaceLabel, so the paused-time correction this type exists for never reaches the user; a paused workout shows an inflated duration and a slower average pace.",
-     "evidence": [
-      "Emuqu/Sources/Views/WorkoutStatsCards.swift:32",
-      "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift:19",
-      "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift:293",
-      "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift:301",
-      "Emuqu/Sources/Models/SessionMetadata.swift:642"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {}
   },
   {

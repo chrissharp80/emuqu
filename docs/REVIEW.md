@@ -118,8 +118,12 @@ the build ships with. Do not make a reviewer guess.
 > an overnight recording with the screen locked. *location* records a
 > workout's route, and a Get Me Back trail, with the screen off until the user
 > stops it. *audio* keeps Flo's voice conversation running with the screen
-> locked, and holds a session during an indoor workout that will speak: one
-> with a heart-rate threshold cue, mile markers or an interval plan. *bluetooth-
+> locked, and lets a workout speak its cues (heart-rate threshold alerts, mile
+> markers, interval steps) from the background: the app holds no audio
+> keep-alive; a mixable session is activated only while a cue is audible and
+> released when it ends. A workout with a strap, foot pod or erg stays
+> running on *bluetooth-central* wakeups, as an overnight recording does.
+> *bluetooth-
 > peripheral* is the optional broadcaster that sends live heart rate and power
 > to indoor-trainer apps such as Zwift; it is off until turned on at **More →
 > Settings → Wearables**, behind its own disclosure.

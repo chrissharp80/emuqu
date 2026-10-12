@@ -21,18 +21,6 @@
  "toplevel": "Stored lets trainingMetrics/trainingContext and var followsLiveLoad (default false) set by the caller; #Preview builds the view with both nil. MetricColumn/ZoneRow/ACRGaugeBar are memberwise-initialised private structs.",
  "flags": [
   {
-   "kind": "broken",
-   "sev": "high",
-   "text": "The only production caller passes trainingMetrics: nil (MorningResultsView:371-374), so everything that depends on the live cache never runs in the app: metrics always comes from the frozen TrainingContext, the live recent-workouts card and the Foster monotony banner never render, and the auto-refresh/pull-to-refresh update TrainingMetricsCache, which this view never reads. A session whose frozen context is atl=0/ctl=0 keeps showing ATL 0 / CTL 0 / '--' ACR even though the comments (lines 36-46, 113-133) say this is self-healing. TrainingDetailView now reads the shared cache (liveMetrics) when followsLiveLoad is true, but MorningResultsView does not pass it yet (handoff), so production still takes the frozen path.",
-   "evidence": [
-    "Emuqu/Sources/Views/MorningResultsView.swift:371",
-    "Emuqu/Sources/Views/TrainingDetailView.swift:35",
-    "Emuqu/Sources/Views/TrainingDetailView.swift:115",
-    "Emuqu/Sources/Views/TrainingDetailView.swift:150"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
    "kind": "test-defect",
    "sev": "low",
    "text": "The only test (ComponentSnapshotTests) renders TrainingDetailView with live metrics and no context, the path production never takes; the frozen-context path the app uses is not snapshotted.",
@@ -154,19 +142,7 @@
      "effect": "return frozen zeros; else nil"
     }
    ],
-   "flags": [
-    {
-     "kind": "unreachable-branch",
-     "sev": "med",
-     "text": "Lines 44 and 47 need a non-nil trainingMetrics, which no production caller passes; the 'prefer the live cache' fix described in the comment is inert. TrainingDetailView now reads the shared cache (liveMetrics) when followsLiveLoad is true, but MorningResultsView does not pass it yet (handoff), so production still takes the frozen path.",
-     "evidence": [
-      "Emuqu/Sources/Views/TrainingDetailView.swift:44",
-      "Emuqu/Sources/Views/TrainingDetailView.swift:47",
-      "Emuqu/Sources/Views/MorningResultsView.swift:372"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.frozenLooksReal(_:)": "44db115201fa77e8",
     "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.liveLooksReal(_:)": "225d773a31e2dc82",
@@ -351,19 +327,7 @@
      "effect": "await runRefresh(); else no-op"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "The refresh updates TrainingMetricsCache but the view renders only its injected trainingMetrics/trainingContext lets, and production injects trainingMetrics: nil; the refresh never changes what is on screen, contrary to the 'self-healing' doc comment. TrainingDetailView now reads the shared cache (liveMetrics) when followsLiveLoad is true, but MorningResultsView does not pass it yet (handoff), so production still takes the frozen path.",
-     "evidence": [
-      "Emuqu/Sources/Views/TrainingDetailView.swift:113",
-      "Emuqu/Sources/Views/TrainingDetailView.swift:139",
-      "Emuqu/Sources/Views/MorningResultsView.swift:372"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingDetailView.runRefresh()": "dc8822c9bb140bbf",
     "Emuqu/Sources/Views/TrainingDetailView.swift::var TrainingDetailView.metrics": "7d6116727c0d1911",
@@ -419,28 +383,6 @@
     }
    ],
    "flags": [
-    {
-     "kind": "unreachable-branch",
-     "sev": "med",
-     "text": "Banner depends solely on trainingMetrics, which is nil in the only production caller, so the Foster warning documented for this page never appears. TrainingDetailView now reads the shared cache (liveMetrics) when followsLiveLoad is true, but MorningResultsView does not pass it yet (handoff), so production still takes the frozen path.",
-     "evidence": [
-      "Emuqu/Sources/Views/TrainingDetailView.swift:152",
-      "Emuqu/Sources/Views/MorningResultsView.swift:372"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "TRAINING_LOAD.md says the Training Load screen shows the same Foster monotony warning as Load & Trajectory, but the banner reads only trainingMetrics, which the sole production caller passes as nil, so it never appears in the app. TrainingDetailView now reads the shared cache (liveMetrics) when followsLiveLoad is true, but MorningResultsView does not pass it yet (handoff), so production still takes the frozen path.",
-     "evidence": [
-      "Emuqu/Sources/Views/TrainingDetailView.swift:152",
-      "Emuqu/Sources/Views/MorningResultsView.swift:372",
-      "docs/TRAINING_LOAD.md:234",
-      "docs/TRAINING_LOAD.md:285"
-     ],
-     "found": "second read"
-    },
     {
      "kind": "spec-mismatch",
      "sev": "low",

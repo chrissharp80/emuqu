@@ -7,19 +7,7 @@
  ],
  "state": [],
  "toplevel": "",
- "flags": [
-  {
-   "kind": "test-defect",
-   "sev": "med",
-   "text": "SnapshotFixtures.overnightSession sets recoveryScore = 72, but HRVSession.recoveryScore is on the 0–10 scale (RecoveryScoreDetailView multiplies it by 10), so the recovery-detail reference renders a score of 720 clamped to 100 rather than the 72 the fixture intends; the committed snapshot pins an impossible input.",
-   "evidence": [
-    "EmuquTests/SnapshotFixtures.swift:77",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:151",
-    "Emuqu/Sources/Models/ScoreVerdict.swift:172"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "func DetailScreenSnapshotTests.hosted(_:)",
@@ -60,7 +48,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.overnightSession(dayOffset:)": "3121b86335aa9ee5"
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.overnightSession(dayOffset:)": "3dba07231f9145b1"
    }
   },
   {
@@ -94,11 +82,11 @@
     "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)": "77db749d2e74b6b0",
     "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:backgroundAudioManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)": "ab46982b96b81c2c",
     "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::init RecoveryScoreDetailView(session:result:recentSessions:baselineStats:totalSessionCount:onReanalyze:onReanalyzeAt:)": "c6edb2ba34b25dab",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.body": "759b5fb9c65a102a",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.body": "87d0076b5c3cbf84",
     "EmuquTests/DetailScreenSnapshotTests.swift::func DetailScreenSnapshotTests.hosted(_:)": "ac04dd2f89ec5570",
     "EmuquTests/DetailScreenSnapshotTests.swift::var DetailScreenSnapshotTests.recent": "680bc775d50f8b3a",
     "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.analysisResult()": "c6360e6fb9ef3864",
-    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.overnightSession(dayOffset:)": "3121b86335aa9ee5",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.overnightSession(dayOffset:)": "3dba07231f9145b1",
     "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
    }
   },
@@ -136,7 +124,7 @@
     "EmuquTests/DetailScreenSnapshotTests.swift::func DetailScreenSnapshotTests.hosted(_:)": "ac04dd2f89ec5570",
     "EmuquTests/DetailScreenSnapshotTests.swift::var DetailScreenSnapshotTests.recent": "680bc775d50f8b3a",
     "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.analysisResult()": "c6360e6fb9ef3864",
-    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.overnightSession(dayOffset:)": "3121b86335aa9ee5",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.overnightSession(dayOffset:)": "3dba07231f9145b1",
     "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
    }
   },
@@ -146,6 +134,7 @@
    "does": "Renders SleepDetailV2View with fixture sleep data and vitals, Celsius, 7.5 h typical sleep, age 38; compares to 'detail-sleep'.",
    "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
    "calls": [
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::init SleepDetailV2View(session:sleepData:recoveryVitals:recentSessions:temperatureUnit:typicalSleepHours:userAge:onAdjust:)",
     "EmuquTests/DetailScreenSnapshotTests.swift::func DetailScreenSnapshotTests.hosted(_:)",
     "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()",
     "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)",
@@ -171,10 +160,11 @@
     "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()": "cee8619a3d38e814",
     "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)": "77db749d2e74b6b0",
     "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:backgroundAudioManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)": "ab46982b96b81c2c",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::init SleepDetailV2View(session:sleepData:recoveryVitals:recentSessions:temperatureUnit:typicalSleepHours:userAge:onAdjust:)": "27e634743a0cb13b",
     "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.body": "7fc5e6563f4a6715",
     "EmuquTests/DetailScreenSnapshotTests.swift::func DetailScreenSnapshotTests.hosted(_:)": "ac04dd2f89ec5570",
     "EmuquTests/DetailScreenSnapshotTests.swift::var DetailScreenSnapshotTests.recent": "680bc775d50f8b3a",
-    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.overnightSession(dayOffset:)": "3121b86335aa9ee5",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.overnightSession(dayOffset:)": "3dba07231f9145b1",
     "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.recoveryVitals()": "6b42d93fc6f07dd7",
     "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.sleepData()": "f3d2e3e8542e2fab",
     "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
@@ -186,6 +176,7 @@
    "does": "Renders SleepDetailV2View with nil sleep data and nil vitals; compares to 'detail-sleep-no-healthkit'.",
    "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
    "calls": [
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::init SleepDetailV2View(session:sleepData:recoveryVitals:recentSessions:temperatureUnit:typicalSleepHours:userAge:onAdjust:)",
     "EmuquTests/DetailScreenSnapshotTests.swift::func DetailScreenSnapshotTests.hosted(_:)",
     "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()",
     "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)",
@@ -209,10 +200,11 @@
     "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()": "cee8619a3d38e814",
     "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)": "77db749d2e74b6b0",
     "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:backgroundAudioManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)": "ab46982b96b81c2c",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::init SleepDetailV2View(session:sleepData:recoveryVitals:recentSessions:temperatureUnit:typicalSleepHours:userAge:onAdjust:)": "27e634743a0cb13b",
     "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.body": "7fc5e6563f4a6715",
     "EmuquTests/DetailScreenSnapshotTests.swift::func DetailScreenSnapshotTests.hosted(_:)": "ac04dd2f89ec5570",
     "EmuquTests/DetailScreenSnapshotTests.swift::var DetailScreenSnapshotTests.recent": "680bc775d50f8b3a",
-    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.overnightSession(dayOffset:)": "3121b86335aa9ee5",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.overnightSession(dayOffset:)": "3dba07231f9145b1",
     "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
    }
   }

@@ -398,11 +398,11 @@
   },
   {
    "key": "func MainTabView.prepareAndSendReport(_:)",
-   "hash": "2fe9922933ac13a7",
-   "does": "Starts report preparation once: sets preparingReportKind, clears the error, snapshots inputs, then on a detached userInitiated task loads full sessions and the reported night's baseline nights (withFullSessions(kind:)), refreshes live training load, renders the PDF and finishes on the main actor.",
+   "hash": "01639a98921e40ff",
+   "does": "Starts report preparation once: sets preparingReportKind, clears the error, snapshots inputs for the kind (sendReportInputs(for:), with the reported night's baseline), then on a detached userInitiated task loads full sessions and the reported night's baseline nights (withFullSessions(kind:)), refreshes live training load, renders the PDF and finishes on the main actor.",
    "entry": "sendReportButton tap.",
    "calls": [
-    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.sendReportInputs()",
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.sendReportInputs(for:)",
     "Emuqu/Sources/Views/MainTabView+Reports.swift::func MainTabView.withFullSessions(_:kind:)",
     "Emuqu/Sources/Views/MainTabView+Reports.swift::func MainTabView.renderReport(kind:inputs:liveLoadSnapshot:)",
     "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift::func TrainingLoadRegistry.liveRefreshed()",
@@ -420,16 +420,16 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift::func TrainingLoadRegistry.liveRefreshed()": "f6fdc835bab57f33",
-    "Emuqu/Sources/Views/MainTabView+Reports.swift::func MainTabView.renderReport(kind:inputs:liveLoadSnapshot:)": "eeb40d25d9993585",
-    "Emuqu/Sources/Views/MainTabView+Reports.swift::func MainTabView.withFullSessions(_:kind:)": "8bb63964aa8013b0",
+    "Emuqu/Sources/Views/MainTabView+Reports.swift::func MainTabView.renderReport(kind:inputs:liveLoadSnapshot:)": "de41f5576d55031d",
+    "Emuqu/Sources/Views/MainTabView+Reports.swift::func MainTabView.withFullSessions(_:kind:)": "3287bab5f513bbe6",
     "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.finishReportPreparation(_:)": "f1ffb3f46500d0f1",
-    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.sendReportInputs()": "b6dcd780f4b086c8"
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.sendReportInputs(for:)": "8d4c260cd093cbd1"
    }
   },
   {
-   "key": "func MainTabView.sendReportInputs()",
-   "hash": "37a7ad262eae8f11",
-   "does": "Captures recovery/workout/pair sessions, reliable overnights of the dashboard slice (replaced for recovery and daily reports by withFullSessions with the archive's nights before the reported one), recovery baseline stats, effective max/resting HR and LTHR, units and temperature unit from settings.",
+   "key": "func MainTabView.sendReportInputs(for:)",
+   "hash": "49dd58a86a0a42db",
+   "does": "Captures recovery/workout/pair sessions, reliable overnights of the dashboard slice (replaced for recovery and daily reports by withFullSessions with the archive's nights before the reported one), the baseline as it stood for the reported night (reportBaselineStats: the daily pair's overnight for .daily, otherwise the recovery night), effective max/resting HR and LTHR, units and temperature unit from settings.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager",
@@ -437,25 +437,29 @@
     "Emuqu/Sources/Views/MainTabView+Tabs.swift::var MainTabView.mostRecentWorkout",
     "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.mostRecentDailyPair()",
     "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.recoveryBaselineStats",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveRestingHR",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveLTHR",
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved",
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current"
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current",
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.reportBaselineStats(night:settings:)"
    ],
    "reads": [
     "mem:SettingsManager.settings",
-    "mem:BaselineTracker.recoveryBaselineStats",
     "ud:fitness.unitsPreference (App Group suite, legacy fallback to standard suite)"
    ],
    "writes": [
     "ud:fitness.unitsPreference (App Group suite; one-time copy from standard when only the legacy value exists, UnitsPreference.swift:136-138)"
    ],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "kind == .daily",
+     "effect": "baseline for the pair's overnight; else for the recovery night"
+    }
+   ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.recoveryBaselineStats": "9916669422d3e401",
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
     "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "15319afa7ff717d9",
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
@@ -466,9 +470,37 @@
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "320e181d89b608eb",
     "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.mostRecentDailyPair()": "2358ab79f93dc47e",
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.reportBaselineStats(night:settings:)": "98cca752611d1642",
     "Emuqu/Sources/Views/MainTabView+Tabs.swift::var MainTabView.mostRecentOvernight": "0c11fceac50c25be",
     "Emuqu/Sources/Views/MainTabView+Tabs.swift::var MainTabView.mostRecentWorkout": "5f2f6d7fd8736046",
     "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift::var ScoreBreakdownCard.temperatureUnit": "063a6053cf5ccc9d"
+   }
+  },
+  {
+   "key": "func MainTabView.reportBaselineStats(night:settings:)",
+   "hash": "139ff009724b4ca4",
+   "does": "The baseline as it stood for the reported night: BaselineTracker.recoveryBaselineStats(excludingNightOf:sleepSchedule:) (the nights before it, not the reported or later ones); with no night, the tracker's current recoveryBaselineStats.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.recoveryBaselineStats",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.recoveryBaselineStats(excludingNightOf:sleepSchedule:)"
+   ],
+   "reads": [
+    "mem:BaselineTracker.historicalData",
+    "mem:SettingsManager.settings.sleepSchedule"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "night nil",
+     "effect": "current baseline"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.recoveryBaselineStats(excludingNightOf:sleepSchedule:)": "7bf3e795972555e6",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.recoveryBaselineStats": "9916669422d3e401"
    }
   },
   {

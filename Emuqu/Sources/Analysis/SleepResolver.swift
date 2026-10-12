@@ -65,19 +65,20 @@ enum SleepResolver {
 
     // MARK: - Output
 
-    /// Result of resolution. `writeToHealthKit` is the sole authorization
-    /// to export sleep to HK — set only in row 2 (session, no Watch).
+    /// Result of resolution. Whether the night is exported to HealthKit is
+    /// decided from `sleepData.boundarySource` (`.hrEstimated` /
+    /// `.healthKitHREstimated` mean this app is the only source — see
+    /// `exportSleepIfSoleSource`); row 2 (session, no Watch) is the row that
+    /// tags `.hrEstimated`.
     struct Resolution: Equatable {
         let sleepData: SleepData
-        let writeToHealthKit: Bool
 
-        /// Equal when both resolve the same night: the export flag, every
-        /// total and boundary, and each stage interval and segment by content.
+        /// Equal when both resolve the same night: every total and boundary,
+        /// and each stage interval and segment by content.
         /// Interval ids are left out — every construction draws a fresh UUID,
         /// so two resolutions of one night never share them.
         static func == (lhs: Resolution, rhs: Resolution) -> Bool {
-            lhs.writeToHealthKit == rhs.writeToHealthKit
-                && Summary(lhs.sleepData) == Summary(rhs.sleepData)
+            Summary(lhs.sleepData) == Summary(rhs.sleepData)
                 && lhs.sleepData.stageIntervals.map(StageContent.init) == rhs.sleepData.stageIntervals.map(StageContent.init)
                 && lhs.sleepData.segments.map(SegmentContent.init) == rhs.sleepData.segments.map(SegmentContent.init)
         }
@@ -164,7 +165,7 @@ enum SleepResolver {
             stages: clipped, envelope: effectiveEnvelope, ctx: ctx,
             source: ctx.autoSleepExtension != nil ? .hrValidated : .healthKit
         )
-        return Resolution(sleepData: sleepData, writeToHealthKit: false)
+        return Resolution(sleepData: sleepData)
     }
 
     /// The recording envelope must NEVER be able to erase real
@@ -215,8 +216,7 @@ enum SleepResolver {
         let sleepData = assemble(
             stages: stages, envelope: envelope, ctx: ctx, source: .hrEstimated
         )
-        let hasContent = sleepData.nightSleepMinutes > 0
-        return Resolution(sleepData: sleepData, writeToHealthKit: hasContent)
+        return Resolution(sleepData: sleepData)
     }
 
     // MARK: - Row 3: Watch only
@@ -237,7 +237,7 @@ enum SleepResolver {
         let sleepData = assemble(
             stages: clipped, envelope: envelope, ctx: ctx, source: .healthKit
         )
-        return Resolution(sleepData: sleepData, writeToHealthKit: false)
+        return Resolution(sleepData: sleepData)
     }
 
     // MARK: - Row 4: nothing
@@ -252,7 +252,7 @@ enum SleepResolver {
             boundarySource: .recordingBounds,
             splitGapMinutes: ctx.splitGapMinutes
         )
-        return Resolution(sleepData: empty, writeToHealthKit: false)
+        return Resolution(sleepData: empty)
     }
 
     // MARK: - Envelope

@@ -34,15 +34,21 @@ Routing acts only while **Apple Intelligence is the selected model**.
 With any other model selected, every turn goes to that model and the
 routing picker is disabled (`TurnRouter.preTierDecision`).
 
+With Apple selected the chat has **no text composer**: the input is the
+suggestion chips (`PrefabQuestionChips`) and voice. So the "typed turn"
+routing below applies to a question sent from a chip; free-typed text
+exists only with a cloud model selected, where no routing runs.
+
 | Mode | What it does (Apple selected) |
 | --- | --- |
-| **Quick** | Every typed turn stays on Apple Intelligence (on-device, free, fastest). Apple's safety filter may still refuse some health-adjacent prompts. |
+| **Quick** | Every chip turn stays on Apple Intelligence (on-device, free, fastest). Apple's safety filter may still refuse some health-adjacent prompts. |
 | **Auto** | Session-sticky **capability classifier**. Apple when zero capability flags fire; otherwise the mid-tier cloud: xAI Grok, then DeepSeek, whichever the user has added a key for and accepted the consent sheet of. Apple when neither is consented. |
-| **Deep** | Every typed turn takes the same consented mid-tier cloud as Auto; Apple only when none is consented. |
+| **Deep** | Every chip turn takes the same consented mid-tier cloud as Auto; Apple only when none is consented. |
 | **Manual** | Every turn → whatever you picked in the model picker (escape hatch). No routing logic runs. |
 
 In Quick, Auto and Deep, voice turns and action requests Apple can't
-serve (email, directions, web search…) go to the first cloud provider
+serve (email, directions, web search…; with no composer these arrive by
+voice, which the voice bypass already routes) go to the first cloud provider
 in registry order whose consent sheet the user accepted, if any;
 otherwise they stay on Apple.
 
@@ -135,10 +141,16 @@ prefers Quick over Deep when uncertain).
 
 ### Adversarial-spend cap
 
-A daily Tier-3 ceiling of 50 turns (`dailyTier3Cap`) prevents runaway
-spend. `recordTier3UsageAndCheck()` counts hits per local-date key in
-memory; once exceeded, the view-model downgrades further Deep
-proposals to Auto for the rest of the day.
+A daily Tier-3 ceiling of 50 turns (`dailyTier3Cap`).
+`recordTier3UsageAndCheck()` counts Deep turns that resolve to a cloud
+model, per local date, in `UserDefaults`; once exceeded, the view-model
+downgrades further Deep proposals to Auto for the rest of the day.
+
+This changes the tier label, not the cost. Routing runs only with Apple
+selected, and then `TierProviderMapper` maps `.deep` to the same
+consented mid-tier cloud (Grok, then DeepSeek) and model as `.auto`, so a
+downgraded turn goes to the same paid provider. The cap does not limit
+spend.
 
 ### Deterministic intent shortcut
 
@@ -876,8 +888,9 @@ are designed to respect user-reported observations.
   `.rateLimited` to break retry loops
 - Output-size cap: 80 KB per-response, returns `.tooMuchData` on
   overshoot
-- Resolver timeouts: wall-clock 2 s budget, `.internalError` on
-  overshoot, warning log on >0.5 s
+- Resolver timing: wall-clock, warning log on >0.5 s and a louder one on
+  >2 s; the value is kept either way (resolvers bound their own waits
+  with `FactResolveTimeout.withTimeout`)
 - Catalog version hash (SHA-256 of sorted-keys serialised schema)
 - Cache-hit telemetry across all cache-capable cloud providers (Anthropic
   cache_read/creation, OpenAI prompt_tokens_details.cached_tokens,
@@ -933,7 +946,8 @@ could only guess or deny):
   and `vitals.latest` are now async: when the frozen `sleepSnapshot` /
   `vitalsSnapshot` is nil (the night hasn't been accepted, or the Watch synced
   sleep/vitals AFTER acceptance), the resolver reads the value LIVE from
-  HealthKit (5 s timeout, cache-warm by morning via the sleep observer) and
+  HealthKit (5 s timeout, cache-warm by morning via the sleep observer; the
+  registry keeps an answer that took longer than its 2 s warning budget) and
   tags it `data_source=live_healthkit_pending_acceptance`. This closes the
   "the AI doesn't know anything about my sleep last night" gap — the app's own
   HealthKit truth answers even before the morning results are opened, instead

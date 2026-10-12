@@ -87,14 +87,15 @@
   },
   {
    "key": "func AssistantMemoryNamespace.resolveAssistantContactsAdd(_:)",
-   "hash": "d4a25335965a4fd6",
-   "does": "Validates name/email, requires the user_quote to appear in the latest user chat message, then appends a new EmailContact to the persistent address book and returns {status:'added',id,name,email}.",
+   "hash": "6a6789123f4cd4c5",
+   "does": "Validates name/email, requires the user_quote to appear in the latest user chat message, then adds a new EmailContact to the persistent address book and returns {status:'added',id,name,email}; when the address book can't be read (add refused) returns contactsUnreadable() instead.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.contactInputProblem(name:email:)",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.latestUserMessageContains(_:)",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.userRequestRequired(_:)",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.addContact(name:email:notes:)"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.addContact(name:email:notes:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.contactsUnreadable()"
    ],
    "reads": [
     "mem:AssistantViewModel.turns"
@@ -123,26 +124,18 @@
      "at": "+4",
      "cond": "user_quote is found in the latest user message",
      "effect": "continues to add; else returns userRequestRequired('add a contact') (.missing invalidParameter)"
-    }
-   ],
-   "flags": [
+    },
     {
-     "kind": "silent-failure",
-     "sev": "med",
-     "text": "When the contacts file exists but could not be read (EmailContactStore.loadFailed, e.g. before first unlock) and the retry load also fails, add() appends the contact in memory but save() refuses to write; the action still returns status 'added', so the AI confirms a save that is lost on relaunch.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift:65",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift:66",
-      "Emuqu/Sources/Models/EmailContact.swift:99",
-      "Emuqu/Sources/Models/EmailContact.swift:192",
-      "Emuqu/Sources/Models/EmailContact.swift:196"
-     ],
-     "found": "second read"
+     "at": "+7",
+     "cond": "addContact returned nil (address book unreadable)",
+     "effect": "returns contactsUnreadable(); nothing added"
     }
    ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.addContact(name:email:notes:)": "8ac995ddca746ad0",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.addContact(name:email:notes:)": "0671020fca4c8fd3",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.contactInputProblem(name:email:)": "8e9c84f2207712e8",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.contactsUnreadable()": "2f6ca542e654d1ee",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.latestUserMessageContains(_:)": "e14cfc2abc4d9911",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.userRequestRequired(_:)": "d5c9480c0d5819d4"
    }
@@ -176,9 +169,21 @@
    "deps": {}
   },
   {
+   "key": "func AssistantMemoryNamespace.contactsUnreadable()",
+   "hash": "b1ff71af258f2a01",
+   "does": "The .missing(notRecorded) answer for an address book that can't be read (phone not unlocked since a restart?): nothing was changed; ask the user to unlock and try again.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
    "key": "func AssistantMemoryNamespace.addContact(name:email:notes:)",
-   "hash": "eb143b7efd868e23",
-   "does": "Trims notes, builds an EmailContact (notes nil when empty/absent) and adds it to EmailContactStore on the main actor (which appends and enqueues a write of email_contacts.json); returns the contact.",
+   "hash": "a821cd53fd826b78",
+   "does": "Trims notes, builds an EmailContact (notes nil when empty/absent) and adds it to EmailContactStore on the main actor (which appends and enqueues a write of email_contacts.json); returns the contact, or nil when the store refused the add because the file can't be read.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
@@ -196,11 +201,16 @@
      "at": "+5",
      "cond": "trimmed notes is nil or empty (?? true when rawNotes is nil)",
      "effect": "notes stored as nil; otherwise trimmed notes stored"
+    },
+    {
+     "at": "+8",
+     "cond": "store.add returned false",
+     "effect": "returns nil"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.add(_:)": "0bf53983048f5b4b",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.add(_:)": "033d18f749ecbcae",
     "Emuqu/Sources/Models/EmailContact.swift::init EmailContact(id:name:email:notes:createdAt:)": "a572270bec931562",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
@@ -228,8 +238,8 @@
   },
   {
    "key": "func AssistantMemoryNamespace.resolveAssistantContactsRemove(_:)",
-   "hash": "072f2350f3bcf63b",
-   "does": "Requires a non-empty name and a user_quote present in the latest user message, looks up contacts by case-insensitive name; when exactly one matches, removes it from EmailContactStore (persisted) and returns {status:'removed',name,email}.",
+   "hash": "2b9e581b582999a6",
+   "does": "Requires a non-empty name and a user_quote present in the latest user message, looks up contacts by case-insensitive name; when exactly one matches, removes it from EmailContactStore (persisted) and returns {status:'removed',name,email}, or contactsUnreadable() when the store refused because the file can't be read.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.latestUserMessageContains(_:)",
@@ -239,7 +249,8 @@
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.find(name:)",
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.remove(id:)",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.ambiguousContact(name:matches:)",
-    "ext:MainActor.assumeIsolated"
+    "ext:MainActor.assumeIsolated",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.contactsUnreadable()"
    ],
    "reads": [
     "file:Application Support/email_contacts.json (EmailContactStore)",
@@ -264,28 +275,21 @@
      "at": "+10",
      "cond": "exactly one contact matches",
      "effect": "removes it and returns the record; else returns ambiguousContact (0 → notRecorded, >1 → invalidParameter)"
-    }
-   ],
-   "flags": [
+    },
     {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "With EmailContactStore.loadFailed set, remove() drops the contact in memory only (save() is skipped), yet the action returns status 'removed'; the contact comes back on the next launch.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift:133",
-      "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift:135",
-      "Emuqu/Sources/Models/EmailContact.swift:116",
-      "Emuqu/Sources/Models/EmailContact.swift:196"
-     ],
-     "found": "second read"
+     "at": "+14",
+     "cond": "store.remove returned false (address book unreadable)",
+     "effect": "returns contactsUnreadable(); nothing removed"
     }
    ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.ambiguousContact(name:matches:)": "5856b38840ca9407",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.contactsUnreadable()": "2f6ca542e654d1ee",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.latestUserMessageContains(_:)": "e14cfc2abc4d9911",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.userRequestRequired(_:)": "d5c9480c0d5819d4",
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.find(name:)": "38cd212e69874bc9",
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.remove(id:)": "cdfb61bcf59545db",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.remove(id:)": "d1edfcafcc796ec8",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.emailContactStore": "a4d36bd886431daf"

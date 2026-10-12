@@ -492,21 +492,33 @@
   },
   {
    "key": "func SessionRecoveryService.restoreFromTrashFailed(_:)",
-   "hash": "0c6528af3d6212ee",
-   "does": "Abandons the pending trash restore in the coordinator when the backup could not be read back.",
+   "hash": "da5e4e8c1c2110f9",
+   "does": "When the backup behind a Trash entry could not be read back: abandons the pending trash restore in the coordinator (iCloud stays deleted) and puts the local deletion mark back (archive.markAsDeleted, which records a new deletion time), so the entry stays in the Trash; a failed re-mark is logged as an error.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Storage/TrashRestoreCoordinator.swift::func TrashRestoreCoordinator.abandon(_:)"
+    "Emuqu/Sources/Storage/TrashRestoreCoordinator.swift::func TrashRestoreCoordinator.abandon(_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.markAsDeleted(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [],
    "writes": [
-    "mem:TrashRestoreCoordinator restored set"
+    "mem:TrashRestoreCoordinator restored set",
+    "archive:deletedSessionIds + deleted.json",
+    "ud:archive.deletionTimes"
    ],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "markAsDeleted throws",
+     "effect": "logs an error; the id stays unmarked locally"
+    }
+   ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.markAsDeleted(_:)": "7ec0bd27a434f46b",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.trashRestore": "c06a7370dc0f2a56",
-    "Emuqu/Sources/Storage/TrashRestoreCoordinator.swift::func TrashRestoreCoordinator.abandon(_:)": "1c57a109826eca89"
+    "Emuqu/Sources/Storage/TrashRestoreCoordinator.swift::func TrashRestoreCoordinator.abandon(_:)": "1c57a109826eca89",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
   {

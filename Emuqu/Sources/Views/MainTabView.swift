@@ -248,11 +248,15 @@ struct MainTabView: View {
         if let result = session.analysisResult {
             reportNavigation(session, result: result)
         } else {
-            NavigationStack {
-                Text(String(localized: "No analysis data available", bundle: LanguageManager.appBundle))
-                    .foregroundColor(AppTheme.textSecondary)
-                    .toolbar { reportDoneToolbar }
-            }
+            missingAnalysisNavigation
+        }
+    }
+
+    private var missingAnalysisNavigation: some View {
+        NavigationStack {
+            Text(String(localized: "No analysis data available", bundle: LanguageManager.appBundle))
+                .foregroundColor(AppTheme.textSecondary)
+                .toolbar { reportDoneToolbar }
         }
     }
 

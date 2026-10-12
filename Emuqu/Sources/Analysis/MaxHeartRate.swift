@@ -67,6 +67,10 @@ enum MaxHeartRate {
     static let ceiling = 220
     /// The Biometrics field's lower bound; anything under it reads as unset.
     static let minimumUserEntered = 80
+
+    /// Above this an entered value is not a max heart rate; the settings decoder
+    /// clamps a stored value to the same bound.
+    static let maximumUserEntered = 240
     /// Used when there is no birthday to derive an age from.
     static let defaultWithoutBirthday = 180
 
@@ -91,7 +95,7 @@ enum MaxHeartRate {
     ) -> Int {
         // Below the field's 80 bpm minimum is a value still being typed (or a
         // slip), not a max heart rate: "18" made every zone and load wrong.
-        if let userEntered, userEntered >= minimumUserEntered { return userEntered }
+        if let userEntered, userEntered >= minimumUserEntered { return min(userEntered, maximumUserEntered) }
         guard let birthday else { return defaultWithoutBirthday }
         let years = age(from: birthday, to: reference, calendar: calendar) ?? 40
         return tanaka(age: years)

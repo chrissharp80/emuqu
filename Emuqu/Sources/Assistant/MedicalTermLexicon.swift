@@ -148,7 +148,7 @@ enum MedicalTermLexicon {
         latin: [
             "atrial\\s+flutter", "heart\\s+block", "bradycardias?", "tachycardias?",
             "myocardial\\s+infarction", "heart\\s+attack", "cardiac\\s+(?:arrest|event)",
-            "ischemi[ac]", "isch[ae]emia", "angina", "hypertension", "hypotension",
+            "isch(?:a?e)mi[ac]", "angina", "hypertension", "hypotension",
             "flutter\\s+auriculaire", "bloc\\s+auriculo[- ]ventriculaire", "bradycardie", "tachycardie",
             "infarctus", "crise\\s+cardiaque", "hypertension\\s+art[ée]rielle",   // fr
             "aleteo\\s+auricular", "bloqueo\\s+card[íi]aco", "bradicardia", "taquicardia",
@@ -290,6 +290,7 @@ enum MedicalTermLexicon {
             // Diagnostics") in seventeen locales, and without these the guard
             // deflects the assistant explaining how to send a support log.
             "diagnos(?:e|is|es|ed|ing)(?!\\w)(?!\\s+(?:log|logs|data|tool|tools|bundle))",
+            "undiagnosed",
             "diagnostiqu(?:er|é|ée)",
             "diagnostic(?!s?\\s+(?:log|logs|data|tool|tools|bundle))",   // fr
             "diagn[óo]stic[oa]s?(?!\\s+(?:del\\s+archivo|do\\s+arquivo|de\\s+sistema))",
@@ -314,7 +315,7 @@ enum MedicalTermLexicon {
     static let cure = Concept(
         id: "cure",
         latin: [
-            "cures?", "cured",
+            "cur(?:e|es|ed|ing)", "curative",
             "gu[ée]rir", "gu[ée]rison",               // fr
             // Not a bare `"cura"`: Italian "prenditi cura" is "take care",
             // and a bare match deflected ordinary coaching. The cure sense is
@@ -369,7 +370,7 @@ enum MedicalTermLexicon {
     static let prescription = Concept(
         id: "prescription",
         latin: [
-            "prescriptions?", "prescribe[ds]?",
+            "prescriptions?", "prescrib(?:e|es|ed|ing)",
             "ordonnance", "prescrire",                // fr
             "receta\\s+m[ée]dica", "prescripci[óo]n", // es
             "prescri[çc][ãa]o", "receita\\s+m[ée]dica", // pt-BR
@@ -471,7 +472,7 @@ enum MedicalTermLexicon {
     static let pathology = Concept(
         id: "pathology",
         latin: [
-            "pathology", "pathologies",
+            "patholog(?:y|ies|ical|ically)",
             "pathologie",                              // fr, de, nl
             "patolog[ií]a", "patologia",               // es, pt-BR, it, fi (loan)
             "patologi",                                // da, nb, sv
@@ -935,7 +936,7 @@ extension MedicalTermLexicon {
         id: "physiological-certainty",
         latin: [
             "something\\s+significant\\s+is\\s+going\\s+on",
-            "you(?:\\s+are|['’]re)\\s+(?:definitely|clearly|certainly)",
+            "you(?:\\s+are|\\s*['’]re)\\s+(?:definitely|clearly|certainly)",
             "il\\s+se\\s+passe\\s+quelque\\s+chose\\s+d['’]important",
             "vous\\s+[êe]tes\\s+(?:clairement|certainement|assur[ée]ment)",                  // fr
             "algo\\s+importante\\s+est[áa]\\s+(?:pasando|ocurriendo)",

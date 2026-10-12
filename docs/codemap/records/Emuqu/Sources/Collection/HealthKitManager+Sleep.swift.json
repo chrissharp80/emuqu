@@ -292,8 +292,33 @@
   },
   {
    "key": "func SleepHealthQueries.fetchDaytimeNapMinutes(nightAnchoredAt:)",
-   "hash": "36b218f1905e7033",
-   "does": "Sums qualifying daytime-nap minutes: reads non-own sleep samples in SleepSchedule.daytimeNapWindow(relativeTo: nightAnchor), keeps asleep stages clipped to the window, groups into episodes separated by >napEpisodeGapMinutes and counts episodes of at least napMinimumMinutesToCount. Returns 0 on unavailability, empty window, query failure or no intervals. Credited to the recovery score's duration.",
+   "hash": "a92486a9e7bac79a",
+   "does": "Best-effort qualifying daytime-nap minutes: fetchDaytimeNapMinutesIfReadable, with 'could not tell' (unavailable or query failure) read as 0. Credited to the recovery score's duration.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.fetchDaytimeNapMinutesIfReadable(nightAnchoredAt:)"
+   ],
+   "reads": [
+    "hk:sleepAnalysis",
+    "mem:UserSettings.sleepSchedule"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "fetchDaytimeNapMinutesIfReadable returned nil",
+     "effect": "returns 0 (unreadable treated as no nap)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.fetchDaytimeNapMinutesIfReadable(nightAnchoredAt:)": "ff60273b0d933f5b"
+   }
+  },
+  {
+   "key": "func SleepHealthQueries.fetchDaytimeNapMinutesIfReadable(nightAnchoredAt:)",
+   "hash": "ad748740c2b5d039",
+   "does": "Sums qualifying daytime-nap minutes: reads non-own sleep samples in SleepSchedule.daytimeNapWindow(relativeTo: nightAnchor), keeps asleep stages clipped to the window, groups into episodes separated by >napEpisodeGapMinutes and counts episodes of at least napMinimumMinutesToCount. Returns nil when it cannot tell (HealthKit unavailable, sleepAnalysis type missing, or the query failed); 0 for an empty window or no qualifying nap.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.category(_:caller:file:line:)",
@@ -313,7 +338,7 @@
     {
      "at": "+1",
      "cond": "HealthKit unavailable OR sleepAnalysis type nil",
-     "effect": "returns 0"
+     "effect": "returns nil"
     },
     {
      "at": "+3",
@@ -323,7 +348,7 @@
     {
      "at": "+4",
      "cond": "napSamples returned nil (query threw)",
-     "effect": "returns 0 — query error swallowed as 'no nap'"
+     "effect": "returns nil"
     },
     {
      "at": "+6",

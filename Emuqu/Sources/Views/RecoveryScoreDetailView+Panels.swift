@@ -264,18 +264,7 @@ extension RecoveryScoreDetailView {
             if let deviceBeats = dataSource.deviceBeats {
                 detailRow(String(localized: "Device beats", bundle: LanguageManager.appBundle), value: "\(deviceBeats)")
             }
-            detailRow(String(localized: "Source", bundle: LanguageManager.appBundle), value: Self.sourceLabel(dataSource.selectedSource))
-        }
-    }
-
-    /// `selectedSource` is an internal tag ("streaming", "internal",
-    /// "composite"), not display text.
-    private static func sourceLabel(_ source: String) -> String {
-        switch source {
-        case "streaming": String(localized: "Streaming", bundle: LanguageManager.appBundle)
-        case "internal": String(localized: "Strap recording", bundle: LanguageManager.appBundle)
-        case "composite": String(localized: "Merged", bundle: LanguageManager.appBundle)
-        default: source
+            detailRow(String(localized: "Source", bundle: LanguageManager.appBundle), value: RecoveryDetailCopy.dataSourceLabel(dataSource.selectedSource))
         }
     }
 

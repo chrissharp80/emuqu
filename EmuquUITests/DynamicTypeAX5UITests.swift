@@ -115,14 +115,18 @@ final class DynamicTypeAX5UITests: XCTestCase {
 
     // MARK: - The tab bar, which every other screen depends on
 
-    /// Past the disclaimer, the tab bar is the app's spine. At AX5 tab labels
-    /// grow enough to push items out of the bar on smaller devices.
+    /// Past the first-run gates, the tab bar is the app's spine. At AX5 tab
+    /// labels grow enough to push items out of the bar on smaller devices.
+    ///
+    /// `UITestLaunch.toMainUI` walks the disclaimer, the onboarding walk-through
+    /// and the paywall, and reports the tab bar reachable only when no gate is
+    /// left over it and it is hittable: the tab bar exists in the hierarchy
+    /// under those covers, so its existence alone proves nothing.
     func testTabBarRemainsUsableAtAX5() {
-        dismissDisclaimerIfPresent()
-        let tabBar = app.tabBars.firstMatch
-        XCTAssertTrue(tabBar.waitForExistence(timeout: UITestTiming.s(15)),
-                      "Tab bar not reached after accepting the disclaimer at AX5. Asserted rather "
+        XCTAssertTrue(UITestLaunch.toMainUI(app),
+                      "Tab bar not reachable past the first-run gates at AX5. Asserted rather "
                           + "than skipped: a tab bar that never appears at AX5 is the bug this suite exists to find.")
+        let tabBar = app.tabBars.firstMatch
 
         let tabs = tabBar.buttons.allElementsBoundByIndex
         XCTAssertGreaterThanOrEqual(tabs.count, 3, "Tab bar collapsed below three tabs at AX5")
@@ -155,17 +159,6 @@ final class DynamicTypeAX5UITests: XCTestCase {
         guard scrollView.exists else { return }
         for _ in 0 ..< 6 where !element.isHittable {
             scrollView.swipeUp()
-        }
-    }
-
-    /// Get past the disclaimer when it is in the way, without asserting on it —
-    /// the tab-bar tests are about the tab bar.
-    private func dismissDisclaimerIfPresent() {
-        let agree = app.buttons[UITestID.disclaimerAgree]
-        guard agree.waitForExistence(timeout: UITestTiming.s(10)) else { return }
-        scrollToReveal(agree)
-        if agree.isHittable {
-            agree.tap()
         }
     }
 }

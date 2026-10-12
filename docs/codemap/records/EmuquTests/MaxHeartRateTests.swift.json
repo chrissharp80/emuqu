@@ -347,8 +347,8 @@
   },
   {
    "key": "func MaxHeartRateTests.testTheResultIsAlwaysUsable()",
-   "hash": "34e3a7df6e68fd05",
-   "does": "For entries nil/0/−10/150/300 and birthdays nil/1930/2020 asserts effective() > 0.",
+   "hash": "be3599558ea119a7",
+   "does": "For entries nil/0/−10/150/300 and birthdays nil/1930/2020 asserts effective() lies in MaxHeartRate.minimumUserEntered...240 bpm (240 = the settings decoder's clamp), i.e. a plausible max heart rate, not just a non-zero denominator.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "EmuquTests/MaxHeartRateTests.swift::func MaxHeartRateTests.date(_:_:_:)",
@@ -361,31 +361,20 @@
    "writes": [],
    "branches": [
     {
-     "at": "+1",
+     "at": "+2",
      "cond": "for each entered value",
      "effect": "iterates 5 entries"
     },
     {
-     "at": "+2",
+     "at": "+3",
      "cond": "for each birthday",
-     "effect": "asserts result > 0"
+     "effect": "asserts the result is within 80...240"
     }
    ],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "med",
-     "text": "Asserts only > 0 and includes userEntered 300, which effective() returns unchanged because there is no upper bound on user-entered values (MaxHeartRate.swift:94); a 300 bpm max HR rescales every zone and TRIMP, and the test treats it as 'usable'.",
-     "evidence": [
-      "EmuquTests/MaxHeartRateTests.swift:158",
-      "Emuqu/Sources/Analysis/MaxHeartRate.swift:94"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.age(from:to:calendar:)": "2e6eb44b6beb64cf",
-    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.effective(userEntered:birthday:reference:calendar:)": "f1105a544c54edc9",
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.effective(userEntered:birthday:reference:calendar:)": "35109406c6a8ad87",
     "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.tanaka(age:)": "212234a9fc356fe8",
     "EmuquTests/MaxHeartRateTests.swift::func MaxHeartRateTests.date(_:_:_:)": "dd935bc21ba416a0",
     "EmuquTests/MaxHeartRateTests.swift::var MaxHeartRateTests.utc": "62821ebd21fe11e7"

@@ -1,10 +1,10 @@
 {
  "file": "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift",
- "hash": "3a25fb07f3bbfba9",
+ "hash": "8616591b4bdef1d7",
  "role": "WorkoutSessionLifecycle extension: normalized power and METs math, the end-of-session AI-context flat snapshot, the archive write with backup retirement/cloud upload/HealthKit export, and the post-workout Coach Report email (PDF render + staged draft). Also declares WorkoutRecorderError.",
  "types": [
   "WorkoutSessionLifecycle: extension — metrics, archive fan-out, coach report",
-  "WorkoutSessionLifecycle.CoachReportInputs: struct — main-actor snapshot of everything the detached report render needs",
+  "WorkoutSessionLifecycle.CoachReportInputs: struct — main-actor snapshot of everything the detached report render needs (incl. recipient and Cc list)",
   "WorkoutRecorderError: enum (LocalizedError) — alreadyRecording, strapBusy"
  ],
  "state": [
@@ -376,15 +376,16 @@
   },
   {
    "key": "func WorkoutSessionLifecycle.coachReportInputs(for:settings:)",
-   "hash": "51e8fe44e7024125",
-   "does": "Main-actor snapshot: reads the archive, picks overnight sessions (reported night within last 36 h + up to 60 reliable baseline nights), subject, recipient (training ?? recovery ?? default email), units, max/resting HR, LTHR, temperature unit, temp PDF URL, today's overnight (todaysOvernight: the reported night only when it ended today), and up to CoachReportGenerator.historyLimit (120) past workout ids newest first.",
+   "hash": "561107e1a9083b0e",
+   "does": "Main-actor snapshot: reads the archive, picks overnight sessions (reported night within last 36 h + up to 60 reliable baseline nights), subject, recipient (training ?? recovery ?? default email), Cc (coachReportCC), units, max/resting HR, LTHR, temperature unit, temp PDF URL, today's overnight (todaysOvernight: the reported night only when it ended today), and up to CoachReportGenerator.historyLimit (120) past workout ids newest first.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.recentOvernightSessions(archive:reportedNightCutoff:)",
     "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.coachReportSubject(for:)",
     "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.coachReportPDFURL(for:)",
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.todaysOvernight(in:reportedNightCutoff:)"
+    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.todaysOvernight(in:reportedNightCutoff:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.coachReportCC(_:)"
    ],
    "reads": [
     "archive:SessionArchive.entries",
@@ -409,6 +410,7 @@
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
     "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.archive(session:)": "75203d22cdf273ba",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.coachReportCC(_:)": "0db0c29e0b486c1a",
     "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.coachReportPDFURL(for:)": "268b6d5e2ff4fa1e",
     "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.coachReportSubject(for:)": "25f0cbfe2c0be94c",
     "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.recentOvernightSessions(archive:reportedNightCutoff:)": "2a984fc5893e9687",
@@ -421,6 +423,30 @@
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
     "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift::var ScoreBreakdownCard.temperatureUnit": "063a6053cf5ccc9d"
+   }
+  },
+  {
+   "key": "func WorkoutSessionLifecycle.coachReportCC(_:)",
+   "hash": "a39a65b5e7e1535b",
+   "does": "Cc list for the staged workout coach report: defaultTrainingEmailCC split on commas, trimmed, empties dropped; when that is empty, UserSettings.resolvedDefaultEmailCC (same rule as FitnessPostSummaryView.trainingMailCC).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedDefaultEmailCC"
+   ],
+   "reads": [
+    "mem:UserSettings.defaultTrainingEmailCC"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "training Cc list empty",
+     "effect": "resolvedDefaultEmailCC; else the training list"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedDefaultEmailCC": "9fa516b2dcf25514"
    }
   },
   {
@@ -525,8 +551,8 @@
   },
   {
    "key": "func WorkoutSessionLifecycle.renderAndStageCoachReport(_:)",
-   "hash": "4a244bded65ff692",
-   "does": "Detached: refreshes live training load, decodes past workouts lightweight off-main, renders the conversational summary, renders the PDF (holistic or standalone), then on the main actor stages an AssistantEmailDraft (body + PDF footnote when attached) on the AssistantEmailBridge and logs.",
+   "hash": "806fdf11a8926ec4",
+   "does": "Detached: refreshes live training load, decodes past workouts lightweight off-main, renders the conversational summary, renders the PDF (holistic or standalone), then on the main actor stages an AssistantEmailDraft (body + PDF footnote when attached, the inputs' recipient and Cc list) on the AssistantEmailBridge and logs.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift::func TrainingLoadRegistry.liveRefreshed()",
@@ -563,6 +589,7 @@
     "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift::func TrainingLoadRegistry.liveRefreshed()": "f6fdc835bab57f33",
     "Emuqu/Sources/Assistant/Chat/AssistantEmailBridge.swift::func AssistantEmailBridge.stage(_:)": "accba99566f6e6c2",
     "Emuqu/Sources/Assistant/Chat/AssistantEmailBridge.swift::init AssistantEmailDraft(subject:body:recipient:ccRecipients:attachmentURL:)": "bd6349fc980758e4",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.ccRecipients(_:fallback:)": "8dd6f78bcdd316ee",
     "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.archive(session:)": "75203d22cdf273ba",
     "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.renderCoachReportPDF(_:liveLoadSnapshot:)": "2ba1b3a3e1b3a98c",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "8dd50c9f204fb5d6",

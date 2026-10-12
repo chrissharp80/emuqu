@@ -416,18 +416,22 @@ struct AssistantChatView: View {
         // that generates the URL on tap and presents a
         // share sheet via the `exportShareURL` state.
         Button {
-            // Compute on the main actor (the function is
-            // sync). Sub-millisecond for normal chat
-            // length; deferring it from EVERY render to
-            // ONE per export tap is the win.
-            exportShareURL = viewModel.exportConversation()
-            if exportShareURL == nil {
-                viewModel.errorMessage = String(localized: "Export failed", bundle: LanguageManager.appBundle)
-            }
+            exportChat()
         } label: {
             Label(String(localized: "Export chat", bundle: LanguageManager.appBundle), systemImage: "square.and.arrow.up")
         }
         .disabled(viewModel.turns.isEmpty)
+    }
+
+    /// Builds the transcript file for the share sheet, or shows "Export
+    /// failed" when it could not be written. Computed on the main actor (the
+    /// function is sync): sub-millisecond for normal chat length; deferring
+    /// it from EVERY render to ONE per export tap is the win.
+    private func exportChat() {
+        exportShareURL = viewModel.exportConversation()
+        if exportShareURL == nil {
+            viewModel.errorMessage = String(localized: "Export failed", bundle: LanguageManager.appBundle)
+        }
     }
 
     // MARK: - Voice status pill (inline, above input bar)

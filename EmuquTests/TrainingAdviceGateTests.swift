@@ -136,7 +136,7 @@ final class TrainingAdviceGateTests: XCTestCase {
         XCTAssertEqual(Gate.level(.init(acwr: 1.99, ctl: 40, tsb: -39.6)), .easier)
         XCTAssertEqual(Gate.level(.init(acwr: 1.45, ctl: 40, tsb: -10)), .holdPush, "1.3–1.5 is above the usual range")
         XCTAssertEqual(Gate.level(.init(acwr: 1.1, ctl: 40, tsb: -4)), .clear)
-        XCTAssertEqual(Gate.level(.init(acwr: 1.2, ctl: 60, tsb: -16)), .easier, "TSB −15 or lower is heavy fatigue")
+        XCTAssertEqual(Gate.level(.init(acwr: 1.2, ctl: 60, tsb: -16)), .easier, "TSB below −15 is heavy fatigue")
         XCTAssertEqual(Gate.level(.init(acwr: 1.6, ctl: 2, tsb: -1.2)), .clear, "the ratio is noise below the chronic-load threshold")
         XCTAssertEqual(Gate.level(.init(acwr: 1.0, ctl: 40, tsb: 0, monotony: 2.5, strain: 2_000)), .holdPush)
         XCTAssertEqual(Gate.level(.init(acwr: 1.0, ctl: 40, tsb: 0, monotony: 2.5, strain: 500)), .clear, "a light week of similar sessions")

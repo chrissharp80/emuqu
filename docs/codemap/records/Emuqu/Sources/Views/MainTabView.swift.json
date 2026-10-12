@@ -266,7 +266,7 @@
     "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.event(_:)": "17747315684bc090",
     "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.discardReportPDF(_:next:)": "d5c8cc34cfe587ba",
     "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.reportMailSheet(_:)": "9ee52c796fdeaa45",
-    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.reportSheet(_:)": "4c20c09ad24ff05a",
+    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.reportSheet(_:)": "d046cf72ee41825b",
     "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.tabsWithObservers": "805d565f1e8d2138"
    }
   },
@@ -338,13 +338,12 @@
   },
   {
    "key": "func MainTabView.reportSheet(_:)",
-   "hash": "a26823fd0480c41b",
-   "does": "Recovery Score detail sheet content when the session has an analysis result; otherwise a NavigationStack with 'No analysis data available' and the Done button, so the sheet can always be closed.",
+   "hash": "23ef4a458d0059a8",
+   "does": "Recovery Score detail sheet content when the session has an analysis result; otherwise missingAnalysisNavigation ('No analysis data available' with the Done button), so the sheet can always be closed.",
    "entry": "SwiftUI .sheet(item: selectedReportSession).",
    "calls": [
     "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.reportNavigation(_:result:)",
-    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.reportDoneToolbar",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.missingAnalysisNavigation"
    ],
    "reads": [],
    "writes": [],
@@ -352,13 +351,30 @@
     {
      "at": "+1",
      "cond": "session.analysisResult non-nil",
-     "effect": "show reportNavigation; nil: no-analysis note with Done"
+     "effect": "show reportNavigation; nil: missingAnalysisNavigation"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.reportNavigation(_:result:)": "ad09e18e7c8e50cc",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.missingAnalysisNavigation": "ebf664cc53cae41e"
+   }
+  },
+  {
+   "key": "var MainTabView.missingAnalysisNavigation",
+   "hash": "c0859115ade11402",
+   "does": "NavigationStack with a secondary 'No analysis data available' text and the report Done toolbar, for a report session with no analysis.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.reportDoneToolbar",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.reportDoneToolbar": "9bcef52da556a5f1",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
    }

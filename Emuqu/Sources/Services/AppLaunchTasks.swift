@@ -394,7 +394,9 @@ extension EmuquApp {
     /// file-protection walk leads them for the same reason. Always runs (not
     /// periodic — they self-terminate via UserDefaults flag). The one-shot
     /// session-data repairs that follow are each gated by a UserDefaults flag
-    /// after a successful run.
+    /// after a successful run. The archive job also applies the 90-day Trash
+    /// retention: each expired deleted session is permanently deleted (the
+    /// trashed file, the raw backup here and in iCloud, the deletion mark).
     private func scheduleMigrationJobs(lowPower: Bool) {
         // Sendable locals for the detached launch jobs (avoid capturing the
         // non-Sendable App `self`).
@@ -405,7 +407,9 @@ extension EmuquApp {
             NSLog("[App][bg] archive migrations — start")
             archiveRef.upgradeExistingFileProtection()
             archiveRef.runDeferredMigrations()
-            archiveRef.expireTrash()
+            for id in archiveRef.expiredDeletionIds() {
+                await collectorJob.permanentlyDelete(id)
+            }
             NSLog("[App][bg] archive migrations — done")
         }
         coord.run(phase: .housekeeping, priority: .background, skipInLowPower: false, lowPower: lowPower) {
@@ -619,7 +623,9 @@ extension EmuquApp {
     private func prepareEntitlementGate() {
         let gateNow = Date()
         storeKitManager.migrateLegacyTestFlightFlag(now: gateNow)
-        storeKitManager.grandfatherExistingUserIfNeeded(hasHistory: !collector.archive.index.isEmpty, now: gateNow)
+        let archive = collector.archive
+        let hasHistory: Bool? = archive.hasCompleteIndex ? !archive.entries.isEmpty : nil
+        storeKitManager.grandfatherExistingUserIfNeeded(hasHistory: hasHistory, now: gateNow)
         NSLog("[App][launch] access check: paywallEnabled=\(StoreKitManager.paywallEnabled) isPurchased=\(storeKitManager.isPurchased) trialDaysRemaining=\(settingsManager.trialDaysRemaining)")
     }
 
@@ -858,7 +864,7 @@ extension EmuquApp {
         guard let session = stored, session.windowUserAdjusted != true,
               let rr = session.rrSeries, !rr.points.isEmpty
         else { return true }
-        return await collector.reanalysisService.reanalyzeSession(session, preserveManualWindows: true) != nil
+        return await collector.reanalyzeSession(session) != nil
     }
 
     /// Count one more failed launch for `sessionId` and return the total.

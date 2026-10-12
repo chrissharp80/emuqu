@@ -81,6 +81,10 @@ final class SessionArchive: @unchecked Sendable {
     /// Set when `index.json` exists but could not be read at launch; the
     /// in-memory index is then incomplete. Same lock contract as `index`.
     var indexReadFailed = false
+    /// Set when `index.json` read but did not decode this launch (the bytes
+    /// were moved aside and the in-memory index started empty), so the index
+    /// does not list the sessions that file held. Same lock contract as `index`.
+    var indexDecodeFailed = false
     /// The same for `deleted.json`: the in-memory tombstones are then only
     /// the ones with a recorded deletion time, until the file reads.
     var deletedIndexReadFailed = false

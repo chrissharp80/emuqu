@@ -1095,7 +1095,7 @@
    "deps": {
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
     "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "6d761b0522590a2a",
-    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightChartsView.hkSamples(in:segIdx:)": "61b9f91453e405bc",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightChartsView.hkSamples(in:segIdx:)": "3aec352919ab5180",
     "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightChartsView.isPlausibleSegment(startMs:endMs:index:)": "106c4bf5d3ef7117",
     "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightChartsView.uncoveredWindows(segStartMs:segEndMs:recordingStartMs:recordingEndMs:)": "8dbef40bc9ca7c46"
    }
@@ -1152,13 +1152,14 @@
   },
   {
    "key": "func OvernightChartsView.hkSamples(in:segIdx:)",
-   "hash": "5b92fc6d6b0f3faf",
-   "does": "Fetches HealthKit HR samples for a sub-window (ms from session start) of at least 60 s and maps them to (ms offset, hr). A fetch error is logged as a warning and yields an empty list (the chart falls back to the Polar data alone).",
+   "hash": "d301197e5c7c6dd2",
+   "does": "Fetches HealthKit HR samples for a sub-window (ms from session start) of at least 60 s and maps them to (ms offset via MillisecondOffset.between, hr); a sample whose offset can't be represented (corrupt date) is dropped rather than trapping. A fetch error is logged as a warning and yields an empty list (the chart falls back to the Polar data alone).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.healthKitManager",
-    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.fetchHeartRateSamples(from:to:)"
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.fetchHeartRateSamples(from:to:)",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:)"
    ],
    "reads": [
     "hk:HKQuantityTypeIdentifierHeartRate"
@@ -1174,6 +1175,11 @@
      "at": "+13",
      "cond": "fetch throws",
      "effect": "logged warning, []"
+    },
+    {
+     "at": "+20",
+     "cond": "MillisecondOffset.between returns nil",
+     "effect": "sample dropped"
     }
    ],
    "flags": [],
@@ -1183,7 +1189,8 @@
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.healthKitManager": "06772931aba0baf2",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3"
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:)": "eed24a8b84f4db4d"
    }
   }
  ],

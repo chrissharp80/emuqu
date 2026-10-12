@@ -105,16 +105,27 @@ final class EmailContactStore {
         load()
     }
 
-    func add(_ contact: EmailContact) {
+    /// False, adding nothing, while the contacts file still cannot be read
+    /// after a retry (before first unlock): the change could not be saved,
+    /// so memory is kept matching disk.
+    @discardableResult
+    func add(_ contact: EmailContact) -> Bool {
         retryLoadIfBlocked()
+        guard !loadFailed else { return false }
         contacts.append(contact)
         save()
+        return true
     }
 
-    func remove(id: UUID) {
+    /// False, removing nothing, while the contacts file still cannot be read
+    /// after a retry; see `add`.
+    @discardableResult
+    func remove(id: UUID) -> Bool {
         retryLoadIfBlocked()
+        guard !loadFailed else { return false }
         contacts.removeAll { $0.id == id }
         save()
+        return true
     }
 
     /// Find contacts by case-insensitive name match. Returns ALL matches

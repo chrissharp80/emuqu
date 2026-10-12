@@ -693,8 +693,8 @@ extension OvernightChartsView {
             return []
         }
         debugLog("[ChartGate] seg[\(segIdx)] sub-window \(winStart.formatted(date: .omitted, time: .shortened))→\(winEnd.formatted(date: .omitted, time: .shortened)) returned \(samples.count) HK HR samples")
-        return samples.map {
-            (timeMs: Int64($0.date.timeIntervalSince(session.startDate) * 1000), hr: $0.hr)
+        return samples.compactMap { sample in
+            MillisecondOffset.between(sample.date, and: session.startDate).map { (timeMs: $0, hr: sample.hr) }
         }
     }
 

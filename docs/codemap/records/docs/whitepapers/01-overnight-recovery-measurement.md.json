@@ -1346,8 +1346,8 @@
   },
   {
    "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 6. Verification",
-   "hash": "a5d415693b4d2221",
-   "does": "Claims every build compares RMSSD/SDNN/pNN50 on 6,000 intervals from 20 nsr2db records against a reference implementation, reports MIT-BIH artifact results, and lists science-register labels for v3.1.oct2026 (Table 6.1). Tools/validation/RESULTS.md and Tools/science_register/register.json exist; per-entry labels were not re-read here.",
+   "hash": "3dd85d24e407c67e",
+   "does": "Claims every build compares RMSSD/SDNN/pNN50 on 6,000 intervals from 20 nsr2db records against a reference implementation; the Python port matched all 114 ported cases from eight suites but is partial (128 test functions at e028039, 14 not ported incl. live-DFA window-fill gating, arrival-clock dropout break, 8 sleep-stage percentile and 3 HRV-reference tests; some cases are comment-quoted values), so those behaviours are not confirmed; reports MIT-BIH artifact results, and lists science-register labels for v3.1.oct2026 (Table 6.1).",
    "entry": null,
    "calls": [
     "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.testMeanRRAndSDNNMatchTheReferenceOnEveryRecord()",
@@ -1359,12 +1359,12 @@
     "Tools/validation/make_results.py::def main",
     "Tools/validation/fetch_physionet.py::def main",
     "Makefile::target science-register",
-    ".github/workflows/ci.yml::step tests/Run tests with coverage",
     "Tools/validation/test_ports.py::def case.deco.run",
     "Tools/validation/port_time_domain.py::def compute_time_domain",
     "Tools/validation/port_dfa.py::def compute",
     "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa",
-    "Tools/validation/port_artifact_detection.py::def detect_artifacts"
+    "Tools/validation/port_artifact_detection.py::def detect_artifacts",
+    ".github/workflows/ci.yml::step tests/Run tests with coverage"
    ],
    "reads": [],
    "writes": [],
@@ -1385,20 +1385,6 @@
     },
     {
      "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "Paper says the Python port was accepted only after reproducing the app's own unit-test expectations: '114 test cases across eight suites ... all matched'. At e028039 those eight suites held 128 test functions; the port's 114 cases (test_ports_output.txt) omit 14 of them, e.g. LiveDFAAnalyzerTests testAlpha1IsNotProducedBeforeTheWindowIsFull / testAlpha1IsProducedOnceTheWindowIsFull, 8 percentile tests in HRVSleepStageClassifierTests, 4 TimeDomainTests (incl. testArrivalClockDropoutIsARecordingBreak) and 3 HRVReferenceValidationTests, and include synthetic '(comment value)'/'quoted' pseudo-cases. Fidelity is overstated for exactly the untested behaviours (window-fill gating, dropout breaks).",
-     "evidence": [
-      "docs/whitepapers/01-overnight-recovery-measurement.md:635",
-      "Tools/validation/test_ports_output.txt",
-      "EmuquTests/LiveDFAAnalyzerTests.swift:223",
-      "EmuquTests/LiveDFAAnalyzerTests.swift:236",
-      "EmuquTests/HRVSleepStageClassifierTests.swift",
-      "EmuquTests/TimeDomainTests.swift"
-     ],
-     "found": "second read"
-    },
-    {
-     "kind": "spec-mismatch",
      "sev": "low",
      "text": "Paper says RMSSD, SDNN and pNN50 are compared on 6,000 intervals from 20 nsr2db records. pNN50 is only compared on records where the ectopic filter removes no beat (testPNN50MatchesTheReferenceWhereNoBeatIsFiltered; 16 of 20 in the port run), and the RMSSD comparison is of the unfiltered value; the pipeline RMSSD is only checked to be <= unfiltered.",
      "evidence": [
@@ -1412,8 +1398,8 @@
    ],
    "deps": {
     ".github/workflows/ci.yml::step tests/Run tests with coverage": "7b5b9eee68d4d299",
-    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)": "603a4d925fb360fb",
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeTimeDomain(_:flags:windowStart:windowEnd:)": "b45f65e53d1a0cab",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)": "7033ee2115866c44",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeTimeDomain(_:flags:windowStart:windowEnd:)": "085797ccd4889c54",
     "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.testMeanRRAndSDNNMatchTheReferenceOnEveryRecord()": "d3768a925919f396",
     "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.testPNN50MatchesTheReferenceWhereNoBeatIsFiltered()": "b1598298efc3bacf",
     "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.testUnfilteredRMSSDMatchesTheReferenceOnEveryRecord()": "242a9f14830dbc54",

@@ -217,7 +217,9 @@ struct SleepDetailV2View: View {
     /// re-pull from HealthKit. Returns nil on failure (auth
     /// not granted, no sleep data for the window) — the
     /// editor surfaces a clear error in that case rather
-    /// than silently no-op.
+    /// than silently no-op. A refreshed night accepted with Done and no
+    /// further edit (`onRefreshAccepted`) is stored, but not as a user
+    /// adjustment, so it doesn't lock the boundaries.
     private func sleepEditor(_ wrapped: SleepDataIdentified) -> some View {
         SleepTimelineEditorView(
             sleepData: wrapped.data,
@@ -228,6 +230,10 @@ struct SleepDetailV2View: View {
             onRefreshFromHealthKit: { [weak collector, session] in
                 guard let collector else { return nil }
                 return await Self.refetchSleep(for: session, from: collector)
+            },
+            onRefreshAccepted: { [weak collector, session] fresh in
+                _ = collector?.updateSessionSleepBoundaries(sessionId: session.id, sleepData: fresh, isUserAdjustment: false)
+                editorSleepData = nil
             }
         )
     }

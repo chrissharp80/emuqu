@@ -63,7 +63,6 @@ struct RRPoint: Codable, Equatable {
     let hr: Int?              // Device-reported heart rate (streaming only)
 
     var endMs: Int64          // t_ms + rr_ms
-    var midpointMs: Double    // t_ms + rr_ms/2
     var clockDriftMs: Int64?  // Wall-clock vs cumulative gap
     var isPhysiologicallyValid: Bool  // 300-2000ms range check
 }
@@ -84,14 +83,12 @@ struct RRSeries: Codable {
     var hasWallClockTimestamps: Bool
     var wallClockDurationMs: Int64?
     var estimatedDataLossPercent: Double?
-    var totalGapDurationMs: Int64
     var actualEndDate: Date
 
     // Methods
     func detectGaps(thresholdMs: Int64 = 2000) -> [(startIndex: Int, endIndex: Int, gapDurationMs: Int64)]
     func absoluteTime(at index: Int) -> Date?
     func absoluteTimeWallClock(at index: Int) -> Date?
-    func absoluteMidpoint(at index: Int) -> Date?
     func wallClockTime(forTMs tMs: Int64) -> Date
     func relativeMs(from date: Date) -> Int64
     func indexClosestToWallClock(_ date: Date) -> Int?  // Binary search
@@ -516,7 +513,6 @@ final class PolarManager: NSObject {
     var isRecordingOnDevice: Bool
     var isH10RecordingFeatureReady: Bool { get }
     var isHrStreamingReady: Bool { get }
-    var isOfflineRecordingReady: Bool { get }
     var hasStoredExercise: Bool
     var storedExerciseDate: Date?
     var fetchProgress: FetchProgress?
@@ -679,13 +675,13 @@ final class SleepBoundaryResolver {
 
     static func detectSleepOnset(in rrPoints: [RRPoint]) -> Int64?
 
-    static func computePhysioWindows(from rrPoints: [RRPoint]) -> [PhysioWindow]
-
-    static func analyzeHRSleepQuality(
-        rrPoints: [RRPoint],
-        sleepStartMs: Int64,
-        sleepEndMs: Int64
-    ) -> HealthKitManager.HRSleepQuality?
+    /// HR may move onset earlier (later only without detailed HealthKit
+    /// stages) and may only extend wake, never shorten it.
+    static func validateBoundaries(
+        healthKit: SleepBoundaries,
+        hrEstimate: SleepBoundaries,
+        hasDetailedStages: Bool = false
+    ) -> SleepBoundaries
 }
 ```
 
@@ -781,7 +777,6 @@ final class WindowSelector: Sendable {
     struct WindowSelectionResult {
         let recoveryWindow: RecoveryWindow?
         let peakCapacity: PeakCapacity?
-        var hasConsolidatedRecovery: Bool { get }
     }
 }
 ```
@@ -1066,7 +1061,10 @@ extension RecoveryScoreCalculator {
     ) -> Double
 
     static func readinessLabel(for score: Double) -> String   // "Ready" / "Moderate" / "Fatigued" / "Rest"
-    static func readinessMessage(for readiness: Double, acuteChronicRatio: Double? = nil) -> String
+}
+
+extension ReadinessScoring {
+    static func readinessMessage(for rawReadiness: Double, load: TrainingAdviceGate.Load?) -> String
 }
 ```
 
@@ -1132,15 +1130,6 @@ enum HRVSleepStageClassifier {
         sleepEndMs: Int64,
         recordingStart: Date
     ) -> AugmentationResult?
-
-    /// Validate classifier against Apple Watch staging
-    static func validate(
-        watchIntervals: [HealthKitManager.SleepStageInterval],
-        rrPoints: [RRPoint],
-        sleepStartMs: Int64,
-        sleepEndMs: Int64,
-        recordingStart: Date
-    ) -> ValidationResult?
 }
 ```
 
@@ -1689,9 +1678,11 @@ final class BreadcrumbStore: @unchecked Sendable {
     // Active trail (single, in-progress)
     func load() -> BreadcrumbTrail?
     func save(_ trail: BreadcrumbTrail)
-    func archiveActive()    // active → archive, then erase active
+    func archiveActive()    // active → archive; active erased only after the archive write succeeds
+                            // (unreadable/unwritable archive: trail stays active, error logged)
     func clear()            // permanent delete of active
     func hasActiveTrail() -> Bool
+    func hasArchiveFile() -> Bool
 
     // Archive (history, newest first, capped)
     func loadArchive() -> [BreadcrumbTrail]
@@ -1844,7 +1835,7 @@ final class AudioSessionCoordinator: Sendable {
 
     func claim(_ claimant: Claimant, mode: Mode)
     func release(_ claimant: Claimant)
-    func isVoiceActive() -> Bool
+    func hasActiveClaims() -> Bool
 }
 ```
 
@@ -1983,7 +1974,6 @@ final class RRDataImporter {
         case flowHRVMultiSession = "Emuqu RR Export"
 
         var id: String { rawValue }
-        var fileExtensions: [String]
         var description: String
     }
 
@@ -2033,8 +2023,6 @@ final class RRDataImporter {
         case insufficientData(found: Int, required: Int)
         case invalidRRValues(String)
     }
-
-    static var supportedTypes: [UTType]
 
     // Single-file import
     func importFile(at url: URL) async throws -> ImportResult
@@ -2355,7 +2343,6 @@ final class ProviderRegistry {
     let apple, anthropic, openai, gemini, grok, deepseek: AIProvider
     var allProviders: [AIProvider]
     var visibleProviders: [AIProvider]            // Apple + any provider with a stored key
-    var anyProviderAvailable: Bool
 
     private(set) var activeProvider: AIProvider
     private(set) var activeModel: ModelOption
@@ -2649,12 +2636,11 @@ enum PrefabQuestion: String, CaseIterable, Identifiable {
 }
 
 final class AnalysisSummaryCache: Sendable {
-    static let shared: AnalysisSummaryCache       // LRU 32 entries
+    static let shared: AnalysisSummaryCache       // LRU, 32 entries keyed by (session, fingerprint)
     static func fingerprint(for session: HRVSession) -> Int
+    static func fingerprint(for session: HRVSession, inputs: Int) -> Int
     func set(_ summary: AnalysisSummaryGenerator.AnalysisSummary, forSessionId id: UUID, fingerprint: Int = 0)
-    func get(forSessionId id: UUID) -> AnalysisSummaryGenerator.AnalysisSummary?
     func get(forSessionId id: UUID, matching fingerprint: Int) -> AnalysisSummaryGenerator.AnalysisSummary?
-    func invalidate(sessionId: UUID)
     func clear()
 }
 
@@ -2755,11 +2741,22 @@ final class AssistantViewModel {
 ```swift
 extension Notification.Name {
     static let flowRecoveryArchiveChanged: Notification.Name
-    // Posted on every archive write. Observers include ArchiveSignal,
-    // the training-load and heat-acclimation caches, and AssistantViewModel
-    // (drops its fact registry).
+    // Posted by SessionArchive.archive(_:) and update(_:) (object: the
+    // session id), by batch archiving (per merged id, then once with nil),
+    // by DataPurgeService after a purge, and by ArchiveSignal.notifyChanged().
+    // Observers include ArchiveSignal, the training-load and heat-acclimation
+    // caches, BeatConsistencyPriorsCache and AssistantViewModel (drops its
+    // fact registry).
 }
 ```
+
+`SessionArchive.delete(_:)` does **not** post it: a caller that deletes
+must announce the change itself (History's `SessionTrash.move` and the
+recovered-workout discard do, through `ArchiveSignal.notifyChanged()`). A session deleted on another
+device and removed here by the CloudKit pull
+(`CloudKitSyncManager+Pull.swift`, `handleDeletedRecord`) only bumps
+`CloudKitSyncManager.pullVersion`; observers of this notification are not
+told until the next archive write.
 
 ---
 
@@ -3152,7 +3149,11 @@ final class ZwiftPeripheralBroadcaster: NSObject {
 
 `CBPeripheralManager` advertising Heart Rate Service (`0x180D`) +
 Cycling Power Service (`0x1818`). Off by default — gated on
-`UserSettings.enableZwiftBroadcast`. Required new
+`UserSettings.enableZwiftBroadcast`. `WorkoutRecorder` starts advertising
+shortly after a workout starts (`deferZwiftBroadcast`) and stops it at the
+end; every recorder tick (`pushZwiftBroadcasterUpdate`, ~1 Hz) calls
+`update(heartRate:powerWatts:)` with the live HR and power, which notifies
+subscribed centrals and is a no-op while not advertising. Required new
 `bluetooth-peripheral` UIBackgroundMode.
 
 ### WorkoutAIContext (additions)

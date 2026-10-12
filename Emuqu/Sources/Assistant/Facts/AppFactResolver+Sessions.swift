@@ -493,9 +493,13 @@ struct WalksNamespace: FactNamespaceResolver {
             description: "List of walks and hikes in the period (every sport: workout.list). Each item is a session summary record.",
             availability: { self.walksAvailability() },
             resolve: { param, _ in
-                self.withWalks(in: param) { .list($0.map { SessionNamespace.fullRecord(for: $0) }) }
+                self.withWalks(in: param) { Self.walkList(of: $0) }
             }
         )
+    }
+
+    private static func walkList(of walks: [HRVSession]) -> FactValue {
+        .list(walks.map { SessionNamespace.fullRecord(for: $0) })
     }
 }
 // MARK: - training.load.* namespace

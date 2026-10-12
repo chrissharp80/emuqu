@@ -28,13 +28,28 @@ import XCTest
 /// decision and the ledger — because forcing a genuine Keychain outage needs a
 /// device, and a test that fakes `EncryptionManager` would be testing the fake.
 final class PendingEncryptionLedgerTests: XCTestCase {
+    private static let stores: [PendingEncryptionLedger.Store] = [.session, .rawBackup]
+
+    /// The app host's own ledger. The ledger is process-global (UserDefaults
+    /// plus its file copy), so each test starts from an empty one; the host's
+    /// entries are put back afterwards, or a device whose container holds
+    /// sessions written without encryption would lose their repair records.
+    private var hostLedger: [PendingEncryptionLedger.Store: Set<UUID>] = [:]
+
     override func setUp() {
         super.setUp()
+        hostLedger = Dictionary(uniqueKeysWithValues: Self.stores.map { ($0, PendingEncryptionLedger.pending(in: $0)) })
         PendingEncryptionLedger.clearAll()
     }
 
     override func tearDown() {
         PendingEncryptionLedger.clearAll()
+        for (store, ids) in hostLedger {
+            for id in ids {
+                PendingEncryptionLedger.record(id, in: store)
+            }
+        }
+        PendingEncryptionLedger.waitForPendingWrites()
         super.tearDown()
     }
 

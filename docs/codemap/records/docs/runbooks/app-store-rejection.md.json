@@ -21,8 +21,8 @@
   },
   {
    "key": "§ Runbook: App Store Rejection Response > 1. Read the actual reason",
-   "hash": "2e2a34dc6e2ec1b9",
-   "does": "Lists likely rejection causes with code pointers: PrivacyInfo.xcprivacy + SECURITY.md alignment section (exists at SECURITY.md:211); UIBackgroundModes location/bluetooth-peripheral/audio, asserting only WorkoutLocationManager streams background location and BackgroundAudioManager holds audio only during a cue; MedicalQueryGuard and the MEDICAL BOUNDARY block in AIProvider+SystemPromptText.swift (present at :180, :726); docs/REVIEW.md reviewer notes.",
+   "hash": "dac288dff3e1eb34",
+   "does": "Lists likely rejection causes with code pointers: PrivacyInfo.xcprivacy + SECURITY.md alignment section; UIBackgroundModes location/bluetooth-peripheral/audio, naming WorkoutLocationManager (workout route) and BreadcrumbRecorder (Get Me Back trail) as the two background-location streamers, both with the location indicator, and BackgroundAudioManager holding audio only during a cue; MedicalQueryGuard and the MEDICAL BOUNDARY block in AIProvider+SystemPromptText.swift; docs/REVIEW.md reviewer notes.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.startStreaming()",
@@ -35,17 +35,6 @@
    "writes": [],
    "branches": [],
    "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "Runbook says only WorkoutLocationManager streams background location, but BreadcrumbRecorder.startStreaming (Get Me Back) also sets allowsBackgroundLocationUpdates = true and startUpdatingLocation; a reviewer question about background location would be answered incompletely.",
-     "evidence": [
-      "docs/runbooks/app-store-rejection.md:25",
-      "Emuqu/Sources/Services/BreadcrumbRecorder.swift:137",
-      "Emuqu/Sources/Collection/WorkoutLocationManager.swift:213"
-     ],
-     "found": "first read, upheld on second"
-    },
     {
      "kind": "spec-mismatch",
      "sev": "low",

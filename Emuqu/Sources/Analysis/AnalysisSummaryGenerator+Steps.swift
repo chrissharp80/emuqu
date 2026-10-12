@@ -190,8 +190,6 @@ extension AnalysisSummaryGenerator {
     }
 
     private func appendTrendSteps(_ steps: inout [String], score: Double, gates: PushGates) {
-        // shouldNotPush: any of these signals indicates the HRV represents capacity, not readiness
-        // Trend-aware recommendations
         guard stats.hasData else { return }
         let rmssdPct = ((gates.rmssd - stats.avgRMSSD) / stats.avgRMSSD) * 100
 

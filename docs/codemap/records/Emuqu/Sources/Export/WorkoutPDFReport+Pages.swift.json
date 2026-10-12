@@ -816,19 +816,7 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "med",
-     "text": "Third copy of the %HRmax zone bucketing: ThresholdCards.hrZoneSeconds credits uncapped gaps (max(1, Δ)) while the PDF caps at 5 s (Alpha1ReportCards.sampleSeconds), and WorkoutAnalysisSnapshotBuilder.SamplePass.addZoneTime has its own copy; zone minutes on the on-screen threshold card and in the PDF differ for sessions with sample gaps. The PDF's bucketing is now the nonisolated static WorkoutPDFRenderer.hrZoneSeconds(samples:maxHR:) for the other two to call.",
-     "evidence": [
-      "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift:330",
-      "Emuqu/Sources/Views/ThresholdCards+Cards.swift:457",
-      "Emuqu/Sources/Analysis/WorkoutAnalysisSnapshotBuilder.swift:50"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.hrZoneSeconds(samples:maxHR:)": "09a2884ba4c224ba",
     "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.userMaxHR": "49805330e3ae7d57"

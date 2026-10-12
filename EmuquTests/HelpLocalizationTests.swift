@@ -47,7 +47,22 @@ final class HelpLocalizationTests: XCTestCase {
         let keys = everyHelpKey()
         try exportKeysIfRequested(keys)
         XCTAssertGreaterThan(keys.count, 300, "the recorder saw too few strings to be the Help Center")
-        XCTAssertFalse(keys.contains { $0.contains("\u{2060}") }, "a formatted string was looked up as a key")
+    }
+
+    /// A string `format` filled in is already translated: the display-time
+    /// pass (`HelpCategory.localized`) hands it back unchanged and does not
+    /// look it up as a key. The text carries no marker; `HelpLocalization`
+    /// remembers what it formatted.
+    func testAFormattedStringIsNotLookedUpAgain() {
+        HelpLocalization.startRecording()
+        let filled = HelpLocalization.format("HelpLocalizationTests probe {value}", ["value": "41"])
+        let again = HelpLocalization.string(filled)
+        let keys = HelpLocalization.stopRecording()
+
+        XCTAssertEqual(filled, "HelpLocalizationTests probe 41")
+        XCTAssertEqual(again, filled)
+        XCTAssertFalse(keys.contains(filled), "a formatted string was looked up as a key")
+        XCTAssertTrue(keys.contains("HelpLocalizationTests probe {value}"), "the template is the key")
     }
 
     func testEveryHelpStringIsTranslatedInEveryLanguage() throws {

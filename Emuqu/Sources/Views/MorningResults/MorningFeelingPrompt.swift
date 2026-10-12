@@ -45,9 +45,7 @@ struct MorningFeelingPrompt: View {
 
     var body: some View {
         VStack(spacing: 14) {
-            Text(existing == nil ? String(localized: "How do you feel this morning?", bundle: LanguageManager.appBundle) : String(localized: "Change your feeling", bundle: LanguageManager.appBundle))
-                .font(.subheadline.weight(.semibold))
-                .foregroundColor(AppTheme.textPrimary)
+            promptTitle
 
             feelingScale
 
@@ -65,6 +63,12 @@ struct MorningFeelingPrompt: View {
         // Swiping the sheet away inside the auto-commit second dismisses the
         // prompt; the tap must not then be saved behind the user's back.
         .onDisappear { pendingCommit?.cancel() }
+    }
+
+    private var promptTitle: some View {
+        Text(existing == nil ? String(localized: "How do you feel this morning?", bundle: LanguageManager.appBundle) : String(localized: "Change your feeling", bundle: LanguageManager.appBundle))
+            .font(.subheadline.weight(.semibold))
+            .foregroundColor(AppTheme.textPrimary)
     }
 
     private var feelingScale: some View {

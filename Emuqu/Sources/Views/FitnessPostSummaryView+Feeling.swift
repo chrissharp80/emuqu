@@ -10,11 +10,13 @@ import SwiftUI
 extension FitnessPostSummaryView {
     // MARK: - "How did that feel?" subjective section
 
+    /// The badge for a rated workout (until tapped to edit), otherwise the
+    /// prompt; nothing once Skip was tapped on an unrated workout.
     @ViewBuilder
     var feelingSection: some View {
         if let rating = session.workoutMetadata?.workoutFeeling, !feelingEditing {
             feelingBadge(rating)
-        } else {
+        } else if !feelingSkipped || feelingEditing {
             feelingPrompt
         }
     }
@@ -30,9 +32,10 @@ extension FitnessPostSummaryView {
         )
     }
 
-    /// Skip without rating — stays unrated; "Cancel" when editing bails
-    /// without changing.
+    /// Skip without rating — stays unrated and the prompt goes away
+    /// (`feelingSkipped`); "Cancel" when editing bails without changing.
     private func skipFeeling() {
+        feelingSkipped = session.workoutMetadata?.workoutFeeling == nil
         feelingEditing = false
     }
 
@@ -243,14 +246,16 @@ extension FitnessPostSummaryView {
     /// delegates rendering to the dedicated card component. Keeps data
     /// shaping in one place and the card pure. The dominant α1 band and the
     /// narrative are the analysis snapshot's fields, not re-derived from the
-    /// samples on each render.
+    /// samples on each render. Duration and pace are the active (un-paused)
+    /// figures (`WorkoutStatsCards.activeDurationDisplay` / `avgPaceDisplay`),
+    /// so a paused workout's hero matches the recorder's clock.
     var heroCard: some View {
         let meta = session.workoutMetadata
         let sport = meta?.sport ?? .walk
         let distance = meta?.distanceMeters
         let distanceLabel = distance.map { units.formatDistance(meters: $0) } ?? "—"
-        let durationLabel = heroDurationLabel
-        let paceLabel = heroPaceLabel(distance: distance)
+        let durationLabel = stats.activeDurationDisplay ?? "—"
+        let paceLabel = stats.avgPaceDisplay
         let analysis = displayedAnalysis
         let dominantBand = analysis?.dominantAlpha1BandRaw.flatMap { LiveDFAAnalyzer.Band(rawValue: $0) }
         let coords: [CLLocationCoordinate2D] = track.map(\.coordinate)
@@ -264,21 +269,6 @@ extension FitnessPostSummaryView {
             narrative: analysis?.heroNarrative ?? "",
             routeCoordinates: coords
         )
-    }
-
-    private var heroDurationLabel: String {
-        guard let d = session.duration else { return "—" }
-        let s = Int(d)
-        let h = s / 3600, m = (s % 3600) / 60, sec = s % 60
-        if h > 0 { return String(format: "%d:%02d:%02d", h, m, sec) }
-        return String(format: "%d:%02d", m, sec)
-    }
-
-    private func heroPaceLabel(distance: Double?) -> String? {
-        guard let dist = distance, dist > 100,
-              let dur = session.duration, dur > 10
-        else { return nil }
-        return units.formatPace(elapsedSec: Int(dur), distanceMeters: dist)
     }
 
     // MARK: - Recover / fix workout

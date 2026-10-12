@@ -444,44 +444,6 @@
    }
   },
   {
-   "key": "func RRDataImporter.createSession(from:)",
-   "hash": "6d3bcc74eeb9d97d",
-   "does": "Builds an HRVSession from an ImportResult via createSession(from:startingAt:) with start = recordingDate, or now when the file states none (every CSV/Kubios/TXT file); sessionType defaults to .overnight.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.createSession(from:startingAt:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "result.recordingDate is nil",
-     "effect": "?? Date() — session dated at import time"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "high",
-     "text": "CSV, Kubios and TXT parses always return a nil date (CSV:28 returns (values, [:], nil); txt passes nil at 234) and JSON returns nil when its date string fails to parse, so createSession dates the recording 'now' with default sessionType .overnight; analyzeImportedData then archives it via collector.saveImportedSession, so an old recording lands as today's overnight reading. The Elite and Emuqu parsers explicitly refuse to do this ('would put it on today and into today's baseline').",
-     "evidence": [
-      "Emuqu/Sources/Import/RRDataImporter.swift:268",
-      "Emuqu/Sources/Import/RRDataImporter+CSV.swift:28",
-      "Emuqu/Sources/Import/RRDataImporter.swift:234",
-      "Emuqu/Sources/Views/ImportDataView+Actions.swift:136",
-      "Emuqu/Sources/Views/ImportDataView+Actions.swift:281",
-      "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift:103",
-      "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift:189"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.createSession(from:startingAt:)": "9c0e9f06d6a0ff99"
-   }
-  },
-  {
    "key": "func RRDataImporter.createSession(from:startingAt:)",
    "hash": "ce8d6bb9f182b48b",
    "does": "Builds an HRVSession starting at startDate (default type .overnight): RR points with cumulative timestamps in an RRSeries keyed by the session's own id, endDate = start + RR sum, note 'Imported from <file>'.",

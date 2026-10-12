@@ -212,10 +212,17 @@ extension SleepHealthQueries {
     /// — nap minutes feed the recovery score's DURATION component only, never the
     /// night's architecture (efficiency / fragmentation / cycles / stage %).
     func fetchDaytimeNapMinutes(nightAnchoredAt nightAnchor: Date) async -> Int {
-        guard manager.isHealthKitAvailable, let sleepType = HKTypes.category(.sleepAnalysis) else { return 0 }
+        await fetchDaytimeNapMinutesIfReadable(nightAnchoredAt: nightAnchor) ?? 0
+    }
+
+    /// The same nap minutes, but nil when they could not be read (HealthKit
+    /// unavailable, or the query failed), so a caller that records "checked"
+    /// can tell "no nap" (0) from "don't know".
+    func fetchDaytimeNapMinutesIfReadable(nightAnchoredAt nightAnchor: Date) async -> Int? {
+        guard manager.isHealthKitAvailable, let sleepType = HKTypes.category(.sleepAnalysis) else { return nil }
         let window = manager.sleepSchedule.daytimeNapWindow(relativeTo: nightAnchor)
         guard window.end > window.start else { return 0 }
-        guard let samples = await napSamples(sleepType: sleepType, window: window) else { return 0 }
+        guard let samples = await napSamples(sleepType: sleepType, window: window) else { return nil }
         let intervals = Self.asleepIntervals(samples, clippedTo: window)
         guard !intervals.isEmpty else { return 0 }
         return Self.qualifyingNapMinutes(

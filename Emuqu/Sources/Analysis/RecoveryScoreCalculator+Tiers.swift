@@ -58,7 +58,7 @@ extension RecoveryScoreCalculator {
         // variability signals instability. Deductions only.
         score += cvAdjustment(stats.lnRmssdCV7Day)?.points ?? 0
         score += ansBalanceAdjustment(ansBalance)
-        score -= baselineStaleness(stats: stats, referenceDate: referenceDate)?.penalty ?? 0
+        score -= baselineStalenessPenalty(stats: stats, referenceDate: referenceDate)?.penalty ?? 0
         return score
     }
 
@@ -82,7 +82,7 @@ extension RecoveryScoreCalculator {
     /// comparison is against stale data that may no longer represent current
     /// physiology. Nil when the baseline is not stale (or has no last date);
     /// otherwise its age in days and the points deducted.
-    static func baselineStaleness(
+    static func baselineStalenessPenalty(
         stats: BaselineTracker.RecoveryBaselineStats,
         referenceDate: Date
     ) -> (days: Int, penalty: Double)? {

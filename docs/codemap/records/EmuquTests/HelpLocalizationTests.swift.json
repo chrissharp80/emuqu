@@ -59,10 +59,10 @@
     "Emuqu/Sources/Views/HelpContent+Science.swift::func HelpContent.categories(forAge:)": "1e8352913895189b",
     "Emuqu/Sources/Views/HelpContent+Science.swift::func HelpContent.englishCategories(forAge:)": "fa6d8626eb19f40e",
     "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::func HelpScienceCatalog.hrvScience(forAge:)": "fa9b822c2a1d3fe8",
-    "Emuqu/Sources/Views/HelpLocalization.swift::func HelpLocalization.format(_:_:)": "a1b3ba8dcf2bda33",
+    "Emuqu/Sources/Views/HelpLocalization.swift::func HelpLocalization.format(_:_:)": "27f088fa1d544f70",
     "Emuqu/Sources/Views/HelpLocalization.swift::func HelpLocalization.startRecording()": "072aca18ef3f9cae",
     "Emuqu/Sources/Views/HelpLocalization.swift::func HelpLocalization.stopRecording()": "b5952a580dffdc0f",
-    "Emuqu/Sources/Views/HelpLocalization.swift::func HelpLocalization.string(_:)": "f15cd7bae82ff838",
+    "Emuqu/Sources/Views/HelpLocalization.swift::func HelpLocalization.string(_:)": "0277394aa70cf404",
     "Emuqu/Sources/Views/HelpLocalization.swift::var ArticleSection.localized": "a9c0361da38a04ab",
     "Emuqu/Sources/Views/HelpLocalization.swift::var HelpArticle.localized": "e651e04da0d378ed",
     "Emuqu/Sources/Views/HelpLocalization.swift::var HelpCategory.localized": "d95e816a8421e98f"
@@ -118,8 +118,8 @@
   },
   {
    "key": "func HelpLocalizationTests.testTheContentLooksUpAKnownNumberOfStrings()",
-   "hash": "f7d37ee0fd225523",
-   "does": "Records every Help key, exports if requested, and asserts more than 300 keys and none containing the U+2060 formatted-mark.",
+   "hash": "33134728bd3febfb",
+   "does": "Records every Help key (everyHelpKey), exports it when HELP_KEYS_OUT is set, and asserts more than 300 keys were seen. (That no formatted string is looked up as a key is testAFormattedStringIsNotLookedUpAgain.)",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "EmuquTests/HelpLocalizationTests.swift::func HelpLocalizationTests.everyHelpKey()",
@@ -132,6 +132,31 @@
    "deps": {
     "EmuquTests/HelpLocalizationTests.swift::func HelpLocalizationTests.everyHelpKey()": "5fab2bb501e0bf36",
     "EmuquTests/HelpLocalizationTests.swift::func HelpLocalizationTests.exportKeysIfRequested(_:)": "f1b7966a7e6adb7d"
+   }
+  },
+  {
+   "key": "func HelpLocalizationTests.testAFormattedStringIsNotLookedUpAgain()",
+   "hash": "a51d142548be7bc3",
+   "does": "While recording, formats a probe template with value 41, passes the result back through HelpLocalization.string, and asserts the filled text is \"HelpLocalizationTests probe 41\", string returns it unchanged, it was not recorded as a key, and the template was.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Views/HelpLocalization.swift::func HelpLocalization.startRecording()",
+    "Emuqu/Sources/Views/HelpLocalization.swift::func HelpLocalization.format(_:_:)",
+    "Emuqu/Sources/Views/HelpLocalization.swift::func HelpLocalization.string(_:)",
+    "Emuqu/Sources/Views/HelpLocalization.swift::func HelpLocalization.stopRecording()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:HelpLocalization.recorder",
+    "mem:HelpLocalization.formattedTexts"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HelpLocalization.swift::func HelpLocalization.format(_:_:)": "27f088fa1d544f70",
+    "Emuqu/Sources/Views/HelpLocalization.swift::func HelpLocalization.startRecording()": "072aca18ef3f9cae",
+    "Emuqu/Sources/Views/HelpLocalization.swift::func HelpLocalization.stopRecording()": "b5952a580dffdc0f",
+    "Emuqu/Sources/Views/HelpLocalization.swift::func HelpLocalization.string(_:)": "0277394aa70cf404"
    }
   },
   {

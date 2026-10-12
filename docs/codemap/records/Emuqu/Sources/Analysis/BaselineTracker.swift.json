@@ -719,20 +719,7 @@
      "effect": "returns nil; else deviation(of:against:) (nil below 3 nights)"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "RRCollector+Import.save admits the session via update(with:) and then calls deviation(for:) on the same session, so an imported night's displayed % deviation is computed against a baseline that already contains that night, pulling every deviation toward 0. deviation(for:sleepSchedule:) now excludes the night; the import path (outside this file) still calls deviation(for:).",
-     "evidence": [
-      "Emuqu/Sources/Analysis/BaselineTracker.swift:513",
-      "Emuqu/Sources/Analysis/BaselineTracker.swift:524",
-      "Emuqu/Sources/Collection/RRCollector+Import.swift:42",
-      "Emuqu/Sources/Collection/RRCollector+Import.swift:43"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.deviation(of:against:)": "47f57f1203015992",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.baseline": "ba410d90f6e968ea"

@@ -578,13 +578,14 @@
   },
   {
    "key": "func SessionReanalysisCoordinator.reanalyzeAllSessions(from:to:progress:)",
-   "hash": "347729f38c963ddd",
-   "does": "Forwards reanalyze-all to ReanalysisService with every archived session, decoded in full off the main actor.",
+   "hash": "71a08194afefa241",
+   "does": "Reanalyzes every archived session (decoded in full off the main actor) in the date range through ReanalysisService's reanalyzeOne overload, passing this coordinator's reanalyzeSession as the per-session pass so each night gets the past-day training load, warm cache and in-flight guard of a single Reanalyze; the service loop skips windowUserAdjusted sessions.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::var SessionReanalysisCoordinator.reanalysisService",
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.archivedSessionsOffMain()",
-    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.reanalyzeAllSessions(sessions:from:to:progress:)"
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.reanalyzeAllSessions(sessions:from:to:reanalyzeOne:progress:)",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.reanalyzeSession(_:method:)"
    ],
    "reads": [
     "archive:all sessions"
@@ -593,9 +594,10 @@
    "branches": [],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.reanalyzeSession(_:method:)": "2031f3f89a9dbdba",
     "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::var SessionReanalysisCoordinator.reanalysisService": "0b95874d688decae",
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.archivedSessionsOffMain()": "66badac7c93e60a3",
-    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.reanalyzeAllSessions(sessions:from:to:progress:)": "8142056d23ff233c"
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.reanalyzeAllSessions(sessions:from:to:reanalyzeOne:progress:)": "e95e423f5aa64a61"
    }
   },
   {

@@ -171,6 +171,12 @@ enum ScoreDetailBuilder {
     /// score or falls back to neutral; the note then says whether a baseline
     /// exists, so a night with a baseline but no HRV reading is never called
     /// "No baseline yet".
+    ///
+    /// The base score is rounded, not truncated, so base + shown adjustments
+    /// land within a point or two of the factor score. They are not an exact
+    /// reconstruction: each part is rounded on its own, and the factor is
+    /// clamped to 0–100 while the shown parts are not (a z ≤ −3 base of 5
+    /// with −10 of adjustments shows −5 against a factor of 0).
     static func describeHRV(
         rmssd: Double?,
         baselineStats: BaselineTracker.RecoveryBaselineStats?,
@@ -187,11 +193,6 @@ enum ScoreDetailBuilder {
             return .note(hrvReadiness != nil ? .hrvNoBaselineUsingReadiness : .hrvNoBaseline)
         }
         let z = (log(r) - stats.lnRmssdMean) / stats.lnRmssdSD
-        // Rounded, not truncated, so base + shown adjustments land within a
-        // point or two of the factor score. They are not an exact
-        // reconstruction: each part is rounded on its own, and the factor is
-        // clamped to 0–100 while the shown parts are not (a z ≤ −3 base of 5
-        // with −10 of adjustments shows −5 against a factor of 0).
         let baseScore = Int(RecoveryScoreCalculator.zToRecoveryScore(z).rounded())
         var adjustments = restingHRAdjustments(meanHR: meanHR, stats: stats)
         adjustments += dfaAlpha1Adjustments(dfaAlpha1) + cvAdjustments(stats.lnRmssdCV7Day)
@@ -233,12 +234,12 @@ enum ScoreDetailBuilder {
     /// Surface the silent baseline-staleness penalty so
     /// the user understands a score drop attributable to gap-in-recording
     /// rather than physiological change. Reads the penalty `calculateTier1`
-    /// deducts (`RecoveryScoreCalculator.baselineStaleness`), rounded.
+    /// deducts (`RecoveryScoreCalculator.baselineStalenessPenalty`), rounded.
     static func baselineStalenessAdjustments(
         stats: BaselineTracker.RecoveryBaselineStats,
         referenceDate: Date
     ) -> [ScoreFactorFacts.Adjustment] {
-        guard let stale = RecoveryScoreCalculator.baselineStaleness(stats: stats, referenceDate: referenceDate) else {
+        guard let stale = RecoveryScoreCalculator.baselineStalenessPenalty(stats: stats, referenceDate: referenceDate) else {
             return []
         }
         let penaltyRounded = Int(stale.penalty.rounded())
@@ -379,7 +380,7 @@ enum ScoreDetailBuilder {
     // MARK: - Baseline Staleness
 
     /// Whole days between the baseline's most recent data point and the
-    /// reference date, for `RecoveryScoreCalculator.baselineStaleness`, which
+    /// reference date, for `RecoveryScoreCalculator.baselineStalenessPenalty`, which
     /// both the score penalty and the shown adjustment read. Pure: the reference date is injected — no wall-clock read —
     /// which keeps the recovery score deterministic for a given input.
     static func baselineStalenessDays(baselineDate: Date, referenceDate: Date) -> Int {

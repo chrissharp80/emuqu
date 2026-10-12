@@ -166,10 +166,11 @@
   },
   {
    "key": "func ReanalysisService.applySleepBoundaries(_:to:sessionStart:)",
-   "hash": "6aae1be74e97c00e",
-   "does": "Sets sleepSnapshot, writes sleep start/end offsets clamped to [0, recording duration], and rewrites segments.",
+   "hash": "6e0eaaf39ee1645e",
+   "does": "Sets sleepSnapshot, converts the new sleep start/end to rounded ms offsets from sessionStart via MillisecondOffset.between (nil when absent or not representable), writes them clamped to [0, recording duration], and rewrites segments.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:)",
     "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.clamp(sleepStartMs:sleepEndMs:recordingDurationMs:)",
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.recordingDurationMs(of:)",
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.applySegments(_:to:sessionStart:)"
@@ -194,7 +195,7 @@
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.applySegments(_:to:sessionStart:)": "dfa312945b7fe432",
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.recordingDurationMs(of:)": "3e6a5b1c40f8577c",
-    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.sleepEnd(of:)": "b0b34d19018e2344"
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:)": "eed24a8b84f4db4d"
    }
   },
   {
@@ -304,24 +305,25 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.applySleepBoundaries(_:to:sessionStart:)": "8b02f0b4c76e6b42",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.applySleepBoundaries(_:to:sessionStart:)": "5c9356175bd72f8e",
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.rescoreAfterSleepChange(_:sessionEnd:)": "5bc35491ee393569",
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.shouldRetroApply(to:newSleep:sessionEnd:)": "5607f3131bedb610"
    }
   },
   {
    "key": "func ReanalysisService.reanalyzeAtPosition(_:targetMs:)",
-   "hash": "808d57dcea3c3856",
-   "does": "Hydrates the session from the archive if lightweight, picks frozen training context (snapshot → result → provider), and asks the pipeline to reanalyze at targetMs with the session's ANS config.",
+   "hash": "caa6003d3909b4c2",
+   "does": "Starts from the current archived copy of the session (latestArchivedCopy, falling back to the given copy), hydrates it from the archive if lightweight, picks frozen training context (snapshot → result → provider), and asks the pipeline to reanalyze at targetMs with the session's ANS config.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.latestArchivedCopy(of:)",
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.hydrated(_:)",
     "closure:ReanalysisService.trainingContextProvider — RRCollector+Reanalysis.swift:34 collector.createTrainingContext(relativeTo:)",
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.reanalyzeAtPosition(session:targetMs:trainingContext:ansConfig:)",
     "closure:ReanalysisService.ansConfigProvider — RRCollector+Reanalysis.swift:33"
    ],
    "reads": [
-    "archive:SessionArchive.retrieve (hydrate)"
+    "archive:SessionArchive.retrieve (latest copy, hydrate)"
    ],
    "writes": [],
    "branches": [
@@ -340,15 +342,17 @@
    "deps": {
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.reanalyzeAtPosition(session:targetMs:trainingContext:ansConfig:)": "4b69cd9006af7fa0",
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.latestArchivedCopy(of:)": "25472a9e035decf1",
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.hydrated(_:)": "3016b2dce8dcfa7e"
    }
   },
   {
    "key": "func ReanalysisService.applyManualAnalysis(_:result:)",
-   "hash": "d0d2db73acc3668d",
-   "does": "Applies a manually chosen analysis: hydrates, marks result isReanalysis with frozen training context, preserves the auto window result/score on the first manual pick, sets windowUserAdjusted, re-classifies the session against the picked window's result (reclassifyHRVQuality), recomputes the deterministic score and persists.",
+   "hash": "1782f50520a1a9f7",
+   "does": "Applies a manually chosen analysis to the current archived copy of the session (latestArchivedCopy, so earlier in-sheet archive writes such as a strap merge or sleep adjustment are kept; falls back to the given copy when not archived): hydrates, marks result isReanalysis with frozen training context, preserves the auto window result/score on the first manual pick, sets windowUserAdjusted, re-classifies the session against the picked window's result (reclassifyHRVQuality), recomputes the deterministic score and persists.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.latestArchivedCopy(of:)",
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.hydrated(_:)",
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.preserveAutoWindow(of:on:)",
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.reclassifyHRVQuality(of:result:)",
@@ -356,7 +360,7 @@
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.persistManualAnalysis(_:originalId:)"
    ],
    "reads": [
-    "archive:SessionArchive.retrieve (hydrate)"
+    "archive:SessionArchive.retrieve (latest copy, hydrate)"
    ],
    "writes": [],
    "branches": [
@@ -375,10 +379,42 @@
    "deps": {
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7",
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.applyDeterministicScore(to:result:training:)": "76fb73cf0fc053cd",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.latestArchivedCopy(of:)": "25472a9e035decf1",
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.persistManualAnalysis(_:originalId:)": "95696db27ad14052",
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.preserveAutoWindow(of:on:)": "c13479e0d58edb37",
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.hydrated(_:)": "3016b2dce8dcfa7e",
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.reclassifyHRVQuality(of:result:)": "362dbefc2239a9d8"
+   }
+  },
+  {
+   "key": "func ReanalysisService.latestArchivedCopy(of:)",
+   "hash": "282473eb2a3e0a74",
+   "does": "Returns the archived copy of the session by id (what the archive holds now, including sleep edits, strap merges or rescores made after a sheet captured its copy); falls back to the given session when it is not archived (retrieve returns nil) or the read throws (logged as a warning).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.retrieve"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "retrieve returns a session",
+     "effect": "return it; nil: return the given session"
+    },
+    {
+     "at": "+3",
+     "cond": "retrieve throws",
+     "effect": "log warning and return the given session"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "8782e72ec2fc6000",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
   {

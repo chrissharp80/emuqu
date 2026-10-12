@@ -1,12 +1,12 @@
 {
  "file": "Emuqu/Sources/Assistant/VoiceConversationController.swift",
- "hash": "8c7d16ea02d6d3eb",
+ "hash": "32af6255200f4669",
  "role": "Declares the @Observable @MainActor VoiceConversationController singleton that runs hands-free voice chat (STT -> shared AssistantViewModel -> streaming TTS) during workouts, its typed errors, its State enum (mirrored to the Watch), all its stored tuning constants and state, and the thin forwarding wrappers into VoiceAudioPipeline; also recognizer construction (boot/refreshLanguageForSession).",
  "types": [
   "VoiceConversationController: class (@Observable @MainActor, NSObject) — voice chat state machine singleton; extended by +Control/+Pipeline(via VoiceAudioPipeline)/+Speech/+Audio",
   "VoiceConversationController.VoiceError: enum (LocalizedError) — recognizer/audio-session/audio-input startup failures with localized copy",
   "VoiceConversationController.State: enum — idle/starting/listening/thinking/speaking/triggerSpeaking with watchLabel strings",
-  "VoiceConversationController.PendingTrigger: enum — queued spokenLiteral(String) or aiPrompt(String)"
+  "VoiceTriggerQueue: struct — the coach triggers queued behind the conversation (capacity 8, oldest dropped); Trigger enum spokenLiteral(String) / aiPrompt(String)"
  ],
  "state": [
   "mem:VoiceConversationController.shared (static singleton)",
@@ -37,7 +37,7 @@
   "mem:VoiceConversationController.activeAssistantIndex",
   "mem:VoiceConversationController.spokenCharCursor",
   "mem:VoiceConversationController.preemptedState",
-  "mem:VoiceConversationController.pendingTriggers",
+  "mem:VoiceConversationController.pendingTriggers (VoiceTriggerQueue value)",
   "mem:VoiceConversationController.silenceTimer",
   "mem:VoiceConversationController.ttsStartedAt",
   "mem:VoiceConversationController.bufferLoggedNonSilent/buffersSinceTaskStart/peakRMSSinceTaskStart/lastBufferRMS/bufferTickCount (diagnostics)",
@@ -45,9 +45,11 @@
   "mem:VoiceConversationController.turnStartedAt/consecutiveEmptyReArms/firstPartialRestartsThisTurn/lastTranscriptGrowthAt/lastTranscriptLength/lastVoiceDetectedAt/totalVoiceSecondsThisTurn/lastBufferAt",
   "barge-in constants: bargeInRMSThreshold=0.018, bargeInSustainedSec=0.3, bargeInMinNewWords=2, bargeInGracePeriodSec=0.6 (var)",
   "mem:VoiceConversationController.lastSubBargeInRMSAt/bargeInBaselineLength/bargeInBaselineWordCount",
-  "mem:VoiceConversationController.interruptionObserver (NotificationCenter token for AVAudioSession.interruptionNotification)"
+  "mem:VoiceConversationController.interruptionObserver (NotificationCenter token for AVAudioSession.interruptionNotification)",
+  "VoiceTriggerQueue.capacity=8",
+  "mem:VoiceTriggerQueue.items (private)"
  ],
- "toplevel": "Stored-property initializers: shared singleton built on first access; synthesizer and audioEngine are lazy (synthesizer's closure initializer wires its delegate to self, so construction builds neither); textChunker = SpokenTextChunker() at construction. No explicit init: NSObject's init() is inherited. State conforms to Equatable. The class is @Observable so the UI and the Watch mirror observe state/partialTranscript/currentResponseText/permissionError.",
+ "toplevel": "Stored-property initializers: shared singleton built on first access; synthesizer and audioEngine are lazy (synthesizer's closure initializer wires its delegate to self, so construction builds neither); textChunker = SpokenTextChunker() at construction. No explicit init: NSObject's init() is inherited. State conforms to Equatable. The class is @Observable so the UI and the Watch mirror observe state/partialTranscript/currentResponseText/permissionError. VoiceTriggerQueue (declared after the class) holds the queue's array and its cap, so the controller and its extensions go through enqueue/popFirst/removeAll/discardSpokenLines.",
  "flags": [
   {
    "kind": "unreachable-branch",
@@ -59,17 +61,6 @@
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift:216",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift:242",
     "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift:102"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "spec-mismatch",
-   "sev": "med",
-   "text": "Header comment says an urgent trigger 'stops whatever the conversation is doing' and returns to the prior state, but the trigger path only cancels the interjection llmTask; the shared AssistantViewModel stream and its TTS observers keep running, so the reply's later chunks are still spoken during/after the alert.",
-   "evidence": [
-    "Emuqu/Sources/Assistant/VoiceConversationController.swift:22",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift:431",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift:633"
    ],
    "found": "first read, upheld on second"
   }
@@ -419,25 +410,23 @@
   },
   {
    "key": "func VoiceConversationController.discardPendingSpokenTriggers()",
-   "hash": "2d06601de7dbe62d",
-   "does": "Removes every queued .spokenLiteral trigger line from pendingTriggers, keeping queued .aiPrompt entries. Called by WorkoutVoiceCoach when the user mutes the coach, so lines queued before the mute don't play after it.",
+   "hash": "fcad06ab4f649668",
+   "does": "Removes every queued .spokenLiteral trigger line from pendingTriggers (VoiceTriggerQueue.discardSpokenLines), keeping queued .aiPrompt entries. Called by WorkoutVoiceCoach when the user mutes the coach, so lines queued before the mute don't play after it.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceTriggerQueue.discardSpokenLines()"
+   ],
    "reads": [
     "mem:VoiceConversationController.pendingTriggers"
    ],
    "writes": [
     "mem:VoiceConversationController.pendingTriggers"
    ],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "entry is .spokenLiteral",
-     "effect": "removed; .aiPrompt kept"
-    }
-   ],
+   "branches": [],
    "flags": [],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceTriggerQueue.discardSpokenLines()": "bb1826116451a354"
+   }
   },
   {
    "key": "func VoiceConversationController.boot()",
@@ -605,6 +594,114 @@
      "at": "+1",
      "cond": "SFSpeechRecognizer(locale:) nil ??",
      "effect": "falls back to an en-US recognizer (can itself be nil)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var VoiceTriggerQueue.isEmpty",
+   "hash": "b2108bd9266acc6e",
+   "does": "True when no trigger is queued.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:VoiceTriggerQueue.items (the VoiceConversationController.pendingTriggers value)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var VoiceTriggerQueue.count",
+   "hash": "ebd43a6c42c5513c",
+   "does": "Number of queued triggers (logged by queueTrigger).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:VoiceTriggerQueue.items (the VoiceConversationController.pendingTriggers value)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func VoiceTriggerQueue.enqueue(_:)",
+   "hash": "cbac36512509f50c",
+   "does": "Appends the trigger, then drops the oldest entries beyond capacity (8: by drain time anything older is stale, and each entry holds a full prompt string); returns how many were dropped.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:VoiceTriggerQueue.items (the VoiceConversationController.pendingTriggers value)"
+   ],
+   "writes": [
+    "mem:VoiceTriggerQueue.items (the VoiceConversationController.pendingTriggers value)"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "count > capacity",
+     "effect": "removeFirst(count - capacity); 0 dropped otherwise"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func VoiceTriggerQueue.popFirst()",
+   "hash": "74d2b00f7bc99529",
+   "does": "Removes and returns the oldest queued trigger; nil when empty.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:VoiceTriggerQueue.items (the VoiceConversationController.pendingTriggers value)"
+   ],
+   "writes": [
+    "mem:VoiceTriggerQueue.items (the VoiceConversationController.pendingTriggers value)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "queue empty",
+     "effect": "nil; else removeFirst"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func VoiceTriggerQueue.removeAll()",
+   "hash": "70ccfa0cae95067e",
+   "does": "Empties the queue (VoiceConversationController.stop: queued triggers must not play in the next conversation).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:VoiceTriggerQueue.items (the VoiceConversationController.pendingTriggers value)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func VoiceTriggerQueue.discardSpokenLines()",
+   "hash": "c115f858ff865be0",
+   "does": "Removes every queued .spokenLiteral line; queued .aiPrompt entries (workout start readout, post-workout summary) stay.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:VoiceTriggerQueue.items (the VoiceConversationController.pendingTriggers value)"
+   ],
+   "writes": [
+    "mem:VoiceTriggerQueue.items (the VoiceConversationController.pendingTriggers value)"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "entry is .spokenLiteral",
+     "effect": "removed; .aiPrompt kept"
     }
    ],
    "flags": [],

@@ -669,8 +669,8 @@
   },
   {
    "key": "§ Emuqu — A Measurement-Grounded Assistant with a Multilingual Regulated-Claim Per > 3. Methods > 3.8 Build-time copy linter",
-   "hash": "c310e5b45da3df20",
-   "does": "Specifies the build-time copy linter (Tools/copy_linter/lint.py): Swift literal scanner, prohibition-context exemption within a 3-line window on comment-stripped source, key-level catalog allow-list, 62 English patterns plus multilingual neverInStaticCopy parsed from the lexicon source in every locale, exit 2 on bad input. The 62-pattern count matches prohibited_terms.json user_facing_prohibited; scanner internals are Python (outside Swift unit ids).",
+   "hash": "8bdd985bef49cb49",
+   "does": "Specifies the build-time copy linter (Tools/copy_linter/lint.py): Swift literal scanner, prohibition-context exemption within a 3-line window on comment-stripped source, key-level catalog allow-list, 62 English patterns plus multilingual neverInStaticCopy parsed from the lexicon source in every locale; exit 2 on bad input incl. an uncompilable prohibited_terms.json pattern or negation guard, while a lexicon concept that is not found, has no alternatives or does not compile is skipped silently (translated_claim_patterns), exit 2 only when none survive; all 12 load today.",
    "entry": null,
    "calls": [
     "Tools/copy_linter/lint.py::def main",
@@ -685,6 +685,7 @@
     "Tools/copy_linter/lint.py::def translated_claim_patterns",
     "Tools/copy_linter/lint.py::def collect_targets",
     "Makefile::target copy-perimeter",
+    "Tools/copy_linter/lint.py::def translated_claim_patterns.alternatives",
     ".github/workflows/ci.yml::step lint-and-budgets/FDA copy perimeter",
     ".github/workflows/gates.yml::step script-gates/Copy perimeter, science register, scoring governance"
    ],
@@ -692,18 +693,6 @@
    "writes": [],
    "branches": [],
    "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "Paper says the linter exits 2 on 'an uncompilable pattern'. That holds only for prohibited_terms.json patterns and negation guards. For the multilingual neverInStaticCopy concepts, a concept whose alternatives fail to compile (re.error -> continue) or whose `static let X = Concept(` block the regex cannot find (concept is None -> continue) is silently dropped; exit 2 happens only when zero concepts survive. A typo in one lexicon concept removes that concept from the every-locale catalogue check while the linter still prints 'clean'. (All 12 load today.)",
-     "evidence": [
-      "docs/whitepapers/03-grounded-health-assistant.md:439",
-      "Tools/copy_linter/lint.py:446",
-      "Tools/copy_linter/lint.py:482",
-      "Tools/copy_linter/lint.py:486"
-     ],
-     "found": "second read"
-    },
     {
      "kind": "spec-mismatch",
      "sev": "low",
@@ -742,7 +731,8 @@
     "Tools/copy_linter/lint.py::def scan_xcstrings": "68ea2595608126f3",
     "Tools/copy_linter/lint.py::def strip_interpolations": "30cc738a92e3b909",
     "Tools/copy_linter/lint.py::def strip_swift_comments": "3273dffb9acac793",
-    "Tools/copy_linter/lint.py::def translated_claim_patterns": "ff4c71db88aa20f1"
+    "Tools/copy_linter/lint.py::def translated_claim_patterns": "ff4c71db88aa20f1",
+    "Tools/copy_linter/lint.py::def translated_claim_patterns.alternatives": "5b3628c2cb629004"
    }
   },
   {

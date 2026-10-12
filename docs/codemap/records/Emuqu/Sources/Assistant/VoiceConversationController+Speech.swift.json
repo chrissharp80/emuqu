@@ -1,20 +1,21 @@
 {
  "file": "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift",
- "hash": "86ca976d5682e276",
- "role": "VoiceConversationController TTS side: speak() with output scrub, hallucination guard, 'Flo here. <Model>.' preamble and TTS normalization; permission requests; the voice-coach system prompt; the AVSpeechSynthesizerDelegate that restores state/re-arms listening after speech; barge-in detection and echo wrappers; ConversationVoicePicker for the TTS voice; file-private perimeterScrubbed.",
+ "hash": "2324ce1fbec65dab",
+ "role": "VoiceConversationController TTS side: speak() with output scrub, hallucination guard, 'Flo here. <Model>.' preamble and TTS normalization; ensurePermissions (via VoicePermissionGate); buildSystemPrompt (via VoiceCoachPrompt); the AVSpeechSynthesizerDelegate that restores state/re-arms listening after speech; barge-in detection and echo wrappers; ConversationVoicePicker for the TTS voice; file-private perimeterScrubbed. VoicePermissionGate (speech/mic permission checks and their messages) and VoiceCoachPrompt (the interjection system prompt text) are separate enums in this file.",
  "types": [
-  "VoiceConversationController: extension — TTS, permissions, system prompt, barge-in",
+  "VoiceConversationController: extension — TTS, ensurePermissions, buildSystemPrompt, barge-in",
   "VoiceConversationController: extension (AVSpeechSynthesizerDelegate) — didStart/didFinish",
-  "ConversationVoicePicker: enum — preferred language and best installed voice (cached)"
+  "ConversationVoicePicker: enum — preferred language and best installed voice (cached)",
+  "VoicePermissionGate: enum (@MainActor) — speech-recognition then microphone permission checks, returning the localized refusal",
+  "VoiceCoachPrompt: enum — persona + hard-rules system prompt for interjections"
  ],
  "state": [
   "mem:ConversationVoicePicker.cache (OSAllocatedUnfairLock<[String: AVSpeechSynthesisVoice]>, per-launch)",
-  "VoiceConversationController.voiceCoachPersona (static prompt text)",
-  "VoiceConversationController.voiceCoachHardRules (static prompt text)",
   "utterance rate = default*0.96, zero pre/post delay",
-  "listen-after-drain delay 1.2 s; restart-after-stop delay 100 ms"
+  "listen-after-drain delay 1.2 s; restart-after-stop delay 100 ms",
+  "VoiceCoachPrompt.persona / hardRules (private static prompt text)"
  ],
- "toplevel": "Static let prompt strings voiceCoachPersona/voiceCoachHardRules; AVSpeechSynthesizerDelegate conformance; ConversationVoicePicker.cache initialised empty on first access; file-private perimeterScrubbed.",
+ "toplevel": "Private static let prompt strings VoiceCoachPrompt.persona/hardRules; AVSpeechSynthesizerDelegate conformance; ConversationVoicePicker.cache initialised empty on first access; file-private perimeterScrubbed.",
  "flags": [],
  "units": [
   {
@@ -469,264 +470,43 @@
   },
   {
    "key": "func VoiceConversationController.ensurePermissions()",
-   "hash": "a3e9178f5ac80dfb",
-   "does": "Requires speech-recognition authorization, then microphone permission.",
+   "hash": "5b642fa2114184ac",
+   "does": "Requires speech-recognition authorization, then microphone permission (VoicePermissionGate.denialMessage); on a refusal stores the localized reason in permissionError and returns false.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.speechRecognitionAllowed()",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.micAllowed()"
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoicePermissionGate.denialMessage()"
    ],
    "reads": [],
-   "writes": [],
+   "writes": [
+    "mem:VoiceConversationController.permissionError"
+   ],
    "branches": [
     {
      "at": "+1",
-     "cond": "speech not allowed",
-     "effect": "false without checking mic"
+     "cond": "denialMessage nil (both granted)",
+     "effect": "true; else permissionError = message, false"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.micAllowed()": "97e61b78857109f1",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.speechRecognitionAllowed()": "b0517c0abeb9e0cd"
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoicePermissionGate.denialMessage()": "3301e559c72a7b42"
    }
-  },
-  {
-   "key": "func VoiceConversationController.speechRecognitionAllowed()",
-   "hash": "2e0b47e20eb2f4c1",
-   "does": "Reads SFSpeechRecognizer status: authorized → true; notDetermined → request; denied/restricted/unknown → set localized permissionError and false.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.describe(_: SFSpeechRecognizerAuthorizationStatus)",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.requestSpeechAuthorization()",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.report(_:)"
-   ],
-   "reads": [
-    "ext:SFSpeechRecognizer.authorizationStatus"
-   ],
-   "writes": [
-    "mem:VoiceConversationController.permissionError"
-   ],
-   "branches": [
-    {
-     "at": "+4",
-     "cond": "case .authorized",
-     "effect": "true"
-    },
-    {
-     "at": "+6",
-     "cond": "case .notDetermined",
-     "effect": "show system prompt"
-    },
-    {
-     "at": "+8",
-     "cond": "case .denied",
-     "effect": "error 'Speech Recognition is denied…' false"
-    },
-    {
-     "at": "+11",
-     "cond": "case .restricted",
-     "effect": "error 'restricted…' false"
-    },
-    {
-     "at": "+14",
-     "cond": "@unknown default",
-     "effect": "generic error, false"
-    }
-   ],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.describe(_: SFSpeechRecognizerAuthorizationStatus)": "923c117cb239cbd0",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.report(_:)": "1362fb61a94dff32",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.requestSpeechAuthorization()": "a5d72d6721c049ba",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
-   }
-  },
-  {
-   "key": "func VoiceConversationController.requestSpeechAuthorization()",
-   "hash": "cb136e43dff70c71",
-   "does": "Requests speech authorization via continuation and reports a localized error when not granted.",
-   "entry": null,
-   "calls": [
-    "ext:SFSpeechRecognizer.requestAuthorization",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.describe(_: SFSpeechRecognizerAuthorizationStatus)",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.report(_:)"
-   ],
-   "reads": [],
-   "writes": [
-    "mem:VoiceConversationController.permissionError"
-   ],
-   "branches": [
-    {
-     "at": "+11",
-     "cond": "not authorized",
-     "effect": "report error; return false"
-    }
-   ],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.describe(_: SFSpeechRecognizerAuthorizationStatus)": "923c117cb239cbd0",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.report(_:)": "1362fb61a94dff32",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
-   }
-  },
-  {
-   "key": "func VoiceConversationController.micAllowed()",
-   "hash": "fbe7afa8d3b73be0",
-   "does": "Checks AVAudioApplication record permission; requests when undetermined; sets localized permissionError on denial.",
-   "entry": null,
-   "calls": [
-    "ext:AVAudioApplication.requestRecordPermission",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.describe(_: AVAudioApplication.recordPermission)",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.report(_:)"
-   ],
-   "reads": [
-    "ext:AVAudioApplication.recordPermission"
-   ],
-   "writes": [
-    "mem:VoiceConversationController.permissionError"
-   ],
-   "branches": [
-    {
-     "at": "+4",
-     "cond": "case .granted",
-     "effect": "true"
-    },
-    {
-     "at": "+6",
-     "cond": "case .undetermined",
-     "effect": "prompt"
-    },
-    {
-     "at": "+9",
-     "cond": "granted ?: log text",
-     "effect": "'granted'/'denied'"
-    },
-    {
-     "at": "+10",
-     "cond": "not granted",
-     "effect": "report error"
-    },
-    {
-     "at": "+12",
-     "cond": "case .denied",
-     "effect": "error 'Microphone access is denied…' false"
-    },
-    {
-     "at": "+15",
-     "cond": "@unknown default",
-     "effect": "generic error false"
-    }
-   ],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.describe(_: AVAudioApplication.recordPermission)": "845f593a909bf6ec",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.report(_:)": "1362fb61a94dff32",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
-   }
-  },
-  {
-   "key": "func VoiceConversationController.report(_:)",
-   "hash": "2f66fd8d5ef0144a",
-   "does": "Sets permissionError on the main actor.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [
-    "mem:VoiceConversationController.permissionError"
-   ],
-   "branches": [],
-   "flags": [],
-   "deps": {}
-  },
-  {
-   "key": "func VoiceConversationController.describe(_: SFSpeechRecognizerAuthorizationStatus)",
-   "hash": "f7579a2459a586ea",
-   "does": "String name for an SFSpeechRecognizerAuthorizationStatus (logging).",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": ".notDetermined",
-     "effect": "'notDetermined'"
-    },
-    {
-     "at": "+3",
-     "cond": ".denied",
-     "effect": "'denied'"
-    },
-    {
-     "at": "+4",
-     "cond": ".restricted",
-     "effect": "'restricted'"
-    },
-    {
-     "at": "+5",
-     "cond": ".authorized",
-     "effect": "'authorized'"
-    },
-    {
-     "at": "+6",
-     "cond": "@unknown default",
-     "effect": "'unknown'"
-    }
-   ],
-   "flags": [],
-   "deps": {}
-  },
-  {
-   "key": "func VoiceConversationController.describe(_: AVAudioApplication.recordPermission)",
-   "hash": "05aff89e4bf8fdf8",
-   "does": "String name for an AVAudioApplication.recordPermission (logging).",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": ".undetermined",
-     "effect": "'undetermined'"
-    },
-    {
-     "at": "+3",
-     "cond": ".denied",
-     "effect": "'denied'"
-    },
-    {
-     "at": "+4",
-     "cond": ".granted",
-     "effect": "'granted'"
-    },
-    {
-     "at": "+5",
-     "cond": "@unknown default",
-     "effect": "'unknown'"
-    }
-   ],
-   "flags": [],
-   "deps": {}
   },
   {
    "key": "func VoiceConversationController.buildSystemPrompt()",
-   "hash": "baecaa9ff9475b0c",
-   "does": "Returns the voice-coach persona + hard rules system prompt used for interjections.",
+   "hash": "24e6e9b387efbd0d",
+   "does": "Returns the voice-coach persona + hard rules system prompt used for interjections (VoiceCoachPrompt.interjectionPrompt).",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::var VoiceCoachPrompt.interjectionPrompt"
+   ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::var VoiceCoachPrompt.interjectionPrompt": "a8c71fd12e33065c"
+   }
   },
   {
    "key": "func VoiceConversationController.speechSynthesizer(_:didStart:)",
@@ -830,7 +610,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.drainPendingTriggersIfIdle()": "bf0438cde040823b",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.drainPendingTriggersIfIdle()": "417612ef6e16d45b",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.scheduleListenAfterAudioDrain()": "1c34efd7e7441ff2",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.state": "1a896ccc8ae2dce3"
    }
@@ -870,7 +650,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/SpokenTextChunker.swift::var SpokenTextChunker.hasPendingContent": "4367fe4411b91ae5",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.drainPendingTriggersIfIdle()": "bf0438cde040823b",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.drainPendingTriggersIfIdle()": "417612ef6e16d45b",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.scheduleListenAfterAudioDrain()": "1c34efd7e7441ff2",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.assistantViewModel": "0b0ba54c8303a4e2",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
@@ -984,7 +764,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.interrupt()": "cf7cc8dcfee07493",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.interrupt()": "c600d95f7daeed9a",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.isLikelyEchoOfCurrentResponse(_:)": "3cb41c65f70415dc",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.wordCount(_:)": "b77fc07e1bc6624d",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::let VoiceConversationController.synthesizer": "a2b4f383513d2c85",
@@ -1304,6 +1084,252 @@
      "effect": "'unknown'"
     }
    ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func VoicePermissionGate.denialMessage()",
+   "hash": "62e3d288e92a378d",
+   "does": "Speech recognition first (speechRecognitionDenial), then the microphone (micDenial); nil when both are granted, else the localized reason. The mic is not checked once speech recognition is refused.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoicePermissionGate.speechRecognitionDenial()",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoicePermissionGate.micDenial()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "speech recognition refused",
+     "effect": "its message, mic not checked"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoicePermissionGate.micDenial()": "a82b1f53a613bb09",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoicePermissionGate.speechRecognitionDenial()": "42db4bd1c301e4ae"
+   }
+  },
+  {
+   "key": "var VoicePermissionGate.notGranted",
+   "hash": "3d86206cd1f215ac",
+   "does": "Localized 'Speech Recognition permission was not granted.'",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func VoicePermissionGate.speechRecognitionDenial()",
+   "hash": "508f12fe1f8fbaec",
+   "does": "Logs the SFSpeechRecognizer authorization status: authorized → nil; notDetermined → shows the system prompt (requestSpeechAuthorization); denied/restricted/unknown → the localized reason.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoicePermissionGate.describe(_: SFSpeechRecognizerAuthorizationStatus)",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoicePermissionGate.requestSpeechAuthorization()",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::var VoicePermissionGate.notGranted",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "ext:SFSpeechRecognizer.authorizationStatus"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "case .authorized",
+     "effect": "nil"
+    },
+    {
+     "at": "+6",
+     "cond": "case .notDetermined",
+     "effect": "show system prompt"
+    },
+    {
+     "at": "+8",
+     "cond": "case .denied",
+     "effect": "'Speech Recognition is denied…'"
+    },
+    {
+     "at": "+10",
+     "cond": "case .restricted",
+     "effect": "'restricted…'"
+    },
+    {
+     "at": "+12",
+     "cond": "@unknown default",
+     "effect": "notGranted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoicePermissionGate.describe(_: SFSpeechRecognizerAuthorizationStatus)": "923c117cb239cbd0",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoicePermissionGate.requestSpeechAuthorization()": "fd11a22ed5bd7f0f",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::var VoicePermissionGate.notGranted": "08b68aed207a0e9f",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func VoicePermissionGate.requestSpeechAuthorization()",
+   "hash": "464df86839e37301",
+   "does": "Shows the speech-recognition prompt (SFSpeechRecognizer.requestAuthorization via a @Sendable continuation callback) and logs the result; nil when authorized, else notGranted.",
+   "entry": null,
+   "calls": [
+    "ext:SFSpeechRecognizer.requestAuthorization",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoicePermissionGate.describe(_: SFSpeechRecognizerAuthorizationStatus)",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::var VoicePermissionGate.notGranted"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+11",
+     "cond": "status == .authorized",
+     "effect": "nil; else notGranted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoicePermissionGate.describe(_: SFSpeechRecognizerAuthorizationStatus)": "923c117cb239cbd0",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::var VoicePermissionGate.notGranted": "08b68aed207a0e9f",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func VoicePermissionGate.micDenial()",
+   "hash": "8959bc6c8ab5dadd",
+   "does": "Logs the AVAudioApplication record permission: granted → nil; undetermined → shows the prompt and returns nil or 'Microphone permission was not granted.'; denied → 'Microphone access is denied…'; unknown → 'Microphone permission was not granted.'",
+   "entry": null,
+   "calls": [
+    "ext:AVAudioApplication.requestRecordPermission",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoicePermissionGate.describe(_: AVAudioApplication.recordPermission)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "ext:AVAudioApplication.recordPermission"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "case .granted",
+     "effect": "nil"
+    },
+    {
+     "at": "+7",
+     "cond": "case .undetermined",
+     "effect": "prompt; nil when granted, else micNotGranted"
+    },
+    {
+     "at": "+12",
+     "cond": "case .denied",
+     "effect": "'Microphone access is denied…'"
+    },
+    {
+     "at": "+14",
+     "cond": "@unknown default",
+     "effect": "micNotGranted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoicePermissionGate.describe(_: AVAudioApplication.recordPermission)": "845f593a909bf6ec",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func VoicePermissionGate.describe(_: SFSpeechRecognizerAuthorizationStatus)",
+   "hash": "e0e1d2e98cf741b6",
+   "does": "String name for an SFSpeechRecognizerAuthorizationStatus (logging).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".notDetermined",
+     "effect": "'notDetermined'"
+    },
+    {
+     "at": "+3",
+     "cond": ".denied",
+     "effect": "'denied'"
+    },
+    {
+     "at": "+4",
+     "cond": ".restricted",
+     "effect": "'restricted'"
+    },
+    {
+     "at": "+5",
+     "cond": ".authorized",
+     "effect": "'authorized'"
+    },
+    {
+     "at": "+6",
+     "cond": "@unknown default",
+     "effect": "'unknown'"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func VoicePermissionGate.describe(_: AVAudioApplication.recordPermission)",
+   "hash": "0cbe1a21c0d1e0dd",
+   "does": "String name for an AVAudioApplication.recordPermission (logging).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".undetermined",
+     "effect": "'undetermined'"
+    },
+    {
+     "at": "+3",
+     "cond": ".denied",
+     "effect": "'denied'"
+    },
+    {
+     "at": "+4",
+     "cond": ".granted",
+     "effect": "'granted'"
+    },
+    {
+     "at": "+5",
+     "cond": "@unknown default",
+     "effect": "'unknown'"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var VoiceCoachPrompt.interjectionPrompt",
+   "hash": "b45f605d9dd119e1",
+   "does": "The persona (voice coach read aloud by TTS; be specific — anchored to a CONTEXT number — or be silent) followed by the hard rules (only CONTEXT data, never issue commands, user can interrupt), joined by a blank line.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
    "flags": [],
    "deps": {}
   },

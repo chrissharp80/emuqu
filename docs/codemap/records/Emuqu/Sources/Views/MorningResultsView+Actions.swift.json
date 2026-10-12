@@ -477,19 +477,6 @@
    ],
    "flags": [
     {
-     "kind": "data-loss",
-     "sev": "high",
-     "text": "Tags and notes edited in the Tags & Notes card (always rendered; writes vm.selectedTags/vm.notes) reach storage only through onUpdateTags (on Done and, via saveTagsAndNotesIfChanged in withLifecycle's onDisappear, on any dismissal — the History swipe-dismiss path is covered). Only HistoryView passes onUpdateTags: RecordView morning and quick reading (RecordView+Sections.swift morningResults/quickResults) and ImportDataView.importedResults pass none, and their own Done paths save RecordView's separate selectedTags/sessionNotes (RecordView+Results.swift saveMorningReading) or nothing, so edits made there are dropped. Handoff b23 to those callers.",
-     "evidence": [
-      "Emuqu/Sources/Views/MorningResultsView+Actions.swift:248",
-      "Emuqu/Sources/Views/RecordView+Sections.swift:341",
-      "Emuqu/Sources/Views/RecordView+Sections.swift:396",
-      "Emuqu/Sources/Views/ImportDataView.swift:117",
-      "Emuqu/Sources/Views/RecordView+Results.swift:131"
-     ],
-     "found": "second read"
-    },
-    {
      "kind": "spec-mismatch",
      "sev": "med",
      "text": "USERS_MANUAL says the report's Notes section 'Auto-saves when changed'; notes are handed over on Done or when the sheet closes (saveTagsAndNotesIfChanged), and only where the caller passes onUpdateTags (History). Completed by the b23 caller handoff plus a manual wording fix.",

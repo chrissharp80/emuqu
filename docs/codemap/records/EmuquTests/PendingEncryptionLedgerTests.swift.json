@@ -1,73 +1,81 @@
 {
  "file": "EmuquTests/PendingEncryptionLedgerTests.swift",
- "hash": "7b8bd9811dd013ed",
+ "hash": "10b826af6e2fc772",
  "role": "XCTest suite pinning the fail-closed storage contract: plaintext archive writes use .completeFileProtection (encrypted ones the until-first-unlock class), both atomic; choosing plaintext options records the session in PendingEncryptionLedger and encrypted options clear it; the ledger is idempotent, persisted to UserDefaults off the caller's thread, and cleared by clearAll.",
  "types": [
   "PendingEncryptionLedgerTests: class — XCTestCase over archiveWriteOptions and PendingEncryptionLedger",
   "CallingThreadProbe: private final class — counts UserDefaults change notifications delivered on the thread inside whileCalling"
  ],
  "state": [
+  "mem:PendingEncryptionLedgerTests.hostLedger (the host ledger captured in setUp, per store)",
   "mem:CallingThreadProbe.lock/callingThread/count"
  ],
  "toplevel": "",
- "flags": [
-  {
-   "kind": "test-defect",
-   "sev": "med",
-   "text": "setUp and tearDown call PendingEncryptionLedger.clearAll(), which empties the REAL ledger in the app host's standard UserDefaults (keys storage.pendingReencryption.sessionIDs/rawBackupIDs). Running the suite on a device or simulator whose app container holds sessions written without encryption erases their repair records, so reencryptPendingSessions never re-encrypts those files and they stay as plaintext health data.",
-   "evidence": [
-    "EmuquTests/PendingEncryptionLedgerTests.swift:33",
-    "EmuquTests/PendingEncryptionLedgerTests.swift:37",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift:106",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift:129",
-    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift:40"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "func PendingEncryptionLedgerTests.setUp()",
-   "hash": "6ff7818763de31d9",
-   "does": "Clears both ledger stores before each test.",
+   "hash": "00689656acd35db3",
+   "does": "Captures the host ledger (pending(in:) for .session and .rawBackup, which loads the UserDefaults and file copies) into hostLedger, then clears both stores so each test starts empty.",
    "entry": "XCTest per-test setUp",
    "calls": [
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.pending(in:)",
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clearAll()",
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.schedulePersist(_:)"
    ],
-   "reads": [],
+   "reads": [
+    "ud:storage.pendingReencryption.sessionIDs (standard suite)",
+    "ud:storage.pendingReencryption.rawBackupIDs (standard suite)",
+    "file:Application Support/PendingEncryption/<store key>.json"
+   ],
    "writes": [
     "ud:storage.pendingReencryption.sessionIDs (standard suite)",
     "ud:storage.pendingReencryption.rawBackupIDs (standard suite)",
-    "mem:PendingEncryptionLedger.cache"
+    "file:Application Support/PendingEncryption/<store key>.json",
+    "mem:PendingEncryptionLedger.cache",
+    "mem:PendingEncryptionLedgerTests.hostLedger"
    ],
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clearAll()": "ea4d87cde09d2117",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.schedulePersist(_:)": "a4dc8ab262237cce"
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clearAll()": "15358e501e007799",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.pending(in:)": "bb41fa12d89ea28f",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.schedulePersist(_:)": "fe581419a1e1c02e"
    }
   },
   {
    "key": "func PendingEncryptionLedgerTests.tearDown()",
-   "hash": "a43ca72adb310a3f",
-   "does": "Clears both ledger stores after each test.",
+   "hash": "34d76c69eb2aade2",
+   "does": "Clears both stores, re-records every id captured in setUp into its store (putting the host app's repair records back), and waits for the queued UserDefaults/file writes to land.",
    "entry": "XCTest per-test tearDown",
    "calls": [
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clearAll()",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.schedulePersist(_:)"
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.schedulePersist(_:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.waitForPendingWrites()"
    ],
-   "reads": [],
+   "reads": [
+    "mem:PendingEncryptionLedgerTests.hostLedger"
+   ],
    "writes": [
     "ud:storage.pendingReencryption.sessionIDs (standard suite)",
     "ud:storage.pendingReencryption.rawBackupIDs (standard suite)",
+    "file:Application Support/PendingEncryption/<store key>.json",
     "mem:PendingEncryptionLedger.cache"
    ],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each (store, ids) in hostLedger, for each id",
+     "effect": "PendingEncryptionLedger.record(id, in: store)"
+    }
+   ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clearAll()": "ea4d87cde09d2117",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.schedulePersist(_:)": "a4dc8ab262237cce"
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clearAll()": "15358e501e007799",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)": "fc2ac13ffc3aa3f6",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.schedulePersist(_:)": "fe581419a1e1c02e",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.waitForPendingWrites()": "fac7d0f429c8067f"
    }
   },
   {
@@ -92,13 +100,13 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func archiveWriteOptions(for:sessionID:)": "d9ad1255ee6ca7c4",
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func archiveWriteOptions(for:sessionID:)": "f132c4b8e789661b",
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:)": "f5384534cbdac20d",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)": "34c488564d5b9a6e",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.ids(_:in:)": "0ff226626301e4bc",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)": "164c97dd6c7ce201",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.ids(_:in:)": "5ade586d1d2cc157",
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:)": "ba53b321fe13e376",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)": "46e4c74baeb23ced",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.schedulePersist(_:)": "a4dc8ab262237cce"
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)": "fc2ac13ffc3aa3f6",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.schedulePersist(_:)": "fe581419a1e1c02e"
    }
   },
   {
@@ -123,13 +131,13 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func archiveWriteOptions(for:sessionID:)": "d9ad1255ee6ca7c4",
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func archiveWriteOptions(for:sessionID:)": "f132c4b8e789661b",
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:)": "f5384534cbdac20d",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)": "34c488564d5b9a6e",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.ids(_:in:)": "0ff226626301e4bc",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)": "164c97dd6c7ce201",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.ids(_:in:)": "5ade586d1d2cc157",
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:)": "ba53b321fe13e376",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)": "46e4c74baeb23ced",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.schedulePersist(_:)": "a4dc8ab262237cce"
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)": "fc2ac13ffc3aa3f6",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.schedulePersist(_:)": "fe581419a1e1c02e"
    }
   },
   {
@@ -154,12 +162,12 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func archiveWriteOptions(for:sessionID:)": "d9ad1255ee6ca7c4",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.ids(_:in:)": "0ff226626301e4bc",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.pending(in:)": "c85629c52ed2861d",
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func archiveWriteOptions(for:sessionID:)": "f132c4b8e789661b",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.ids(_:in:)": "5ade586d1d2cc157",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.pending(in:)": "bb41fa12d89ea28f",
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:)": "ba53b321fe13e376",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)": "46e4c74baeb23ced",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.schedulePersist(_:)": "a4dc8ab262237cce",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)": "fc2ac13ffc3aa3f6",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.schedulePersist(_:)": "fe581419a1e1c02e",
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::var PendingEncryptionLedger.pending": "704f946253c65bf4"
    }
   },
@@ -187,14 +195,14 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func archiveWriteOptions(for:sessionID:)": "d9ad1255ee6ca7c4",
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func archiveWriteOptions(for:sessionID:)": "f132c4b8e789661b",
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:)": "f5384534cbdac20d",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)": "34c488564d5b9a6e",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.ids(_:in:)": "0ff226626301e4bc",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.pending(in:)": "c85629c52ed2861d",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)": "164c97dd6c7ce201",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.ids(_:in:)": "5ade586d1d2cc157",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.pending(in:)": "bb41fa12d89ea28f",
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:)": "ba53b321fe13e376",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)": "46e4c74baeb23ced",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.schedulePersist(_:)": "a4dc8ab262237cce",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)": "fc2ac13ffc3aa3f6",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.schedulePersist(_:)": "fe581419a1e1c02e",
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::var PendingEncryptionLedger.pending": "704f946253c65bf4"
    }
   },
@@ -219,11 +227,11 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.ids(_:in:)": "0ff226626301e4bc",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.pending(in:)": "c85629c52ed2861d",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.ids(_:in:)": "5ade586d1d2cc157",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.pending(in:)": "bb41fa12d89ea28f",
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:)": "ba53b321fe13e376",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)": "46e4c74baeb23ced",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.schedulePersist(_:)": "a4dc8ab262237cce",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)": "fc2ac13ffc3aa3f6",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.schedulePersist(_:)": "fe581419a1e1c02e",
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::var PendingEncryptionLedger.pending": "704f946253c65bf4"
    }
   },
@@ -251,12 +259,12 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:)": "f5384534cbdac20d",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)": "34c488564d5b9a6e",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.ids(_:in:)": "0ff226626301e4bc",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.pending(in:)": "c85629c52ed2861d",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)": "164c97dd6c7ce201",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.ids(_:in:)": "5ade586d1d2cc157",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.pending(in:)": "bb41fa12d89ea28f",
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:)": "ba53b321fe13e376",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)": "46e4c74baeb23ced",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.schedulePersist(_:)": "a4dc8ab262237cce",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)": "fc2ac13ffc3aa3f6",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.schedulePersist(_:)": "fe581419a1e1c02e",
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::var PendingEncryptionLedger.pending": "704f946253c65bf4"
    }
   },
@@ -300,12 +308,12 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.ids(_:in:)": "0ff226626301e4bc",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.pending(in:)": "c85629c52ed2861d",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.ids(_:in:)": "5ade586d1d2cc157",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.pending(in:)": "bb41fa12d89ea28f",
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:)": "ba53b321fe13e376",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)": "46e4c74baeb23ced",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.schedulePersist(_:)": "a4dc8ab262237cce",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.waitForPendingWrites()": "49f2c46fc62edfd6",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)": "fc2ac13ffc3aa3f6",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.schedulePersist(_:)": "fe581419a1e1c02e",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.waitForPendingWrites()": "fac7d0f429c8067f",
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::var PendingEncryptionLedger.pending": "704f946253c65bf4"
    }
   },
@@ -339,12 +347,12 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:)": "f5384534cbdac20d",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)": "34c488564d5b9a6e",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.ids(_:in:)": "0ff226626301e4bc",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)": "164c97dd6c7ce201",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.ids(_:in:)": "5ade586d1d2cc157",
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:)": "ba53b321fe13e376",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)": "46e4c74baeb23ced",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.schedulePersist(_:)": "a4dc8ab262237cce",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.waitForPendingWrites()": "49f2c46fc62edfd6"
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)": "fc2ac13ffc3aa3f6",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.schedulePersist(_:)": "fe581419a1e1c02e",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.waitForPendingWrites()": "fac7d0f429c8067f"
    }
   },
   {
@@ -375,12 +383,12 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:)": "f5384534cbdac20d",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)": "34c488564d5b9a6e",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.ids(_:in:)": "0ff226626301e4bc",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)": "164c97dd6c7ce201",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.ids(_:in:)": "5ade586d1d2cc157",
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:)": "ba53b321fe13e376",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)": "46e4c74baeb23ced",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.schedulePersist(_:)": "a4dc8ab262237cce",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.waitForPendingWrites()": "49f2c46fc62edfd6",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)": "fc2ac13ffc3aa3f6",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.schedulePersist(_:)": "fe581419a1e1c02e",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.waitForPendingWrites()": "fac7d0f429c8067f",
     "EmuquTests/PendingEncryptionLedgerTests.swift::func CallingThreadProbe.noteChange()": "05a3ca7e27743f6f",
     "EmuquTests/PendingEncryptionLedgerTests.swift::func CallingThreadProbe.whileCalling(_:)": "103c1c5482598ac5",
     "EmuquTests/PendingEncryptionLedgerTests.swift::var CallingThreadProbe.changesOnCallingThread": "0c9bbb4efe24aabb"
@@ -408,12 +416,12 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clearAll()": "ea4d87cde09d2117",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.ids(_:in:)": "0ff226626301e4bc",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.pending(in:)": "c85629c52ed2861d",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clearAll()": "15358e501e007799",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.ids(_:in:)": "5ade586d1d2cc157",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.pending(in:)": "bb41fa12d89ea28f",
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:)": "ba53b321fe13e376",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)": "46e4c74baeb23ced",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.schedulePersist(_:)": "a4dc8ab262237cce",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)": "fc2ac13ffc3aa3f6",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.schedulePersist(_:)": "fe581419a1e1c02e",
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::var PendingEncryptionLedger.pending": "704f946253c65bf4"
    }
   },
@@ -439,13 +447,13 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func archiveWriteOptions(for:sessionID:)": "d9ad1255ee6ca7c4",
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func archiveWriteOptions(for:sessionID:)": "f132c4b8e789661b",
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:)": "f5384534cbdac20d",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)": "34c488564d5b9a6e",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.ids(_:in:)": "0ff226626301e4bc",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)": "164c97dd6c7ce201",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.ids(_:in:)": "5ade586d1d2cc157",
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:)": "ba53b321fe13e376",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)": "46e4c74baeb23ced",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.schedulePersist(_:)": "a4dc8ab262237cce"
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)": "fc2ac13ffc3aa3f6",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.schedulePersist(_:)": "fe581419a1e1c02e"
    }
   },
   {

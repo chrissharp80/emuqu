@@ -83,7 +83,8 @@ final class TrainingAdviceSurfaceTests: XCTestCase {
             session: session, result: TrainingAdviceSurfaceTests.emptyResult, series: nil, artifactFlags: [],
             hasRawData: false, sleepData: nil, sleepTrend: nil, recentSessions: [], healthKitHR: nil,
             vitals: nil, compositeRecoveryScore: 92, scoreBreakdown: strongBreakdown(), baselineStats: nil,
-            trainingContext: heavy, style: .comprehensive, sections: .all
+            trainingContext: heavy, frozenTrainingContext: heavy, adviceLiveLoad: nil,
+            style: .comprehensive, sections: .all
         )
         XCTAssertEqual(PDFReportGenerator().adviceLoadLevel(inputs), .easier)
     }

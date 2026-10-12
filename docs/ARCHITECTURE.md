@@ -112,7 +112,7 @@ never be applied after the reconnect that followed it.
 
 **Combined Analysis**: Both sessions' RR data is merged before window selection. The window selector sees the full night and chooses the best recovery window across both periods. The score comes from the combined analysis — not from picking the "best" of two independent scores. Sleep boundaries from HealthKit span both sessions so the 30-70% band covers the entire night.
 
-**Auto-finalize**: Triggers on device disconnect or battery ≤5% while paused.
+**Auto-finalize**: Triggers when the strap's battery drops to 5% or lower while paused (`bindBatteryAndReconnect`). A disconnect while paused does not end the night: it stays paused until the user taps Done or the battery rule fires.
 
 ### Raw RR Backup Strategy
 
@@ -234,7 +234,7 @@ to. `Tools/copy_linter` now blocks the verdict language from returning.
 
 **SNS Index** (-3 to +3): Average of z-scores for meanHR (ref 66bpm), stressIndex (ref 100), SD2 inverted (ref 65ms).
 
-**Readiness Score** (1-10, `StressAnalyzer.computeReadinessScore`): starts at 5.0. RMSSD ratio to the baseline (the geometric baseline over the last 60 stored nights, VO2max-adjusted): 0.85–1.15 → +2, 0.70–1.30 → +1, below 0.60 or above 1.50 → −2, otherwise 0; absolute RMSSD bands stand in without a baseline. DFA α1: 0.75–1.0 → +2, 0.60–1.25 → +0.5, otherwise −1. PNS − SNS: ≥ +1 → +1.5, ≥ 0 → +0.5, ≥ −1 → −0.5, else −1.5. Recent hard training adds back its (negative) load adjustment. Clamped to [1, 10]. It is a nearness score: a night 31% above the baseline earns no RMSSD points, so α1 and the PNS/SNS balance can put it at 3.5 under a high Recovery Score. The Help Center describes it the same way.
+**Readiness Score** (1-10, `StressAnalyzer.computeReadinessScore`): starts at 5.0. RMSSD ratio to the baseline (the geometric baseline over the last 60 stored nights, VO2max-adjusted): 0.85–1.15 → +2, 0.70–1.30 → +1, below 0.60 or above 1.50 → −2, otherwise 0. Until that baseline exists, `RRCollector.ansConfig` falls back to the legacy settings baseline and then to the age- and fitness-based population RMSSD (`populationBaselineRMSSD`, 35 ms with no age set), so every reading the app scores uses the ratio. The absolute RMSSD bands (VO2max-adjusted) run only when no configuration is passed or the baseline is not above zero. DFA α1: 0.75–1.0 → +2, 0.60–1.25 → +0.5, otherwise −1. PNS − SNS: ≥ +1 → +1.5, ≥ 0 → +0.5, ≥ −1 → −0.5, else −1.5. Recent hard training adds back its (negative) load adjustment. Clamped to [1, 10]. It is a nearness score: a night 31% above the baseline earns no RMSSD points, so α1 and the PNS/SNS balance can put it at 3.5 under a high Recovery Score. The Help Center describes it the same way.
 
 ### Respiration Rate Estimation
 
@@ -271,7 +271,7 @@ Window selection operates on the **30-70% band of actual sleep duration** (from 
 | **Peak Total Power** | Highest frequency domain power (SDNN proxy) |
 | **Custom** | User tap on chart → 400-beat window, ignores 30-70% band |
 
-Custom selections are ephemeral — never saved to archive, baseline, or trends.
+A custom window is a preview until the user taps Apply. Apply (`ReanalysisService.applyManualAnalysis` → `persistManualAnalysis`) re-scores the session from that window, sets `windowUserAdjusted`, keeps the automatic pick in `autoWindowResult` / `autoWindowScore`, archives the session (requesting a re-upload) and feeds it to `BaselineTracker.update`. From then on the stored score, the baseline later nights are scored against, and the trends all use the custom window. Cancel or leaving the screen saves nothing.
 
 ### Algorithm Steps
 
@@ -366,13 +366,20 @@ composite can differ by ±3 to ±6.
 
 ### Tier 2 — HRV + Sleep (sleep present, vitals absent)
 
-When stage data is available the sleep sub-score is `SleepScienceAnalyzer`'s enhanced score
-(fragmentation, cycles, architecture, age-adjusted norms). The weighted formula below is the
-FALLBACK used when no stage breakdown exists.
+Every night with sleep minutes, staged or not, gets `SleepScienceAnalyzer`'s enhanced score as its
+sleep sub-score (`RecoveryScoreCalculator.calculateSleepScore`): duration 25, efficiency 20, deep +
+REM 20, continuity 15, cycles 10, architecture 10 points, with age-adjusted norms. A section the
+night did not measure (stages, cycles and architecture without stage data; efficiency and
+continuity when wake was not measured) gets half credit, and a duration debt below 85% of the
+target caps the score. A duration-only night is scored this way, not by the formula below.
+
+The weighted formula (`zeroMinuteNightScore`) runs only for a night with zero sleep minutes, where
+the analyzer declines. Duration uses 24-hour sleep, so a qualifying nap still counts, and deep and
+REM always take the neutral 0.5:
 
 ```
 sleepScore = (durationRatio × 0.35 + efficiency × 0.25
-            + deepSleepRatio × 0.25 + remRatio × 0.15) × 100
+            + 0.5 × 0.25 + 0.5 × 0.15) × 100
 
 Normal:   tier1 × 0.70 + sleepScore × 0.30
 Double-penalty dampening (z_hrv < -1.0 AND sleepScore < 50):
@@ -434,7 +441,7 @@ nights 14–27: ●●○ "Provisional baseline"  (score shown, baseline still m
 nights 28+:   ●●● "Full algorithm"        (baseline keeps growing to 60 nights)
 ```
 
-Tap reveals the night count + an explanation. Source: `BaselineTracker.daysCollected` (nights in the baseline). The thresholds are `ScoreAppearancePolicy` (`DashboardSessionPolicy.swift`): z-scoring starts at `personalBaselineNights` (= `RecoveryBaselineStats.minimumDays`, 3; nights 1–2 use absolute thresholds), the score is shown from `scoreShownNights` (14), full at `fullBaselineNights` (28). Help, Flo's knowledge base and onboarding state the same rule. Implemented in `ConfidencePip.swift`.
+Tap reveals the night count + an explanation. Source: `BaselineTracker.daysCollected` (nights in the baseline). The thresholds are `ScoreAppearancePolicy` (`DashboardSessionPolicy.swift`): z-scoring starts at `BaselineTracker.RecoveryBaselineStats.minimumDays` (3; nights 1–2 use absolute thresholds), the score is shown from `scoreShownNights` (14), full at `fullBaselineNights` (28). Help, Flo's knowledge base and onboarding state the same rule. Implemented in `ConfidencePip.swift`.
 
 ### Score feedback
 
@@ -700,12 +707,12 @@ Writes SDNN and mean HR back to Health as a **windowed SDNN series** (`exportWin
 - **Page 2**: Visualizations (HR chart, Poincaré plot, PSD graph, tachogram, data quality, window info) — only for sessions with raw RR data
 - **Page 3+**: Deep-dive section — deep HRV/Sleep/Training/Vitals analytics page(s) plus a separate full-narrative page from `AnalysisSummaryGenerator`. Rendered only for the comprehensive style with deep-dive enabled (`style == .comprehensive && sections.contains(.deepDive)`).
 
-**Workout report** (`WorkoutPDFReport`) — Letter-sized, clinical-style 6–7 page report (6 when there is no GPS route; the splits page continues onto further pages when a long splits table overflows it):
-- **Page 1**: Executive Summary (physician-language 2–3 paragraph clinical snapshot + 12-tile metrics grid)
-- **Page 2**: Autonomic / HRV (α1 timeline with AT1/AT2 reference lines, RMSSD/pNN50/LF-HF, drift indicators)
-- **Page 3**: Cardiopulmonary (HR distribution, zone time, HR drift, HRR 1-min / 2-min)
-- **Page 4**: Effort & Terrain (power/pace, elevation, grade, MKMapSnapshotter route coloured by α1 band) — only when GPS is present
-- **Page 5**: Splits + Derived metrics (decoupling, efficiency factor, grade-adjusted pace, stride length, power:HR)
+**Workout report** (`WorkoutPDFReport`) — Letter-sized, clinical-style 6–7 page report (6 when the Effort & Terrain page is left out; the executive summary and the splits table each continue onto a further page when they overflow):
+- **Page 1**: Executive Summary (physician-language 2–3 paragraph clinical snapshot + metrics grid; may continue on a second page)
+- **Page 2**: Autonomic / HRV (α1 explainer and chart, α1 statistics, α1-estimated LT1, HRR 1-min / 2-min)
+- **Page 3**: Cardiopulmonary (HR time series, zone distribution, physiology: decoupling, efficiency factor, session RMSSD)
+- **Page 4**: Effort & Terrain (MKMapSnapshotter route map + legend) — omitted without GPS or when the map snapshot fails
+- **Page 5**: Splits & metrics (paginated)
 - **Page 6**: "What This Means" — plain-language bridge (verdict / what's working / what to watch / tomorrow) via `drawWhatThisMeansPage`
 - **Page 7**: Methodology & Citations
 
@@ -1330,7 +1337,8 @@ Post-summary and the epic α1 report live in
   of fresh GPS, tries each saved route in BOTH directions
   (forward + whole-route-reversed; the reversed case rebuilds the
   `Route` from reversed trackpoints so the climb queue reflects the
-  climbs the user will actually hit), accepts at ≤ 30 m mean
+  climbs the user will actually hit; those reverse climbs carry no
+  road names, which are geocoded for the saved direction only), accepts at ≤ 30 m mean
   nearest-neighbour distance, best fit wins. The bound `Route`
   drives `routeTopology` in the AI context every tick.
 - **WeatherService** — MET Norway Locationforecast 2.0 compact

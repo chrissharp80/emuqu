@@ -437,7 +437,7 @@
    "deps": {
     "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration": "2773bb6ff5712d48",
     "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.calorieRateRow(samples:duration:)": "60a1b612ca4695c1",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.gradeAdjustedPaceRow(samples:meta:duration:)": "b806a2d182f22a48",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.gradeAdjustedPaceRow(samples:meta:duration:)": "d1569d9ab4731991",
     "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.powerToHRRow(meta:)": "2930e40a31d83190",
     "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.strideLengthRow(samples:meta:duration:)": "f160b56ded349420",
     "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.vamRow(meta:duration:)": "fd369e379e51d5ef",
@@ -486,8 +486,41 @@
   },
   {
    "key": "func ThresholdCards.gradeAdjustedPaceRow(samples:meta:duration:)",
-   "hash": "4b81c6e15f8c7abe",
-   "does": "Grade-adjusted pace from moving time (min(duration, movingSeconds)) ÷ distance minus 2 s/km per % net grade, when ≥30 paced samples, duration >300 s, distance >500 m and some moving time.",
+   "hash": "2b4fe78322a81db4",
+   "does": "'Grade-adj pace' row from the per-kilometre GAP the analysis snapshot and the assistant use (WorkoutLiveTrends.sessionGradeAdjustedPaceSecPerKm: each completed kilometre adjusted for its own grade), with no sub label; without a completed kilometre (or an unformattable pace) falls back to netClimbAdjustedPaceRow.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.sessionGradeAdjustedPaceSecPerKm(samples:)",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::var ThresholdCards.unitsPref",
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(secondsPerMeter:)",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.netClimbAdjustedPaceRow(samples:meta:duration:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "ud:fitness.unitsPreference (App Group suite)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no per-km GAP or formatPace nil",
+     "effect": "netClimbAdjustedPaceRow"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.sessionGradeAdjustedPaceSecPerKm(samples:)": "445c47bb3b0ff4e4",
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(secondsPerMeter:)": "2df0cb439cc6c8c6",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.netClimbAdjustedPaceRow(samples:meta:duration:)": "f450297785df4072",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::var ThresholdCards.unitsPref": "830b1ee930df0d0f"
+   }
+  },
+  {
+   "key": "func ThresholdCards.netClimbAdjustedPaceRow(samples:meta:duration:)",
+   "hash": "00d211ad19b7c6d3",
+   "does": "Fallback grade-adjusted pace ('adjusted for net climb'): moving time (min(duration, movingSeconds)) ÷ distance minus 2 s/km per % net grade, when ≥30 paced samples, duration >300 s, distance >500 m and some moving time.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func movingSeconds(samples:)",

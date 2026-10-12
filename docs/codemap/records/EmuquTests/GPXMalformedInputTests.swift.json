@@ -117,37 +117,26 @@
   },
   {
    "key": "func GPXMalformedInputTests.testPolylineEncoderSurvivesNonFiniteAltitudes()",
-   "hash": "889eee9943992cfa",
-   "does": "For NaN, ±infinity and greatestFiniteMagnitude altitudes asserts encodePolyline of a one-point track returns non-nil (does not trap).",
+   "hash": "bfe4702f961472cb",
+   "does": "Builds one track whose altitudes run through every ordered pair of NaN, ±infinity, ±greatestFiniteMagnitude and 0 (so the encoder takes deltas between values clamped in opposite directions, and from the first point against zero) and asserts encodePolyline returns non-nil (does not trap).",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encodePolyline(track:)"
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encodePolyline(track:)",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encode(coordinates:)",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encode(altitudes:)",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.scaledInt(_:by:)",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encode(value:)"
    ],
    "reads": [],
    "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "for each altitude",
-     "effect": "encodes one-point track"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "med",
-     "text": "Only one-point tracks are encoded, so the delta step is never exercised: scaledInt saturates huge finite values to Int.max/Int.min, and the following `scaled - prev` / `lat - prevLat` subtraction traps on overflow when consecutive points saturate in opposite directions (e.g. altitudes [-greatestFiniteMagnitude, +greatestFiniteMagnitude]); the 'encoder cannot crash regardless of what reaches it' claim is untested and false. Also `scaled <= Double(Int.max)` admits exactly 2^63, which Int() traps on.",
-     "evidence": [
-      "EmuquTests/GPXMalformedInputTests.swift:79",
-      "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift:719",
-      "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift:732",
-      "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift:745"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "branches": [],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encodePolyline(track:)": "f42191bee7fea21e"
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encode(altitudes:)": "ae5d06ec36600f9f",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encode(coordinates:)": "4ea5deebee96fecb",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encode(value:)": "4718fd027f110005",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encodePolyline(track:)": "f42191bee7fea21e",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.scaledInt(_:by:)": "58bdaa506462c0d7"
    }
   },
   {

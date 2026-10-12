@@ -161,7 +161,7 @@ extension CollectorSessionControl {
         stopStreamingTimer()
         collector.isStreamingMode = false
         let baseSession = collector.currentSession ?? HRVSession()
-        let elapsedHoursForBattery = Double(collector.streamingElapsedSeconds) / 3600.0
+        let elapsedHoursForBattery = collector.streamingHoursForBattery
         let rrPoints = collector.polarManager.stopStreaming()
         await publishQuickStreamingStopped(rrPoints: rrPoints, elapsedHours: elapsedHoursForBattery)
         await collector.backupStreamingData(rrPoints, sessionId: baseSession.id)
@@ -302,4 +302,15 @@ func publishAnalyzingSession(on collector: RRCollector, baseSession: HRVSession,
     )
     collector.currentSession = analyzingSession
     return analyzingSession
+}
+
+extension RRCollector {
+    /// Hours to charge to the strap's battery-usage counter for the streaming
+    /// session being stopped: wall clock since `sessionStartTime` (the 1 Hz
+    /// tick counter falls behind while the app is suspended), or the tick
+    /// count when there is no start time.
+    var streamingHoursForBattery: Double {
+        sessionStartTime.map { max(0, Date().timeIntervalSince($0)) / 3600.0 }
+            ?? Double(streamingElapsedSeconds) / 3600.0
+    }
 }

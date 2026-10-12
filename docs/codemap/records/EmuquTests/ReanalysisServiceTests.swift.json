@@ -1,6 +1,6 @@
 {
  "file": "EmuquTests/ReanalysisServiceTests.swift",
- "hash": "396429a16f967641",
+ "hash": "8c15e5882b8dd225",
  "role": "XCTest suite for ReanalysisService: computeFrozenReadiness (0-10 frozen readiness), late HealthKit sleep attaching to a session without a snapshot but never over a user-adjusted night, and scoringVitals' strap nocturnal-HR swap.",
  "types": [
   "ReanalysisServiceTests: class — @MainActor XCTestCase for ReanalysisService"
@@ -9,9 +9,11 @@
   "archiveDirectory: nonisolated let temp dir ReanalysisSleepTests-<UUID>",
   "archive: lazy SessionArchive over archiveDirectory with fixed 22:00/8 h sleep schedule and merge mode .off",
   "nightStart: Date(4_102_444_800) = 2100-01-01T00:00Z",
-  "file:<tmp>/ReanalysisSleepTests-<UUID>/ (hermetic SessionArchive)"
+  "file:<tmp>/ReanalysisSleepTests-<UUID>/ (hermetic SessionArchive)",
+  "baselineFile: nonisolated let temp file ReanalysisBaseline-<UUID>.json (the service's BaselineTracker file)",
+  "file:<tmp>/ReanalysisBaseline-<UUID>.json (hermetic BaselineTracker)"
  ],
- "toplevel": "Stored fixtures: temp archive directory, lazy hermetic SessionArchive, and a far-future nightStart.",
+ "toplevel": "Stored fixtures: temp archive directory, temp baseline-tracker file, lazy hermetic SessionArchive, and a far-future nightStart.",
  "flags": [],
  "units": [
   {
@@ -147,19 +149,25 @@
   },
   {
    "key": "func ReanalysisServiceTests.tearDown()",
-   "hash": "acdfaa41b742db73",
-   "does": "tearDown: removes the temp archive directory; a missing directory error is swallowed.",
+   "hash": "1f45094090e081bb",
+   "does": "tearDown: removes the temp archive directory and the temp baseline-tracker file; a missing directory or file error is swallowed.",
    "entry": "XCTest runner: tearDown after each test",
    "calls": [],
    "reads": [],
    "writes": [
-    "file:<tmp>/ReanalysisSleepTests-<UUID>/ (hermetic SessionArchive)"
+    "file:<tmp>/ReanalysisSleepTests-<UUID>/ (hermetic SessionArchive)",
+    "file:<tmp>/ReanalysisBaseline-<UUID>.json (hermetic BaselineTracker)"
    ],
    "branches": [
     {
      "at": "+3",
-     "cond": "catch removeItem error",
+     "cond": "catch removeItem error on the archive directory",
      "effect": "swallowed (directory absent when a test never archived)"
+    },
+    {
+     "at": "+8",
+     "cond": "catch removeItem error on the baseline file",
+     "effect": "swallowed (file absent when the tracker never saved)"
     }
    ],
    "flags": [],
@@ -167,31 +175,33 @@
   },
   {
    "key": "func ReanalysisServiceTests.makeService()",
-   "hash": "016c653de8ebdf9d",
-   "does": "Test helper: builds ReanalysisService over the hermetic archive with MockHealthKitService, fresh pipeline/selector/detector/BaselineTracker, default UserSettings, fixed ANS config (baseline 40), nil training context and no-op analysis/archive/upload closures.",
+   "hash": "379f068929a3f4d0",
+   "does": "Test helper: builds ReanalysisService over the hermetic archive with MockHealthKitService, fresh pipeline/selector/detector, a BaselineTracker on the test's own temporary baselineFile (never the app's App Group HRVBaseline.json), default UserSettings, fixed ANS config (baseline 40), nil training context and no-op analysis/archive/upload closures.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/ReanalysisService.swift::init ReanalysisService(archive:healthKit:analysisPipeline:windowSelector:artifactDetector:baselineTracker:settingsProvider:scoringConfigProvider:ansConfigProvider:trainingContextProvider:analyzeWithWindow:analyzeFullSession:onArchiveChanged:onSessionUploaded:)",
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::init HRVAnalysisPipeline(artifactDetector:windowSelector:healthKit:)",
     "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)",
     "Emuqu/Sources/Analysis/ArtifactDetection.swift::init ArtifactDetector(config:)",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::init BaselineTracker(onBaselineUpdated:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::init BaselineTracker(baselineFile:onBaselineUpdated:)",
     "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()",
     "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)"
    ],
-   "reads": [],
+   "reads": [
+    "file:<tmp>/ReanalysisBaseline-<UUID>.json (hermetic BaselineTracker; absent at start)"
+   ],
    "writes": [],
    "branches": [],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/ArtifactDetection.swift::init ArtifactDetector(config:)": "b781aa85db54b975",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::init BaselineTracker(onBaselineUpdated:)": "6e1cf9b3c8fe2623",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::init BaselineTracker(baselineFile:onBaselineUpdated:)": "be93861445c19b1e",
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::init HRVAnalysisPipeline(artifactDetector:windowSelector:healthKit:)": "458e2091ed3d7cb2",
     "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)": "c6fe89367e88ef08",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "fc9f14bb70664847",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "f1ace8ba85027f38",
     "Emuqu/Sources/Services/ReanalysisService.swift::init ReanalysisService(archive:healthKit:analysisPipeline:windowSelector:artifactDetector:baselineTracker:settingsProvider:scoringConfigProvider:ansConfigProvider:trainingContextProvider:analyzeWithWindow:analyzeFullSession:onArchiveChanged:onSessionUploaded:)": "4ba829a0f1d38fd3",
     "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13",
-    "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)": "a892db29af7907c0"
+    "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)": "312605e0908fbc30"
    }
   },
   {
@@ -241,10 +251,11 @@
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.logBoundaryUpdate(session:sleepStart:sleepEnd:newStartMs:newEndMs:sleepData:isUserAdjustment:)",
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.shouldApplyAutomaticUpdate(to:sleepData:newDuration:)",
     "Emuqu/Sources/Models/SleepData.swift::func SleepData.plausiblyBelongsToRecording(start:end:minRatio:)",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.applyBoundaries(to:sleepData:newStartMs:newEndMs:isUserAdjustment:)",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.storeClampedOffsets(startMs:endMs:on:)",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.rescoreAfterSleepChange(_:sleepData:)",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.persistSleepUpdate(_:sleepData:oldMinutes:isUserAdjustment:)",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.applyBoundaries(to:sleepData:offsets:isUserAdjustment:)",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.clampedOffsets(startMs:endMs:of:)",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.rescoreAfterSleepChange(_:sessionEnd:)",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.writeSleepUpdate(_:sleepData:onto:isUserAdjustment:)",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.reportSleepUpdate(_:sleepData:oldMinutes:isUserAdjustment:)",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes",
     "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)"
@@ -259,20 +270,21 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
-    "Emuqu/Sources/Models/SleepData.swift::func SleepData.plausiblyBelongsToRecording(start:end:minRatio:)": "77e23c3d71c4740e",
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.plausiblyBelongsToRecording(start:end:minRatio:)": "6fee4a44f5de8d8c",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.applyBoundaries(to:sleepData:newStartMs:newEndMs:isUserAdjustment:)": "230a12fe26d5c13d",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.applySleepBoundaries(to:sleepData:sleepStart:sleepEnd:isUserAdjustment:)": "43dd522102956b1d",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.applyBoundaries(to:sleepData:offsets:isUserAdjustment:)": "6ca51dcde996b5fd",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.applySleepBoundaries(to:sleepData:sleepStart:sleepEnd:isUserAdjustment:)": "2ed99c680a1aa771",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.clampedOffsets(startMs:endMs:of:)": "3d0ade753473bbd7",
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.logBoundaryUpdate(session:sleepStart:sleepEnd:newStartMs:newEndMs:sleepData:isUserAdjustment:)": "4e01839d861ee93d",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.persistSleepUpdate(_:sleepData:oldMinutes:isUserAdjustment:)": "21305257087fbb20",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.rescoreAfterSleepChange(_:sleepData:)": "ad4e2202c4db0c2d",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.shouldApplyAutomaticUpdate(to:sleepData:newDuration:)": "3a944834a448d890",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.storeClampedOffsets(startMs:endMs:on:)": "f2d8ebd9fc48a0b5",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)": "aad8499a0f784cde",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.reportSleepUpdate(_:sleepData:oldMinutes:isUserAdjustment:)": "5ace6c3f90cf9d94",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.rescoreAfterSleepChange(_:sessionEnd:)": "5bc35491ee393569",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.shouldApplyAutomaticUpdate(to:sleepData:newDuration:)": "dc5efe3b2cb73316",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)": "814ac02a5cea0163",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.writeSleepUpdate(_:sleepData:onto:isUserAdjustment:)": "bd9117ce7ab28333",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "8782e72ec2fc6000",
-    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "532ac87707a256ac",
-    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.makeService()": "e8831c9ba745b8e8",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "6d761b0522590a2a",
+    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.makeService()": "1c8ff9f45c2ea3ad",
     "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.overnight()": "72233335dccaa534",
     "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.watchNight(minutes:)": "8924f4d9c07474a1"
    }

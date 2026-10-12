@@ -148,21 +148,17 @@ final class DataPurgeServiceTests: XCTestCase {
         XCTAssertTrue(report.conversationsCleared, "local steps must proceed when remote fails")
     }
 
-    func testPurgeClearsConversationStoreSingleton() async {
-        // Seed the singleton with at least one turn so we can verify clear ran.
-        let initial = ConversationStore.shared.load()
-        ConversationStore.shared.save(initial + [
-            ChatTurn(role: .user, text: "purge-marker-\(UUID().uuidString)")
-        ])
-
-        // Allow the async write to land before triggering the purge.
-        let saved = expectation(description: "conversation save")
-        DispatchQueue.global().async {
-            // load() is synchronous against the same internal queue, so it acts as a barrier.
-            _ = ConversationStore.shared.load()
-            saved.fulfill()
-        }
-        await fulfillment(of: [saved], timeout: 2.0)
+    /// The marker must be on disk before the purge runs: `save` is debounced
+    /// and `load` reads the file directly, so a purge that ran first would
+    /// find no persisted history, `clear()` would cancel the pending write,
+    /// and the empty load at the end would pass whatever the purge did.
+    func testPurgeClearsConversationStoreSingleton() async throws {
+        let marker = "purge-marker-\(UUID().uuidString)"
+        let store = ConversationStore.shared
+        store.save(store.load() + [ChatTurn(role: .user, text: marker)])
+        try await waitUntil { store.load().contains { $0.text == marker } }
+        XCTAssertTrue(store.load().contains { $0.text == marker },
+                      "Sanity: the marker turn reached disk before the purge")
 
         _ = await DataPurgeService.purgeAllUserData(
             archive: SessionArchive.shared,
@@ -172,15 +168,19 @@ final class DataPurgeServiceTests: XCTestCase {
             deleteRemote: { true }
         )
 
-        // Allow async clear to land.
-        let cleared = expectation(description: "conversation cleared")
-        DispatchQueue.global().asyncAfter(deadline: .now() + 0.5) {
-            cleared.fulfill()
-        }
-        await fulfillment(of: [cleared], timeout: 2.0)
-
-        XCTAssertTrue(ConversationStore.shared.load().isEmpty,
+        // `clear()` runs on the store's queue; poll rather than assume it ran.
+        try await waitUntil { store.load().isEmpty }
+        XCTAssertTrue(store.load().isEmpty,
                       "DataPurgeService should leave conversation history empty")
+    }
+
+    /// Polls `condition` every 50 ms until it holds or 10 s pass; the caller
+    /// asserts the condition afterwards, so a timeout fails there.
+    private func waitUntil(_ condition: () -> Bool) async throws {
+        let deadline = Date().addingTimeInterval(10)
+        while !condition(), Date() < deadline {
+            try await Task.sleep(for: .milliseconds(50))
+        }
     }
 
     func testPurgeClearsUserFactsSingleton() async {

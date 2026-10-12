@@ -263,134 +263,19 @@ extension VoiceConversationController {
 
     // MARK: - Permissions
 
+    /// Speech recognition, then the microphone (`VoicePermissionGate`); a
+    /// refusal is surfaced in `permissionError`.
     func ensurePermissions() async -> Bool {
-        guard await speechRecognitionAllowed() else { return false }
-        return await micAllowed()
-    }
-
-    /// Speech recognition — log the existing status, request when undetermined.
-    private func speechRecognitionAllowed() async -> Bool {
-        let status = SFSpeechRecognizer.authorizationStatus()
-        debugLog("[VoiceConv] current speech auth status: \(describe(status))")
-        switch status {
-        case .authorized:
-            return true
-        case .notDetermined:
-            return await requestSpeechAuthorization()
-        case .denied:
-            await report(String(localized: "Speech Recognition is denied. Open Settings → Emuqu → enable Speech Recognition.", bundle: LanguageManager.appBundle))
-            return false
-        case .restricted:
-            await report(String(localized: "Speech Recognition is restricted on this device (e.g. by Screen Time or parental controls).", bundle: LanguageManager.appBundle))
-            return false
-        @unknown default:
-            await report(String(localized: "Speech Recognition permission was not granted.", bundle: LanguageManager.appBundle))
-            return false
-        }
-    }
-
-    /// Show the system prompt and report the outcome.
-    private func requestSpeechAuthorization() async -> Bool {
-        debugLog("[VoiceConv] requesting speech recognition authorization (should show prompt)…")
-        // `@Sendable`: the framework does not promise the main queue for this
-        // callback, and a main-actor closure asserts it on entry.
-        let status = await withCheckedContinuation { continuation in
-            SFSpeechRecognizer.requestAuthorization { @Sendable status in
-                continuation.resume(returning: status)
-            }
-        }
-        debugLog("[VoiceConv] speech auth result: \(describe(status))")
-        let granted = status == .authorized
-        if !granted { await report(String(localized: "Speech Recognition permission was not granted.", bundle: LanguageManager.appBundle)) }
-        return granted
-    }
-
-    /// Microphone. The app targets iOS 17+ so we use AVAudioApplication only.
-    private func micAllowed() async -> Bool {
-        let status = AVAudioApplication.shared.recordPermission
-        debugLog("[VoiceConv] current mic permission: \(describe(status))")
-        switch status {
-        case .granted:
-            return true
-        case .undetermined:
-            debugLog("[VoiceConv] requesting mic permission (should show prompt)…")
-            let granted = await AVAudioApplication.requestRecordPermission()
-            debugLog("[VoiceConv] mic permission result: \(granted ? "granted" : "denied")")
-            if !granted { await report(String(localized: "Microphone permission was not granted.", bundle: LanguageManager.appBundle)) }
-            return granted
-        case .denied:
-            await report(String(localized: "Microphone access is denied. Open Settings → Emuqu → enable Microphone.", bundle: LanguageManager.appBundle))
-            return false
-        @unknown default:
-            await report(String(localized: "Microphone permission was not granted.", bundle: LanguageManager.appBundle))
-            return false
-        }
-    }
-
-    /// Surface a permission failure on the main actor.
-    private func report(_ message: String) async {
-        await MainActor.run { self.permissionError = message }
-    }
-
-    func describe(_ status: SFSpeechRecognizerAuthorizationStatus) -> String {
-        switch status {
-        case .notDetermined: "notDetermined"
-        case .denied: "denied"
-        case .restricted: "restricted"
-        case .authorized: "authorized"
-        @unknown default: "unknown"
-        }
-    }
-
-    func describe(_ perm: AVAudioApplication.recordPermission) -> String {
-        switch perm {
-        case .undetermined: "undetermined"
-        case .denied: "denied"
-        case .granted: "granted"
-        @unknown default: "unknown"
-        }
+        guard let denial = await VoicePermissionGate.denialMessage() else { return true }
+        permissionError = denial
+        return false
     }
 
     // MARK: - System prompt
 
     func buildSystemPrompt() -> String {
-        Self.voiceCoachPersona + "\n\n" + Self.voiceCoachHardRules
+        VoiceCoachPrompt.interjectionPrompt
     }
-
-    /// The persona and the be-specific-or-be-silent contract.
-    private static let voiceCoachPersona = """
-        You are a voice coach companion for a runner/walker wearing AirPods. \
-        You will be read aloud by a text-to-speech engine, so avoid markdown, \
-        code fences, lists, and emoji. Speak in short, conversational sentences \
-        — 1 to 3 at a time, no more.
-
-        BE SPECIFIC OR BE SILENT — this is the whole job:
-        - Every line MUST be anchored to a concrete number or observation from \
-          the CONTEXT block and say what it MEANS. \
-          "HR drifted 6% over the last mile at the same pace — that's a heat or \
-          fuel signal; ease off if it climbs more." NOT "nice work" / "keep it \
-          up" / "go for it" / "great run" / "you're doing great."
-        - NEVER emit generic encouragement, praise, or filler. If nothing in the \
-          context stands out as worth saying right now, SAY NOTHING — silence is \
-          the correct output, not a motivational platitude.
-        - Lead with the data point, then the cause-and-effect, then (optionally) \
-          what to do. One specific useful sentence beats three vague ones.
-        - Translate sports-science jargon to plain English ("above your usual \
-          range", not "ACWR 1.4"; "carrying fatigue", not "TSB -12").
-        """
-
-    /// The two non-negotiables, kept separate so a persona edit can't
-    /// accidentally reword them.
-    private static let voiceCoachHardRules = """
-        HARD RULES:
-        - Only reference data that appears in the CONTEXT block. Do not invent \
-          terrain, baselines, history, or metrics the user didn't mention. If you \
-          don't have the data to make a SPECIFIC point, stay silent.
-        - Never issue commands. Offer, don't order. Close observations with an \
-          optional phrase like "your call", "if you feel like it", or "up to you".
-
-        The user can interrupt you at any time.
-        """
 }
 
 // MARK: - AVSpeechSynthesizerDelegate
@@ -717,6 +602,139 @@ enum ConversationVoicePicker {
         @unknown default: "unknown"
         }
     }
+}
+
+// MARK: - Permissions
+
+/// Speech-recognition and microphone permission checks for voice chat: logs
+/// the current status, shows the system prompt when it is undetermined, and
+/// says why voice can't start when either is refused.
+@MainActor
+enum VoicePermissionGate {
+    /// nil when both are granted; otherwise the message to show. The mic is
+    /// not checked once speech recognition is refused.
+    static func denialMessage() async -> String? {
+        if let denial = await speechRecognitionDenial() { return denial }
+        return await micDenial()
+    }
+
+    private static var notGranted: String {
+        String(localized: "Speech Recognition permission was not granted.", bundle: LanguageManager.appBundle)
+    }
+
+    /// Speech recognition: log the existing status, request when undetermined.
+    private static func speechRecognitionDenial() async -> String? {
+        let status = SFSpeechRecognizer.authorizationStatus()
+        debugLog("[VoiceConv] current speech auth status: \(describe(status))")
+        switch status {
+        case .authorized:
+            return nil
+        case .notDetermined:
+            return await requestSpeechAuthorization()
+        case .denied:
+            return String(localized: "Speech Recognition is denied. Open Settings → Emuqu → enable Speech Recognition.", bundle: LanguageManager.appBundle)
+        case .restricted:
+            return String(localized: "Speech Recognition is restricted on this device (e.g. by Screen Time or parental controls).", bundle: LanguageManager.appBundle)
+        @unknown default:
+            return notGranted
+        }
+    }
+
+    /// Show the system prompt and report the outcome.
+    private static func requestSpeechAuthorization() async -> String? {
+        debugLog("[VoiceConv] requesting speech recognition authorization (should show prompt)…")
+        // `@Sendable`: the framework does not promise the main queue for this
+        // callback, and a main-actor closure asserts it on entry.
+        let status = await withCheckedContinuation { continuation in
+            SFSpeechRecognizer.requestAuthorization { @Sendable status in
+                continuation.resume(returning: status)
+            }
+        }
+        debugLog("[VoiceConv] speech auth result: \(describe(status))")
+        return status == .authorized ? nil : notGranted
+    }
+
+    /// Microphone. The app targets iOS 17+ so we use AVAudioApplication only.
+    private static func micDenial() async -> String? {
+        let status = AVAudioApplication.shared.recordPermission
+        debugLog("[VoiceConv] current mic permission: \(describe(status))")
+        let micNotGranted = String(localized: "Microphone permission was not granted.", bundle: LanguageManager.appBundle)
+        switch status {
+        case .granted:
+            return nil
+        case .undetermined:
+            debugLog("[VoiceConv] requesting mic permission (should show prompt)…")
+            let granted = await AVAudioApplication.requestRecordPermission()
+            debugLog("[VoiceConv] mic permission result: \(granted ? "granted" : "denied")")
+            return granted ? nil : micNotGranted
+        case .denied:
+            return String(localized: "Microphone access is denied. Open Settings → Emuqu → enable Microphone.", bundle: LanguageManager.appBundle)
+        @unknown default:
+            return micNotGranted
+        }
+    }
+
+    static func describe(_ status: SFSpeechRecognizerAuthorizationStatus) -> String {
+        switch status {
+        case .notDetermined: "notDetermined"
+        case .denied: "denied"
+        case .restricted: "restricted"
+        case .authorized: "authorized"
+        @unknown default: "unknown"
+        }
+    }
+
+    static func describe(_ perm: AVAudioApplication.recordPermission) -> String {
+        switch perm {
+        case .undetermined: "undetermined"
+        case .denied: "denied"
+        case .granted: "granted"
+        @unknown default: "unknown"
+        }
+    }
+}
+
+// MARK: - Voice coach system prompt
+
+/// The system prompt for voice interjections (`buildSystemPrompt`): the
+/// persona, then the hard rules.
+enum VoiceCoachPrompt {
+    static var interjectionPrompt: String { persona + "\n\n" + hardRules }
+
+    /// The persona and the be-specific-or-be-silent contract.
+    private static let persona = """
+        You are a voice coach companion for a runner/walker wearing AirPods. \
+        You will be read aloud by a text-to-speech engine, so avoid markdown, \
+        code fences, lists, and emoji. Speak in short, conversational sentences \
+        — 1 to 3 at a time, no more.
+
+        BE SPECIFIC OR BE SILENT — this is the whole job:
+        - Every line MUST be anchored to a concrete number or observation from \
+          the CONTEXT block and say what it MEANS. \
+          "HR drifted 6% over the last mile at the same pace — that's a heat or \
+          fuel signal; ease off if it climbs more." NOT "nice work" / "keep it \
+          up" / "go for it" / "great run" / "you're doing great."
+        - NEVER emit generic encouragement, praise, or filler. If nothing in the \
+          context stands out as worth saying right now, SAY NOTHING — silence is \
+          the correct output, not a motivational platitude.
+        - Lead with the data point, then the cause-and-effect, then (optionally) \
+          what to do. One specific useful sentence beats three vague ones.
+        - Translate sports-science jargon to plain English ("above your usual \
+          range", not "ACWR 1.4"; "carrying fatigue", not "TSB -12").
+        """
+
+    /// The two non-negotiables, kept separate so a persona edit can't
+    /// accidentally reword them.
+    private static let hardRules = """
+        HARD RULES:
+        - Only reference data that appears in the CONTEXT block. Do not invent \
+          terrain, baselines, history, or metrics the user didn't mention. If you \
+          don't have the data to make a SPECIFIC point, stay silent.
+        - Never issue commands. Offer, don't order. Close observations with an \
+          optional phrase like "your call", "if you feel like it", or "up to you".
+
+        The user can interrupt you at any time.
+        """
 }
 
 // MARK: - File-scope helpers

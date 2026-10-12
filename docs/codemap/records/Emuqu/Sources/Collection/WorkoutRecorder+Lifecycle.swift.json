@@ -55,21 +55,26 @@
   },
   {
    "key": "func WorkoutFinalizer.buildFinalizeMetadata(_:analysis:rrPoints:startDate:stopDate:hrrSamples:)",
-   "hash": "0f57c0a20de08888",
-   "does": "Runs finalize stages 3-9 on the inout metadata in fixed order: elevation, analyzer metrics, HealthKit HR backfill + samples, power aggregates, route TRIMP estimate, rowing telemetry, weather snapshot, analysis snapshot.",
+   "hash": "58b47a763e7bc0d2",
+   "does": "Runs finalize stages 3-9 on the inout metadata in fixed order: elevation, analyzer metrics, HealthKit HR backfill + samples, the recording's pause spans (WorkoutPauseSpan.spans of lifecycle.pauseTimeline, so exports can map wall-clock times to sample offsets), power aggregates, route TRIMP estimate, rowing telemetry, weather snapshot, analysis snapshot.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.applyElevationMetrics(to:)",
     "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.applyAnalyzerMetrics(to:computed:hrrSamples:)",
     "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.backfillHRAndAttachSamples(metadata:startDate:stopDate:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutPauseSpan.spans(of:)",
     "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.applyPowerAggregates(to:sport:startDate:stopDate:)",
     "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.applyRouteTRIMPEstimate(to:sport:)",
     "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.applyRowingTelemetry(to:sport:)",
     "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func attachWeatherSnapshot(to:sport:)",
     "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.attachAnalysisSnapshot(to:sport:rrPoints:startDate:stopDate:userMaxHR:)"
    ],
-   "reads": [],
-   "writes": [],
+   "reads": [
+    "mem:WorkoutLifecycle.pauseTimeline"
+   ],
+   "writes": [
+    "mem:WorkoutMetadata.pauseSpans (inout)"
+   ],
    "branches": [],
    "flags": [],
    "deps": {
@@ -81,6 +86,7 @@
     "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.attachAnalysisSnapshot(to:sport:rrPoints:startDate:stopDate:userMaxHR:)": "8ed28a2457ae9906",
     "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.backfillHRAndAttachSamples(metadata:startDate:stopDate:)": "d8117fc400f4f302",
     "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func attachWeatherSnapshot(to:sport:)": "542240c7a4472fdc",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutPauseSpan.spans(of:)": "195455d39fd36c3d",
     "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.userMaxHR": "49805330e3ae7d57"
    }
   },

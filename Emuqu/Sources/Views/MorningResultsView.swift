@@ -313,7 +313,8 @@ struct MorningResultsView: View {
             SessionHRVDetailView(
                 session: vm.displaySession,
                 result: vm.displayResult,
-                recentSessions: recentSessions
+                recentSessions: recentSessions,
+                baselineStats: vm.baselineStats
             )
         } label: {
             hrvMetricCard
@@ -381,7 +382,8 @@ struct MorningResultsView: View {
         NavigationLink {
             TrainingDetailView(
                 trainingMetrics: nil,
-                trainingContext: context
+                trainingContext: context,
+                followsLiveLoad: !vm.isHistoricalSession
             )
         } label: {
             trainingLoadCard(context)

@@ -35,22 +35,7 @@
   "mem:CloudKitSyncManager.fullSyncsAdmitted (@ObservationIgnored Int: full syncs admitted and not finished)"
  ],
  "toplevel": "static let shared = CloudKitSyncManager() builds the singleton lazily with defaults from AppDependencies.current (settingsManager, sessionArchive). Stored initializers: syncState .idle, schemaUnavailable false, lastSyncProgressAt .distantPast, pullVersion 0, container CKContainer(identifier: AppConfig.iCloudContainerIdentifier), recordType \"HRVSession\", zoneID HRVSessions/current user, syncSerializer SyncSerializer(), observers NotificationTokens(), didBootSyncState lock(false). liveBackup is a lazy CloudKitLiveBackupManager whose ensureZone closure calls ensureZoneExists on the manager. fullSyncsAdmitted starts at 0. No deinit: the private-init singleton is never released, so the observer token in `observers` is kept for the process.",
- "flags": [
-  {
-   "kind": "dead",
-   "sev": "med",
-   "text": "Quarantine is documented as surfaced to the user and reversible (quarantinedCount, quarantinedSessionIds, retryQuarantined), but no code in the repo (app or tests) reads quarantinedCount/quarantinedSessionIds or calls retryQuarantined. A session quarantined by handlePrepFailure is excluded from every push forever and the user is never told it is not backed up.",
-   "evidence": [
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift:159",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift:163",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift:168",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift:175",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift:310",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift:174"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "func CloudKitSyncManager.isPermanentSchemaError(_:)",
@@ -190,18 +175,7 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "med",
-     "text": "No caller anywhere in the repo (grep of app and tests); quarantined sessions are never surfaced despite the doc comment saying Settings/Troubleshooting shows them.",
-     "evidence": [
-      "Emuqu/Sources/Storage/CloudKitSyncManager.swift:159",
-      "Emuqu/Sources/Storage/CloudKitSyncManager.swift:163"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.quarantinedSessionIds": "3bbfb43f5d0f85f4"
    }
@@ -245,18 +219,7 @@
     "file:quarantined_uploads.json"
    ],
    "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "med",
-     "text": "No caller anywhere in the repo, app or tests; the only documented way to un-quarantine a session is unreachable, so a quarantined session is never retried.",
-     "evidence": [
-      "Emuqu/Sources/Storage/CloudKitSyncManager.swift:172",
-      "Emuqu/Sources/Storage/CloudKitSyncManager.swift:175"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.clearQuarantine(_:)": "2af7031446112300",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveQuarantineQueue()": "8fb3c43b7613f0bc"

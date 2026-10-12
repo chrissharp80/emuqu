@@ -726,23 +726,9 @@
      "effect": "asserts the label prefix per HR"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "med",
-     "text": "The percent-of-max zone bands pinned here (HRZone.classify, nil below 50%) are implemented three times with different below-60% behaviour: HRZone.classify (nil <50%), WorkoutZoneBreakdown.zoneIndex (nil <50%) and WorkoutGeometry.hrMaxZone (zone 1 for anything <60%, used for zone thresholds). The engine comment calls HRZone \"the app's one zone model\". Each copy has its own test (this file, WorkoutLiveTrendsTests:495-551, WorkoutGeometryTests:74-100), so the copies can drift apart and the suite stays green: at HR <50% of max a zone-1 threshold treats the HR as zone 1 while the spoken label and the live breakdown report no zone.",
-     "evidence": [
-      "Emuqu/Sources/Views/HRZone.swift:37",
-      "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift:294",
-      "Emuqu/Sources/Collection/WorkoutGeometry.swift:108",
-      "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift:202",
-      "EmuquTests/WorkoutGeometryTests.swift:99"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.evaluate(context:state:interval:unitsImperial:)": "19d326dc1e2efeb4",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.evaluate(context:state:interval:unitsImperial:)": "30562879d4645834",
     "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.hrZoneLabel(context:)": "cbb1bae8eec1f74c",
     "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.markerIndex(context:unit:)": "14863b952d22fc20",
     "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.resolvedUnit(for:unitsImperial:)": "e2aab5cbf7e2baad",
@@ -750,8 +736,51 @@
     "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitElevation(context:state:)": "0543dbdd80d395a1",
     "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitPace(context:state:)": "bebd24eb2e800250",
     "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::var MileMarkerUnit.metersPerMarker": "0afb1d84e021bc5a",
-    "Emuqu/Sources/Views/HRZone.swift::func HRZone.classify(hr:userMaxHR:)": "26516487f738767e",
+    "Emuqu/Sources/Views/HRZone.swift::func HRZone.classify(hr:userMaxHR:)": "7ffd7f8d70e8957f",
     "EmuquTests/WorkoutMileMarkerEngineTests.swift::func WorkoutMileMarkerEngineTests.makeContext(distance:elapsed:hr:elev:cadence:cadenceDrift:maxHR:sport:)": "56962af3cf65ca12"
+   }
+  },
+  {
+   "key": "func WorkoutMileMarkerEngineTests.testEveryCopyOfTheZoneBandsAgrees()",
+   "hash": "d327793b012a7ddc",
+   "does": "For every HR 1...250 at max 180, asserts the three percent-of-max band implementations agree: WorkoutZoneBreakdown.compute's dominant zone for a single one-second sample equals HRZone.classify's zone (both nil under 50 %), and WorkoutGeometry.hrMaxZone equals that zone, or 1 where classify gives none (its documented under-50 % reading for thresholds).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Views/HRZone.swift::func HRZone.classify(hr:userMaxHR:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutZoneBreakdown.compute(samples:userMaxHR:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutZoneBreakdown.zoneIndex(fractionOfMax:)",
+    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.hrMaxZone(hr:maxHR:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each HR 1...250",
+     "effect": "asserts breakdown zone == label zone and threshold zone == label zone ?? 1"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "The percent-of-max bands are still written out three times (HRZone.classify, WorkoutZoneBreakdown.zoneIndex, WorkoutGeometry.hrMaxZone); this test now fails if they drift apart, but one shared band table would remove the copies.",
+     "evidence": [
+      "Emuqu/Sources/Views/HRZone.swift:36",
+      "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift:306",
+      "Emuqu/Sources/Collection/WorkoutGeometry.swift:113"
+     ],
+     "found": "t2 test pass"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutAnalysisSnapshotBuilder.swift::func WorkoutAnalysisSnapshotBuilder.dominantZone(zoneSecs:zoneTotal:)": "974008587ee9d034",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutZoneBreakdown.compute(samples:userMaxHR:)": "4d83f75c70219d1d",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutZoneBreakdown.zoneIndex(fractionOfMax:)": "0e2f0214db8994ad",
+    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.hrMaxZone(hr:maxHR:)": "6ec78123269abbc8",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "26b496eaa37ca3d8",
+    "Emuqu/Sources/Views/HRZone.swift::func HRZone.classify(hr:userMaxHR:)": "7ffd7f8d70e8957f"
    }
   },
   {

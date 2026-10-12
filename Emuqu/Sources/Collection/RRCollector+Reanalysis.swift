@@ -344,10 +344,17 @@ extension SessionReanalysisCoordinator {
         }
     }
 
-    /// Re-analyze all sessions with current algorithms.
-    /// Returns (updated, skipped) where skipped counts sessions with manual window overrides.
+    /// Re-analyze all sessions with current algorithms. Each session runs
+    /// through this coordinator's `reanalyzeSession`, so it gets the same
+    /// past-day training load, warm cache and in-flight guard as a single
+    /// Reanalyze. Returns (updated, skipped) where skipped counts sessions
+    /// with manual window overrides.
     func reanalyzeAllSessions(from: Date? = nil, to: Date? = nil, progress: @escaping (Int, Int) -> Void = { _, _ in }) async -> (updated: Int, skipped: Int) {
-        await reanalysisService.reanalyzeAllSessions(sessions: collector.archivedSessionsOffMain(), from: from, to: to, progress: progress)
+        await reanalysisService.reanalyzeAllSessions(
+            sessions: collector.archivedSessionsOffMain(), from: from, to: to,
+            reanalyzeOne: { await self.reanalyzeSession($0) },
+            progress: progress
+        )
     }
 
     // MARK: - Sleep Retro-Apply

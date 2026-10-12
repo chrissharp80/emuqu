@@ -202,6 +202,25 @@ extension AssistantToolRunner {
         )
         var thisRound: [PendingToolCall] = []
         defer { buffer.flush(force: true, thisRoundIsEmpty: thisRound.isEmpty) }
+        do {
+            try await drain(stream, round: round, state: state, auditID: auditID, buffer: buffer, into: &thisRound)
+        } catch {
+            recordAuditFailure(error, auditID: auditID)
+            throw error
+        }
+        return thisRound
+    }
+
+    /// Every event of one round's stream, through `handle`; throws on
+    /// cancellation or a provider error.
+    private func drain(
+        _ stream: AsyncThrowingStream<AIStreamEvent, Error>,
+        round: RoundContext,
+        state: ToolLoopState,
+        auditID: UUID,
+        buffer: StreamTextBuffer,
+        into thisRound: inout [PendingToolCall]
+    ) async throws {
         for try await event in stream {
             try Task.checkCancellation()
             handle(
@@ -210,7 +229,14 @@ extension AssistantToolRunner {
             )
         }
         try Task.checkCancellation()
-        return thisRound
+    }
+
+    /// A round the provider failed shows as "Failed" on the prompt-audit
+    /// page (`LLMRequestAudit.setError`). A cancelled round is not a failure.
+    private func recordAuditFailure(_ error: Error, auditID: UUID) {
+        guard !(error is CancellationError), !Task.isCancelled else { return }
+        let description = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+        AppDependencies.current.providers.llmRequestAudit.setError(description, for: auditID)
     }
 
     /// Prompt audit. Capture the inputs we're
@@ -380,14 +406,22 @@ extension AssistantToolRunner {
     /// Resolve the live turn position by id so
     /// a shifted array (clear / regenerate / removal) can't make this
     /// verify-and-rewrite land on the wrong turn.
+    ///
+    /// Live-workout claims (HR, power, α1) are checked first, against the
+    /// broker's snapshot (`MetricsVerifier.verify(_:againstLive:)`; nothing
+    /// while no workout records), and the app-state pass runs on their
+    /// corrected text.
     private func verifyAppStateNumbers(turnID: UUID) {
         guard let assistantIndex = owner.liveTurnIndex(for: turnID) else { return }
-        let result = MetricsVerifier.verifyAppStateClaims(owner.turns[assistantIndex].text)
-        guard !result.discrepancies.isEmpty else { return }
-        debugLog(MetricsVerifier.formatForLog(result.discrepancies), level: .warning)
-        MetricsVerifier.recordCorrections(result.discrepancies)
-        guard let corrected = result.correctedText else { return }
-        owner.turns[assistantIndex].text = corrected
+        let original = owner.turns[assistantIndex].text
+        let live = MetricsVerifier.verify(original, againstLive: AppDependencies.current.assistant.liveWorkoutBroker.currentSnapshot())
+        let text = MetricsVerifier.correctedText(from: original, applying: live) ?? original
+        let result = MetricsVerifier.verifyAppStateClaims(text)
+        let discrepancies = live + result.discrepancies
+        guard !discrepancies.isEmpty else { return }
+        debugLog(MetricsVerifier.formatForLog(discrepancies), level: .warning)
+        MetricsVerifier.recordCorrections(discrepancies)
+        owner.turns[assistantIndex].text = result.correctedText ?? text
         owner.store.save(owner.turns)
     }
 

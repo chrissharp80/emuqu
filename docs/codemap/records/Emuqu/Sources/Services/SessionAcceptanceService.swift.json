@@ -234,30 +234,40 @@
    }
   },
   {
-   "key": "func SessionAcceptanceService.fetchSleepAndVitals(rrPoints:fetchStart:fetchEnd:sessionEnd:)",
-   "hash": "445895646e833f9d",
-   "does": "Races sleep fetch + fetchRecoveryVitals against a 10 s runWithTimeout; returns (sleep, vitals) or (nil, nil) on timeout.",
+   "key": "func SessionAcceptanceService.fetchSleepAndVitals(rrPoints:fetchStart:fetchEnd:sessionStart:sessionEnd:)",
+   "hash": "86b2c1df5eb6e898",
+   "does": "Races, against a 10 s runWithTimeout: the sleep fetch, the previous day's qualifying nap (fetchDaytimeNapMinutes anchored at the session start, credited via withNapSleepMinutes when > 0, as the morning pass does), and fetchRecoveryVitals; returns (sleep, vitals) or (nil, nil) on timeout.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func runWithTimeout(seconds:operation:)",
     "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.sleepOrNil(_:from:to:rrPoints:)",
+    "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::func HealthKitServiceProtocol.fetchDaytimeNapMinutes(nightAnchoredAt:)",
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.withNapSleepMinutes(_:)",
     "dyn:HealthKitServiceProtocol.fetchRecoveryVitals(relativeTo:) → Emuqu/Sources/Collection/HealthKitManager+VitalsForwarding.swift:21|EmuquTests/Mocks/MockHealthKitService.swift::func MockHealthKitService.fetchRecoveryVitals(relativeTo:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [
     "hk:HKCategoryType.sleepAnalysis",
+    "hk:daytime naps (sleepAnalysis)",
     "hk:restingHeartRate/vitals"
    ],
    "writes": [],
    "branches": [
     {
-     "at": "+11",
+     "at": "+12",
+     "cond": "napMinutes > 0 (and sleep fetched)",
+     "effect": "sleep credited with the nap; else unchanged / nil"
+    },
+    {
+     "at": "+15",
      "cond": "race returned a value",
      "effect": "false (timeout): log and return (nil, nil); true: return both"
     }
    ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.withNapSleepMinutes(_:)": "4d5c08b31b317a34",
+    "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::func HealthKitServiceProtocol.fetchDaytimeNapMinutes(nightAnchoredAt:)": "297b99d9063299c1",
     "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func runWithTimeout(seconds:operation:)": "d7a85e38dc532d26",
     "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.sleepOrNil(_:from:to:rrPoints:)": "6675df02711b275c",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
@@ -358,12 +368,12 @@
   },
   {
    "key": "func SessionAcceptanceService.snapshotHealthData(on:sessionEnd:sleepSchedule:)",
-   "hash": "ccadf161f5d82f7c",
-   "does": "Fetches sleep (overnight window of the session's night) and vitals with the 10 s timeout and stores them as sleepSnapshot and vitalsSnapshot (resting HR swapped for analysis mean HR).",
+   "hash": "967f55ee7b78e729",
+   "does": "Fetches sleep (overnight window of the session's night, with the previous day's nap credited) and vitals with the 10 s timeout and stores them as sleepSnapshot and vitalsSnapshot (resting HR swapped for analysis mean HR).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.sleepFetchRange(for:sessionEnd:sleepSchedule:)",
-    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.fetchSleepAndVitals(rrPoints:fetchStart:fetchEnd:sessionEnd:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.fetchSleepAndVitals(rrPoints:fetchStart:fetchEnd:sessionStart:sessionEnd:)",
     "Emuqu/Sources/Models/RecoveryVitals.swift::func RecoveryVitals.withStrapNocturnalRHR(_:)"
    ],
    "reads": [
@@ -377,7 +387,7 @@
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "25ff7cdb40a8ca69",
     "Emuqu/Sources/Models/RecoveryVitals.swift::func RecoveryVitals.withStrapNocturnalRHR(_:)": "689968153e58848a",
-    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.fetchSleepAndVitals(rrPoints:fetchStart:fetchEnd:sessionEnd:)": "71733e809326d636",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.fetchSleepAndVitals(rrPoints:fetchStart:fetchEnd:sessionStart:sessionEnd:)": "e81e10a7740cd6b6",
     "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.sleepFetchRange(for:sessionEnd:sleepSchedule:)": "b6aa8c2a79603eeb"
    }
   },
@@ -599,12 +609,12 @@
   },
   {
    "key": "func SessionAcceptanceService.refreshHealthSnapshots(on:result:sleepSchedule:)",
-   "hash": "1f10b2942b9c8d04",
-   "does": "Fetches sleep for the night's overnight window and recovery vitals relative to session end through fetchSleepAndVitals (10 s timeout). A sleep result replaces sleepSnapshot and a vitals result replaces vitalsSnapshot (strap-swapped); a failed or timed-out fetch keeps the stored snapshot.",
+   "hash": "aac4b536fb223e2a",
+   "does": "Fetches sleep for the night's overnight window (previous day's nap credited) and recovery vitals relative to session end through fetchSleepAndVitals (10 s timeout). A sleep result replaces sleepSnapshot and a vitals result replaces vitalsSnapshot (strap-swapped); a failed or timed-out fetch keeps the stored snapshot.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.sleepFetchRange(for:sessionEnd:sleepSchedule:)",
-    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.fetchSleepAndVitals(rrPoints:fetchStart:fetchEnd:sessionEnd:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.fetchSleepAndVitals(rrPoints:fetchStart:fetchEnd:sessionStart:sessionEnd:)",
     "Emuqu/Sources/Models/RecoveryVitals.swift::func RecoveryVitals.withStrapNocturnalRHR(_:)"
    ],
    "reads": [
@@ -634,7 +644,7 @@
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "25ff7cdb40a8ca69",
     "Emuqu/Sources/Models/RecoveryVitals.swift::func RecoveryVitals.withStrapNocturnalRHR(_:)": "689968153e58848a",
-    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.fetchSleepAndVitals(rrPoints:fetchStart:fetchEnd:sessionEnd:)": "71733e809326d636",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.fetchSleepAndVitals(rrPoints:fetchStart:fetchEnd:sessionStart:sessionEnd:)": "e81e10a7740cd6b6",
     "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.sleepFetchRange(for:sessionEnd:sleepSchedule:)": "b6aa8c2a79603eeb"
    }
   },

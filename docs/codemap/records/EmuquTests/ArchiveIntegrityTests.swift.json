@@ -457,14 +457,16 @@
   },
   {
    "key": "func ArchiveIntegrityTests.testConcurrentReads()",
-   "hash": "ffbff3ab661088ed",
-   "does": "Archives one session then retrieves it 20 times via DispatchQueue.concurrentPerform, fulfilling an expectation per success, and waits 5 s.",
+   "hash": "bf0ab9d5f5abd73b",
+   "does": "Archives one session, then reads it 20 times concurrently: each read runs on a concurrent DispatchQueue under one DispatchGroup and records a missing session or a thrown error in a lock-protected list. Waits on the group with a 30 s DispatchGroup.wait(timeout:) bound, fails if it times out (the read path is wedged), and otherwise asserts on the test thread that no read failed.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)",
-    "ext:DispatchQueue.concurrentPerform"
+    "ext:DispatchQueue.async(group:)",
+    "ext:DispatchGroup.wait(timeout:)",
+    "ext:OSAllocatedUnfairLock.withLock"
    ],
    "reads": [
     "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)",
@@ -477,26 +479,34 @@
    ],
    "branches": [
     {
-     "at": "+14",
-     "cond": "retrieve throws",
-     "effect": "XCTFail from a worker thread and no fulfil, so the wait times out; otherwise asserts non-nil and fulfils"
-    }
-   ],
-   "flags": [
+     "at": "+11",
+     "cond": "for each of 20 reads",
+     "effect": "dispatches a retrieve on the concurrent queue in the group"
+    },
     {
-     "kind": "test-defect",
-     "sev": "med",
-     "text": "Uses DispatchQueue.concurrentPerform followed by wait(for:timeout:5) — the exact pattern this file documents as inert for testConcurrentAccess: concurrentPerform blocks the caller until all iterations return, so a wedged retrieve hangs the whole suite instead of failing after 5 s; XCTFail is also called from worker threads, which the same comment says is not reliably attributed.",
-     "evidence": [
-      "EmuquTests/ArchiveIntegrityTests.swift:348",
-      "EmuquTests/ArchiveIntegrityTests.swift:358",
-      "EmuquTests/ArchiveIntegrityTests.swift:285",
-      "EmuquTests/ArchiveIntegrityTests.swift:297"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+14",
+     "cond": "retrieve returns nil",
+     "effect": "'session not found' appended to the locked failures list"
+    },
+    {
+     "at": "+17",
+     "cond": "retrieve throws",
+     "effect": "the error appended to the locked failures list"
+    },
+    {
+     "at": "+23",
+     "cond": "group.wait times out after 30 s",
+     "effect": "XCTFail naming a wedged read path, and return"
+    },
+    {
+     "at": "+29",
+     "cond": "otherwise",
+     "effect": "asserts the collected failures list is empty"
     }
    ],
+   "flags": [],
    "deps": {
+    "Emuqu/Sources/Collection/StrapSignal.swift::func StrapSignal.wait(timeout:)": "590ba7959a45b0d5",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "8782e72ec2fc6000",
     "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)": "6775cb445798d2fb"

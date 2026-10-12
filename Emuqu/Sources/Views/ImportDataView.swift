@@ -127,6 +127,7 @@ struct ImportDataView: View {
             result: result,
             recentSessions: cachedRecentSessions,
             onDiscard: { discardImport() },
+            onUpdateTags: { applyReportTags($0, notes: $1, sessionId: session.id) },
             onUpdateSleep: { importedSleep = $0 }
         )
     }

@@ -831,7 +831,7 @@
   {
    "key": "func MorningReanalysisControls.applyManualWindowChoice(_:)",
    "hash": "b987aa5ac76ca580",
-   "does": "Logs old/new RMSSD and score, sets isReanalyzing, then awaits onApplyManualResult(manual) (callers wire RRCollector.applyManualAnalysis -> ReanalysisService, which sets windowUserAdjusted, rescored and re-archives) and finishes on the MainActor.",
+   "does": "Logs old/new RMSSD and score, sets isReanalyzing, then awaits onApplyManualResult(manual) (callers wire RRCollector.applyManualAnalysis -> ReanalysisService, which starts from the current archived copy of the session, sets windowUserAdjusted, rescores and re-archives) and finishes on the MainActor.",
    "entry": "Apply button.",
    "calls": [
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
@@ -857,23 +857,7 @@
      "effect": "log 'nil' instead of the formatted score"
     }
    ],
-   "flags": [
-    {
-     "kind": "data-loss",
-     "sev": "high",
-     "text": "onApplyManualResult receives only the HRVAnalysisResult, so both callers apply it to the session captured when the sheet was built (HistoryView.swift:454, RecordView+Sections.swift:348/366), not vm.displaySession. ReanalysisService.applyManualAnalysis copies that captured session (hydrated only when its rrSeries is empty) and archives it whole, so anything archived earlier in this same sheet is overwritten: a strap merge's rrSeries/dataSourceSummary (RRCollector+BackupRecovery.swift:415), a sleep adjustment made via onAdjustSleep, or a method re-analysis. Handoff b23: ReanalysisService.applyManualAnalysis / reanalyzeAtPosition to start from the current archived copy of the session (by id), so every caller is covered without changing these closures' signatures.",
-     "evidence": [
-      "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift:483",
-      "Emuqu/Sources/Views/HistoryView.swift:454",
-      "Emuqu/Sources/Views/RecordView+Sections.swift:366",
-      "Emuqu/Sources/Services/ReanalysisService+Sleep.swift:226",
-      "Emuqu/Sources/Services/ReanalysisService+Sleep.swift:234",
-      "Emuqu/Sources/Services/ReanalysisService+Sleep.swift:267",
-      "Emuqu/Sources/Services/ReanalysisService.swift:163"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
@@ -1476,20 +1460,7 @@
      "effect": "return"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "The manual-pick preview runs onReanalyzeAt on the session captured at sheet creation (HistoryView.swift:453, RecordView+Sections.swift:347), not vm.displaySession, so after an in-sheet strap merge the preview window/RMSSD is computed on the pre-merge stream-only RR series while the chart shows the merged beats. Handoff b23: ReanalysisService.applyManualAnalysis / reanalyzeAtPosition to start from the current archived copy of the session (by id), so every caller is covered without changing these closures' signatures.",
-     "evidence": [
-      "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift:786",
-      "Emuqu/Sources/Views/HistoryView.swift:453",
-      "Emuqu/Sources/Views/RecordView+Sections.swift:347",
-      "Emuqu/Sources/Services/ReanalysisService+Sleep.swift:211"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.finishManualPreview(_:timestampMs:)": "cf30d33cfd585dd9"
    }

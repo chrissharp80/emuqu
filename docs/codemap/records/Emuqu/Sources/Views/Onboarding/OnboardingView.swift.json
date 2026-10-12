@@ -70,13 +70,16 @@
   },
   {
    "key": "func OnboardingView.noteHealthPageSwipedPast(from:to:)",
-   "hash": "b9f2bc3917c50656",
-   "does": "When the page changes from the Apple Health page (4) to a later page by a swipe — the page's own Skip/Continue did not answer it (healthPageAnswered false) — and HealthKitManager.authorizationRequested is false in this process, sets UserDefaults healthAccessSkippedInOnboarding = true (treats a swipe-past as \"Skip for now\").",
+   "hash": "ed8e271613fc9c86",
+   "does": "When the page changes from the Apple Health page (4) to a later page by a swipe — the page's own Skip/Continue did not answer it (healthPageAnswered false) — and HealthKitManager.authorizationRequested is false in this process, asks HealthKit in a Task whether the permission sheet was already answered in any launch (authorizationWasEverRequested); only when it was not, sets UserDefaults healthAccessSkippedInOnboarding = true (treats a swipe-past as \"Skip for now\").",
    "entry": ".onChange(of: currentPage) in body (line 44).",
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.authorizationWasEverRequested()"
+   ],
    "reads": [
     "mem:HealthKitManager.authorizationRequested",
-    "mem:OnboardingView.healthPageAnswered"
+    "mem:OnboardingView.healthPageAnswered",
+    "hk:authorization request status"
    ],
    "writes": [
     "ud:healthAccessSkippedInOnboarding (UserDefaultsKeys.healthAccessSkipped, standard suite)"
@@ -85,26 +88,17 @@
     {
      "at": "+1",
      "cond": "old == 4 && new > 4 && !healthPageAnswered && !authorizationRequested",
-     "effect": "writes healthAccessSkipped=true; else returns without writing"
-    }
-   ],
-   "flags": [
+     "effect": "continues to the HealthKit check; else returns without writing"
+    },
     {
-     "kind": "fragile",
-     "sev": "med",
-     "text": "The swipe-past skip is still keyed partly on HealthKitManager.authorizationRequested, an in-memory per-process flag set only after a successful request. Case (a) — Continue after a Connect whose request threw — is fixed (healthPageAnswered). Remaining (b): if the app was relaunched mid-onboarding after a successful Connect, the flag is false in the new process, so swiping past the Health page marks access skipped and suppresses the launch-time Health request. Handoff b23: HealthKitManager to expose whether authorization was ever requested (HKHealthStore.statusForAuthorizationRequest → .unnecessary).",
-     "evidence": [
-      "Emuqu/Sources/Views/Onboarding/OnboardingView.swift:72",
-      "Emuqu/Sources/Collection/HealthKitManager.swift:54",
-      "Emuqu/Sources/Collection/HealthKitManager.swift:546",
-      "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift:76-78",
-      "Emuqu/Sources/Services/AppLaunchTasks.swift:274",
-      "Emuqu/Sources/Collection/HealthKitManager.swift:217"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+8",
+     "cond": "authorizationWasEverRequested true (answered in an earlier launch)",
+     "effect": "returns without writing; else writes healthAccessSkipped=true"
     }
    ],
+   "flags": [],
    "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.authorizationWasEverRequested()": "798c3000f1ee389d",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.healthKit": "f61a7a679f5280dd"
    }
   },

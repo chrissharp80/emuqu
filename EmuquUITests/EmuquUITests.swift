@@ -225,14 +225,17 @@ enum UITestFind {
     /// So: require the element to exist, to have a real frame, and for that
     /// frame to actually intersect the app, before asking the question that can
     /// throw.
-    /// Whether an element is genuinely reachable — **including occlusion**.
+    /// Whether an element is reachable, as far as XCTest's `isHittable` can
+    /// tell.
     ///
     /// Use this to *assert* about reachability, not to decide whether to tap.
-    /// `isHittable` is the only thing that knows a `fullScreenCover` is sitting
-    /// on top of the tab bar, which is what
-    /// `testFreshInstallShowsHealthDisclaimerFirst` exists to prove. Dropping it
-    /// made a covered tab report as reachable and quietly turned that safety
-    /// assertion into a no-op.
+    /// `isHittable` sees some occlusion but not all of it: measured on iOS 26,
+    /// the tab bar under a `fullScreenCover` reports hittable although every
+    /// tap goes to the cover (see `UITestLaunch.anyPresent`). So a true here
+    /// does not prove no cover is up; to prove one is, check the cover's own
+    /// elements or a tap's effect, as `testFreshInstallShowsHealthDisclaimerFirst`
+    /// and the onboarding suite do. `UITestLaunch.toMainUI` uses it only after
+    /// it has checked that no gate is present, to wait out the first layout.
     ///
     /// It can still raise on an element mid-transition — see `tapSafely` — but
     /// assertion sites look at settled UI, which is where the distinction lies.
@@ -991,45 +994,56 @@ final class EmuquUITests: XCTestCase {
         )
     }
 
-    func testDashboardShowsTrainingReadinessSection() throws {
+    /// A fresh install has no reading, so the Dashboard shows the Get started
+    /// checklist in place of the chips, Today's Loop and the Recent strip
+    /// (`DashboardV2View.dashboardBodySections`). Live readiness has no section
+    /// of its own on that screen; it is reached from the narrative card once
+    /// there is a reading with a drift to explain, which a fresh install never
+    /// has. What the screen must show is the checklist and its three steps.
+    func testFreshDashboardShowsTheGetStartedChecklist() throws {
         dismissModalIfPresent()
         selectTab(UITestID.tabDashboard, UITestID.tabDashboardTitle)
 
-        // The training readiness section should be visible
-        let readinessText = app.staticTexts.matching(
-            NSPredicate(format: "label CONTAINS[c] %@", "Readiness")
-        ).firstMatch
-
-        // Scroll down to find it if needed
-        let scrollView = app.scrollViews.firstMatch
-        if scrollView.exists && !readinessText.exists {
-            scrollView.swipeUp()
-        }
-
-        // In empty-data state this section may still render with placeholder values
-        // We verify the dashboard is scrollable and structured
-        XCTAssertTrue(scrollView.exists, "Dashboard scroll view should exist")
+        let header = app.staticTexts.matching(NSPredicate(format: "label CONTAINS[c] %@", "Get started")).firstMatch
+        XCTAssertTrue(
+            header.waitForExistence(timeout: UITestTiming.s(5)),
+            "A fresh install's Dashboard must show the Get started checklist — \(UITestFind.onScreen(app))"
+        )
+        XCTAssertTrue(firstReadingButton().exists, "The checklist must offer Take your first reading")
     }
 
+    /// The checklist's "Take your first reading" opens the Record tab. Asserted
+    /// by the Record screen rendering, not `isSelected` on the tab button,
+    /// which SwiftUI does not reliably surface (see `testCanSwitchBetweenAllTabs`).
     func testDashboardStartRecordingNavigation() throws {
         dismissModalIfPresent()
         selectTab(UITestID.tabDashboard, UITestID.tabDashboardTitle)
 
-        // Look for a "Start Recording" or "Record" call-to-action button on dashboard
-        let startButton = app.buttons.matching(
-            NSPredicate(format: "label CONTAINS[c] %@ OR label CONTAINS[c] %@", "Start Recording", "Record Now")
-        ).firstMatch
-
-        if startButton.waitForExistence(timeout: UITestTiming.s(3)) {
-            startButton.tap()
-            // Should navigate to the Record tab
-            let tabBar = app.tabBars.firstMatch
-            let recordTab = UITestFind.tabButton(in: tabBar, identifier: UITestID.tabRecord, title: UITestID.tabRecordTitle)
-            if recordTab.exists {
-                XCTAssertTrue(recordTab.isSelected, "Tapping start recording should switch to Record tab")
-            }
+        let startButton = firstReadingButton()
+        XCTAssertTrue(
+            startButton.waitForExistence(timeout: UITestTiming.s(5)),
+            "A fresh install's Dashboard must offer Take your first reading — \(UITestFind.onScreen(app))"
+        )
+        var swipes = 0
+        while !UITestFind.isSafelyHittable(startButton, in: app), swipes < 3 {
+            app.swipeUp()
+            swipes += 1
         }
-        // If no start button exists (user already has recent sessions), that is acceptable
+        XCTAssertTrue(UITestFind.tapSafely(startButton, in: app), "Take your first reading could not be tapped")
+
+        let chooseSession = app.staticTexts.matching(
+            NSPredicate(format: "label CONTAINS[c] %@", "Choose session")
+        ).firstMatch
+        XCTAssertTrue(
+            chooseSession.waitForExistence(timeout: UITestTiming.s(5)),
+            "Take your first reading should open the Record screen — \(UITestFind.onScreen(app))"
+        )
+    }
+
+    /// The Get started checklist's "Take your first reading" row (a button
+    /// whose label joins its title and subtitle).
+    private func firstReadingButton() -> XCUIElement {
+        app.buttons.matching(NSPredicate(format: "label CONTAINS[c] %@", "Take your first reading")).firstMatch
     }
 
     // MARK: - 3. Record View Structure

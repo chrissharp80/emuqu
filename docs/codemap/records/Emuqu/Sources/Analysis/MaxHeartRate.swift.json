@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Analysis/MaxHeartRate.swift",
- "hash": "2d3066ce66446920",
+ "hash": "24096b0aeb69473f",
  "role": "Age-predicted maximum heart rate (Tanaka 208-0.7*age) with clamp and the effective-HRmax rule used by UserSettings.effectiveMaxHR, which anchors TRIMP and HR zones.",
  "types": [
   "MaxHeartRate: enum — HRmax formula, age derivation, effective rule"
@@ -9,6 +9,7 @@
   "mem:MaxHeartRate.floor=130",
   "mem:MaxHeartRate.ceiling=220",
   "mem:MaxHeartRate.minimumUserEntered=80",
+  "mem:MaxHeartRate.maximumUserEntered=240",
   "mem:MaxHeartRate.defaultWithoutBirthday=180"
  ],
  "toplevel": "Static constants only.",
@@ -42,8 +43,8 @@
   },
   {
    "key": "func MaxHeartRate.effective(userEntered:birthday:reference:calendar:)",
-   "hash": "641dc9fc4986adac",
-   "does": "Effective HRmax: user-entered value if >= 80; else 180 when no birthday; else Tanaka of age (age 40 if the calendar yields nil). Called by UserSettings+Model.swift:290.",
+   "hash": "41a25165651a8924",
+   "does": "Effective HRmax: user-entered value if >= 80, capped at maximumUserEntered (240); else 180 when no birthday; else Tanaka of age (age 40 if the calendar yields nil). Called by UserSettings+Model.swift:290.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.age(from:to:calendar:)",
@@ -55,7 +56,7 @@
     {
      "at": "+8",
      "cond": "userEntered non-nil and >= 80",
-     "effect": "return userEntered (no upper bound check)"
+     "effect": "return min(userEntered, 240)"
     },
     {
      "at": "+9",

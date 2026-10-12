@@ -242,7 +242,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var ChatInputBar.messageField": "f4303ecb8b7bfbcb",
-    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var ChatInputBar.micButton": "b918fe6fcbd1a950",
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var ChatInputBar.micButton": "dfa65a0c0f80807f",
     "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var ChatInputBar.sendButton": "58e6ffc18e424bee"
    }
   },
@@ -317,11 +317,11 @@
   },
   {
    "key": "var ChatInputBar.micButton",
-   "hash": "3550e55cc7bfeff0",
-   "does": "Mic button toggling dictation; icon/colour/accessibility label reflect speech.isRecording; shows a 'Voice input' alert with voiceErrorMessage; while recording shows the text typed before dictation followed by speech.transcript in draft; a recogniser failure reported in speech.lastError (SpeechInputManager ends the recording) is shown in the alert.",
-   "entry": "button tap; body; onChange(of: speech.transcript)",
+   "hash": "320b2d0183cedd4d",
+   "does": "The dictation button (micButtonCore) with the 'Voice input' alert showing voiceErrorMessage; while recording keeps draft = the text typed before dictation followed by speech.transcript; a recogniser failure reported in speech.lastError (SpeechInputManager ends the recording) is shown in the alert.",
+   "entry": "body; onChange(of: speech.transcript / speech.lastError)",
    "calls": [
-    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::func ChatInputBar.toggleDictation()",
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var ChatInputBar.micButtonCore",
     "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var ChatInputBar.voiceErrorBinding",
     "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::func ChatInputBar.joined(_:_:)"
    ],
@@ -329,6 +329,46 @@
     "mem:SpeechInputManager.transcript",
     "mem:SpeechInputManager.isRecording",
     "mem:SpeechInputManager.lastError"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "voiceErrorMessage ?? \"\"",
+     "effect": "message text; empty string when nil (alert not shown then)"
+    },
+    {
+     "at": "+8",
+     "cond": "speech.isRecording when transcript changes",
+     "effect": "draft = text before dictation + transcript; otherwise ignored"
+    },
+    {
+     "at": "+11",
+     "cond": "lastError became non-nil",
+     "effect": "voiceErrorMessage = it (alert)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::func ChatInputBar.joined(_:_:)": "a0581d1bcd485b0f",
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var ChatInputBar.micButtonCore": "9f363bc8e690fbe5",
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var ChatInputBar.voiceErrorBinding": "1c25ffb4a7dbd5b7",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.transcript": "6f892b798379aa91",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "9f997d8c7612d204",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var ChatInputBar.micButtonCore",
+   "hash": "2ed864b4a1b85d1e",
+   "does": "The mic toggle itself: a 44 pt button calling toggleDictation; icon, colour and accessibility label follow speech.isRecording ('mic.fill'/red/'Stop dictation' while recording, else 'mic'/accent/'Start dictation'), with a 'Use your voice to compose a question' hint.",
+   "entry": "button tap; body (via micButton)",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::func ChatInputBar.toggleDictation()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:SpeechInputManager.isRecording"
    ],
    "writes": [],
    "branches": [
@@ -346,30 +386,11 @@
      "at": "+10",
      "cond": "speech.isRecording",
      "effect": "label 'Stop dictation'; else 'Start dictation'"
-    },
-    {
-     "at": "+15",
-     "cond": "voiceErrorMessage ?? \"\"",
-     "effect": "message text; empty string when nil (alert not shown then)"
-    },
-    {
-     "at": "+18",
-     "cond": "speech.isRecording when transcript changes",
-     "effect": "draft = text before dictation + transcript; otherwise ignored"
-    },
-    {
-     "at": "+21",
-     "cond": "lastError became non-nil",
-     "effect": "voiceErrorMessage = it (alert)"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::func ChatInputBar.joined(_:_:)": "a0581d1bcd485b0f",
     "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::func ChatInputBar.toggleDictation()": "44c098b4fa6a4fbc",
-    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var ChatInputBar.voiceErrorBinding": "1c25ffb4a7dbd5b7",
-    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.transcript": "6f892b798379aa91",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "9f997d8c7612d204",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059"
    }

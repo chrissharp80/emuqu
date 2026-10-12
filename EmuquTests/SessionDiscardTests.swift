@@ -11,8 +11,12 @@ final class SessionDiscardTests: XCTestCase {
         .appendingPathComponent("SessionDiscardTests-\(UUID().uuidString)", isDirectory: true)
     private lazy var archive = SessionArchive(directory: directory)
 
+    override func setUp() async throws {
+        try await super.setUp()
+        isolateFromHostRecordingState()
+    }
+
     override func tearDown() async throws {
-        PersistedRecordingState.clear()
         do {
             try FileManager.default.removeItem(at: directory)
         } catch {
@@ -22,7 +26,7 @@ final class SessionDiscardTests: XCTestCase {
     }
 
     private func makeCollector() -> RRCollector {
-        RRCollector(polarManager: PolarManager(), healthKit: HealthKitManager(), archive: archive)
+        RRCollector.withoutCloudAcceptance(polarManager: PolarManager(), archive: archive)
     }
 
     private func archivedNight(daysAgo: Int) throws -> HRVSession {

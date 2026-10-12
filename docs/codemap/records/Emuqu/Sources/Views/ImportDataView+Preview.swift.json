@@ -205,11 +205,11 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.loadedHeader(_:)": "ae04fe8d699079ed",
-    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.recordingDatePicker(_:)": "09922b4a0b1cb841",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.recordingDatePicker(_:)": "1e0c6a5954929dd8",
     "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.singleFileInfoRows(_:)": "d9609d01d24c2b1c",
     "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.startAnalysis()": "791d1de2393d1dcb",
     "Emuqu/Sources/Views/ImportDataView+Preview.swift::var ImportDataView.analyzeButtonLabel": "1ad3793147868b90",
-    "Emuqu/Sources/Views/Theme.swift::func ButtonStyle.zen(_:)": "be0e101d5d8a0f4b",
+    "Emuqu/Sources/Views/Theme.swift::func ButtonStyle.zen(_:)": "90992ed75b9feffe",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e"
    }
   },
@@ -243,9 +243,31 @@
   },
   {
    "key": "func ImportDataView.recordingDatePicker(_:)",
-   "hash": "4b0804ef1559c5ef",
-   "does": "For a file that states no recording date: a DatePicker labelled 'Recorded' (date and time, up to now) bound to importRecordingDate (showing now until set) with a footnote explaining why, so the reading is dated by the user, not filed under the time of import.",
+   "hash": "3fa0d2763ca0dec5",
+   "does": "For a file that states no recording date shows recordingDateField (the 'Recorded' picker and its footnote), so the reading is dated by the user, not filed under the time of import; nothing otherwise.",
    "entry": "SwiftUI view builder; DatePicker binding",
+   "calls": [
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::var ImportDataView.recordingDateField"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "file states no recording date",
+     "effect": "picker + footnote; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::var ImportDataView.recordingDateField": "ae1200fc21e2d662"
+   }
+  },
+  {
+   "key": "var ImportDataView.recordingDateField",
+   "hash": "51195f0380594aa3",
+   "does": "A DatePicker labelled 'Recorded' (date and time, up to now) bound to importRecordingDate (showing now until set), with a footnote explaining that the file doesn't say when it was recorded.",
+   "entry": "SwiftUI view builder (via recordingDatePicker); DatePicker binding",
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
@@ -255,13 +277,7 @@
    "writes": [
     "mem:ImportDataView.importRecordingDate"
    ],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "file states no recording date",
-     "effect": "picker + footnote; else nothing"
-    }
-   ],
+   "branches": [],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
@@ -426,7 +442,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.analyzeImportedData()": "ebef507e61409e57"
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.analyzeImportedData()": "19f5a5ba0ce6a211"
    }
   },
   {

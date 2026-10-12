@@ -1,9 +1,10 @@
 {
  "file": "Emuqu/Sources/Views/RecoveryScoreDetailView.swift",
- "hash": "36d984452459f284",
+ "hash": "394f13c355fb9b55",
  "role": "Recovery Score detail screen (pushed in the report sheet from MainTabView): computes the displayed composite/verdict/breakdown/vitals from the frozen session plus a fresh HealthKit vitals fetch, lays out the sections, and on .task(id: session.id) reloads the full RR series, refetches vitals (persisting newly-filled fields back to the archive), fetches HealthKit HR fallback samples, loads organized-recovery zones and builds the cached chart series off-main.",
  "types": [
-  "RecoveryScoreDetailView: struct (View) — the detail screen; extended by +Charts (via RecoveryScoreCharts), +Panels, +Sections and RecoveryScoreCharts.swift forwarders"
+  "RecoveryScoreDetailView: struct (View) — the detail screen; extended by +Charts (via RecoveryScoreCharts), +Panels, +Sections and RecoveryScoreCharts.swift forwarders",
+  "RecoveryVitalsBackfill: enum (file scope) — the detail screen's vitals backfill: merge fresh HealthKit vitals into only the fields a stored snapshot lacks (store/fill/merge/fieldCount)"
  ],
  "state": [
   "mem:RecoveryScoreDetailView.dt11/dt12/dt13/dt14/dt15/dt17/dt22 (@ScaledMetric font sizes)",
@@ -22,7 +23,7 @@
   "mem:RecoveryScoreDetailView.hrvHoverDate / hrHoverDate (@State)",
   "mem:RecoveryScoreDetailView.rmssdChartSeries / hrChartSeries (@State cached chart series)"
  ],
- "toplevel": "Reads @Environment(\\.dependencies) (settingsManager via dependencies.app) and @Environment(RRCollector.self). The header doc lists the section order (1-12) but omits the trend comparison card that mainSections inserts between Key Findings and What To Do. File-scope fileprivate helpers sleepHRVitals and mergedVitals build the display vitals.",
+ "toplevel": "Reads @Environment(\\.dependencies) (settingsManager via dependencies.app) and @Environment(RRCollector.self). The header doc lists the section order (1-12) but omits the trend comparison card that mainSections inserts between Key Findings and What To Do. File-scope fileprivate helpers sleepHRVitals and mergedVitals build the display vitals. RecoveryVitalsBackfill (declared after the view) holds the vitals merge persistMergedVitals uses, outside the view type.",
  "flags": [],
  "units": [
   {
@@ -326,22 +327,32 @@
   },
   {
    "key": "var RecoveryScoreDetailView.body",
-   "hash": "81293f122e136fb7",
-   "does": "Screen body: ScrollView with banner/sections and engine room, title 'Recovery', toolbar; .task(id: session.id) runs refreshVitalsAndCharts.",
-   "entry": "SwiftUI View.body; .task(id: session.id) fires on appear and whenever session.id changes",
+   "hash": "0e78ab7059ad3a43",
+   "does": "Screen body: ScrollView with banner/sections and engine room, title 'Recovery', toolbar; .task(id: session.id) runs refreshVitalsAndCharts; when HealthKit delivers new vitals (MorningCoordination.vitalsDataVersion changes) re-pulls them for this night (refreshVitals, which persists the merge as on appear).",
+   "entry": "SwiftUI View.body; .task(id: session.id) fires on appear and whenever session.id changes; onChange(of: collector.morningCoordination.vitalsDataVersion)",
    "calls": [
     "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.bannerAndSections",
     "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.engineRoomSection",
     "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.detailToolbar",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.refreshVitalsAndCharts()"
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.refreshVitalsAndCharts()",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.refreshVitals(referenceDate:)"
    ],
-   "reads": [],
+   "reads": [
+    "mem:MorningCoordination.vitalsDataVersion"
+   ],
    "writes": [],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+17",
+     "cond": "vitalsDataVersion changed",
+     "effect": "Task refreshVitals(referenceDate: end ?? start)"
+    }
+   ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.engineRoomSection": "6b3d639c2793e9bc",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.refreshVitals(referenceDate:)": "37f8d586cf6a6d71",
     "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.refreshVitalsAndCharts()": "615e67620c957aae",
     "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.bannerAndSections": "87993f25d60ce727",
     "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.detailToolbar": "ee54c319c4bc1ba9",
@@ -555,25 +566,25 @@
     "Emuqu/Sources/Models/RecoveryVitals.swift::func RecoveryVitals.withStrapNocturnalRHR(_:)": "689968153e58848a",
     "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.isEmpty": "b04c6e75ce5a48c2",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.healthKit": "f61a7a679f5280dd",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.persistMergedVitals(_:)": "49a4a1c0f6717285",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.persistMergedVitals(_:)": "b158a32487259ce8",
     "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.strapSleepHR": "6837a19e507e6e00"
    }
   },
   {
    "key": "func RecoveryScoreDetailView.persistMergedVitals(_:)",
-   "hash": "a80e6bc326d703e3",
-   "does": "Pre-check on the held snapshot: merges fresh into it (mergeVitals, stored wins) and, only if that adds fields (vitalsFieldCount), starts a detached storeMergedVitals with the fresh vitals, which redoes the merge on the archived copy.",
+   "hash": "4d9e689b620799c8",
+   "does": "Pre-check on the held snapshot: merges fresh into it (RecoveryVitalsBackfill.merge, stored wins) and, only if that adds fields (fieldCount), starts a detached RecoveryVitalsBackfill.store with the fresh vitals, which redoes the merge on the archived copy.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.mergeVitals(fresh:into:)",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.vitalsFieldCount(_:)",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.storeMergedVitals(_:id:archive:)"
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryVitalsBackfill.merge(fresh:into:)",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryVitalsBackfill.fieldCount(_:)",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryVitalsBackfill.store(_:id:archive:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+2",
+     "at": "+3",
      "cond": "merge adds no field",
      "effect": "no write; otherwise detached archive update"
     }
@@ -581,98 +592,9 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "25ff7cdb40a8ca69",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.mergeVitals(fresh:into:)": "524a6e5e084b5bb9",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.storeMergedVitals(_:id:archive:)": "4df3f053a4de26fd",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.vitalsFieldCount(_:)": "58f15ddba013b0e9"
-   }
-  },
-  {
-   "key": "func RecoveryScoreDetailView.storeMergedVitals(_:id:archive:)",
-   "hash": "4ee24107a2fb707a",
-   "does": "Nonisolated: archive.update(id, requestingReupload: false) running fillVitals on the archived copy under the archive lock (the merge lands on the newest snapshot, never overwriting it); no re-upload request since iCloud payloads omit vitalsSnapshot. Logs a warning on failure.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.fillVitals(_:in:)",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
-   ],
-   "reads": [],
-   "writes": [
-    "archive:SessionArchive.update(vitalsSnapshot)",
-    "notif:flowRecoveryArchiveChanged"
-   ],
-   "branches": [
-    {
-     "at": "+3",
-     "cond": "archive.update throws",
-     "effect": "error logged at warning level and dropped; display still uses refreshedVitals"
-    }
-   ],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "e021c7f17b266931",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.fillVitals(_:in:)": "a4f7c027619a6b79"
-   }
-  },
-  {
-   "key": "func RecoveryScoreDetailView.fillVitals(_:in:)",
-   "hash": "a0c4feb079e15662",
-   "does": "Merges fresh vitals into the given (archived) session snapshot via mergeVitals and writes vitalsSnapshot only when the merge adds a field.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.mergeVitals(fresh:into:)",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.vitalsFieldCount(_:)"
-   ],
-   "reads": [],
-   "writes": [
-    "archive:HRVSession.vitalsSnapshot (inout)"
-   ],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "merge adds no field",
-     "effect": "return unchanged"
-    }
-   ],
-   "flags": [],
-   "deps": {
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "25ff7cdb40a8ca69",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.mergeVitals(fresh:into:)": "524a6e5e084b5bb9",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.vitalsFieldCount(_:)": "58f15ddba013b0e9"
-   }
-  },
-  {
-   "key": "func RecoveryScoreDetailView.mergeVitals(fresh:into:)",
-   "hash": "c2babfd9937c5006",
-   "does": "Nonisolated: stored snapshot fields win; missing ones are filled from fresh. SpO2 (average and minimum) is not filled for a frozen score with no stored breakdown, whose snapshot is the only record of whether the SpO2 penalty was taken (spo2Penalty).",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "recoveryScore == nil || scoreBreakdown != nil",
-     "effect": "false: SpO2 fields stay as stored"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "FLOWCHART.md 13.2 says this detail-view refresh is the same merge as the dashboard path, where strap-derived RHR always wins over HK daytime RHR; the persisted merge keeps stored restingHeartRate first (by design: a stored value is what the frozen score used), so the doc needs updating (handoff).",
-     "evidence": [
-      "docs/FLOWCHART.md:803",
-      "docs/FLOWCHART.md:804",
-      "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:408"
-     ],
-     "found": "fix batch b24"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "25ff7cdb40a8ca69"
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryVitalsBackfill.fieldCount(_:)": "58f15ddba013b0e9",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryVitalsBackfill.merge(fresh:into:)": "ebf7098a9440cb49",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryVitalsBackfill.store(_:id:archive:)": "a81a0a80fe6daca1"
    }
   },
   {
@@ -831,8 +753,97 @@
    "deps": {}
   },
   {
-   "key": "func RecoveryScoreDetailView.vitalsFieldCount(_:)",
-   "hash": "b5e5ec6dc0e1cfe8",
+   "key": "func RecoveryVitalsBackfill.store(_:id:archive:)",
+   "hash": "00ae2da3d512a4c3",
+   "does": "Nonisolated: archive.update(id, requestingReupload: false) running fill on the archived copy under the archive lock (the merge lands on the newest snapshot, never overwriting it); no re-upload request since iCloud payloads omit vitalsSnapshot. Logs a warning on failure.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryVitalsBackfill.fill(_:in:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "archive:SessionArchive.update(vitalsSnapshot)",
+    "notif:flowRecoveryArchiveChanged"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "archive.update throws",
+     "effect": "error logged at warning level and dropped; display still uses refreshedVitals"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "e021c7f17b266931",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryVitalsBackfill.fill(_:in:)": "8cc27a4aa0a911e7"
+   }
+  },
+  {
+   "key": "func RecoveryVitalsBackfill.fill(_:in:)",
+   "hash": "6b9acab558a7d0b6",
+   "does": "Merges fresh vitals into the given (archived) session snapshot via merge and writes vitalsSnapshot only when the merge adds a field (fieldCount).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryVitalsBackfill.merge(fresh:into:)",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryVitalsBackfill.fieldCount(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "archive:HRVSession.vitalsSnapshot (inout)"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "merge adds no field",
+     "effect": "return unchanged"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "25ff7cdb40a8ca69",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryVitalsBackfill.fieldCount(_:)": "58f15ddba013b0e9",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryVitalsBackfill.merge(fresh:into:)": "ebf7098a9440cb49"
+   }
+  },
+  {
+   "key": "func RecoveryVitalsBackfill.merge(fresh:into:)",
+   "hash": "876df8e8bdb8bd92",
+   "does": "Nonisolated: stored snapshot fields win; missing ones are filled from fresh. SpO2 (average and minimum) is not filled for a frozen score with no stored breakdown, whose snapshot is the only record of whether the SpO2 penalty was taken (RecoveryScoreDetailView.spo2Penalty).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "recoveryScore == nil || scoreBreakdown != nil",
+     "effect": "false: SpO2 fields stay as stored"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "FLOWCHART.md 13.2 says this detail-view refresh is the same merge as the dashboard path, where strap-derived RHR always wins over HK daytime RHR; the persisted merge keeps stored restingHeartRate first (by design: a stored value is what the frozen score used), so the doc needs updating (handoff).",
+     "evidence": [
+      "docs/FLOWCHART.md:803",
+      "docs/FLOWCHART.md:804",
+      "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:408"
+     ],
+     "found": "fix batch b24"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "25ff7cdb40a8ca69"
+   }
+  },
+  {
+   "key": "func RecoveryVitalsBackfill.fieldCount(_:)",
+   "hash": "7d33441855843241",
    "does": "Number of non-nil fields among all seven RecoveryVitals fields (baselines and SpO2 minimum included); 0 for nil.",
    "entry": null,
    "calls": [],

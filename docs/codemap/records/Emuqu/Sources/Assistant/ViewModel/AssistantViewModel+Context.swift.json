@@ -51,7 +51,7 @@
    "deps": {
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func AIProvider.send(messages:model:contextRendered:systemPrompt:)": "7f15c82710f7136b",
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(id:role:text:createdAt:providerID:modelID:subsystem:routedTierRaw:localOnly:)": "6c805df1b6141cac",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.collect(_:timeoutSec:)": "02e5cf1ddc8ad4ec",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.collect(_:timeoutSec:)": "84f1b5febec47c50",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.storeSummary(_:droppedCount:)": "03a954cef4fe3a08",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.summarizationPrompt(_:)": "73ef5abc02f722d9"
    }
@@ -282,7 +282,7 @@
     "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)": "b36a2b8ea48a5e61",
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func AIProvider.send(messages:model:contextRendered:systemPrompt:)": "7f15c82710f7136b",
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(id:role:text:createdAt:providerID:modelID:subsystem:routedTierRaw:localOnly:)": "6c805df1b6141cac",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.collect(_:timeoutSec:)": "02e5cf1ddc8ad4ec",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.collect(_:timeoutSec:)": "84f1b5febec47c50",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.extractionPrompt(userText:assistantText:)": "21216e695f84e750",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.parseExtractedFacts(_:)": "5d887ee175f1d1af",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.store(extractedFacts:)": "7b61f24ad830fc87",
@@ -344,29 +344,45 @@
   },
   {
    "key": "func AssistantViewModel.collect(_:timeoutSec:)",
-   "hash": "fd5b79bdc5d991b0",
-   "does": "Races draining the stream's text deltas against a sleep of timeoutSec in a throwing task group; returns the drained text if the drain wins. A provider error or the timeout (the sleep child throws .cancelled) is caught, logged as a warning with the error description, and returns nil.",
+   "hash": "8cb1281ac24d39d7",
+   "does": "Returns the stream's text drained within timeoutSec (drainRacingTimeout). A provider error or the timeout is caught, logged as a warning with the error description, and returns nil.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.drainTextDeltas(_:)",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
-    "ext:Task.sleep",
-    "ext:withThrowingTaskGroup"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.drainRacingTimeout(_:timeoutSec:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+15",
-     "cond": "group threw (stream error or timeout)",
+     "at": "+6",
+     "cond": "drainRacingTimeout threw (stream error or timeout)",
      "effect": "log warning, return nil."
     }
    ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.drainRacingTimeout(_:timeoutSec:)": "3c6e02bd512aad92",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func AssistantViewModel.drainRacingTimeout(_:timeoutSec:)",
+   "hash": "af2f1e2b59d705d7",
+   "does": "Races draining the stream's text deltas (drainTextDeltas) against a sleep of timeoutSec in a throwing task group; the first child to finish wins and the rest are cancelled. Returns the drained text if the drain wins; the sleep child winning throws AIProviderError.cancelled; a stream error is rethrown.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.drainTextDeltas(_:)",
+    "ext:Task.sleep",
+    "ext:withThrowingTaskGroup"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.drainTextDeltas(_:)": "b54597a397aff75b",
     "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.cancelAll()": "be8542994382987c",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
     "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "9b0181db6472cf0d"
    }
   },

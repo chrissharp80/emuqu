@@ -102,8 +102,8 @@
   },
   {
    "key": "func DashboardSessionPolicyTests.testLatestOvernightCompletePicksLongestWithinSameNight()",
-   "hash": "ae83040d03f0703a",
-   "does": "Partial (5/18 23:30, 22 min) listed before an 8 h overnight (5/18 22:00): asserts latestOvernightComplete picks the 8 h one.",
+   "hash": "486d9bcfe0d5d2c3",
+   "does": "Partial (5/19 03:00, 22 min) listed before an 8 h overnight (5/18 22:00): both end the morning of 5/19, so with no sleep snapshot they share one night group; asserts latestOvernightComplete picks the 8 h one (the partial is first in the list and starts later, so .first or a latest-start pick would fail).",
    "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
    "calls": [
     "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeSession(start:durationMinutes:type:analyzed:recoveryScore:readinessScore:sleepEnd:sleepEndMs:hrvDataQuality:)",
@@ -120,28 +120,14 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "med",
-     "text": "With no sleep snapshot dayOf keys each session on its endDate: the partial ends 5/18 23:52 and the 8 h session ends 5/19 06:00, so they fall in different night groups and the 8 h one wins as the most recent night. The longest-within-a-night tiebreak this regression test is named for is never exercised; replacing max(by: duration) with .first would still pass.",
-     "evidence": [
-      "EmuquTests/DashboardSessionPolicyTests.swift:153",
-      "EmuquTests/DashboardSessionPolicyTests.swift:154",
-      "Emuqu/Sources/Models/DashboardSessionPolicy.swift:182",
-      "Emuqu/Sources/Models/DashboardSessionPolicy.swift:186",
-      "Emuqu/Sources/Models/DashboardSessionPolicy.swift:273"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.dayOf(_:)": "66af73ddaab61aa6",
     "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.duration(of:)": "78d07c4b9fb885a1",
     "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.latestOvernightComplete(in:calendar:)": "75d7e979eb62914e",
-    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)": "501c2b4e36fffb8e",
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)": "e7ea205eac0bb472",
     "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "030630d0c2004d4f",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "15319afa7ff717d9",
     "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.date(_:_:_:_:)": "6e2526fa7330d960",
     "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeAnalysisResult(analysisDate:readinessScore:)": "2d202113caab43ed",
     "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeSession(start:durationMinutes:type:analyzed:recoveryScore:readinessScore:sleepEnd:sleepEndMs:hrvDataQuality:)": "69a49b022db20355",
@@ -252,8 +238,8 @@
   },
   {
    "key": "func DashboardSessionPolicyTests.testLatestOvernightCompleteExcludesInsufficient()",
-   "hash": "e775f5ac39e73329",
-   "does": "Newer 13-min .insufficient overnight and an 8 h good overnight: asserts the good one is picked.",
+   "hash": "e9c2907d605916c4",
+   "does": "8 h good overnight ending 7/31 and a 13-min .insufficient partial ending 8/1 (a newer night group): asserts latestOvernightComplete picks the good one, and, as a control, that the same partial without the quality flag is picked (it is the most recent night), so the result depends on the reliability gate.",
    "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
    "calls": [
     "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeSession(start:durationMinutes:type:analyzed:recoveryScore:readinessScore:sleepEnd:sleepEndMs:hrvDataQuality:)",
@@ -270,27 +256,14 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "med",
-     "text": "Both sessions end on 7/31 (real 7/30 22:00+8h, partial 7/31 21:45+13m) so they share a night group, and the 8 h session wins on duration anyway; the test passes even if the isReliableForHRVAggregates gate is removed from latestOvernightComplete.",
-     "evidence": [
-      "EmuquTests/DashboardSessionPolicyTests.swift:207",
-      "EmuquTests/DashboardSessionPolicyTests.swift:208",
-      "Emuqu/Sources/Models/DashboardSessionPolicy.swift:178",
-      "Emuqu/Sources/Models/DashboardSessionPolicy.swift:186"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.dayOf(_:)": "66af73ddaab61aa6",
     "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.duration(of:)": "78d07c4b9fb885a1",
     "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.latestOvernightComplete(in:calendar:)": "75d7e979eb62914e",
-    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)": "501c2b4e36fffb8e",
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)": "e7ea205eac0bb472",
     "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "030630d0c2004d4f",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "15319afa7ff717d9",
     "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.date(_:_:_:_:)": "6e2526fa7330d960",
     "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeAnalysisResult(analysisDate:readinessScore:)": "2d202113caab43ed",
     "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeSession(start:durationMinutes:type:analyzed:recoveryScore:readinessScore:sleepEnd:sleepEndMs:hrvDataQuality:)": "69a49b022db20355",
@@ -335,8 +308,8 @@
   },
   {
    "key": "func DashboardSessionPolicyTests.testLatestOvernightCompleteExcludesPreSleep()",
-   "hash": "d0d3d037cd48fba4",
-   "does": "40-min .preSleep overnight and an 8 h good overnight: asserts the good one is picked.",
+   "hash": "495408da3762467d",
+   "does": "8 h good overnight ending 7/31 and a 40-min .preSleep reading ending 8/1 (a newer night group): asserts latestOvernightComplete picks the good one, and, as a control, that the same reading without the quality flag is picked, so the result depends on the reliability gate.",
    "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
    "calls": [
     "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeSession(start:durationMinutes:type:analyzed:recoveryScore:readinessScore:sleepEnd:sleepEndMs:hrvDataQuality:)",
@@ -353,26 +326,14 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "med",
-     "text": "Same construction as the .insufficient test: both end 7/31 and the good session is longer, so removing the reliability gate would not change the result; .preSleep exclusion is not actually tested.",
-     "evidence": [
-      "EmuquTests/DashboardSessionPolicyTests.swift:236",
-      "EmuquTests/DashboardSessionPolicyTests.swift:237",
-      "Emuqu/Sources/Models/DashboardSessionPolicy.swift:178"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.dayOf(_:)": "66af73ddaab61aa6",
     "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.duration(of:)": "78d07c4b9fb885a1",
     "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.latestOvernightComplete(in:calendar:)": "75d7e979eb62914e",
-    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)": "501c2b4e36fffb8e",
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)": "e7ea205eac0bb472",
     "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "030630d0c2004d4f",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "15319afa7ff717d9",
     "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.date(_:_:_:_:)": "6e2526fa7330d960",
     "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeAnalysisResult(analysisDate:readinessScore:)": "2d202113caab43ed",
     "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeSession(start:durationMinutes:type:analyzed:recoveryScore:readinessScore:sleepEnd:sleepEndMs:hrvDataQuality:)": "69a49b022db20355",

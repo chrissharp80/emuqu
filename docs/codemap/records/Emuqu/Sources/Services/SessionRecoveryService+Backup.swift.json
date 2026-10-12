@@ -120,8 +120,8 @@
   },
   {
    "key": "func SessionRecoveryService.stampFrozenScore(on:computeRecoveryScore:)",
-   "hash": "db505aa8344ed7ed",
-   "does": "Computes the recovery score via the injected closure; if non-nil stamps recoveryScore, scoreBreakdown, sleep/vitals snapshots (overnight only) and frozenReadiness from the composite and training context; if nil only logs a warning.",
+   "hash": "07a63935e33595ca",
+   "does": "Computes the recovery score via the injected closure; if non-nil stamps recoveryScore, scoreBreakdown, sleep/vitals snapshots (overnight only), writes the training context the score used back onto analysisResult (and into trainingSnapshot when the session has none), then frozenReadiness from the composite and that training context; if nil only logs a warning.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
@@ -130,7 +130,10 @@
     "closure:computeRecoveryScore (see recoverFromBackup)"
    ],
    "reads": [],
-   "writes": [],
+   "writes": [
+    "mem:HRVSession.recoveryScore/scoreBreakdown/frozenReadiness (inout)",
+    "mem:HRVSession.analysisResult.trainingContext, trainingSnapshot (inout, when the outcome carries a context)"
+   ],
    "branches": [
     {
      "at": "+4",
@@ -139,32 +142,25 @@
     },
     {
      "at": "+13",
+     "cond": "result.trainingContext non-nil",
+     "effect": "stored on analysisResult (when present); nil: session context unchanged"
+    },
+    {
+     "at": "+15",
+     "cond": "session.trainingSnapshot nil",
+     "effect": "trainingSnapshot = that context"
+    },
+    {
+     "at": "+18",
      "cond": "trainingSnapshot nil (??)",
      "effect": "falls back to analysisResult?.trainingContext"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "The score closure (SessionRecoveryCoordinator.enrichedRecoveryScore) fetches a fresh training context when analysisResult.trainingContext is nil and scores with it, but that context is never written back to the session. The recovered HRVSession is also built with no trainingSnapshot. frozenReadiness is then computed from session.trainingSnapshot ?? analysisResult?.trainingContext, which is nil, so ReanalysisService.computeFrozenReadiness uses ATL = CTL = 0: the frozen readiness disagrees with the frozen score's training inputs, and the session is archived without the trainingSnapshot the morning path stores (RRCollector+MorningProcessing.swift:110-114).",
-     "evidence": [
-      "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift:125",
-      "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift:127",
-      "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift:43",
-      "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift:119",
-      "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift:123",
-      "Emuqu/Sources/Services/ReanalysisService.swift:62",
-      "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift:110"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7",
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.computeFrozenReadiness(compositeScore:trainingContext:)": "7aa853f03a8994f8",
-    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.scoreBreakdown(result:session:inputs:training:useBaselineHRV:)": "245c2d41dcd0a692",
     "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.stampSnapshots(from:on:)": "2d555357b4d96bd6",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }

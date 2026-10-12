@@ -191,27 +191,31 @@
   },
   {
    "key": "func CloudKitSyncManagerTests.testCloudKitErrorMessages()",
-   "hash": "72d386d3917cc871",
-   "does": "Builds an NSError with localizedDescription 'Test error' and asserts its localizedDescription is 'Test error'.",
+   "hash": "9d99013fcbb19501",
+   "does": "Calls CloudKitSyncManager.shared.cloudKitErrorMessage and asserts: a plain NSError keeps its own description; CKError networkFailure and networkUnavailable map to CloudSyncMessages.noInternet, quotaExceeded to storageFull, notAuthenticated to notSignedIn, requestRateLimited with a 30 s retry-after to rateLimited(retryAfter: 30); another code (serverRejectedRequest) keeps its localized description.",
    "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
-   "calls": [],
-   "reads": [],
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.cloudKitErrorMessage(_:)",
+    "EmuquTests/CloudKitSyncManagerTests.swift::func CloudKitSyncManagerTests.ckError(_:message:)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudSyncMessages.noInternet",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudSyncMessages.storageFull",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudSyncMessages.notSignedIn",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSyncMessages.rateLimited(retryAfter:)"
+   ],
+   "reads": [
+    "mem:CloudKitSyncManager.shared"
+   ],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "med",
-     "text": "Tautology: asserts a Foundation NSError returns the description it was built with and calls no app code; CloudKitSyncManager.cloudKitErrorMessage (named by the test) is never exercised, so the test can never fail.",
-     "evidence": [
-      "EmuquTests/CloudKitSyncManagerTests.swift:174",
-      "EmuquTests/CloudKitSyncManagerTests.swift:179",
-      "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift:565"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
-   "deps": {}
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.cloudKitErrorMessage(_:)": "e2242d331d4ed5d6",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSyncMessages.rateLimited(retryAfter:)": "fbcb1b00aa9383f1",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudSyncMessages.noInternet": "0bed695ddfb9513e",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudSyncMessages.notSignedIn": "db52f2cb12d576d4",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudSyncMessages.storageFull": "6e4b6f9cc8971c41",
+    "EmuquTests/CloudKitSyncManagerTests.swift::func CloudKitSyncManagerTests.ckError(_:message:)": "abcd8c3911fbb515"
+   }
   },
   {
    "key": "func CloudKitSyncManagerTests.testDataCompressionRoundTrip()",

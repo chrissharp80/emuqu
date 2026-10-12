@@ -247,7 +247,7 @@ extension MainTabView {
         guard preparingReportKind == nil else { return }
         preparingReportKind = kind
         reportPrepError = nil
-        let inputs = sendReportInputs()
+        let inputs = sendReportInputs(for: kind)
         Task.detached(priority: .userInitiated) {
             let outcome = await Self.renderReport(
                 kind: kind,
@@ -275,20 +275,35 @@ extension MainTabView {
         var temperatureUnit: TemperatureUnit = .regionDefault
     }
 
-    func sendReportInputs() -> SendReportInputs {
+    /// The baseline is the one the reported night was scored against
+    /// (`reportBaselineStats`): the daily report's overnight for `.daily`,
+    /// otherwise the recovery night.
+    func sendReportInputs(for kind: SendReportKind) -> SendReportInputs {
         let settings = dependencies.app.settingsManager.settings
+        let recovery = mostRecentOvernight
+        let pair = mostRecentDailyPair()
         return SendReportInputs(
-            recovery: mostRecentOvernight,
+            recovery: recovery,
             workout: mostRecentWorkout,
-            pair: mostRecentDailyPair(),
+            pair: pair,
             recentOvernight: sessions.filter { $0.sessionType == .overnight && $0.isReliableForHRVAggregates },
-            baselineStats: collector.baselineTracker.recoveryBaselineStats,
+            baselineStats: reportBaselineStats(night: kind == .daily ? pair?.overnight : recovery, settings: settings),
             maxHR: settings.effectiveMaxHR,
             restingHR: settings.effectiveRestingHR,
             lthr: settings.effectiveLTHR,
             units: UnitsPreferenceStore.current.resolved,
             temperatureUnit: settings.temperatureUnit
         )
+    }
+
+    /// The baseline as it stood for the reported night: the nights before it
+    /// (`recoveryBaselineStats(excludingNightOf:)`), not every stored night,
+    /// the reported and later ones included. With no night, the current
+    /// baseline.
+    private func reportBaselineStats(night: HRVSession?, settings: UserSettings) -> BaselineTracker.RecoveryBaselineStats? {
+        let tracker = collector.baselineTracker
+        guard let night else { return tracker.recoveryBaselineStats }
+        return tracker.recoveryBaselineStats(excludingNightOf: night, sleepSchedule: settings.sleepSchedule)
     }
 
     @MainActor

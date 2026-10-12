@@ -97,11 +97,17 @@ final class AccessibilityUITests: XCTestCase {
     /// throw warnings in CI logs. This is a smoke test that the app
     /// launches and reaches the dashboard without crashing the main
     /// thread on launch animations.
+    ///
+    /// The tab bar existing is not the signal: it exists under the disclaimer
+    /// cover too. `toMainUI` returns true only once no launch gate is up and
+    /// the tab bar takes taps, and the Dashboard's own root must render.
     func testAppReachesDashboardWithoutAnimationCrashes() throws {
-        UITestLaunch.toMainUI(app)
-        let tabBar = app.tabBars.firstMatch
-        XCTAssertTrue(tabBar.waitForExistence(timeout: UITestTiming.s(8)),
-                      "App must reach the tab bar without animation-related stalls")
+        XCTAssertTrue(UITestLaunch.toMainUI(app),
+                      "App must get past every launch gate to a tappable tab bar without animation-related stalls — \(UITestFind.onScreen(app))")
+        XCTAssertTrue(
+            UITestFind.anyElement(in: app, identifier: UITestID.dashboardRoot).waitForExistence(timeout: UITestTiming.s(8)),
+            "App must land on the Dashboard — \(UITestFind.onScreen(app))"
+        )
     }
 }
 

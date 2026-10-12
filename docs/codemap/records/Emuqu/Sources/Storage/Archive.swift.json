@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Storage/Archive.swift",
- "hash": "6ec33406456ae6e6",
+ "hash": "e2cffb8098b22bd8",
  "role": "Defines SessionArchive, the lock-guarded facade over the on-disk session archive (index.json, deleted.json, per-session encrypted JSON files in the App Group archive directory): init/boot, orphan adoption, archive/update/retrieve API and read-health counters.",
  "types": [
   "SessionArchive: class (@unchecked Sendable) — archive facade; all index/tombstone/counter state guarded by archiveLock",
@@ -16,6 +16,7 @@
   "mem:SessionArchive.sessionIdLookup",
   "mem:SessionArchive.deletedSessionIds",
   "mem:SessionArchive.indexReadFailed",
+  "mem:SessionArchive.indexDecodeFailed",
   "mem:SessionArchive.deletedIndexReadFailed",
   "mem:SessionArchive.totalReadAttempts",
   "mem:SessionArchive.permissionDeniedReadFailures",

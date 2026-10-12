@@ -1,53 +1,36 @@
 {
  "file": "EmuquTests/ArchiveRRPreservationTests.swift",
- "hash": "225dff5e7fa81811",
+ "hash": "72fcc6a5e0218e42",
  "role": "XCTest suite for the archive's RR splice on re-archive: ArchiveStore.storedRRSeries three-way classification (preserved / noBeatsStored / unreadable) and that a metadata-only re-archive keeps stored beats while a beatless workout stays beatless.",
  "types": [
   "ArchiveRRPreservationTests: class — @MainActor XCTestCase over SessionArchive RR preservation"
  ],
  "state": [
-  "mem:ArchiveRRPreservationTests.archive (lazy SessionArchive with no directory: → production default archive directory)",
-  "mem:ArchiveRRPreservationTests.written (session ids to delete)"
+  "mem:ArchiveRRPreservationTests.archiveDirectory (nonisolated let: a fresh ArchiveRRPreservationTests-<UUID> directory under the temporary directory, per test instance)",
+  "mem:ArchiveRRPreservationTests.archive (lazy SessionArchive on archiveDirectory)"
  ],
- "toplevel": "lazy archive = SessionArchive(sleepScheduleProvider: 22:00/8h, sessionMergeModeProvider: .defaultGap) with no directory and no mergeGapProvider, so it opens the shared production archive directory and reads the merge gap from AppDependencies settings.",
- "flags": [
-  {
-   "kind": "test-defect",
-   "sev": "med",
-   "text": "The archive is built without `directory:`, so every test writes into the shared App Group archive the app host uses (the init comment says default instances all point at the same on-disk directory). tearDown's delete only moves files to trash and records tombstones, so each run leaves trash/tombstone residue in the real archive, and residue from other suites can affect merges here.",
-   "evidence": [
-    "EmuquTests/ArchiveRRPreservationTests.swift:15",
-    "Emuqu/Sources/Storage/Archive.swift:202",
-    "Emuqu/Sources/Storage/Archive+Internal.swift:656"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "toplevel": "lazy archive = SessionArchive(directory: archiveDirectory, sleepScheduleProvider: 22:00/8h, sessionMergeModeProvider: .defaultGap) on a private temp directory, so it never shares the App Group index.json with the host app's archive; the merge gap still comes from AppDependencies settings (no mergeGapProvider).",
+ "flags": [],
  "units": [
   {
    "key": "func ArchiveRRPreservationTests.tearDown()",
-   "hash": "c9d09bd1e4a19fbb",
-   "does": "Async tearDown: on the main actor, try? deletes every written session id (errors swallowed), clears the list, then calls super.",
+   "hash": "1ab8e04985226858",
+   "does": "Async tearDown: removes the test's private archive directory if it exists (a removal failure throws and fails the test), then calls super.",
    "entry": "XCTest: instance tearDown() async after each test",
-   "calls": [
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)"
-   ],
+   "calls": [],
    "reads": [],
    "writes": [
-    "file:SessionArchive default App Group archive directory (production location; index.json, deleted.json, Trash/)",
-    "ud:archive.deletionTimes (UserDefaults.standard, via ArchiveStore.recordDeletionTime)"
+    "file:ArchiveRRPreservationTests per-test temp archive directory (index.json, session files)"
    ],
    "branches": [
     {
-     "at": "+2",
-     "cond": "for each written id",
-     "effect": "try? archive.delete; failures ignored"
+     "at": "+1",
+     "cond": "the archive directory exists",
+     "effect": "removes it"
     }
    ],
    "flags": [],
-   "deps": {
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)": "cefef470ab858af7"
-   }
+   "deps": {}
   },
   {
    "key": "func ArchiveRRPreservationTests.beats(count:)",
@@ -73,8 +56,8 @@
   },
   {
    "key": "func ArchiveRRPreservationTests.beatlessWorkout()",
-   "hash": "eedc633ea5108b67",
-   "does": "Builds a complete 10-minute walk workout HRVSession with no RR data at a fixed 2027 start and records its id for cleanup.",
+   "hash": "a4ffd3d777c446a3",
+   "does": "Builds a complete 10-minute walk workout HRVSession with no RR data at a fixed 2027 start.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)",
@@ -100,11 +83,11 @@
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.storedRRSeries(for:)"
    ],
    "reads": [
-    "file:SessionArchive default App Group archive directory (production location; index.json, session files, trash, tombstones)",
+    "file:ArchiveRRPreservationTests per-test temp archive directory (index.json, session files)",
     "kc:EncryptionManager archive key"
    ],
    "writes": [
-    "file:SessionArchive default App Group archive directory (production location; index.json, session files, trash, tombstones)",
+    "file:ArchiveRRPreservationTests per-test temp archive directory (index.json, session files)",
     "kc:EncryptionManager archive key",
     "notif:flowRecoveryArchiveChanged"
    ],
@@ -125,25 +108,11 @@
      "effect": "XCTFail: file reads fine"
     }
    ],
-   "flags": [
-    {
-     "kind": "race",
-     "sev": "med",
-     "text": "This suite's SessionArchive and the app host's collector archive (built at launch and read in EmuquApp) both own index.json in the same default directory, each with its own in-memory index loaded once at init; every save rewrites the whole file from that instance's index, so the test instance's saves drop entries the host saved after the test loaded, and the host's next save drops the test entries (leaving their files as orphans for reconcileOrphanFiles to adopt).",
-     "evidence": [
-      "EmuquTests/ArchiveRRPreservationTests.swift:15",
-      "Emuqu/Sources/Storage/Archive.swift:235",
-      "Emuqu/Sources/Storage/Archive+IndexIO.swift:204",
-      "Emuqu/Sources/Storage/Archive.swift:319",
-      "Emuqu/EmuquApp.swift:291"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.storedRRSeries(for:)": "4c02bae464058c6b",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
-    "EmuquTests/ArchiveRRPreservationTests.swift::func ArchiveRRPreservationTests.beatlessWorkout()": "eb69667639c675b1"
+    "EmuquTests/ArchiveRRPreservationTests.swift::func ArchiveRRPreservationTests.beatlessWorkout()": "652995a4f729c21f"
    }
   },
   {
@@ -158,11 +127,11 @@
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.storedRRSeries(for:)"
    ],
    "reads": [
-    "file:SessionArchive default App Group archive directory (production location; index.json, session files, trash, tombstones)",
+    "file:ArchiveRRPreservationTests per-test temp archive directory (index.json, session files)",
     "kc:EncryptionManager archive key"
    ],
    "writes": [
-    "file:SessionArchive default App Group archive directory (production location; index.json, session files, trash, tombstones)",
+    "file:ArchiveRRPreservationTests per-test temp archive directory (index.json, session files)",
     "kc:EncryptionManager archive key",
     "notif:flowRecoveryArchiveChanged"
    ],
@@ -182,7 +151,7 @@
    "deps": {
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.storedRRSeries(for:)": "4c02bae464058c6b",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
-    "EmuquTests/ArchiveRRPreservationTests.swift::func ArchiveRRPreservationTests.beatlessWorkout()": "eb69667639c675b1",
+    "EmuquTests/ArchiveRRPreservationTests.swift::func ArchiveRRPreservationTests.beatlessWorkout()": "652995a4f729c21f",
     "EmuquTests/ArchiveRRPreservationTests.swift::func ArchiveRRPreservationTests.beats(count:)": "b3a90cab539af4b8"
    }
   },
@@ -195,7 +164,7 @@
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.storedRRSeries(for:)"
    ],
    "reads": [
-    "file:SessionArchive default App Group archive directory (production location; index.json, session files, trash, tombstones)",
+    "file:ArchiveRRPreservationTests per-test temp archive directory (index.json, session files)",
     "kc:EncryptionManager archive key"
    ],
    "writes": [],
@@ -227,11 +196,11 @@
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)"
    ],
    "reads": [
-    "file:SessionArchive default App Group archive directory (production location; index.json, session files, trash, tombstones)",
+    "file:ArchiveRRPreservationTests per-test temp archive directory (index.json, session files)",
     "kc:EncryptionManager archive key"
    ],
    "writes": [
-    "file:SessionArchive default App Group archive directory (production location; index.json, session files, trash, tombstones)",
+    "file:ArchiveRRPreservationTests per-test temp archive directory (index.json, session files)",
     "kc:EncryptionManager archive key",
     "notif:flowRecoveryArchiveChanged"
    ],
@@ -240,7 +209,7 @@
    "deps": {
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "8782e72ec2fc6000",
-    "EmuquTests/ArchiveRRPreservationTests.swift::func ArchiveRRPreservationTests.beatlessWorkout()": "eb69667639c675b1"
+    "EmuquTests/ArchiveRRPreservationTests.swift::func ArchiveRRPreservationTests.beatlessWorkout()": "652995a4f729c21f"
    }
   },
   {
@@ -255,11 +224,11 @@
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)"
    ],
    "reads": [
-    "file:SessionArchive default App Group archive directory (production location; index.json, session files, trash, tombstones)",
+    "file:ArchiveRRPreservationTests per-test temp archive directory (index.json, session files)",
     "kc:EncryptionManager archive key"
    ],
    "writes": [
-    "file:SessionArchive default App Group archive directory (production location; index.json, session files, trash, tombstones)",
+    "file:ArchiveRRPreservationTests per-test temp archive directory (index.json, session files)",
     "kc:EncryptionManager archive key",
     "notif:flowRecoveryArchiveChanged"
    ],
@@ -268,7 +237,7 @@
    "deps": {
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "8782e72ec2fc6000",
-    "EmuquTests/ArchiveRRPreservationTests.swift::func ArchiveRRPreservationTests.beatlessWorkout()": "eb69667639c675b1",
+    "EmuquTests/ArchiveRRPreservationTests.swift::func ArchiveRRPreservationTests.beatlessWorkout()": "652995a4f729c21f",
     "EmuquTests/ArchiveRRPreservationTests.swift::func ArchiveRRPreservationTests.beats(count:)": "b3a90cab539af4b8"
    }
   }

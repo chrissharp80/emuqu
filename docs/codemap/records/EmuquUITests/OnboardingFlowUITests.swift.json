@@ -53,37 +53,30 @@
   },
   {
    "key": "func OnboardingFlowUITests.testFreshInstallShowsHealthDisclaimerFirst()",
-   "hash": "ea390217c0b0c703",
-   "does": "Asserts the 'Health Disclaimer' heading or disclaimer.agree appears; if a tab bar exists asserts its first button is not safely hittable (covered).",
+   "hash": "1adc4674107cac55",
+   "does": "Asserts the 'Health Disclaimer' heading or disclaimer.agree appears; if a tab bar exists, coordinate-taps its More tab (tapSafely) and asserts the More menu's Settings row does not appear within 4 s and the disclaimer's agree button is still there — reachability checked by the tap's effect, since a covered tab bar reports hittable on iOS 26.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
-    "EmuquUITests/EmuquUITests.swift::func UITestFind.isSafelyHittable(_:in:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.tapSafely(_:in:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.tabButton(in:identifier:title:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.anyElement(in:identifier:)",
     "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+25",
+     "at": "+31",
      "cond": "tab bar exists in hierarchy",
-     "effect": "assert first tab button not hittable; else no tab assertion"
+     "effect": "tap More and assert it did not open and the disclaimer stayed; else no tab assertion"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "med",
-     "text": "Asserts the first tab button is not safely hittable under the disclaimer cover, but the harness states that on iOS 26 the tab bar under a fullScreenCover reports hittable (EmuquUITests.swift:681-684); the two cannot both hold, so either this assertion fails on iOS 26 or the harness comment is wrong",
-     "evidence": [
-      "EmuquUITests/OnboardingFlowUITests.swift:74",
-      "EmuquUITests/EmuquUITests.swift:682"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
-    "EmuquUITests/EmuquUITests.swift::func UITestFind.isSafelyHittable(_:in:)": "9dbb37297908f3b2",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.anyElement(in:identifier:)": "7c7096c59b35ed60",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.tabButton(in:identifier:title:)": "08e19cd88b3cee20",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.tapSafely(_:in:)": "5ba2bf71286c792e",
     "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
    }
   },
@@ -131,11 +124,12 @@
   },
   {
    "key": "func OnboardingFlowUITests.testOnboardingHealthPageHasSkipAffordance()",
-   "hash": "86998413fe0d0f01",
-   "does": "Accepts the disclaimer if possible, then for up to 12 iterations taps onboarding.skip (recording that a skip was seen) or onboarding.advance when safely hittable, ending when neither exists and a tab bar exists; asserts a skip was seen and the app was reached.",
+   "hash": "4ff06ac46dea8ea7",
+   "does": "Accepts the disclaimer if possible, then for up to 12 iterations taps the laid-out onboarding.skip (recording that a skip was seen) or onboarding.advance, ending when neither exists and a tab bar exists; the app counts as reached only if UITestLaunch.toMainUI then confirms no gate (paywall included) is up and the tab bar takes taps; asserts a skip was seen and the app was reached.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
-    "EmuquUITests/EmuquUITests.swift::func UITestFind.isSafelyHittable(_:in:)",
+    "EmuquUITests/OnboardingFlowUITests.swift::func OnboardingFlowUITests.laidOutButton(_:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)",
     "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)",
     "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
    ],
@@ -168,32 +162,27 @@
      "effect": "loop"
     },
     {
-     "at": "+30",
-     "cond": "skip exists, enabled, safely hittable",
+     "at": "+28",
+     "cond": "a laid-out, enabled onboarding.skip exists",
      "effect": "mark sawSkip, tap, continue"
     },
     {
-     "at": "+35",
-     "cond": "advance exists, enabled, safely hittable",
+     "at": "+33",
+     "cond": "a laid-out, enabled onboarding.advance exists",
      "effect": "tap, continue"
     },
     {
      "at": "+39",
      "cond": "neither control exists and a tab bar exists",
-     "effect": "reachedApp=true, break; else wait 2s for any text"
+     "effect": "reachedApp=true, break; else wait up to 2s for any text"
+    },
+    {
+     "at": "+49",
+     "cond": "reachedApp",
+     "effect": "also requires UITestLaunch.toMainUI (dismisses the paywall, true only with no gate up and a tappable tab bar)"
     }
    ],
    "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "med",
-     "text": "'reachedApp' is decided by tabBar.exists with no gate present, which the harness documents is true under a cover (EmuquUITests.swift:593-596); a transition gap between onboarding pages, or the paywall cover (never checked here), satisfies it, so the 'lands the user in the app' assertion can pass while a modal is still up",
-     "evidence": [
-      "EmuquUITests/OnboardingFlowUITests.swift:184",
-      "EmuquUITests/EmuquUITests.swift:593"
-     ],
-     "found": "first read, upheld on second"
-    },
     {
      "kind": "spec-mismatch",
      "sev": "low",
@@ -203,24 +192,30 @@
       "EmuquUITests/OnboardingFlowUITests.swift:175"
      ],
      "found": "first read, upheld on second"
-    },
-    {
-     "kind": "fragile",
-     "sev": "med",
-     "text": "Resolves onboarding.skip/advance with matching(identifier:).firstMatch, which the harness documents can resolve to a zero-frame neighbouring page of the paged OnboardingView TabView (EmuquUITests.swift:694-699, fixed there with allElementsBoundByIndex at 723); such an element exists but isSafelyHittable returns false, so the loop neither taps nor sets reachedApp and can burn its 12 iterations",
-     "evidence": [
-      "EmuquUITests/OnboardingFlowUITests.swift:173",
-      "EmuquUITests/EmuquUITests.swift:694",
-      "EmuquUITests/EmuquUITests.swift:723"
-     ],
-     "found": "second read"
     }
    ],
    "deps": {
     "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
-    "EmuquUITests/EmuquUITests.swift::func UITestFind.isSafelyHittable(_:in:)": "9dbb37297908f3b2",
     "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
-    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)": "747ec38364b540cd",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68",
+    "EmuquUITests/OnboardingFlowUITests.swift::func OnboardingFlowUITests.laidOutButton(_:)": "0781971fe4709585"
+   }
+  },
+  {
+   "key": "func OnboardingFlowUITests.laidOutButton(_:)",
+   "hash": "e7a84c32713e1755",
+   "does": "Test helper: from one allElementsBoundByIndex snapshot of buttons with `identifier`, the first that is enabled and UITestFind.isSafelyHittable (a real frame inside the app), skipping the zero-frame copies a paged TabView keeps for neighbouring pages; nil when none.",
+   "entry": null,
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.isSafelyHittable(_:in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.isSafelyHittable(_:in:)": "b61ecba125b82b7c"
    }
   }
  ],

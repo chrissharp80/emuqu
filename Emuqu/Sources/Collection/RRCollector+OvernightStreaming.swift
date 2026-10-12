@@ -638,7 +638,7 @@ extension OvernightStreamingCoordinator {
         let reconnectCount = collector.polarManager.streamingReconnectCount
         // Charge the strap's battery-usage counter with the recorded hours.
         // Captured BEFORE the publish helper zeroes the elapsed counter.
-        let elapsedHoursForBattery = Double(collector.streamingElapsedSeconds) / 3600.0
+        let elapsedHoursForBattery = collector.streamingHoursForBattery
         let streamingPoints = collector.polarManager.stopStreaming()
         await collector.publishGatherSavingState(streamingPoints: streamingPoints, elapsedHours: elapsedHoursForBattery)
         return (baseSession, streamingPoints, reconnectCount)

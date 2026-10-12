@@ -260,8 +260,12 @@ This section is the short version; read the spec before any non-trivial change.
 
 No sweeping rewrites, no "while I'm here" changes, no new abstraction that
 doesn't delete more complexity than it adds, no new global/hidden state, no new
-magic numbers. The [Refactor Completion Checklist](REFACTOR_SPEC.md#refactor-completion-checklist-hard-gate)
-is the hard gate.
+magic numbers. Hold every change to the [Refactor Completion Checklist](REFACTOR_SPEC.md#refactor-completion-checklist-hard-gate).
+CI measures only part of it: `scripts/check_refactor_spec_conformance.sh` checks
+function, property and init length, nesting depth, commented-out code and empty
+catches, and other gates own `try?`, `.shared` and log redaction. Magic numbers
+are not checked by any gate (neither SwiftLint config enables `no_magic_numbers`),
+nor are the judgement items, so review is what holds them.
 
 ---
 
@@ -567,10 +571,14 @@ The spine of the product. Full version: [`FLOWCHART.md` §2–§5](FLOWCHART.md)
    re-asserts the connect and gives the session `PolarReconnectPolicy.windowSeconds`
    (20 min) before `reconnectExhausted`. See
    [`ARCHITECTURE.md` → Strap Link and Reconnection](ARCHITECTURE.md#strap-link-and-reconnection).
-3. **Stop** — `RRCollector.gatherOvernightData()`
-   (`RRCollector+OvernightGather.swift`): stops the timer, flushes
-   streaming to disk, stops streaming, sets phase `.analyzing`, fetches the H10
-   internal recording.
+3. **Stop** — the Record tab's stop action calls `RRCollector.stopOvernightStreaming()`,
+   which forwards to `OvernightStreamingCoordinator.stopOvernightStreaming()`
+   (`RRCollector+OvernightStreaming.swift`): ends device-recording arming, stops
+   the streaming infrastructure, backs up the streamed beats, then downloads the H10
+   internal recording (reconnecting a dropped strap within a bounded window, polling
+   HealthKit sleep in parallel), merges and scores the night; a too-short stream takes
+   `fallbackToDeviceFetch`. (`gatherOvernightData()` in `RRCollector+OvernightGather.swift`
+   is the pause and recovery gather, not the morning stop.)
 4. **Pick the best source** — `DataSourceSelector.selectBestSource(...)`
    (`Emuqu/Sources/Collection/DataSourceSelector.swift`): internal → composite (if internal
    has ≥5% fewer beats) → streaming → raw backup. Composite gap-fill uses a 2 s

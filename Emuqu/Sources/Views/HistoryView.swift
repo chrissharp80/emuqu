@@ -426,13 +426,19 @@ struct HistoryView: View {
         selectionTask?.cancel()
         selectionTask = Task {
             guard let session = await collector.retrieveFullSessionAsync(entry.sessionId) else {
-                debugLog("[HistoryView] Failed to load session \(entry.sessionId)")
-                if !Task.isCancelled {
-                    failureMessage = String(localized: "Couldn't open this reading. Try again.", bundle: LanguageManager.appBundle)
-                }
+                reportLoadFailure(entry.sessionId)
                 return
             }
             await select(session)
+        }
+    }
+
+    /// Logs the failed read and, unless a newer tap cancelled this one, tells
+    /// the user the reading could not be opened.
+    private func reportLoadFailure(_ sessionId: UUID) {
+        debugLog("[HistoryView] Failed to load session \(sessionId)")
+        if !Task.isCancelled {
+            failureMessage = String(localized: "Couldn't open this reading. Try again.", bundle: LanguageManager.appBundle)
         }
     }
 

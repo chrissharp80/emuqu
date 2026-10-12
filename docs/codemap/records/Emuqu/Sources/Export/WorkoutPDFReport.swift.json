@@ -66,24 +66,7 @@
      "effect": "true: draws the EFFORT & TERRAIN page with the map; false (no track, or snapshot failed with error swallowed in renderMapSnapshot): page silently omitted, other pages unchanged"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "docs/ARCHITECTURE.md describes page contents the generator never draws: page 2 'RMSSD/pNN50/LF-HF, drift indicators', page 3 'HRR 1-min / 2-min' (HRR is on page 2), page 4 'power/pace, elevation, grade' (only map + legend), page 5 'grade-adjusted pace, stride length, power:HR' (only decoupling and EF). It also says the map page is absent only without GPS, but it is also dropped when the snapshot fails.",
-     "evidence": [
-      "docs/ARCHITECTURE.md:705",
-      "docs/ARCHITECTURE.md:706",
-      "docs/ARCHITECTURE.md:707",
-      "docs/ARCHITECTURE.md:708",
-      "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift:15",
-      "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift:339",
-      "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift:166",
-      "Emuqu/Sources/Export/WorkoutPDFReport.swift:121"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Export/WorkoutPDFRenderer.swift::var WorkoutPDFRenderer.physiology": "8da03561584ade87",
     "Emuqu/Sources/Export/WorkoutPDFReport+Charts.swift::func WorkoutPDFRenderer.renderMapSnapshot()": "ee7e03d3ebb40063",

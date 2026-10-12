@@ -156,6 +156,15 @@ enum CSVExporter {
         return out
     }
 
+    /// The 1 Hz sample nearest a fix. Samples are keyed on pause-excluded
+    /// seconds and fixes on the wall clock, so the fix's time is mapped
+    /// through the session's recorded pauses first.
+    private static func sample(at time: Date, of session: HRVSession, in samples: [WorkoutSample]) -> WorkoutSample? {
+        let wallSeconds = time.timeIntervalSince(session.startDate)
+        let active = session.workoutMetadata?.activeOffset(forWallClockSeconds: wallSeconds) ?? Int(wallSeconds)
+        return nearestSample(to: active, in: samples)
+    }
+
     /// One CSV row: the GPS fix plus whatever the nearest 1 Hz sample carried.
     private static func trackpointRow(
         fix: CLLocation,
@@ -166,7 +175,7 @@ enum CSVExporter {
         iso: ISO8601DateFormatter
     ) -> String {
         let secondsFromStart = Int(fix.timestamp.timeIntervalSince(session.startDate))
-        let matched = Self.nearestSample(to: secondsFromStart, in: samples)
+        let matched = Self.sample(at: fix.timestamp, of: session, in: samples)
         let secPerKmToSecPerUnit = units.secPerKmToSecPerUnit
         let cells: [String] = [
             iso.string(from: fix.timestamp),

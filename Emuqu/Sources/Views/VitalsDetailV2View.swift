@@ -171,9 +171,11 @@ struct VitalsDetailV2View: View {
         .task(id: latestOvernight?.id) {
             await refreshVitals()
         }
+        .onChange(of: collector.morningCoordination.vitalsDataVersion) { _, _ in Task { await refreshVitals() } }
     }
 
-    /// Re-pull vitals from HealthKit on appear. Apple writes overnight
+    /// Re-pull vitals from HealthKit on appear, and again when HealthKit
+    /// delivers new vitals (`MorningCoordination.vitalsDataVersion`). Apple writes overnight
     /// vitals (resp rate / SpO₂ / wrist temp) minutes-to-hours AFTER
     /// sleep ends, so the snapshot frozen at acceptance frequently
     /// misses them. Doing the fetch here lets older sessions display

@@ -69,7 +69,7 @@ final class WindowSelectionTests: XCTestCase {
     // MARK: - Recovery Window Selection
 
     /// Test organized recovery detection
-    func testOrganizedRecoveryDetection() {
+    func testOrganizedRecoveryDetection() throws {
         // Create a session with clear organized recovery pattern
         // High RMSSD, stable HR, good DFA alpha1
         let session = createSessionWithPattern(
@@ -89,11 +89,12 @@ final class WindowSelectionTests: XCTestCase {
             wakeTimeMs: Int64(series.points.count * 800)
         )
 
-        // selectRecoveryWindow only returns organized recovery (DFA α1 0.75-1.0).
-        // Synthetic random data may not produce organized windows, so nil is valid.
-        if let w = window {
-            XCTAssertGreaterThan(w.qualityScore, 0, "Window should have positive quality score")
-        }
+        // The ±20 ms sawtooth jitter has DFA α1 ≈ 0.93 at a 1.3% HR CV, inside
+        // the organized band, so a window must be found and marked organized.
+        let w = try XCTUnwrap(window, "An organized night must yield a recovery window")
+        XCTAssertTrue(w.isOrganizedRecovery)
+        XCTAssertEqual(w.windowClassification, .organizedRecovery)
+        XCTAssertGreaterThan(w.qualityScore, 0, "Window should have positive quality score")
     }
 
     /// Test high variability detection
@@ -116,47 +117,46 @@ final class WindowSelectionTests: XCTestCase {
             wakeTimeMs: Int64(series.points.count * 800)
         )
 
-        // Chaotic data is unlikely to produce organized recovery — nil is expected
-        if let w = window {
-            XCTAssertGreaterThan(w.qualityScore, 0, "Window should have positive quality score")
-        }
+        // The ±100 ms jitter has DFA α1 ≈ 0.37: every window is high
+        // variability, so there is no organized window and no organized zone.
+        XCTAssertNil(window, "A chaotic night must not yield an organized recovery window")
+        XCTAssertTrue(windowSelector.lastOrganizedZones.isEmpty)
     }
 
     /// Test peak capacity selection
-    func testPeakCapacitySelection() {
+    func testPeakCapacitySelection() throws {
         let session = createSessionWithPattern(
             avgRR: 900,
             rmssdRange: 80 ... 120,
             variationPattern: .stable
         )
+        let series = try XCTUnwrap(session.rrSeries)
+        let flags = try XCTUnwrap(session.artifactFlags)
 
-        guard let series = session.rrSeries, let flags = session.artifactFlags else {
-            XCTFail("Session should have series and flags")
-            return
-        }
-
-        let window = windowSelector.selectRecoveryWindow(
-            series: series,
-            flags: flags,
-            wakeTimeMs: Int64(series.points.count * 800)
-        )
-
-        // Peak capacity is computed separately via findBestWindowWithCapacity.
-        // selectRecoveryWindow only returns organized recovery, so nil is valid.
-        if let w = window {
-            XCTAssertGreaterThan(w.qualityScore, 0, "Window should have quality score")
-        }
+        // Peak capacity is scanned over the whole recording, separately from
+        // the organized window searched in the 30-70% band.
+        let result = try XCTUnwrap(windowSelector.findBestWindowWithCapacity(
+            in: series, flags: flags, wakeTimeMs: Int64(series.points.count * 800)
+        ))
+        let recovery = try XCTUnwrap(result.recoveryWindow)
+        let peak = try XCTUnwrap(result.peakCapacity, "A clean night must report a peak capacity")
+        XCTAssertTrue(recovery.isOrganizedRecovery)
+        XCTAssertGreaterThan(peak.windowDurationMinutes, 0)
+        // qualityScore is the window's RMSSD / 100; the peak is the highest
+        // sustained RMSSD anywhere, so it cannot sit below the band's window.
+        XCTAssertGreaterThanOrEqual(peak.peakRMSSD, recovery.qualityScore * 100 - 0.01)
     }
 
     // MARK: - Window Quality
 
     /// Test artifact filtering
-    func testArtifactFiltering() {
+    func testArtifactFiltering() throws {
         var session = createSessionWithPattern(avgRR: 800, rmssdRange: 60 ... 90, variationPattern: .stable)
 
-        // Add artifacts to first half
+        // Artifacts over the first 600 beats: the 30-70% band (beats 450-1049)
+        // starts inside them, and only its later windows are clean enough.
         if var flags = session.artifactFlags {
-            for i in 0 ..< (flags.count / 2) {
+            for i in 0 ..< 600 {
                 flags[i] = ArtifactFlags(isArtifact: true, type: .technical, confidence: 1.0)
             }
             session.artifactFlags = flags
@@ -173,18 +173,10 @@ final class WindowSelectionTests: XCTestCase {
             wakeTimeMs: Int64(series.points.count * 800)
         )
 
-        // Synthetic data may not produce organized recovery windows
-        if let w = window {
-            // Window should prefer clean section
-            let windowArtifacts = flags[w.startIndex ..< w.endIndex]
-            let artifactPercent = Double(windowArtifacts.filter(\.isArtifact).count) / Double(windowArtifacts.count) * 100
-
-            XCTAssertLessThan(
-                artifactPercent,
-                10.0,
-                "Selected window should have low artifact percentage"
-            )
-        }
+        let w = try XCTUnwrap(window, "The clean end of the band holds organized windows")
+        let windowArtifacts = flags[w.startIndex ..< w.endIndex]
+        let artifactPercent = Double(windowArtifacts.filter(\.isArtifact).count) / Double(windowArtifacts.count) * 100
+        XCTAssertLessThan(artifactPercent, 10.0, "Selected window should have low artifact percentage")
     }
 
     /// Test minimum window length requirement
@@ -214,7 +206,7 @@ final class WindowSelectionTests: XCTestCase {
     // MARK: - Temporal Spike Filtering
 
     /// Test spike detection and filtering
-    func testSpikeFiltering() {
+    func testSpikeFiltering() throws {
         // Create session with a temporary spike in variability
         // Need 1500 beats so 30-70% band can contain 400-beat window
         var points = (0 ..< 1500).map { i in
@@ -239,39 +231,27 @@ final class WindowSelectionTests: XCTestCase {
             wakeTimeMs: Int64(series.points.count * 800)
         )
 
-        // Synthetic data may not produce organized recovery windows
-        if let w = window {
-            // Window should avoid the spike region
-            let spikeRegion = 600 ..< 650
-            let windowRange = w.startIndex ..< w.endIndex
-
-            // Check if window overlaps significantly with spike
-            let overlap = windowRange.clamped(to: spikeRegion)
-            let overlapPercent = Double(overlap.count) / Double(windowRange.count) * 100
-
-            XCTAssertLessThan(
-                overlapPercent,
-                20.0,
-                "Window should avoid spike regions"
-            )
-        }
+        // Windows over the spike score α1 ≈ 0.55 (high variability); the
+        // ±20 ms stretch after it is organized, so a window must be found.
+        let w = try XCTUnwrap(window, "The stable stretch after the spike holds an organized window")
+        let spikeRegion = 600 ..< 650
+        let windowRange = w.startIndex ..< w.endIndex
+        let overlap = windowRange.clamped(to: spikeRegion)
+        let overlapPercent = Double(overlap.count) / Double(windowRange.count) * 100
+        XCTAssertLessThan(overlapPercent, 20.0, "Window should avoid spike regions")
     }
 
     // MARK: - Heart Rate Stability
 
     /// Test HR stability preference
-    func testHRStabilityPreference() {
-        // Create two regions: one stable, one variable HR
-        // Need 1500 beats so 30-70% band can contain 400-beat window
+    func testHRStabilityPreference() throws {
+        // Stable HR (~75 bpm, ±20 ms: organized) up to beat 900, variable HR
+        // (60-90 bpm) after it. The 30-70% band (beats 450-1049) holds both.
         var points: [RRPoint] = []
-
-        // First half: stable HR (~75 bpm, 800ms RR)
-        for i in 0 ..< 750 {
-            points.append(RRPoint(t_ms: Int64(i * 800), rr_ms: 800 + deterministicJitter(index: i, amplitude: 10)))
+        for i in 0 ..< 900 {
+            points.append(RRPoint(t_ms: Int64(i * 800), rr_ms: 800 + deterministicJitter(index: i, amplitude: 20)))
         }
-
-        // Second half: variable HR (60-90 bpm)
-        for i in 750 ..< 1500 {
+        for i in 900 ..< 1500 {
             let rr = 667 + ((i * 53 + 11) % 334)
             points.append(RRPoint(t_ms: Int64(i * 800), rr_ms: rr))
         }
@@ -289,20 +269,11 @@ final class WindowSelectionTests: XCTestCase {
             wakeTimeMs: Int64(series.points.count * 800)
         )
 
-        // Synthetic data may not produce organized recovery windows
-        if let w = window {
-            // Calculate HR variability in selected window
-            let windowPoints = Array(points[w.startIndex ..< w.endIndex])
-            let hrValues = windowPoints.map { 60000.0 / Double($0.rr_ms) }
-            let hrStdDev = standardDeviation(hrValues)
-
-            // Should prefer stable HR region
-            XCTAssertLessThan(
-                hrStdDev,
-                10.0,
-                "Selected window should have stable HR"
-            )
-        }
+        // The stable stretch's HR SD is ~1.1 bpm, the variable one's ~8.6.
+        let w = try XCTUnwrap(window, "The stable stretch holds an organized window")
+        let hrValues = points[w.startIndex ..< w.endIndex].map { 60000.0 / Double($0.rr_ms) }
+        XCTAssertLessThanOrEqual(w.endIndex, 900, "Window should lie in the stable-HR stretch")
+        XCTAssertLessThan(standardDeviation(hrValues), 3.0, "Selected window should have stable HR")
     }
 
     // MARK: - Edge Cases

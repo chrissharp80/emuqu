@@ -5,18 +5,7 @@
  "types": [],
  "state": [],
  "toplevel": "Markdown only; no executable content. Its table of contents (line 9) lists 13 sections and omits five later top-level sections.",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "high",
-   "text": "The Window Selection section states custom windows are never saved to archive, baseline or trends, but the manual-window path archives and feeds the baseline; this is the doc's most consequential wrong claim about stored health data.",
-   "evidence": [
-    "docs/ARCHITECTURE.md:274",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift:267"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "§ Emuqu — Architecture & Algorithms",
@@ -188,8 +177,8 @@
   },
   {
    "key": "§ Emuqu — Architecture & Algorithms > Recording Architecture > Pause & Resume (Split Sleep)",
-   "hash": "0ad270c2801ebfe9",
-   "does": "Claims pause stops streaming, runs full analysis, archives as .paused, shows score preview and persists state to UserDefaults; resume creates a new session whose linkedSessionIds point at the parent; combined analysis merges RR before window selection; auto-finalize triggers on device disconnect or battery <=5% while paused. Code: pauseOvernightStreaming -> pauseWithFullAnalysis (analysis + archive .paused + persistPauseAndClearRecording) or pauseWithShortRecording (no analysis, no score); resume sets linkedSessionIds=[parent] (RRCollector+PauseResume.swift:176); mergeParentSessionData merges only the direct parent's beats. Only the battery path auto-finalizes (RRCollector+Bindings.swift:203-205); no disconnect-triggered finalize exists.",
+   "hash": "9429003b92ac4481",
+   "does": "Claims pause stops streaming, runs full analysis, archives as .paused, shows score preview and persists state to UserDefaults; resume creates a new session whose linkedSessionIds point at the parent; combined analysis merges RR before window selection; auto-finalize only when the strap battery drops to 5% or lower while paused (bindBatteryAndReconnect -> finalizeFromPause), a disconnect while paused leaves the night paused until Done or the battery rule. Code: pauseOvernightStreaming -> pauseWithFullAnalysis (analysis + archive .paused + persistPauseAndClearRecording) or pauseWithShortRecording (no analysis, no score); resume sets linkedSessionIds=[parent]; mergeParentSessionData merges only the direct parent's beats.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.pauseOvernightStreaming()",
@@ -201,17 +190,6 @@
    "writes": [],
    "branches": [],
    "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "Doc says paused sessions auto-finalize on device disconnect or battery <=5%; the only auto-finalize trigger in code is the battery observer (level<=5 while paused). A strap disconnect while paused does not finalize, so a paused night stays paused until the user taps Done or the battery path fires.",
-     "evidence": [
-      "docs/ARCHITECTURE.md:115",
-      "Emuqu/Sources/Collection/RRCollector+Bindings.swift:203",
-      "Emuqu/Sources/Collection/RRCollector+PauseResume.swift:256"
-     ],
-     "found": "first read, upheld on second"
-    },
     {
      "kind": "spec-mismatch",
      "sev": "low",
@@ -226,7 +204,7 @@
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.bindBatteryAndReconnect()": "42ed09b05a7d8151",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.mergeParentSessionData(data:)": "87a587c8120166f1",
-    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.finalizeFromPause()": "c9d07bc20111ce8a",
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.finalizeFromPause()": "efe3996fe37eb94b",
     "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.pauseOvernightStreaming()": "04f5a4e44402eaba"
    }
   },
@@ -429,8 +407,8 @@
   },
   {
    "key": "§ Emuqu — Architecture & Algorithms > Analysis Algorithms > Stress Analysis",
-   "hash": "2a9a34ddc108aceb",
-   "does": "Claims Baevsky SI = AMo/(2*Mo*MxDMn) with 50 ms bins; PNS = mean z of meanRR(926), RMSSD(42), SD1(29); SNS = mean z of meanHR(66), SI(100), inverted SD2(65); readiness 1-10 starting at 5 with RMSSD ratio bands (+2/+1/-2/0) against the 60-night geometric VO2max-adjusted baseline, absolute RMSSD bands without a baseline, alpha1 +2/+0.5/-1, PNS-SNS +1.5/+0.5/-0.5/-1.5, hard-training adds back negative load adjustment, clamp [1,10]. Constants match (StressNormativeConstants: refMeanRR 926, refRMSSD 42, refSD1 29.7, refMeanHR 66, refSI 100, refSD2 65, ratio bands 0.85/1.15/0.70/1.30/0.60/1.50, DFA flexible upper 1.25). The baseline passed by RRCollector.ansConfig is exp(lnRmssdMean) else settings.baselineRMSSD else populationBaselineRMSSD, never nil; HRVAnalysisPipeline substitutes 40.0 when no config is given.",
+   "hash": "8e62f40aeb8f0b7e",
+   "does": "Claims Baevsky SI = AMo/(2*Mo*MxDMn) with 50 ms bins; PNS = mean z of meanRR(926), RMSSD(42), SD1(29); SNS = mean z of meanHR(66), SI(100), inverted SD2(65); readiness 1-10 starting at 5 with RMSSD ratio bands (+2/+1/-2/0) against the 60-night geometric baseline; until it exists RRCollector.ansConfig falls back to settings.baselineRMSSD then UserSettings.populationBaselineRMSSD (35 ms with no age), so every app reading uses the ratio; the VO2max-adjusted absolute bands run only when no ANSConfiguration is passed (HRVAnalysisPipeline.readinessScore passes config?.baselineRMSSD) or the baseline is <= 0; alpha1 +2/+0.5/-1, PNS-SNS +1.5/+0.5/-0.5/-1.5, hard training adds back the negative load adjustment, clamp [1,10]. Constants match StressNormativeConstants.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computeStressIndex(_:)",
@@ -441,35 +419,24 @@
     "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.dfaAdjustment(_:)",
     "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.ansBalanceAdjustment(snsIndex:pnsIndex:)",
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.readinessScore(timeDomain:nonlinear:pnsIndex:snsIndex:config:)",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.ansConfig(asOf:baseline:)"
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.ansConfig(asOf:baseline:)",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.populationBaselineRMSSD"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "Doc says absolute RMSSD bands stand in for the readiness RMSSD term when there is no baseline. Production never passes a nil baseline: RRCollector.ansConfig falls back to settings.baselineRMSSD then populationBaselineRMSSD, and HRVAnalysisPipeline uses a hard-coded 40.0 when no config is given, so the ratio branch always runs against a population number and absoluteRMSSDAdjustment is reached only if that number is <=0.",
-     "evidence": [
-      "docs/ARCHITECTURE.md:237",
-      "Emuqu/Sources/Collection/RRCollector.swift:485",
-      "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift:322",
-      "Emuqu/Sources/Analysis/StressAnalysis.swift:171"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.readinessScore(timeDomain:nonlinear:pnsIndex:snsIndex:config:)": "d059fbbf3d28f7d3",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.readinessScore(timeDomain:nonlinear:pnsIndex:snsIndex:config:)": "7219e5e06dd95935",
     "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.ansBalanceAdjustment(snsIndex:pnsIndex:)": "e56cc8abf2fd0ee7",
     "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computePNSIndex(meanRR:rmssd:sd1:)": "5884d2ca78926361",
-    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computeReadinessScore(rmssd:baselineRMSSD:alpha1:pnsIndex:snsIndex:trainingLoadAdjustment:vo2Max:)": "98cf8ae21289221d",
+    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computeReadinessScore(rmssd:baselineRMSSD:alpha1:pnsIndex:snsIndex:trainingLoadAdjustment:vo2Max:)": "a3386b11d7b81c53",
     "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computeSNSIndex(meanHR:stressIndex:sd2:)": "e8298f96faf8b9fa",
-    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computeStressIndex(_:)": "adf90ec69698848d",
+    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computeStressIndex(_:)": "114358ad4d451629",
     "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.dfaAdjustment(_:)": "c68233bcb7a4c5b4",
     "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.rmssdAdjustment(rmssd:baseline:vo2Max:)": "d2f4e9588cdfc0aa",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.ansConfig(asOf:baseline:)": "3333501657a97f65"
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.ansConfig(asOf:baseline:)": "3333501657a97f65",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.populationBaselineRMSSD": "5f7cfa36c20d28ad"
    }
   },
   {
@@ -550,43 +517,33 @@
   },
   {
    "key": "§ Emuqu — Architecture & Algorithms > Window Selection > Selection Methods",
-   "hash": "092444089d067683",
-   "does": "Claims selection methods: consolidated (Tier-1 ranked organized windows, RMSSD fallback without a 60-night/min-3 baseline), peak RMSSD, peak SDNN, peak total power, custom tap 400-beat window ignoring the band; custom selections are ephemeral and never saved to archive, baseline or trends. Code: rankByTier1Score / rankByRMSSD in buildRecoveryWindow; selectWindowByMethod handles peaks; analyzeAtPosition takes a beatsPerWindow(400) slice. Custom results are persisted: MainTabView.rescoreReportAt -> applyManualAnalysis -> persistManualAnalysis archives the session (windowUserAdjusted=true, recomputed recoveryScore) and calls baselineTracker.update.",
+   "hash": "259d93657a6b4809",
+   "does": "Claims selection methods: consolidated (Tier-1 ranked organized windows, RMSSD fallback without a 60-night/min-3 baseline), peak RMSSD, peak SDNN, peak total power (SDNN proxy), custom tap 400-beat window ignoring the band. A custom window is a preview until Apply: ReanalysisService.applyManualAnalysis re-scores from it, sets windowUserAdjusted, keeps the auto pick (preserveAutoWindow -> autoWindowResult/autoWindowScore), and persistManualAnalysis archives with re-upload and calls BaselineTracker.update, so the stored score, later nights' baseline and trends use it; Cancel saves nothing.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.buildRecoveryWindow(from:sustainedWindows:baselineStats:)",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.rankByTier1Score(_:baseline:)",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.rankByRMSSD(_:)",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectWindowByMethod(_:in:flags:sleepStartMs:wakeTimeMs:)",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.analyzeAtPosition(in:flags:targetMs:)",
     "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.rescoreReportAt(_:targetMs:)",
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.applyManualAnalysis(_:result:)",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.persistManualAnalysis(_:originalId:)"
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.persistManualAnalysis(_:originalId:)",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.preserveAutoWindow(of:on:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.update(with:sleepSchedule:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "high",
-     "text": "Doc says custom (tapped) windows are ephemeral and never saved to archive, baseline or trends. persistManualAnalysis archives the manually re-scored session, uploads it, and feeds it to baselineTracker.update, so a user's tap changes the stored score and the baseline used for later nights.",
-     "evidence": [
-      "docs/ARCHITECTURE.md:274",
-      "Emuqu/Sources/Services/ReanalysisService+Sleep.swift:267",
-      "Emuqu/Sources/Services/ReanalysisService+Sleep.swift:268"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.analyzeAtPosition(in:flags:targetMs:)": "0dc195fa4232cb80",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.buildRecoveryWindow(from:sustainedWindows:baselineStats:)": "03c4a89850a4ce15",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.update(with:sleepSchedule:)": "39b522c63ba99f84",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.analyzeAtPosition(in:flags:targetMs:)": "43a57b3f677f5156",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.rankByRMSSD(_:)": "dffb11794bace6d0",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.rankByTier1Score(_:baseline:)": "f3653c3dee27ee86",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectWindowByMethod(_:in:flags:sleepStartMs:wakeTimeMs:)": "879f43de5f898d0e",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.applyManualAnalysis(_:result:)": "6101138b43745ab5",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectWindowByMethod(_:in:flags:sleepStartMs:wakeTimeMs:)": "dcd8bcc51d9ad6ea",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.applyManualAnalysis(_:result:)": "af467555b95acba3",
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.persistManualAnalysis(_:originalId:)": "95696db27ad14052",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.preserveAutoWindow(of:on:)": "c13479e0d58edb37",
     "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.rescoreReportAt(_:targetMs:)": "2d65b59b24a27b3f"
    }
   },
@@ -803,39 +760,28 @@
   },
   {
    "key": "§ Emuqu — Architecture & Algorithms > Recovery Score Calculation > Tier 2 — HRV + Sleep (sleep present, vitals absent)",
-   "hash": "a3d132b0666ddb01",
-   "does": "Claims Tier 2 sleep sub-score is SleepScienceAnalyzer's enhanced score when stage data exists, else a weighted fallback (duration 0.35, efficiency 0.25, deep 0.25, REM 0.15); composite tier1*0.70 + sleep*0.30, dampened to 0.85/0.15 when z_hrv < -1.0 and sleep < 50. Weights and dampening match ScoringWeights.Tier2/Sleep and ScoreDetailBuilder.buildTier2 (:139). calculateSleepScore reaches basicSleepScore only when SleepScienceAnalyzer.analyze returns nil, i.e. when night sleep minutes <= 0, not when stage data is missing (comment at RecoveryScoreCalculator+Tiers.swift:135-158).",
+   "hash": "06f9628771aba074",
+   "does": "Claims every night with sleep minutes (staged or not) gets SleepScienceAnalyzer's enhanced score as the sleep sub-score (duration 25, efficiency 20, deep+REM 20, continuity 15, cycles 10, architecture 10 points; half credit for unmeasured sections; duration-debt cap below 85% of target), and the weighted formula (zeroMinuteNightScore: duration 0.35 on 24 h sleep incl. naps, efficiency 0.25, deep and REM fixed at the neutral 0.5 with 0.25/0.15) runs only for zero-minute nights; composite tier1*0.70 + sleep*0.30, dampened to 0.85/0.15 when z_hrv < -1.0 and sleep < 50. Matches calculateSleepScore and ScoringWeights.Tier2/Sleep.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateSleepScore(sleepData:typicalSleepHours:userAge:)",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.basicSleepScore(_:typicalSleepHours:)",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.stageRatio(_:of:target:)",
     "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.buildTier2(_:sleep:)",
-    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.buildTierComposite(_:)"
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.buildTierComposite(_:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.zeroMinuteNightScore(_:typicalSleepHours:)",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.analyze(sleepData:userAge:typicalSleepHours:)",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.enhancedScore(of:sleepData:typicalSleepHours:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "Doc says the weighted sleep formula is the fallback when no stage breakdown exists. calculateSleepScore uses SleepScienceAnalyzer whenever night sleep > 0 (it returns non-nil with architecture .unknown for stage-less nights), so the weighted formula runs only for zero-minute nights and its deep/REM terms always get the neutral 0.5; a duration-only night is scored by the analyzer, not this formula.",
-     "evidence": [
-      "docs/ARCHITECTURE.md:369",
-      "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift:121",
-      "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift:141",
-      "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift:185"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.basicSleepScore(_:typicalSleepHours:)": "624d97ea54017aa4",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateSleepScore(sleepData:typicalSleepHours:userAge:)": "7330a00595a0e155",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.stageRatio(_:of:target:)": "1cd57c951605f516",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateSleepScore(sleepData:typicalSleepHours:userAge:)": "042f75023c6f6a31",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.zeroMinuteNightScore(_:typicalSleepHours:)": "5c61a6ae4d0ea566",
     "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.buildTier2(_:sleep:)": "d11c9ae1d28d7e20",
-    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.buildTierComposite(_:)": "6dca408cb769ec28"
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.buildTierComposite(_:)": "6dca408cb769ec28",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.analyze(sleepData:userAge:typicalSleepHours:)": "61d4d4775e117e68",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.enhancedScore(of:sleepData:typicalSleepHours:)": "1a54bc3d0cfff497"
    }
   },
   {
@@ -914,8 +860,8 @@
   },
   {
    "key": "§ Emuqu — Architecture & Algorithms > Recovery Score Calculation > Confidence pips (cold-start UX)",
-   "hash": "e9e8f007dd87d56d",
-   "does": "Claims a three-stage confidence pip (0-13 building and score hidden, 14-27 provisional, 28+ full) from BaselineTracker.daysCollected with thresholds in ScoreAppearancePolicy (DashboardSessionPolicy.swift): personalBaselineNights=3, scoreShownNights=14, fullBaselineNights=28; implemented in ConfidencePip.swift. Code matches DashboardSessionPolicy.swift:334-338 and ConfidencePip stage/labels.",
+   "hash": "9d45b7ee16f48592",
+   "does": "Claims a three-stage confidence pip (0-13 building and score hidden, 14-27 provisional, 28+ full) from BaselineTracker.daysCollected; z-scoring starts at BaselineTracker.RecoveryBaselineStats.minimumDays (3); ScoreAppearancePolicy (DashboardSessionPolicy.swift) holds scoreShownNights=14 and fullBaselineNights=28; implemented in ConfidencePip.swift.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/ConfidencePip.swift::var ConfidencePip.stage",
@@ -1380,7 +1326,7 @@
   },
   {
    "key": "§ Emuqu — Architecture & Algorithms > Storage & Sync > PDF Reports",
-   "hash": "b33c17a50d09a8c0",
+   "hash": "6af9c4ca3af7b5e1",
    "does": "Claims PDFReportGenerator renders a Letter overnight report (metrics page, visualisations page only with raw RR, deep-dive pages for comprehensive style) and WorkoutPDFReport renders a 6-7 page workout report with drawWhatThisMeansPage and charts downsampled to maxPDFPoints = 250. Code: PDFReportGenerator.generateReport/drawReportPages; WorkoutPDFReport.generate; WorkoutPDFRenderer.drawWhatThisMeansPage; maxPDFPoints = 250 (WorkoutPDFReport+Pages.swift:206).",
    "entry": null,
    "calls": [
@@ -1397,7 +1343,7 @@
     "Emuqu/Sources/Export/PDFReportGenerator.swift::func PDFReportGenerator.drawReportPages(_:in:pageRect:)": "8f254f1ad719cbc1",
     "Emuqu/Sources/Export/PDFReportGenerator.swift::func PDFReportGenerator.generateReport(for:flags:sleepData:sleepTrend:recentSessions:healthKitHR:vitals:compositeRecoveryScore:scoreBreakdown:baselineStats:liveLoadSnapshot:style:sections:)": "d0181135712512c1",
     "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.drawWhatThisMeansPage(ctx:)": "b9b9b9f8f1a2aa7e",
-    "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.generate(to:)": "88a243ef2ca4a8fe"
+    "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.generate(to:)": "e4897d790eb4d2c5"
    }
   },
   {
@@ -2188,7 +2134,7 @@
   },
   {
    "key": "§ Emuqu — Architecture & Algorithms > Fitness Tab — Workout Subsystem > Subsystems",
-   "hash": "02dd0818bea29e89",
+   "hash": "ca47db55e958709d",
    "does": "Claims per-subsystem behaviour: LiveDFAAnalyzer 2-min window every 20 s with a +/-20% Kubios-style filter (cleanRRForDFA); WorkoutAlpha1Reanalyzer replays the pipeline; TopoElevationService NED 10 m then SRTM 30 m with a 15 m climb threshold; HRRCaptureService 120 s capture with strap/Watch/HealthKit tiers; LiveWorkoutBroker treats snapshots >12 s as nil; RouteLibrary.findMatch after ~500 m, both directions, <=30 m mean distance, routes in App Group saved_routes.json with legacy migration; WeatherService MET Norway with >=10 min between requests, 30-min TTL, 5 km refetch; RoadGeocodingService 15 m/60 s, 8 failures/30 s, 600 ms per-climb pacing; Concept2Manager PM5 0x0031/0x0032/0x0036 with power outside 1-1500 W dropped; FootPodManager RSC 0x1814 plus FTMS 0x1826/0x2AD2; ZwiftPeripheralBroadcaster 0x180D/0x1818 gated by enableZwiftBroadcast; WorkoutThreshold debounce 30 s / cooldown 120 s with Bool? evaluate; WorkoutPDFReport maxPDFPoints 250. Code matches: LiveDFAAnalyzer init(windowSec: 120, cadenceSec: 20) and ectopicRatio 0.20; HRRCaptureService captureWindowSec 120; LiveWorkoutBroker.staleAfterSec 12; RouteLibrary detectionTriggerMeters 500 / matchToleranceMeters 30; WeatherService cacheTTL 30 min, minimumRequestInterval 10 min, 5_000 m; SavedRoute climb geocoding sleeps 600_000_000 ns; Concept2Manager.plausibleStrokePowerWatts 1...1_500 (service UUID is the Concept2 128-bit ce060030-...); FootPodManager 1814/1826/2AD2; Zwift UUIDs and enableZwiftBroadcast default false; WorkoutThreshold defaults 30/120. RoadGeocodingService is described as a CLGeocoder wrapper but resolves via MKLocalSearch tiles first (see the 983 record).",
    "entry": null,
    "calls": [
@@ -2222,7 +2168,6 @@
     "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.findMatch(currentTrack:sport:store:)": "26547ccaed8e1da6",
     "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.elevations(for:maxSamples:sustainedClimbThreshold:)": "694915adbe9258c0",
     "Emuqu/Sources/Analysis/WorkoutAlpha1Reanalyzer.swift::func WorkoutAlpha1Reanalyzer.reanalyze(session:windowSec:cadenceSec:minBeatsForFit:)": "db5846f46dc6a468",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::func WorkoutTriggerEngine.evaluate(context:now:)": "876160b8dace8b52",
     "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.update(heartRate:powerWatts:)": "297cbefb6dac851f",
     "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.evaluate(hrBPM:hrZone:powerWatts:ftpWatts:paceSecPerKm:alpha1:cadenceSPM:distanceMeters:elapsedSec:elevationGainMeters:gradePercent:)": "8a84f23e7046cf15",
     "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.performLookup(at:enrichCrossStreet:)": "f715486ad279534a"

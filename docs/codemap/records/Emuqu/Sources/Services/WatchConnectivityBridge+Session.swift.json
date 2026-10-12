@@ -235,12 +235,11 @@
   },
   {
    "key": "func WatchConnectivityBridge.acceptsQueuedIntent(_:)",
-   "hash": "14e85e413c722e4d",
-   "does": "Queued-intent filter: rejects a ts not newer than lastProcessedContextTimestamp (updating it otherwise), intents older than 120 s or past expiresAt, and stop/pause/resume stamped before the current workout started.",
+   "hash": "3c3f142cb987ffaf",
+   "does": "Queued-intent filter: rejects a ts not newer than lastProcessedContextTimestamp (updating it otherwise), intents past expiresAt or (except a stamped End, kept for its 12 h stamp) older than 120 s, and stop/pause/resume stamped before the current workout started.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.isStaleQueuedIntent(_:)",
-    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.isExpired(_:)",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.isStale(_:ts:)",
     "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.predatesCurrentWorkout(_:ts:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
@@ -269,7 +268,7 @@
     },
     {
      "at": "+4",
-     "cond": "stale (>120 s) or expired",
+     "cond": "isStale (expired, or >120 s old unless a stamped End)",
      "effect": "logs warning and returns false"
     },
     {
@@ -280,10 +279,47 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.isExpired(_:)": "969eb281db069232",
-    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.isStaleQueuedIntent(_:)": "b1906f3e664d8760",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.isStale(_:ts:)": "d8c83e37aa362a2e",
     "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.predatesCurrentWorkout(_:ts:)": "3f6f847891c7665e",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func WatchConnectivityBridge.isStale(_:ts:)",
+   "hash": "ac854ff0177687eb",
+   "does": "True when the queued intent is past its expiresAt; otherwise a stamped stopWorkoutFromWatch is never stale (the Watch keeps a queued End for 12 h), and any other intent (or an unstamped End) is stale when its ts is over maxQueuedIntentAge (120 s) old.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.isExpired(_:)",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.isStaleQueuedIntent(_:)"
+   ],
+   "reads": [
+    "wc:expiresAt",
+    "wc:type",
+    "wc:ts"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "isExpired",
+     "effect": "true"
+    },
+    {
+     "at": "+3",
+     "cond": "type is stopWorkoutFromWatch and expiresAt present",
+     "effect": "false (judged by its stamp alone)"
+    },
+    {
+     "at": "+4",
+     "cond": "otherwise",
+     "effect": "isStaleQueuedIntent(ts)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.isExpired(_:)": "969eb281db069232",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.isStaleQueuedIntent(_:)": "b1906f3e664d8760"
    }
   },
   {

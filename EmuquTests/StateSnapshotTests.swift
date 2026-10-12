@@ -141,7 +141,10 @@ final class StateSnapshotTests: XCTestCase {
         assertSnapshot(of: NavigationStack { PrivacyPolicyView() }, named: "screen-privacy-policy")
     }
 
+    /// The category list follows the user's age (`HelpContent.categories(forAge:)`),
+    /// so the snapshot runs on fresh-install settings, not the host's.
     func testHelpCenterRenders() {
+        useDefaultSettings()
         assertSnapshot(of: hosted(NavigationStack { HelpCenterView() }), named: "screen-help-center")
     }
 }
