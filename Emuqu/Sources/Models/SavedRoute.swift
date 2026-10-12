@@ -359,10 +359,11 @@ final class SavedRouteStore {
     /// the copy is in place.
     private static func setAsideUndecodable(_ url: URL, reason: Error) -> Bool {
         let backup = url.deletingLastPathComponent().appendingPathComponent(undecodableBackupName)
-        let copied = attempt("savedRoutes.setAside") { () throws -> Void in
+        let setAside: Void? = attempt("savedRoutes.setAside") {
             if FileManager.default.fileExists(atPath: backup.path) { try FileManager.default.removeItem(at: backup) }
             try FileManager.default.copyItem(at: url, to: backup)
-        } != nil
+        }
+        let copied = setAside != nil
         debugLog("[SavedRouteStore] saved_routes.json failed to decode (\(reason.localizedDescription)) — \(copied ? "set aside as \(undecodableBackupName); starting an empty library" : "could not set it aside; blocking saves")", level: .warning)
         return copied
     }

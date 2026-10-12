@@ -1,13 +1,13 @@
 {
  "file": "Emuqu/Sources/Assistant/Context/ContextBuilder.swift",
- "hash": "6c736c950cb43464",
+ "hash": "6b016f401becc35b",
  "role": "Enum of static builders that assemble an AssistantContext (user profile, today/yesterday session snapshots, recent lite sessions carrying the titles of this build's summaries, baselines, trends, analysis summary, workout history, live workout/HRV with the workout's samples, and ambient location) from inputs gathered by AssistantContextSource, for the AI assistant's system prompt. It reads the live brokers, the ambient location cache and the settings body weight through AppDependencies.current, and reads and writes the shared AnalysisSummaryCache, as its header says.",
  "types": [
-  "ContextBuilder: enum — static builders turning HRVSession/UserSettings/baseline/trend inputs into AssistantContext snapshot structs",
+  "ContextBuilder: enum — static builders turning HRVSession/UserSettings/baseline/trend inputs into AssistantContext snapshot structs; the per-snapshot builders (from `MARK: - Builders`) sit in a same-file extension",
   "ContextBuilder.DerivedSampleMetrics: struct — avg/max HR, avg METs, kcal, avg cadence, alpha1 mean derived from per-tick WorkoutSample series"
  ],
  "state": [],
- "toplevel": "No globals; extension at line 611 adds the vitals/overnight-HR/sleep sub-snapshot builders.",
+ "toplevel": "No globals; two same-file extensions: the per-snapshot builders (split from the enum body to keep it under the type-length limit) and the vitals/overnight-HR/sleep sub-snapshot builders.",
  "flags": [],
  "units": [
   {

@@ -95,7 +95,8 @@ enum MetricsVerifier {
         guard let hr = actual else { return [] }
         return claimsMatching(
             in: text,
-            pattern: #"\b(?:your\s+(?:current\s+|live\s+)?(?:HR|heart\s+rate)(?:\s+is|['’]s)?|(?:HR|heart\s+rate)\s+(?:is\s+)?(?:right\s+now|currently|now))(?:\s+(?:is|now|currently|right\s+now|sitting|at|around|about))*\s+(?<claim>(?<value>\d{2,3})(?:\s*(?:bpm|beats\s+per\s+minute))?)\b(?!\s*(?:%|[-–/]|\.\d)|\s*(?:percent|seconds?|secs?|minutes?|mins?|hours?|hrs?|days?|weeks?)\b)"#,
+            pattern: #"\b(?:your\s+(?:current\s+|live\s+)?(?:HR|heart\s+rate)(?:\s+is|['’]s)?|(?:HR|heart\s+rate)\s+(?:is\s+)?(?:right\s+now|currently|now))(?:\s+(?:is|now|currently|right\s+now|sitting|at|around|about))*"#
+                + #"\s+(?<claim>(?<value>\d{2,3})(?:\s*(?:bpm|beats\s+per\s+minute))?)\b(?!\s*(?:%|[-–/]|\.\d)|\s*(?:percent|seconds?|secs?|minutes?|mins?|hours?|hrs?|days?|weeks?)\b)"#,
             check: ClaimCheck(actual: Double(hr), tolerance: 5, metric: "HR") { "\(Int($0.rounded())) bpm" }
         )
     }
@@ -107,7 +108,8 @@ enum MetricsVerifier {
         guard let watts = actual else { return [] }
         return claimsMatching(
             in: text,
-            pattern: #"\b(?:your\s+(?:current\s+|live\s+)?(?:power|wattage)(?:\s+is|['’]s)?|(?:power|wattage)\s+(?:is\s+)?(?:right\s+now|currently|now))(?:\s+(?:is|now|currently|right\s+now|sitting|at|around|about))*\s+(?<claim>(?<value>\d{2,4})(?:\s*(?:W|watts?))?)\b(?!\s*(?:%|[-–/]|\.\d)|\s*(?:percent|seconds?|secs?|minutes?|mins?|hours?|hrs?|days?|weeks?)\b)"#,
+            pattern: #"\b(?:your\s+(?:current\s+|live\s+)?(?:power|wattage)(?:\s+is|['’]s)?|(?:power|wattage)\s+(?:is\s+)?(?:right\s+now|currently|now))(?:\s+(?:is|now|currently|right\s+now|sitting|at|around|about))*"#
+                + #"\s+(?<claim>(?<value>\d{2,4})(?:\s*(?:W|watts?))?)\b(?!\s*(?:%|[-–/]|\.\d)|\s*(?:percent|seconds?|secs?|minutes?|mins?|hours?|hrs?|days?|weeks?)\b)"#,
             check: ClaimCheck(actual: Double(watts), tolerance: 15, metric: "power_watts") { "\(Int($0.rounded())) W" }
         )
     }

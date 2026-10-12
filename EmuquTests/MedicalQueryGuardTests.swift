@@ -27,7 +27,6 @@ final class MedicalQueryGuardTests: XCTestCase {
         pinEnglishLanguage()
     }
 
-
     // MARK: - Arrhythmia / AFib pattern
 
     func testAFibLiteralFormsAreRefused() {

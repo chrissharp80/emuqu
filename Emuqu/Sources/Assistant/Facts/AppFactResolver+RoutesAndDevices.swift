@@ -521,7 +521,10 @@ struct AppDevicesNamespace: FactNamespaceResolver {
     private var appDevicesPolarSpecCapacityHoursEntry: FactEntry {
         .fixed(
             key: "app.devices.polar.spec_capacity_hours",
-            description: "Manufacturer-published recording capacity of a full battery for the connected Polar (H10 ≈ 400 h, Verity Sense ≈ 30 h). Estimate time left as spec_capacity_hours × battery_percent / 100 minus recording_hours_since_charge; never as spec_capacity_hours minus recording_hours_since_charge.",
+            description: """
+            Manufacturer-published recording capacity of a full battery for the connected Polar (H10 ≈ 400 h, Verity Sense ≈ 30 h). \
+            Estimate time left as spec_capacity_hours × battery_percent / 100 minus recording_hours_since_charge; never as spec_capacity_hours minus recording_hours_since_charge.
+            """,
             valueType: "Double"
         ) {
             guard let p = self.connectedPolar(),

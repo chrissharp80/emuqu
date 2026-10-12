@@ -1,6 +1,6 @@
 {
  "file": "EmuquWatch Watch App/WatchSessionManager.swift",
- "hash": "f40f8e43a192c6c2",
+ "hash": "5092d943f5e59f44",
  "role": "Watch-side WCSession view-model: activates WCSession, decodes iPhone pushes (liveState ticks, strap state, voice-chat state, start/stop commands, current-state replies) into @Published UI state, drives the Watch's keep-alive HKWorkoutSession off isRecording, and sends Watch→iPhone control requests (start/stop/pause/resume/acknowledge, voice chat, state pull) with reply handling, queueing and timeouts.",
  "types": [
   "WatchSessionManager: class (NSObject, ObservableObject, main-actor by target default) — view-model + WCSessionDelegate",
@@ -24,16 +24,14 @@
   "mem:WatchSessionManager.controlStatusHold = 8 s",
   "mem:WatchSessionManager.startWorkoutTimeoutTask/voiceChatTimeoutTask (private Tasks)",
   "mem:WatchSessionManager.lastRecordingStateSentAt (private, in-memory)",
-  "mem:WatchSessionManager.queuedRequestLifetime = 60 s",
   "mem:WatchSessionManager.workoutManager (weakly-owned reference set by attach)",
   "mem:Logger subsystem com.chrissharp.flowrecovery category WatchSessionManager",
   "wc out: startVoiceChat, startWorkoutFromWatch, stopWorkoutFromWatch, pauseWorkoutFromWatch, resumeWorkoutFromWatch, acknowledgeFinishedFromWatch, requestCurrentState, requestStrapState, applicationContext(queued intent + expiresAt)",
-  "mem:WatchSessionManager.queuedStopLifetime = 12 h",
   "mem:WatchSessionManager.directStrapFreshness = 4 s",
   "mem:WatchSessionManager.directStrapExpiryTask (private Task)",
   "mem:WatchSessionManager.currentStateRequestInFlight (private)"
  ],
- "toplevel": "Stored-property initializers: statusLine starts \"Starting…\", sportLabel \"Workout\", band \"—\", unitsPreference \"metric\", voiceChatStateLabel \"idle\"; displayOnlyMode initializer reads UserDefaults (default true). WCSessionDelegate conformance in the extension at 872.",
+ "toplevel": "Stored-property initializers: statusLine starts \"Starting…\", sportLabel \"Workout\", band \"—\", unitsPreference \"metric\", voiceChatStateLabel \"idle\"; displayOnlyMode initializer reads UserDefaults (default true). WCSessionDelegate conformance in the extension at 907.",
  "flags": [
   {
    "kind": "untested",
@@ -316,7 +314,7 @@
    "entry": null,
    "calls": [
     "ext:WCSession.sendMessage",
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.voiceChatRefusalStatus(_:)",
+    "EmuquWatch Watch App/WatchSessionManager+RequestHelpers.swift::func WatchSessionManager.voiceChatRefusalStatus(_:)",
     "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.applyVoiceChatReply(stateLabel:needsDisclaimer:refusal:)",
     "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.failVoiceChatRequest(message:)"
    ],
@@ -337,7 +335,7 @@
    "deps": {
     "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.applyVoiceChatReply(stateLabel:needsDisclaimer:refusal:)": "e403b72d4fed9850",
     "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.failVoiceChatRequest(message:)": "a4d1511f5f4ebe88",
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.voiceChatRefusalStatus(_:)": "cfd5b23e5d04edae"
+    "EmuquWatch Watch App/WatchSessionManager+RequestHelpers.swift::func WatchSessionManager.voiceChatRefusalStatus(_:)": "cfd5b23e5d04edae"
    }
   },
   {
@@ -349,7 +347,7 @@
     "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.voiceChatNeedsDisclaimer()",
     "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.clearVoiceChatPending()",
     "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.showControlStatus(_:)",
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.voiceChatStateWord(_:)"
+    "EmuquWatch Watch App/WatchSessionManager+RequestHelpers.swift::func WatchSessionManager.voiceChatStateWord(_:)"
    ],
    "reads": [],
    "writes": [
@@ -374,73 +372,8 @@
     "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.clearVoiceChatPending()": "1262f2914158df5c",
     "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.showControlStatus(_:)": "49489d10ba3592f3",
     "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.voiceChatNeedsDisclaimer()": "8dac9b2836e2a57c",
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.voiceChatStateWord(_:)": "2cbf896ee505ce79"
+    "EmuquWatch Watch App/WatchSessionManager+RequestHelpers.swift::func WatchSessionManager.voiceChatStateWord(_:)": "2cbf896ee505ce79"
    }
-  },
-  {
-   "key": "func WatchSessionManager.voiceChatRefusalStatus(_:)",
-   "hash": "e669d198f795bfed",
-   "does": "Refusal status for a voice-chat reply: nil unless ok == false and needsDisclaimer is not true; then the shared controlReplyStatus wording with empty success text.",
-   "entry": null,
-   "calls": [
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.controlReplyStatus(_:sport:successStatus:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "ok == false and needsDisclaimer != true",
-     "effect": "false (accepted, ok missing, or disclaimer case): nil; true: controlReplyStatus wording"
-    }
-   ],
-   "flags": [],
-   "deps": {
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.controlReplyStatus(_:sport:successStatus:)": "2ee1e5db3fee64e5"
-   }
-  },
-  {
-   "key": "func WatchSessionManager.voiceChatStateWord(_:)",
-   "hash": "4402ec3a6ca8f163",
-   "does": "Maps the iPhone voice-chat token to a localized word; nil for idle or an unknown token, where callers supply their own resting word (\"Off\" here, \"Talk to AI\" on StartScreen). The one table for both.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "starting",
-     "effect": "\"Connecting…\""
-    },
-    {
-     "at": "+3",
-     "cond": "listening",
-     "effect": "\"Listening\""
-    },
-    {
-     "at": "+4",
-     "cond": "thinking",
-     "effect": "\"Thinking…\""
-    },
-    {
-     "at": "+5",
-     "cond": "speaking",
-     "effect": "\"Speaking\""
-    },
-    {
-     "at": "+6",
-     "cond": "alert",
-     "effect": "\"Alert\""
-    },
-    {
-     "at": "+7",
-     "cond": "default (idle/unknown)",
-     "effect": "nil"
-    }
-   ],
-   "flags": [],
-   "deps": {}
   },
   {
    "key": "func WatchSessionManager.voiceChatNeedsDisclaimer()",
@@ -496,24 +429,6 @@
     "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.clearVoiceChatPending()": "1262f2914158df5c",
     "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.showControlStatus(_:)": "49489d10ba3592f3"
    }
-  },
-  {
-   "key": "func WatchSessionManager.withQueueExpiry(_:)",
-   "hash": "c9c980f418c8582f",
-   "does": "Returns a copy of payload with expiresAt (seconds since 1970) = now + queuedStopLifetime (12 h) for an End (stopWorkoutFromWatch), else now + queuedRequestLifetime (60 s).",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+4",
-     "cond": "payload is an End",
-     "effect": "12 h lifetime; else 60 s"
-    }
-   ],
-   "flags": [],
-   "deps": {}
   },
   {
    "key": "func WatchSessionManager.clearVoiceChatPending()",
@@ -781,7 +696,7 @@
    "entry": null,
    "calls": [
     "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.wouldDisplaceQueuedStop(payloadType:pending:phoneRecording:now:)",
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.withQueueExpiry(_:)",
+    "EmuquWatch Watch App/WatchSessionManager+RequestHelpers.swift::func WatchSessionManager.withQueueExpiry(_:)",
     "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.showControlStatus(_:)",
     "ext:WCSession.updateApplicationContext"
    ],
@@ -809,7 +724,7 @@
    "deps": {
     "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.wouldDisplaceQueuedStop(payloadType:pending:phoneRecording:now:)": "3df4395e4b3df107",
     "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.showControlStatus(_:)": "49489d10ba3592f3",
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.withQueueExpiry(_:)": "c25f0d39a0a972d9"
+    "EmuquWatch Watch App/WatchSessionManager+RequestHelpers.swift::func WatchSessionManager.withQueueExpiry(_:)": "c25f0d39a0a972d9"
    }
   },
   {

@@ -588,7 +588,9 @@ struct HRVDetailV2View: View {
                 .fill(AppTheme.cardBackground)
         )
     }
+}
 
+extension HRVDetailV2View {
     // MARK: - Trend Analysis
 
     private var trendAnalysisSection: some View {

@@ -150,7 +150,7 @@ final class JSONOrderingTests: XCTestCase {
             tools: [], toolRounds: []
         )
         let body = try XCTUnwrap(OpenAICompatibleStreamer.requestFor(call, apiKey: "test-key").httpBody)
-        let text = String(decoding: body, as: UTF8.self)
+        let text = try XCTUnwrap(String(bytes: body, encoding: .utf8))
         let messages = try XCTUnwrap(text.range(of: #""messages":"#)).lowerBound
         let model = try XCTUnwrap(text.range(of: #""model":"#)).lowerBound
         let stream = try XCTUnwrap(text.range(of: #""stream":"#)).lowerBound
