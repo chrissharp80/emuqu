@@ -10,9 +10,23 @@
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 
+# Where Python 3.10+ is usually installed without being on PATH: Homebrew on
+# Apple silicon and Intel, the python.org installer, pyenv.
+installed_pythons() {
+    local dir version
+    for dir in /opt/homebrew/bin /usr/local/bin "${HOME:-}/.pyenv/shims"; do
+        for version in 3.13 3.12 3.11 3.10; do
+            echo "$dir/python$version"
+        done
+    done
+    for version in 3.13 3.12 3.11 3.10; do
+        echo "/Library/Frameworks/Python.framework/Versions/$version/bin/python3"
+    done
+}
+
 python_for_codemap() {
     local candidate
-    for candidate in "${CODEMAP_BASE_PYTHON:-}" python3.13 python3.12 python3.11 python3.10 python3; do
+    for candidate in "${CODEMAP_BASE_PYTHON:-}" python3.13 python3.12 python3.11 python3.10 python3 $(installed_pythons); do
         [[ -n "$candidate" ]] || continue
         command -v "$candidate" >/dev/null 2>&1 || continue
         if "$candidate" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)' 2>/dev/null; then
@@ -24,7 +38,8 @@ python_for_codemap() {
 }
 
 if ! python="$(python_for_codemap)"; then
-    echo "codemap-setup: the code map needs Python 3.10 or newer; none was found on PATH." >&2
+    echo "codemap-setup: the code map needs Python 3.10 or newer; none was found on PATH," >&2
+    echo "  in Homebrew (/opt/homebrew, /usr/local), the python.org installer or pyenv." >&2
     echo "  python3 here is $(python3 --version 2>&1 || echo 'missing'). Install one (e.g. brew install python@3.12)," >&2
     echo "  or point CODEMAP_BASE_PYTHON at it, then run make codemap-setup again." >&2
     exit 1
