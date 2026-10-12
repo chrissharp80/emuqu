@@ -968,13 +968,14 @@ private func rebuildAnalysisSnapshot(_ stored: inout HRVSession, settings: UserS
           let samples = meta.samples, !samples.isEmpty,
           let duration = stored.duration
     else { return }
-    stored.workoutMetadata?.analysisSnapshot = WorkoutAnalysisSnapshotBuilder.build(.init(
+    let snapshot = WorkoutAnalysisSnapshotBuilder.build(.init(
         sport: meta.sport, durationSec: duration, distanceMeters: meta.distanceMeters,
         elevationGainMeters: meta.elevationGainMeters, elevationLossMeters: meta.elevationLossMeters,
         meanHR: stored.meanHR, userMaxHR: settings.userMaxHR, bodyWeightKg: settings.weightKg,
         samples: samples, splits: meta.splits ?? [], trimp: meta.luciaTRIMP,
         decouplingPercent: meta.decouplingPercent
     ))
+    stored.workoutMetadata?.analysisSnapshot = snapshot
 }
 
 /// Distance-weighted pace baseline plus a sample-weighted mean HR over the
