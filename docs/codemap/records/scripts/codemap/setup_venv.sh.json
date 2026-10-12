@@ -1,21 +1,36 @@
 {
  "file": "scripts/codemap/setup_venv.sh",
- "hash": "aa1b963011dc4123",
+ "hash": "3f59ad8c45ec1e68",
  "role": "Builds .venv-codemap for the code map: picks a Python 3.10+ interpreter (tree-sitter 0.26 needs it; macOS's own python3 is 3.9), recreates the venv with it (--clear, so a venv an older interpreter made is rebuilt) and installs scripts/codemap/requirements.txt with hashes required. Run by `make codemap-setup` when the venv is missing or cannot import tree-sitter.",
  "types": [],
  "state": [
   "file:.venv-codemap/ (recreated)",
   "env:CODEMAP_BASE_PYTHON (optional interpreter override)"
  ],
- "toplevel": "set -euo pipefail; cd to the repo root. Without a 3.10+ interpreter: prints which python3 was found and how to supply one, exit 1. Otherwise: python -m venv --clear .venv-codemap, pip install --quiet --disable-pip-version-check --require-hashes -r scripts/codemap/requirements.txt, prints the interpreter version used.",
+ "toplevel": "set -euo pipefail; cd to the repo root. Without a 3.10+ interpreter (on PATH or in Homebrew, the python.org installer or pyenv): prints where it looked, which python3 was found and how to supply one, exit 1. Otherwise: python -m venv --clear .venv-codemap, pip install --quiet --disable-pip-version-check --require-hashes -r scripts/codemap/requirements.txt, prints the interpreter version used.",
  "flags": [],
  "units": [
   {
+   "key": "fn installed_pythons",
+   "hash": "773da194195fb710",
+   "does": "Prints, one per line, the paths where Python 3.10-3.13 is usually installed without being on PATH: /opt/homebrew/bin and /usr/local/bin (Homebrew), $HOME/.pyenv/shims (pyenv) as pythonX.Y, and /Library/Frameworks/Python.framework/Versions/X.Y/bin/python3 (python.org installer). Nothing is checked here; python_for_codemap tries each.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "env:HOME"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
    "key": "fn python_for_codemap",
-   "hash": "ffaa19ce78c2e62c",
-   "does": "Prints the first interpreter that is Python 3.10 or newer among CODEMAP_BASE_PYTHON (when set), python3.13, python3.12, python3.11, python3.10 and python3, and returns 0; returns 1 when none on PATH is.",
+   "hash": "ccd236e973a30bb6",
+   "does": "Prints the first interpreter that is Python 3.10 or newer among CODEMAP_BASE_PYTHON (when set), python3.13, python3.12, python3.11, python3.10 and python3 on PATH, then the usual off-PATH install locations (installed_pythons), and returns 0; returns 1 when none is.",
    "entry": null,
    "calls": [
+    "scripts/codemap/setup_venv.sh::fn installed_pythons",
     "ext:command -v",
     "ext:python -c sys.version_info check"
    ],
@@ -42,10 +57,12 @@
     }
    ],
    "flags": [],
-   "deps": {}
+   "deps": {
+    "scripts/codemap/setup_venv.sh::fn installed_pythons": "9e56e6c9df5f0738"
+   }
   }
  ],
  "deps": {
-  "scripts/codemap/setup_venv.sh::fn python_for_codemap": "c2a62a379bf2a9cc"
+  "scripts/codemap/setup_venv.sh::fn python_for_codemap": "59db2ae39dc46ba5"
  }
 }
