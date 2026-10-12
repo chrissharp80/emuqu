@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Collection/PolarManager.swift",
- "hash": "9489d27e9b3e97d8",
+ "hash": "0d11b5137c5f7180",
  "role": "Declares PolarDeviceType and the @Observable @MainActor PolarManager: the observable strap state (connection, recording, battery, firmware, streaming buffer), forwarders into StrapRecordingCoordinator / StrapBatteryUsageTracker / StrapPairingStore, PolarError, and lazy SDK setup with observer wiring.",
  "types": [
   "PolarDeviceType: enum — h10 / veritySense with display name, SF symbol, spec runtime hours",
@@ -42,7 +42,7 @@
   "mem:PolarManager.batteryLastReportedValue",
   "mem:PolarManager.batteryLastChangedAt",
   "mem:PolarManager.hoursRecordedSinceBatteryChanged",
-  "mem:PolarManager.onUnrecoveredDataRescued (closure set by RRCollector+Lifecycle.swift:61)",
+  "mem:PolarManager.onUnrecoveredDataRescued (closure set by RRCollector.setupDataRescueCallback; returns whether the backup is on disk)",
   "mem:PolarManager.isStreaming",
   "mem:PolarManager.streamingElapsedSeconds",
   "mem:PolarManager._streamedRRPoints",
@@ -654,6 +654,32 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.applyFirmwareRevisionUpdate(from:uuid:value:)": "c56749b671ba62dc"
+   }
+  },
+  {
+   "key": "func PolarManager.rescueToBackup(_:)",
+   "hash": "e0449e939a3ff528",
+   "does": "Backs a downloaded strap recording up through onUnrecoveredDataRescued and returns whether the backup is on disk; false when the backup failed or no callback is set, in which case the strap still holds the only copy and the caller must not clear it.",
+   "entry": null,
+   "calls": [
+    "closure:onUnrecoveredDataRescued — RRCollector.backUpRescuedRecording (RRCollector+Lifecycle.swift) writes a RawRRBackup and returns its outcome"
+   ],
+   "reads": [
+    "mem:PolarManager.onUnrecoveredDataRescued"
+   ],
+   "writes": [
+    "file:RawRRBackup (via closure)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "onUnrecoveredDataRescued nil",
+     "effect": "returns false"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.recording": "9849dc873bceeb0d"
    }
   },
   {

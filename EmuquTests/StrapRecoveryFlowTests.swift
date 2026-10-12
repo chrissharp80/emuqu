@@ -107,7 +107,7 @@ final class StrapRecoveryFlowTests: XCTestCase {
 
     /// The strap keeps a downloaded recording as a backup; it is neither
     /// offered on the Record screen nor recovered a second time.
-    func testADownloadedRecordingIsNotOfferedOrRecoveredAgain() async {
+    func testADownloadedRecordingIsNotOfferedOrRecoveredAgain() async throws {
         let radio = FakeStrapRadio()
         let collector = makeCollector(radio)
         let start = Date().addingTimeInterval(-3600)
@@ -116,6 +116,11 @@ final class StrapRecoveryFlowTests: XCTestCase {
         XCTAssertTrue(collector.hasUnrecoveredData, "never downloaded: the user's missing data")
 
         collector.polarManager.downloadLedger.markDownloaded(recordingStartedAt: start)
+        XCTAssertTrue(
+            collector.hasUnrecoveredData,
+            "downloaded but stored nowhere on the device: still the user's missing data"
+        )
+        _ = try archive.archive(completeNight(startingAt: start), skipSameNightMerge: true)
 
         XCTAssertFalse(collector.hasUnrecoveredData)
         XCTAssertFalse(collector.offersStrapRecovery)
@@ -228,9 +233,8 @@ final class StrapRecoveryFlowTests: XCTestCase {
 
     // MARK: - Helpers
 
-    private func completeNight() -> HRVSession {
+    private func completeNight(startingAt start: Date = Date().addingTimeInterval(-9 * 3600)) -> HRVSession {
         let id = UUID()
-        let start = Date().addingTimeInterval(-9 * 3600)
         let points = (0 ..< 200).map { RRPoint(t_ms: Int64($0) * 1000, rr_ms: $0 % 2 == 0 ? 990 : 1010) }
         return HRVSession(
             id: id, startDate: start, endDate: start.addingTimeInterval(7 * 3600), state: .complete,

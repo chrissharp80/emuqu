@@ -176,14 +176,14 @@
   },
   {
    "key": "func RRCollector.setupDataRescueCallback()",
-   "hash": "b16ddaca48a3eb66",
-   "does": "Installs PolarManager callbacks: onUnrecoveredDataRescued → backUpRescuedRecording, and savedRecordingCheck → isStrapRecordingSaved (false when the collector is gone).",
+   "hash": "ba1d69c3217a7717",
+   "does": "Installs PolarManager callbacks: onUnrecoveredDataRescued → backUpRescuedRecording, returning its outcome (false when the collector is gone, so the strap is not cleared), and savedRecordingCheck → isStrapRecordingSaved (false when the collector is gone).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.backUpRescuedRecording(_:)",
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.isStrapRecordingSaved(startedAt:)",
-    "closure:PolarManager.onUnrecoveredDataRescued invoked by PolarManager+Recording.swift:57/125/169 and BackupRecovery.swift:390",
-    "closure:PolarManager.savedRecordingCheck invoked by PolarManager.swift:159"
+    "closure:PolarManager.onUnrecoveredDataRescued invoked by PolarManager.rescueToBackup",
+    "closure:PolarManager.savedRecordingCheck invoked by PolarManager.isRecordingSaved"
    ],
    "reads": [],
    "writes": [
@@ -192,21 +192,26 @@
    ],
    "branches": [
     {
-     "at": "+5",
+     "at": "+1",
+     "cond": "collector released",
+     "effect": "onUnrecoveredDataRescued returns false"
+    },
+    {
+     "at": "+4",
      "cond": "collector released",
      "effect": "savedRecordingCheck returns false"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.backUpRescuedRecording(_:)": "b056f597ed86dd59",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.isStrapRecordingSaved(startedAt:)": "b928802bf3a2b84b"
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.backUpRescuedRecording(_:)": "3a49c680749f517f",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.isStrapRecordingSaved(startedAt:)": "6165547a24f48e70"
    }
   },
   {
    "key": "func RRCollector.backUpRescuedRecording(_:)",
-   "hash": "99ad20178d7ce99d",
-   "does": "Backs up a rescued strap recording to RawRRBackup under a fresh UUID, dated by the recording's own start when it is not in the future. A failed backup is logged and shown to the user through lastError, since the strap no longer holds what was downloaded.",
+   "hash": "2dfe9f539698ea45",
+   "does": "Backs up a rescued strap recording to RawRRBackup under a fresh UUID, dated by the recording's own start when it is not in the future, and returns true when the backup is written. A failed backup is logged, shown to the user through lastError, and returns false so the strap's start sequence keeps the strap's copy instead of clearing it.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.backup(points:sessionId:deviceId:captureDate:)"
@@ -225,9 +230,9 @@
      "effect": "captureDate nil (backup dates it itself)"
     },
     {
-     "at": "+9",
+     "at": "+10",
      "cond": "backup throws",
-     "effect": "logs error and sets lastError"
+     "effect": "logs error, sets lastError, returns false; otherwise returns true"
     }
    ],
    "flags": [],

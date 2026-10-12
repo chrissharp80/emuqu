@@ -238,7 +238,7 @@ to. `Tools/copy_linter` now blocks the verdict language from returning.
 
 ### Respiration Rate Estimation
 
-Spectral only: resample RR to 4Hz, FFT, peak in HF band → breaths/min. Needs ≥ 60 RR intervals. Sanity check: 6-40 breaths/min.
+Spectral only: resample RR to 4Hz, FFT, peak in HF band → breaths/min. Needs ≥ 60 RR intervals. The peak must be breathing, not noise or leakage: at least 40% of the band's power within ±0.02 Hz of it, and at least 5% of the strongest peak above 0.04 Hz; otherwise no rate is reported. Sanity check: 6-40 breaths/min.
 
 ### Diagnostic Scoring
 

@@ -71,7 +71,8 @@ enum RespirationAnalyzer {
     }
 
     /// Peak in the respiratory band (0.15-0.5 Hz = 9-30 breaths/min). Nil
-    /// when the band carries no power.
+    /// when the band carries no power, or when its largest bin is not a
+    /// breathing peak (`isBreathingPeak`).
     private static func respiratoryPeakFrequency(psd: [Double], fs: Double, fftN: Int) -> Double? {
         let halfN = fftN / 2
         let freqRes = fs / Double(fftN)
@@ -88,8 +89,34 @@ enum RespirationAnalyzer {
             peakBin = k
         }
         // A flat band (no power anywhere) has no breathing in it.
-        guard peakPower > 0 else { return nil }
+        guard peakPower > 0, isBreathingPeak(psd: psd, peakBin: peakBin, band: minBin ... maxBin, freqRes: freqRes) else { return nil }
         return Double(peakBin) * freqRes
+    }
+
+    /// Half-width of the peak, and the share of the band's power it must hold.
+    static let peakHalfWidthHz = 0.02
+    static let peakConcentrationMinimum = 0.4
+    /// How tall the band's peak must be against the strongest peak above
+    /// 0.04 Hz.
+    static let peakHeightMinimum = 0.05
+
+    /// Whether the band's largest bin is breathing rather than noise or
+    /// leakage. The largest bin of any spectrum has some power, so it alone
+    /// gave a plausible rate for white noise (about 13 breaths/min) and for a
+    /// 3 breaths/min modulation (8.9, the band's edge, at a millionth of the
+    /// slow peak's power). Breathing concentrates the band's power near one
+    /// frequency (at least 40 % within ±0.02 Hz) and is not dwarfed by a
+    /// slower rhythm (at least 5 % of the strongest peak above 0.04 Hz). On
+    /// synthetic five-minute windows this keeps 95-100 % of breathing,
+    /// including a rate wandering ±0.04 Hz with beat noise, and passes 0-3 %
+    /// of white or 1/f noise.
+    private static func isBreathingPeak(psd: [Double], peakBin: Int, band: ClosedRange<Int>, freqRes: Double) -> Bool {
+        let halfWidth = max(1, Int((peakHalfWidthHz / freqRes).rounded()))
+        let near = max(band.lowerBound, peakBin - halfWidth) ... min(band.upperBound, peakBin + halfWidth)
+        let bandPower = psd[band].reduce(0, +)
+        let nearPower = psd[near].reduce(0, +)
+        let strongest = psd[min(Int(0.04 / freqRes), band.lowerBound) ... band.upperBound].max() ?? 0
+        return nearPower >= peakConcentrationMinimum * bandPower && psd[peakBin] >= peakHeightMinimum * strongest
     }
 
     // MARK: - Helpers

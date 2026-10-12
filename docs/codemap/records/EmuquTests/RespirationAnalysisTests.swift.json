@@ -22,7 +22,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)": "e69392b38c207528"
+    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)": "d62b0c57d72bf9ad"
    }
   },
   {
@@ -48,7 +48,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)": "e69392b38c207528"
+    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)": "d62b0c57d72bf9ad"
    }
   },
   {
@@ -70,7 +70,7 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)": "e69392b38c207528"
+    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)": "d62b0c57d72bf9ad"
    }
   },
   {
@@ -92,60 +92,54 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)": "e69392b38c207528"
+    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)": "d62b0c57d72bf9ad"
    }
   },
   {
    "key": "func RespirationAnalysisTests.testRejectsImplausiblyLowRate()",
-   "hash": "d8e0f4541f1b288c",
-   "does": "Feeds 300 RR values with 0.05 Hz modulation and asserts that if a rate is returned it is >= 6 br/min.",
+   "hash": "9be4f394a8f2d99d",
+   "does": "Feeds 300 RR values with a 0.05 Hz (3 breaths/min) modulation and asserts no rate is returned: the band's largest bin is leakage from the slow rhythm (8.9 at the band's edge, a millionth of its power), which the breathing-peak test rejects.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)"
    ],
    "reads": [],
    "writes": [],
-   "branches": [
-    {
-     "at": "+6",
-     "cond": "for each of 300 samples",
-     "effect": "appends one modulated RR value"
-    },
-    {
-     "at": "+16",
-     "cond": "result non-nil",
-     "effect": "asserts rate >= 6; nil passes with no assertion"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Assertion cannot fail: respiratoryPeakFrequency only searches 0.15-0.5 Hz (9-30 br/min) and a final guard rejects <6, so any returned rate is >=9; a nil result also passes. The test does not pin that slow modulation is rejected.",
-     "evidence": [
-      "EmuquTests/RespirationAnalysisTests.swift:89",
-      "Emuqu/Sources/Analysis/RespirationAnalysis.swift:73",
-      "Emuqu/Sources/Analysis/RespirationAnalysis.swift:26"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "test-defect",
-     "sev": "med",
-     "text": "The test is named 'RejectsImplausiblyLowRate' but the estimator does not reject it: a line-by-line Python replica of estimateRespirationRate (resample at 4 Hz, Hann DENORM, DFT, band 0.15-0.5 Hz) on this exact input returns 8.906 br/min (the band's lowest bin, Int(0.15/freqRes)=19 at freqRes 4/512), so a 3 br/min modulation is reported as a plausible ~9 br/min respiration rate and the test passes. There is no in-band power-ratio check (RespirationAnalysis.swift:76-87), so leakage from any out-of-band signal yields a band-edge rate.",
-     "evidence": [
-      "EmuquTests/RespirationAnalysisTests.swift:86",
-      "EmuquTests/RespirationAnalysisTests.swift:89",
-      "Emuqu/Sources/Analysis/RespirationAnalysis.swift:73",
-      "Emuqu/Sources/Analysis/RespirationAnalysis.swift:81",
-      "Emuqu/Sources/Analysis/RespirationAnalysis.swift:86"
-     ],
-     "found": "second read"
-    }
-   ],
+   "branches": [],
+   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)": "e69392b38c207528"
+    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)": "d62b0c57d72bf9ad"
    }
+  },
+  {
+   "key": "func RespirationAnalysisTests.testNoiseWithoutBreathingReturnsNil()",
+   "hash": "0b55b3fd2f4a497d",
+   "does": "Builds 360 RR values of approximately normal beat noise (sum of 12 uniforms from a fixed-seed linear congruential generator, ±40 ms around 950 ms) with no breathing in it, and asserts estimateRespirationRate returns nil.",
+   "entry": "XCTest",
+   "calls": [
+    "EmuquTests/RespirationAnalysisTests.swift::func RespirationAnalysisTests.uniform()",
+    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)": "d62b0c57d72bf9ad",
+    "EmuquTests/RespirationAnalysisTests.swift::func RespirationAnalysisTests.uniform()": "49ebead58da6e526"
+   }
+  },
+  {
+   "key": "func RespirationAnalysisTests.uniform()",
+   "hash": "c3377dfc85492782",
+   "does": "Nested in testNoiseWithoutBreathingReturnsNil: advances the seeded LCG (state = (1103515245·state + 12345) mod 2^31) and returns state / 2^31 in [0, 1).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
   },
   {
    "key": "func RespirationAnalysisTests.testRejectsImplausiblyHighRate()",
@@ -194,7 +188,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)": "e69392b38c207528"
+    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)": "d62b0c57d72bf9ad"
    }
   },
   {
@@ -210,7 +204,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)": "e69392b38c207528"
+    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)": "d62b0c57d72bf9ad"
    }
   },
   {
@@ -237,7 +231,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)": "e69392b38c207528"
+    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)": "d62b0c57d72bf9ad"
    }
   }
  ],

@@ -82,7 +82,7 @@ final class StrapNightTests: XCTestCase {
         radio.addExercise(entryId: exerciseId(lastNight), date: lastNight, rrMs: Array(repeating: 900, count: 500))
         let manager = linkedManager(radio)
         var rescued: [RRPoint] = []
-        manager.onUnrecoveredDataRescued = { rescued = $0.points }
+        manager.onUnrecoveredDataRescued = { rescued = $0.points; return true }
 
         try await manager.recording.startFreshRecording()
 

@@ -18,16 +18,16 @@
  "units": [
   {
    "key": "func RawRRBackup.appendBackup(points:sessionId:deviceId:)",
-   "hash": "7ff32e43fef98411",
-   "does": "Merges an index the launch could not read (throws while it is still unreadable), then appends points beyond the index's backedUpCount to the session's JSONL file — starting the append format first when there is no entry or a one-shot entry, refusing (wouldReplaceLargerBackup) when that one-shot holds more beats — then updates and saves the index.",
+   "hash": "6c3746ff4cfb8b7e",
+   "does": "Merges an index the launch could not read (throws while it is still unreadable), then appends points beyond the index's backedUpCount to the session's JSONL file — starting the append format first (startAppendFormatIfNew) when there is no entry or a one-shot entry, refusing (wouldReplaceLargerBackup) when that one-shot holds more beats — then updates and saves the index, and only after that removes the replaced one-shot file. Until then the index still names the one-shot backup, which stays readable, so a failed write or a crash during the switch leaves it intact.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.mergeIndexIfLaunchReadFailed()",
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.refuseReplacingLargerBackup(_:newCount:)",
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.startAppendFormat(sessionId:deviceId:existingEntry:)",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.startAppendFormatIfNew(_:sessionId:deviceId:newCount:)",
     "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.encodedLines(_:)",
     "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.writeAppendData(_:to:sessionId:count:)",
     "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.updateAppendIndex(sessionId:existingEntry:beatCount:)",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.removeReplacedLegacyFile(_:)",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.pointsURL(for:)"
    ],
    "reads": [
@@ -39,7 +39,8 @@
     "file:<backupDir>/<uuid>_header.json",
     "file:<backupDir>/<uuid>_points.jsonl",
     "mem:RawRRBackup.index",
-    "file:<AppGroup>/<AppConfig.backupDirectoryName>/backup_index.json (RawRRBackup.indexFile)"
+    "file:<AppGroup>/<AppConfig.backupDirectoryName>/backup_index.json (RawRRBackup.indexFile)",
+    "file:<backupDir>/<legacy one-shot>.json (deleted after the switch completes)"
    ],
    "branches": [
     {
@@ -58,20 +59,82 @@
      "effect": "continue; else return (nothing new)"
     },
     {
-     "at": "+10",
+     "at": "+9",
      "cond": "no entry or one-shot entry",
-     "effect": "refuse if the one-shot holds more beats; else startAppendFormat (header keeps the one-shot's captureDate, deletes the one-shot file, empties the points file)"
+     "effect": "startAppendFormatIfNew refuses if the one-shot holds more beats, else writes the header and an empty points file; returns whether it switched"
+    },
+    {
+     "at": "+13",
+     "cond": "switched from a one-shot backup with a file name",
+     "effect": "removes that file, after the points and the index are written"
     }
    ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.encodedLines(_:)": "bb5a9b0d5522b4ca",
     "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.mergeIndexIfLaunchReadFailed()": "98852a12826d5099",
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.refuseReplacingLargerBackup(_:newCount:)": "8b726bd8e45073c9",
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.startAppendFormat(sessionId:deviceId:existingEntry:)": "6283ed906898efe4",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.removeReplacedLegacyFile(_:)": "59289da7acddfdd3",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.startAppendFormatIfNew(_:sessionId:deviceId:newCount:)": "94250a7ae5ab1120",
     "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.updateAppendIndex(sessionId:existingEntry:beatCount:)": "b70e54d39d282e0a",
     "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.writeAppendData(_:to:sessionId:count:)": "0735881aed25fb8b",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.pointsURL(for:)": "c513933badbf2627"
+   }
+  },
+  {
+   "key": "func RawRRBackup.removeReplacedLegacyFile(_:)",
+   "hash": "833496cfe533d3c2",
+   "does": "Removes the one-shot backup file a completed format switch replaced; a failed removal is logged and leaves a file the index no longer names.",
+   "entry": null,
+   "calls": [
+    "ext:FileManager.removeItem",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<backupDir>/<legacy one-shot>.json (deleted)"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "removal throws",
+     "effect": "log and continue"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func RawRRBackup.startAppendFormatIfNew(_:sessionId:deviceId:newCount:)",
+   "hash": "f06834654b316a25",
+   "does": "For a session with no index entry or a one-shot entry: refuses (refuseReplacingLargerBackup) when the one-shot holds more beats than newCount, else starts the append format (startAppendFormat) and returns true. Returns false for a session already in the append format.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.refuseReplacingLargerBackup(_:newCount:)",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.startAppendFormat(sessionId:deviceId:existingEntry:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<backupDir>/<uuid>_header.json",
+    "file:<backupDir>/<uuid>_points.jsonl"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "an append-format entry already exists",
+     "effect": "return false"
+    },
+    {
+     "at": "+4",
+     "cond": "one-shot holds more beats than newCount",
+     "effect": "throws wouldReplaceLargerBackup"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.refuseReplacingLargerBackup(_:newCount:)": "8b726bd8e45073c9",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.startAppendFormat(sessionId:deviceId:existingEntry:)": "175101fe5149ae3a"
    }
   },
   {
@@ -94,40 +157,31 @@
   },
   {
    "key": "func RawRRBackup.startAppendFormat(sessionId:deviceId:existingEntry:)",
-   "hash": "2026564f23fdd30b",
-   "does": "Writes a new header (captureDate = the replaced entry's captureDate, else now) with completeUntilFirstUserAuthentication, deletes the legacy one-shot file named in the existing entry (logging failure), and writes an empty points file.",
+   "hash": "a69377ca5d6c6603",
+   "does": "Writes a new header (captureDate = the replaced entry's captureDate, else now) and an empty points file, both with completeUntilFirstUserAuthentication. A one-shot backup being replaced is left on disk; appendBackup removes it once the new copy is written and indexed.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.headerURL(for:)",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.pointsURL(for:)",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
-    "ext:Data.write",
-    "ext:FileManager.removeItem"
+    "ext:Data.write"
    ],
    "reads": [],
    "writes": [
     "file:<backupDir>/<uuid>_header.json",
-    "file:<backupDir>/<uuid>_points.jsonl",
-    "file:<backupDir>/<legacy one-shot>.json (deleted)"
+    "file:<backupDir>/<uuid>_points.jsonl"
    ],
    "branches": [
     {
-     "at": "+8",
-     "cond": "existing entry has a legacy fileName",
-     "effect": "remove that file"
-    },
-    {
-     "at": "+11",
-     "cond": "removal failed",
-     "effect": "log and continue"
+     "at": "+3",
+     "cond": "existing entry has a captureDate",
+     "effect": "header keeps it; else now"
     }
    ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.headerURL(for:)": "bdca1b0234aa53b6",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.pointsURL(for:)": "c513933badbf2627",
-    "Emuqu/Sources/Storage/RawRRBackup.swift::let RawRRBackup.lineEncoder": "609e08be12f3fdee",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Storage/RawRRBackup.swift::let RawRRBackup.lineEncoder": "609e08be12f3fdee"
    }
   },
   {

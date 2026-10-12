@@ -851,8 +851,8 @@
   },
   {
    "key": "§ Emuqu — API Reference > Analysis Pipeline > RespirationAnalyzer",
-   "hash": "8e8a35728a504ef3",
-   "does": "RespirationAnalyzer.estimateRespirationRate(rr, fs = 4.0): spectral HF peak, requires >= 60 RR intervals, sanity window 6-40 breaths/min. Confirmed RespirationAnalysis.swift:16-26.",
+   "hash": "525c33b988bbe2a9",
+   "does": "Documents RespirationAnalyzer.estimateRespirationRate(_:fs:) (default fs 4.0): needs ≥ 60 RR intervals and an HF peak that is breathing rather than noise or leakage (isBreathingPeak), nil otherwise; 6-40 breaths/min sanity check. Matches the code.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)"
@@ -862,7 +862,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)": "e69392b38c207528"
+    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)": "d62b0c57d72bf9ad"
    }
   },
   {
@@ -2498,7 +2498,7 @@
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)",
     "Emuqu/Sources/Storage/Archive+Batch.swift::func ArchiveStore.postBatchChangeNotifications(_:)",
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.delete(_:)",
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweepAndForget(archive:rawBackup:errors:)",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweepAndForget(archive:rawBackup:scope:errors:)",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.handleDeletedRecord(sessionId:sessionIdString:)",
     "Emuqu/Sources/Collection/ArchiveSignal.swift::init ArchiveSignal(center:)",
     "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()",
@@ -2548,9 +2548,9 @@
     "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()": "47c71a985b0f7b54",
     "Emuqu/Sources/Collection/ArchiveSignal.swift::init ArchiveSignal(center:)": "649db20a5b80e648",
     "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.discardRecoveredWorkout(sessionId:)": "365032770c0eab2f",
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweepAndForget(archive:rawBackup:errors:)": "952f885d4a2fa916",
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.delete(_:)": "662868c15ff59756",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweepAndForget(archive:rawBackup:scope:errors:)": "f6cb542882007bd3",
     "Emuqu/Sources/Storage/Archive+Batch.swift::func ArchiveStore.postBatchChangeNotifications(_:)": "428ba17a9ce82508",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.delete(_:)": "662868c15ff59756",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)": "e1a5ccaab9fa4e3e",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "e021c7f17b266931",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.handleDeletedRecord(sessionId:sessionIdString:)": "85b88c3036c3ea51",
