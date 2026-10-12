@@ -21,14 +21,36 @@ extension RawRRBackup {
         // Nothing new to write
         guard points.count > previousCount else { return }
         let pointsPath = pointsURL(for: sessionId)
-        // First backup for this session: write header and clean up any legacy file
-        if existingEntry == nil || existingEntry?.backedUpCount == nil {
-            try refuseReplacingLargerBackup(existingEntry, newCount: points.count)
-            try startAppendFormat(sessionId: sessionId, deviceId: deviceId, existingEntry: existingEntry)
-        }
+        let switchesFormat = try startAppendFormatIfNew(existingEntry, sessionId: sessionId, deviceId: deviceId, newCount: points.count)
         let newPoints = points[previousCount...]
         try writeAppendData(try encodedLines(newPoints), to: pointsPath, sessionId: sessionId, count: newPoints.count)
         try updateAppendIndex(sessionId: sessionId, existingEntry: existingEntry, beatCount: points.count)
+        if switchesFormat, let legacyName = existingEntry?.fileName { removeReplacedLegacyFile(legacyName) }
+    }
+
+    /// The one-shot backup a format switch replaced, removed once the
+    /// streaming copy and its index row are written. A failed removal leaves
+    /// a file the index no longer names, which costs space and nothing else.
+    private func removeReplacedLegacyFile(_ legacyName: String) {
+        do {
+            try fileManager.removeItem(at: backupDirectory.appendingPathComponent(legacyName))
+        } catch {
+            debugLog("[RawRRBackup] ⚠️ Failed to remove legacy file during format switch: \(error)")
+        }
+    }
+
+    /// First backup for this session, or the first since a one-shot backup:
+    /// write the header and start the points file, and return true. A
+    /// one-shot backup it replaces stays on disk, and in the index, until the
+    /// new file holds every point and the index names it (`appendBackup`):
+    /// deleted first, a failed write or a crash in between left neither copy.
+    private func startAppendFormatIfNew(
+        _ existingEntry: BackupIndex?, sessionId: UUID, deviceId: String?, newCount: Int
+    ) throws -> Bool {
+        guard existingEntry == nil || existingEntry?.backedUpCount == nil else { return false }
+        try refuseReplacingLargerBackup(existingEntry, newCount: newCount)
+        try startAppendFormat(sessionId: sessionId, deviceId: deviceId, existingEntry: existingEntry)
+        return true
     }
 
     /// Throws when the one-shot backup a format switch would replace holds
@@ -38,8 +60,9 @@ extension RawRRBackup {
         throw BackupError.wouldReplaceLargerBackup(existing: existing.beatCount, new: newCount)
     }
 
-    /// Write the session header and start a fresh points file, removing a
-    /// legacy single-file backup if we're switching formats.
+    /// Write the session header and start a fresh points file. A legacy
+    /// single-file backup being replaced is left in place; `appendBackup`
+    /// removes it once the new copy is written and indexed.
     ///
     /// Explicit `.completeFileProtectionUntilFirstUserAuthentication`
     /// on both writes. Without this option `Data.write(to:)` falls back to
@@ -59,13 +82,6 @@ extension RawRRBackup {
             to: headerURL(for: sessionId),
             options: [.completeFileProtectionUntilFirstUserAuthentication]
         )
-        if let legacyName = existingEntry?.fileName {
-            do {
-                try fileManager.removeItem(at: backupDirectory.appendingPathComponent(legacyName))
-            } catch {
-                debugLog("[RawRRBackup] ⚠️ Failed to remove legacy file during format switch: \(error)")
-            }
-        }
         // Start fresh points file (overwrite if corrupt leftover exists)
         try Data().write(to: pointsURL(for: sessionId), options: [.completeFileProtectionUntilFirstUserAuthentication])
     }

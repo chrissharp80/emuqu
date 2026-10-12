@@ -64,7 +64,10 @@ extension StrapRecordingCoordinator {
         beginTransfer()
         guard manager.connectedDeviceType == .veritySense else {
             let stale = try await fetchRecording(recordedSince: nil, budget: .attended)
-            if !stale.points.isEmpty { manager.onUnrecoveredDataRescued?(stale) }
+            guard stale.points.isEmpty || manager.rescueToBackup(stale) else {
+                debugLogExternal("Couldn't save the recording the strap was running. Its new recording was not started, which would have deleted it.", cause: .strap)
+                throw PolarManager.PolarError.strapHoldsUndownloadedRecording
+            }
             return
         }
         guard let api = manager.strapAPI, let deviceId = manager.connectedDeviceId else { throw PolarManager.PolarError.notConnected }
@@ -157,7 +160,10 @@ extension StrapRecordingCoordinator {
                 let existing = try await fetchUnsavedOfflinePpiRecordings()
                 guard !existing.points.isEmpty else { return true }
                 debugLog("[PolarManager] Found \(existing.points.count) unrecovered PPI points on \(deviceLabel) — rescuing before clear")
-                manager.onUnrecoveredDataRescued?(existing)
+                guard manager.rescueToBackup(existing) else {
+                    debugLog("[PolarManager] Warning: the rescue backup failed — leaving the recordings on the strap")
+                    return false
+                }
                 return true
             } catch PolarManager.PolarError.noRecordingFound {
                 // swallow-ok: "no existing data on the strap" is the ordinary case, not a
@@ -201,11 +207,15 @@ extension StrapRecordingCoordinator {
             for entryId in try await unsavedExerciseIds(api: api, deviceId: deviceId) {
                 debugLog("[PolarManager] Stored exercise \(entryId) was never downloaded — rescuing it before the clear")
                 beginTransfer()
+                let rescued: StrapRecording
                 do {
-                    let rescued = try await fetchRecording(exerciseId: entryId, budget: .attended)
-                    manager.onUnrecoveredDataRescued?(rescued)
+                    rescued = try await fetchRecording(exerciseId: entryId, budget: .attended)
                 } catch {
                     debugLogExternal("Couldn't download a recording the strap holds — \(error). Its own recording was not started, which would have deleted it.", cause: .strap)
+                    throw PolarManager.PolarError.strapHoldsUndownloadedRecording
+                }
+                guard manager.rescueToBackup(rescued) else {
+                    debugLogExternal("Couldn't save a recording the strap holds. Its own recording was not started, which would have deleted it.", cause: .strap)
                     throw PolarManager.PolarError.strapHoldsUndownloadedRecording
                 }
             }

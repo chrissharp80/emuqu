@@ -174,12 +174,12 @@
    "deps": {}
   },
   {
-   "key": "func StrapRecordingPolicy.holdsUnrecoveredRecording(hasStoredRecording:storedRecordingStart:alreadyDownloaded:predatesDownloadRecord:archiveHasSessionNearStart:)",
-   "hash": "3154f42e600d697b",
-   "does": "Whether the strap holds a dated recording the app has not saved: false without a stored recording or start date, else !recordingIsSaved(...).",
+   "key": "func StrapRecordingPolicy.holdsUnrecoveredRecording(hasStoredRecording:storedRecordingStart:alreadyDownloaded:predatesDownloadRecord:heldOnDisk:)",
+   "hash": "3283eb5fabc9966e",
+   "does": "Whether the strap holds a dated recording the app has not saved: false without a stored recording or start date, else !recordingIsSaved(alreadyDownloaded, predatesDownloadRecord, heldOnDisk).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.recordingIsSaved(alreadyDownloaded:predatesDownloadRecord:archiveHasSessionNearStart:)"
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.recordingIsSaved(alreadyDownloaded:predatesDownloadRecord:heldOnDisk:)"
    ],
    "reads": [],
    "writes": [],
@@ -204,13 +204,13 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.recordingIsSaved(alreadyDownloaded:predatesDownloadRecord:archiveHasSessionNearStart:)": "04da97b766e0278d"
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.recordingIsSaved(alreadyDownloaded:predatesDownloadRecord:heldOnDisk:)": "f4347e3e082c9ca1"
    }
   },
   {
-   "key": "func StrapRecordingPolicy.recordingIsSaved(alreadyDownloaded:predatesDownloadRecord:archiveHasSessionNearStart:)",
-   "hash": "3ebba2d2d5deb108",
-   "does": "A strap recording is saved if it was downloaded, or it predates the download ledger and the archive has a session near its start.",
+   "key": "func StrapRecordingPolicy.recordingIsSaved(alreadyDownloaded:predatesDownloadRecord:heldOnDisk:)",
+   "hash": "d2d96448f9532266",
+   "does": "A strap recording is saved — and may be cleared from the strap — only when it was downloaded or predates the download ledger AND it is on this device (heldOnDisk: an archived session or a rescue backup near its start). A download alone no longer counts: the ledger is written when the beats arrive, before anything stores them, so a failed backup or an app killed before the night was saved left a recording marked downloaded that only the strap held.",
    "entry": null,
    "calls": [],
    "reads": [],

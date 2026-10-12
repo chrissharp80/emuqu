@@ -731,7 +731,7 @@
    "deps": {
     "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()": "47c71a985b0f7b54",
     "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.beginTransfer()": "bfa6d138e9e66b85",
-    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.pullStrapRecording(for:)": "86f3cdac7293d811",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.pullStrapRecording(for:)": "c707e0f69c8f9637",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
     "Emuqu/Sources/Collection/SessionRecoveryMath.swift::func SessionRecoveryMath.mergedWorkoutPoints(existing:strapRR:sessionId:sessionStart:)": "a1112e92280ca01d",
     "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.recover(sessionId:reason:archive:rawBackup:cloudSyncManager:savedRouteStore:settingsManager:unitsPreference:strapRRPoints:overrideRRPoints:discardBackupsOnAccept:overrideTrack:autoTrimOverride:overrideDistanceMeters:)": "3c7b3b81903b91c0",
@@ -796,7 +796,7 @@
     "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)": "aa75532f95478352",
     "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.overnightMergePoints(selection:existing:strapRR:)": "d41a02934fff47cc",
     "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.persistMergedOvernight(session:sessionId:mergedPoints:selection:existingCount:strapCount:)": "13c301325c7b3eb2",
-    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.pullStrapRecording(for:)": "86f3cdac7293d811",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.pullStrapRecording(for:)": "c707e0f69c8f9637",
     "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.reconnectStrapForAugment()": "c4eccdc369ee9cc9",
     "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.rescoreAugmentedOvernight(_:strapCount:streamedCount:)": "8359a9fff5f8f168",
     "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.dataSourceSummary(_:baseSession:totalBeats:)": "79391780177697bc",
@@ -895,15 +895,16 @@
   },
   {
    "key": "func SessionRecoveryCoordinator.pullStrapRecording(for:)",
-   "hash": "89289dc0cb469ee0",
-   "does": "Downloads the strap recording that belongs to an archived session (started during it), placed on the session's clock; refuses while a live session owns the strap; a downloaded recording dated outside the session (or undated) is handed to the rescue backup instead.",
+   "hash": "58a1d543f89cdc2f",
+   "does": "Downloads the strap recording that belongs to an archived session (started during it), placed on the session's clock; refuses while a live session owns the strap; a downloaded recording dated outside the session (or undated) is handed to the rescue backup (rescueToBackup) instead, and the log says whether that backup landed. A failed one leaves the strap's copy unsaved, so the next start rescues it rather than clearing it.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.recording(startedAt:belongsToSessionStartedAt:)",
     "Emuqu/Sources/Collection/RRCollector+Recovery.swift::var SessionRecoveryCoordinator.strapRecordingBelongsToLiveSession",
     "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.fetchRecordingIfAvailable(recordedSince:)",
-    "closure:PolarManager.onUnrecoveredDataRescued, set by RRCollector.setupDataRescueCallback → backUpRescuedRecording",
-    "Emuqu/Sources/Collection/StrapRecording.swift::func StrapRecording.points(onClockOf:fallbackStart:)"
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.rescueToBackup(_:)",
+    "Emuqu/Sources/Collection/StrapRecording.swift::func StrapRecording.points(onClockOf:fallbackStart:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [
     "mem:PolarManager.storedExerciseDate",
@@ -937,12 +938,13 @@
     {
      "at": "+13",
      "cond": "downloaded recording has a start date <= session end",
-     "effect": "returns its points on the session clock; otherwise (nil start or later start) rescues it via onUnrecoveredDataRescued and returns []"
+     "effect": "returns its points on the session clock; otherwise (nil start or later start) backs it up via rescueToBackup, logs the outcome and returns []"
     }
    ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.fetchRecordingIfAvailable(recordedSince:)": "dfd25ec011b46b1c",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.rescueToBackup(_:)": "bf3121af6384f56d",
     "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func InterruptedWorkoutAutoRecovery.end(_:)": "8f75d0f668a5ee7f",
     "Emuqu/Sources/Collection/RRCollector+Recovery.swift::var SessionRecoveryCoordinator.strapRecordingBelongsToLiveSession": "0f8299a4d2e9da82",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "80cfea9a213f0e16",

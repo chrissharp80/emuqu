@@ -513,6 +513,118 @@
    }
   },
   {
+   "key": "func CloudKitSessionFreshnessTests.testAnEditMadeWhileTheICloudCopyDownloadsIsKept()",
+   "hash": "a6452fc1d5607342",
+   "does": "Archives a session stamped an hour ago and builds an iCloud copy stamped 30 min ago (decided newer), then saves a local edit (notes, stamped now) as if made during the download: asserts replaceIfStillNewer returns nil and the archived notes are the local edit.",
+   "entry": "XCTest",
+   "calls": [
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeArchive()",
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.archivedSessionWithNewerICloudCopy(in:)",
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.decide(local:remote:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.replaceIfStillNewer(_:with:in:)",
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.removeDirectory(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "e021c7f17b266931",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.modifiedAt(of:)": "15e47dcf21fecd71",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.replaceIfStillNewer(_:with:in:)": "fb11f0d1ca6227d1",
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.archivedSessionWithNewerICloudCopy(in:)": "de5b03a0b28b00df",
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.decide(local:remote:)": "e4c994885cbedf31",
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeArchive()": "e58e8460e4aa5049",
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.removeDirectory(_:)": "8fef7a7f331259a2"
+   }
+  },
+  {
+   "key": "func CloudKitSessionFreshnessTests.testANewerICloudCopyWithNoEditHereReplacesTheLocalCopy()",
+   "hash": "96d7fc03292e1242",
+   "does": "With no local edit after the decision, asserts replaceIfStillNewer replaces the archived session and its notes become the iCloud copy's.",
+   "entry": "XCTest",
+   "calls": [
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeArchive()",
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.archivedSessionWithNewerICloudCopy(in:)",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.replaceIfStillNewer(_:with:in:)",
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.removeDirectory(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.replaceIfStillNewer(_:with:in:)": "fb11f0d1ca6227d1",
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.archivedSessionWithNewerICloudCopy(in:)": "de5b03a0b28b00df",
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeArchive()": "e58e8460e4aa5049",
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.removeDirectory(_:)": "8fef7a7f331259a2"
+   }
+  },
+  {
+   "key": "func CloudKitSessionFreshnessTests.archivedSessionWithNewerICloudCopy(in:)",
+   "hash": "447be99250c6fde9",
+   "does": "Test helper: archives a session with 200 beats stamped an hour ago and returns it with an iCloud copy whose notes are 'from iCloud', stamped 30 min ago — both in the past, so an edit made now is newer than either.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeSession()",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.stamp(at:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<temp archive>/<id>.json"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)": "e1a5ccaab9fa4e3e",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.modifiedAt(of:)": "15e47dcf21fecd71",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.stamp(at:)": "1e4a5922d1acfc50",
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeSession()": "af5933239f2e74a5"
+   }
+  },
+  {
+   "key": "func CloudKitSessionFreshnessTests.makeArchive()",
+   "hash": "71b3eeed9bcad293",
+   "does": "Test helper: a SessionArchive in a fresh temporary directory with a fixed sleep schedule, default merge mode and 4.5 h merge gap; returns it with the directory.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)": "312605e0908fbc30",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4"
+   }
+  },
+  {
+   "key": "func CloudKitSessionFreshnessTests.removeDirectory(_:)",
+   "hash": "90f011907f2e8e77",
+   "does": "Test helper: removes the temporary archive directory, ignoring a directory that is not there.",
+   "entry": null,
+   "calls": [
+    "ext:FileManager.removeItem"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<temp archive dir> (removed)"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "removal throws",
+     "effect": "ignored (swallow-ok)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
    "key": "func CloudKitSessionFreshnessTests.decide(local:remote:)",
    "hash": "f5ff19dff0ac37aa",
    "does": "Forwards to CloudKitSessionFreshness.decide(localModifiedAt:remoteModifiedAt:).",

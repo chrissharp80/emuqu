@@ -709,7 +709,7 @@
   {
    "key": "var RRCollector.hasUnrecoveredData",
    "hash": "72c0c52c27118175",
-   "does": "True when the strap reports a stored exercise with a known start that the app has not saved (ledger/archive check).",
+   "does": "True when the strap reports a stored exercise with a known start that the app has not saved (isStrapRecordingSaved: downloaded or predating the ledger, and held on this device by an archived session or a rescue backup near its start). A recording downloaded but stored nowhere — a failed rescue backup, or the app killed before the night was saved — counts as unrecovered, so the Recover card offers it.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.isStrapRecordingSaved(startedAt:)"
@@ -728,33 +728,42 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.isStrapRecordingSaved(startedAt:)": "b928802bf3a2b84b",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.isStrapRecordingSaved(startedAt:)": "6165547a24f48e70",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.hasStoredExercise": "dbd1bab5a9194403"
    }
   },
   {
    "key": "func RRCollector.isStrapRecordingSaved(startedAt:)",
-   "hash": "07ec208012d371e1",
-   "does": "Asks StrapRecordingPolicy.recordingIsSaved using the download ledger (downloaded / predates ledger) and whether the archive has a session within 30 min of the start.",
+   "hash": "8524402c3c2c6763",
+   "does": "Asks StrapRecordingPolicy.recordingIsSaved using the download ledger (downloaded / predates ledger) and whether the recording is on this device: the archive has a session within 30 min of its start, or RawRRBackup holds a backup captured within 30 min of it (a rescue backup is dated by the recording's start).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/StrapRecording.swift::func StrapDownloadLedger.wasDownloaded(recordingStartedAt:)",
     "Emuqu/Sources/Collection/StrapRecording.swift::func StrapDownloadLedger.predatesRecord(_:)",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.hasSessionNear(date:toleranceMinutes:)",
-    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.recordingIsSaved(alreadyDownloaded:predatesDownloadRecord:archiveHasSessionNearStart:)"
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.holdsBackup(capturedWithin:of:)",
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.recordingIsSaved(alreadyDownloaded:predatesDownloadRecord:heldOnDisk:)"
    ],
    "reads": [
     "mem:PolarManager.downloadLedger",
-    "archive:SessionArchive index (hasSessionNear)"
+    "archive:SessionArchive index (hasSessionNear)",
+    "mem:RawRRBackup.index"
    ],
    "writes": [],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "archive has a session within 30 min",
+     "effect": "heldOnDisk true without asking the backups"
+    }
+   ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/StrapRecording.swift::func StrapDownloadLedger.predatesRecord(_:)": "76e1c4f711e1e502",
     "Emuqu/Sources/Collection/StrapRecording.swift::func StrapDownloadLedger.wasDownloaded(recordingStartedAt:)": "88c9e19a84feca96",
-    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.recordingIsSaved(alreadyDownloaded:predatesDownloadRecord:archiveHasSessionNearStart:)": "04da97b766e0278d",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.hasSessionNear(date:toleranceMinutes:)": "c9fc650a41358dd0"
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.recordingIsSaved(alreadyDownloaded:predatesDownloadRecord:heldOnDisk:)": "f4347e3e082c9ca1",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.hasSessionNear(date:toleranceMinutes:)": "c9fc650a41358dd0",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.holdsBackup(capturedWithin:of:)": "2ce00db13d3f3b2d"
    }
   },
   {
@@ -774,7 +783,7 @@
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+Recovery.swift::var SessionRecoveryCoordinator.strapHoldsOrphanedRecording": "ef19a875cb340fce",
     "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery": "0720dc2c9968a3e7",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.hasUnrecoveredData": "bf812a1928139cbd"
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.hasUnrecoveredData": "861c00516a06461f"
    }
   },
   {
@@ -1593,7 +1602,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.bindToArchiveSignal(_:archive:)": "37a3d035a35511fb",
-    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.setupDataRescueCallback()": "becce29857b32a0b",
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.setupDataRescueCallback()": "ead07794a9c75007",
     "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.setupLifecycleObservers()": "3247a61d2380a692",
     "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.installCloudKitSnapshotBackfillListener()": "64df9cdfe44ecb5d",
     "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.installRescoreListener()": "1d259b690fd6da60",

@@ -513,74 +513,90 @@
   },
   {
    "key": "func StrapRecordingPolicyTests.testADownloadedRecordingIsNotOfferedAgain()",
-   "hash": "59ee2f7f04dae9cf",
-   "does": "Asserts a stored dated recording already downloaded is not unrecovered, and one never downloaded is.",
+   "hash": "dd53fadf7af83560",
+   "does": "Asserts a stored dated recording already downloaded and held on the device is not unrecovered, and one never downloaded is.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
-    "EmuquTests/StrapRecordingPolicyTests.swift::func StrapRecordingPolicyTests.unrecovered(downloaded:predates:archived:)",
-    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.holdsUnrecoveredRecording(hasStoredRecording:storedRecordingStart:alreadyDownloaded:predatesDownloadRecord:archiveHasSessionNearStart:)",
-    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.recordingIsSaved(alreadyDownloaded:predatesDownloadRecord:archiveHasSessionNearStart:)"
+    "EmuquTests/StrapRecordingPolicyTests.swift::func StrapRecordingPolicyTests.unrecovered(downloaded:predates:held:)",
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.holdsUnrecoveredRecording(hasStoredRecording:storedRecordingStart:alreadyDownloaded:predatesDownloadRecord:heldOnDisk:)",
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.recordingIsSaved(alreadyDownloaded:predatesDownloadRecord:heldOnDisk:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.holdsUnrecoveredRecording(hasStoredRecording:storedRecordingStart:alreadyDownloaded:predatesDownloadRecord:archiveHasSessionNearStart:)": "6e9dcc448daadbab",
-    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.recordingIsSaved(alreadyDownloaded:predatesDownloadRecord:archiveHasSessionNearStart:)": "04da97b766e0278d",
-    "EmuquTests/StrapRecordingPolicyTests.swift::func StrapRecordingPolicyTests.unrecovered(downloaded:predates:archived:)": "ebd99838bcbc25e7"
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.holdsUnrecoveredRecording(hasStoredRecording:storedRecordingStart:alreadyDownloaded:predatesDownloadRecord:heldOnDisk:)": "b3989eb985d9673f",
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.recordingIsSaved(alreadyDownloaded:predatesDownloadRecord:heldOnDisk:)": "f4347e3e082c9ca1",
+    "EmuquTests/StrapRecordingPolicyTests.swift::func StrapRecordingPolicyTests.unrecovered(downloaded:predates:held:)": "959a27903a29f04d"
+   }
+  },
+  {
+   "key": "func StrapRecordingPolicyTests.testADownloadedRecordingNothingStoredIsStillOffered()",
+   "hash": "dd0cfd507b6af516",
+   "does": "Asserts a stored dated recording marked downloaded but held nowhere on the device (failed rescue backup, app killed before the night was saved) is still unrecovered.",
+   "entry": "XCTest",
+   "calls": [
+    "EmuquTests/StrapRecordingPolicyTests.swift::func StrapRecordingPolicyTests.unrecovered(downloaded:predates:held:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/StrapRecordingPolicyTests.swift::func StrapRecordingPolicyTests.unrecovered(downloaded:predates:held:)": "959a27903a29f04d"
    }
   },
   {
    "key": "func StrapRecordingPolicyTests.testARecordingOlderThanTheRecordFallsBackToTheArchive()",
-   "hash": "62a0f26437df99e9",
-   "does": "Asserts a pre-record recording is not offered when the archive has a session near its start, and is offered when it does not.",
+   "hash": "b59722af398ba4c6",
+   "does": "Asserts a pre-record recording is not offered when it is held on the device (an archived session or a rescue backup near its start), and is offered when it is not.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
-    "EmuquTests/StrapRecordingPolicyTests.swift::func StrapRecordingPolicyTests.unrecovered(downloaded:predates:archived:)",
-    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.holdsUnrecoveredRecording(hasStoredRecording:storedRecordingStart:alreadyDownloaded:predatesDownloadRecord:archiveHasSessionNearStart:)",
-    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.recordingIsSaved(alreadyDownloaded:predatesDownloadRecord:archiveHasSessionNearStart:)"
+    "EmuquTests/StrapRecordingPolicyTests.swift::func StrapRecordingPolicyTests.unrecovered(downloaded:predates:held:)",
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.holdsUnrecoveredRecording(hasStoredRecording:storedRecordingStart:alreadyDownloaded:predatesDownloadRecord:heldOnDisk:)",
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.recordingIsSaved(alreadyDownloaded:predatesDownloadRecord:heldOnDisk:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.holdsUnrecoveredRecording(hasStoredRecording:storedRecordingStart:alreadyDownloaded:predatesDownloadRecord:archiveHasSessionNearStart:)": "6e9dcc448daadbab",
-    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.recordingIsSaved(alreadyDownloaded:predatesDownloadRecord:archiveHasSessionNearStart:)": "04da97b766e0278d",
-    "EmuquTests/StrapRecordingPolicyTests.swift::func StrapRecordingPolicyTests.unrecovered(downloaded:predates:archived:)": "ebd99838bcbc25e7"
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.holdsUnrecoveredRecording(hasStoredRecording:storedRecordingStart:alreadyDownloaded:predatesDownloadRecord:heldOnDisk:)": "b3989eb985d9673f",
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.recordingIsSaved(alreadyDownloaded:predatesDownloadRecord:heldOnDisk:)": "f4347e3e082c9ca1",
+    "EmuquTests/StrapRecordingPolicyTests.swift::func StrapRecordingPolicyTests.unrecovered(downloaded:predates:held:)": "959a27903a29f04d"
    }
   },
   {
    "key": "func StrapRecordingPolicyTests.testNothingStoredOrUndatedIsNotOffered()",
-   "hash": "efdbc0ce2f858431",
+   "hash": "c2ae1ae0d324a28c",
    "does": "Asserts holdsUnrecoveredRecording is false with no stored recording, and false for a stored recording with nil start date.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
-    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.holdsUnrecoveredRecording(hasStoredRecording:storedRecordingStart:alreadyDownloaded:predatesDownloadRecord:archiveHasSessionNearStart:)"
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.holdsUnrecoveredRecording(hasStoredRecording:storedRecordingStart:alreadyDownloaded:predatesDownloadRecord:heldOnDisk:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.holdsUnrecoveredRecording(hasStoredRecording:storedRecordingStart:alreadyDownloaded:predatesDownloadRecord:archiveHasSessionNearStart:)": "6e9dcc448daadbab"
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.holdsUnrecoveredRecording(hasStoredRecording:storedRecordingStart:alreadyDownloaded:predatesDownloadRecord:heldOnDisk:)": "b3989eb985d9673f"
    }
   },
   {
-   "key": "func StrapRecordingPolicyTests.unrecovered(downloaded:predates:archived:)",
-   "hash": "ce6de8e5c5e477db",
-   "does": "Test helper: holdsUnrecoveredRecording with hasStoredRecording true, start Date(), and the given downloaded/predates/archived flags.",
+   "key": "func StrapRecordingPolicyTests.unrecovered(downloaded:predates:held:)",
+   "hash": "067355b4dcdc1985",
+   "does": "Test helper: holdsUnrecoveredRecording with hasStoredRecording true, start Date(), and the given downloaded/predates/held-on-disk flags.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.holdsUnrecoveredRecording(hasStoredRecording:storedRecordingStart:alreadyDownloaded:predatesDownloadRecord:archiveHasSessionNearStart:)"
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.holdsUnrecoveredRecording(hasStoredRecording:storedRecordingStart:alreadyDownloaded:predatesDownloadRecord:heldOnDisk:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.holdsUnrecoveredRecording(hasStoredRecording:storedRecordingStart:alreadyDownloaded:predatesDownloadRecord:archiveHasSessionNearStart:)": "6e9dcc448daadbab"
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.holdsUnrecoveredRecording(hasStoredRecording:storedRecordingStart:alreadyDownloaded:predatesDownloadRecord:heldOnDisk:)": "b3989eb985d9673f"
    }
   },
   {
@@ -633,18 +649,18 @@
   },
   {
    "key": "func StrapRecordingPolicyTests.testOnlyASavedRecordingMayBeCleared()",
-   "hash": "d8d5235cbe1b09be",
-   "does": "Asserts recordingIsSaved is true when downloaded, or predates the record AND archive has a nearby session; false for either of those alone.",
+   "hash": "d577f0de2310dc04",
+   "does": "Asserts recordingIsSaved is true only when held on the device AND either downloaded or predating the record: true for downloaded+held and predates+held; false for held alone, predates alone, and downloaded but held nowhere.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
-    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.recordingIsSaved(alreadyDownloaded:predatesDownloadRecord:archiveHasSessionNearStart:)"
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.recordingIsSaved(alreadyDownloaded:predatesDownloadRecord:heldOnDisk:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.recordingIsSaved(alreadyDownloaded:predatesDownloadRecord:archiveHasSessionNearStart:)": "04da97b766e0278d"
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.recordingIsSaved(alreadyDownloaded:predatesDownloadRecord:heldOnDisk:)": "f4347e3e082c9ca1"
    }
   }
  ],

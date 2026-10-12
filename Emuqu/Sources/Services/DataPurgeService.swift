@@ -18,6 +18,34 @@ import UserNotifications
 ///   user can remove them in the Health app (picture → Privacy → Apps and Services → Emuqu).
 @MainActor
 enum DataPurgeService {
+    /// Where a purge sweeps files and preferences. `.device` is this app's
+    /// own containers and suites. Tests pass temporary ones, so running them
+    /// does not wipe the test host's files and preferences.
+    @MainActor
+    struct PurgeScope {
+        /// The App Group container: the archive, the raw backups and the
+        /// stores shared with the watch app.
+        let appGroupContainer: URL?
+        /// Application Support, Documents, Caches and tmp.
+        let sandboxRoots: [URL]
+        /// The preference suites, with an error for each that cannot be opened.
+        let defaultsDomains: @MainActor (inout [String]) -> [(name: String, store: UserDefaults)]
+
+        /// tmp is included: exports are written there before the share sheet
+        /// (chat transcripts, GPX/TCX/CSV with precise GPS, PDF reports, the
+        /// debug log).
+        static var device: PurgeScope {
+            let fileManager = FileManager.default
+            let sandbox = [FileManager.SearchPathDirectory.applicationSupportDirectory, .documentDirectory, .cachesDirectory]
+                .compactMap { fileManager.urls(for: $0, in: .userDomainMask).first }
+            return PurgeScope(
+                appGroupContainer: fileManager.containerURL(forSecurityApplicationGroupIdentifier: AppConfig.appGroupIdentifier),
+                sandboxRoots: sandbox + [fileManager.temporaryDirectory],
+                defaultsDomains: { errors in deviceDefaultsDomains(errors: &errors) }
+            )
+        }
+    }
+
     struct Report {
         let remoteDeleted: Bool
         let archiveDeleted: Bool
@@ -148,12 +176,12 @@ enum DataPurgeService {
     /// keep their existing voices rather than being unified.
     private static func resetAppGroupDirectory(
         named name: String,
+        in container: URL?,
         label: String,
         reportMissingContainer: Bool,
         errors: inout [String]
     ) -> Bool {
         let fm = FileManager.default
-        let container = fm.containerURL(forSecurityApplicationGroupIdentifier: AppConfig.appGroupIdentifier)
         guard let containerURL = container else {
             if reportMissingContainer {
                 errors.append(String(localized: "\(label): app group container unavailable", bundle: LanguageManager.appBundle))
@@ -181,13 +209,16 @@ enum DataPurgeService {
     /// `deleteRemote` is a test seam: unit tests inject a stub so the suite
     /// never fires a REAL zone deletion against whatever iCloud account the
     /// simulator happens to be signed into. Production callers leave it nil,
-    /// which routes to `cloudSync.deleteAllRemoteData()`.
+    /// which routes to `cloudSync.deleteAllRemoteData()`. `scope` is the
+    /// other one: production leaves it `.device`; tests sweep temporary
+    /// directories and a throwaway preference suite.
     static func purgeAllUserData(
         archive: SessionArchive,
         rawBackup: RawRRBackup,
         cloudSync: CloudKitSyncManager,
         settingsManager: SettingsManager,
-        deleteRemote: (() async -> Bool)? = nil
+        deleteRemote: (() async -> Bool)? = nil,
+        scope: PurgeScope = .device
     ) async -> Report {
         var errors: [String] = []
         let remoteDeleted = await purgeRemote(cloudSync: cloudSync, deleteRemote: deleteRemote, errors: &errors)
@@ -195,9 +226,9 @@ enum DataPurgeService {
         // the empty archive/backup directories and rewrite settings from live
         // in-memory state; sweeping afterwards would delete what they had just
         // put back.
-        let sweptFiles = sweepAndForget(archive: archive, rawBackup: rawBackup, errors: &errors)
-        let sweptDefaults = sweepAllDefaults(errors: &errors)
-        let directories = purgeDirectories(settingsManager: settingsManager, cloudSync: cloudSync, errors: &errors)
+        let sweptFiles = sweepAndForget(archive: archive, rawBackup: rawBackup, scope: scope, errors: &errors)
+        let sweptDefaults = sweepAllDefaults(scope: scope, errors: &errors)
+        let directories = purgeDirectories(settingsManager: settingsManager, cloudSync: cloudSync, scope: scope, errors: &errors)
         let fallible = purgeFallibleStores(errors: &errors)
         let left = readBackClearedStores(settingsManager: settingsManager, cloudSync: cloudSync)
         return Report(
@@ -243,8 +274,10 @@ enum DataPurgeService {
     /// Sweeps every container, then resets what still pointed into it: the
     /// archive's and raw backup's in-memory indexes list the deleted files
     /// until reset, and every screen showing the archive is told it changed.
-    private static func sweepAndForget(archive: SessionArchive, rawBackup: RawRRBackup, errors: inout [String]) -> Int {
-        let sweptFiles = sweepAllContainers(errors: &errors)
+    private static func sweepAndForget(
+        archive: SessionArchive, rawBackup: RawRRBackup, scope: PurgeScope, errors: inout [String]
+    ) -> Int {
+        let sweptFiles = sweepAllContainers(scope: scope, errors: &errors)
         archive.resetInMemoryStateAfterPurge()
         rawBackup.resetInMemoryStateAfterPurge()
         NotificationCenter.default.post(name: .flowRecoveryArchiveChanged, object: nil)
@@ -403,7 +436,7 @@ enum DataPurgeService {
 
     /// Suites the app persists preferences into: its own domain and the App
     /// Group shared with the watch app.
-    private static func defaultsDomains(errors: inout [String]) -> [(name: String, store: UserDefaults)] {
+    private static func deviceDefaultsDomains(errors: inout [String]) -> [(name: String, store: UserDefaults)] {
         var domains: [(String, UserDefaults)] = []
         if let bundleID = Bundle.main.bundleIdentifier {
             domains.append((bundleID, .standard))
@@ -425,9 +458,9 @@ enum DataPurgeService {
     /// report can say what the named steps had missed. This also removes the
     /// legacy `widget.*` keys an earlier build wrote into the App Group suite
     /// (health-derived scores for a widget that never shipped): none is kept.
-    private static func sweepAllDefaults(errors: inout [String]) -> Int {
+    private static func sweepAllDefaults(scope: PurgeScope, errors: inout [String]) -> Int {
         var removed = 0
-        for domain in defaultsDomains(errors: &errors) {
+        for domain in scope.defaultsDomains(&errors) {
             for key in storedKeys(in: domain) where isPurgeable(defaultsKey: key) {
                 domain.store.removeObject(forKey: key)
                 removed += 1
@@ -464,28 +497,20 @@ enum DataPurgeService {
     /// suite's preferences plist (swept key by key by `sweepAllDefaults`,
     /// while `UserDefaults` still holds it in memory) and its own caches
     /// there, and the app writes nothing into it.
-    private static func purgeRoots() -> [(url: URL, kept: Set<String>)] {
-        let fileManager = FileManager.default
+    private static func purgeRoots(_ scope: PurgeScope) -> [(url: URL, kept: Set<String>)] {
         var roots: [(url: URL, kept: Set<String>)] = []
-        if let group = fileManager.containerURL(forSecurityApplicationGroupIdentifier: AppConfig.appGroupIdentifier) {
+        if let group = scope.appGroupContainer {
             roots.append((group, keepList.union(["Library"])))
         }
-        for directory in [FileManager.SearchPathDirectory.applicationSupportDirectory, .documentDirectory, .cachesDirectory] {
-            if let url = fileManager.urls(for: directory, in: .userDomainMask).first {
-                roots.append((url, keepList))
-            }
-        }
-        // Exports are written here before the share sheet: chat transcripts,
-        // GPX/TCX/CSV with precise GPS, PDF reports, the debug log.
-        roots.append((fileManager.temporaryDirectory, keepList))
+        roots += scope.sandboxRoots.map { (url: $0, kept: keepList) }
         return roots
     }
 
     /// Delete every file and directory in every root that is not kept.
     /// Returns how many entries were removed (see `Report.residualFilesRemoved`).
-    private static func sweepAllContainers(errors: inout [String]) -> Int {
+    private static func sweepAllContainers(scope: PurgeScope, errors: inout [String]) -> Int {
         var removed = 0
-        for root in purgeRoots() {
+        for root in purgeRoots(scope) {
             removed += sweep(root: root.url, keeping: root.kept, errors: &errors)
         }
         return removed
@@ -513,14 +538,17 @@ enum DataPurgeService {
     private static func purgeDirectories(
         settingsManager: SettingsManager,
         cloudSync: CloudKitSyncManager,
+        scope: PurgeScope,
         errors: inout [String]
     ) -> (archive: Bool, backups: Bool, keychainCleared: Bool) {
         let archive = resetAppGroupDirectory(
-            named: AppConfig.archiveDirectoryName, label: String(localized: "Local sessions", bundle: LanguageManager.appBundle),
+            named: AppConfig.archiveDirectoryName, in: scope.appGroupContainer,
+            label: String(localized: "Local sessions", bundle: LanguageManager.appBundle),
             reportMissingContainer: true, errors: &errors
         )
         let backups = resetAppGroupDirectory(
-            named: AppConfig.backupDirectoryName, label: String(localized: "Raw backups", bundle: LanguageManager.appBundle),
+            named: AppConfig.backupDirectoryName, in: scope.appGroupContainer,
+            label: String(localized: "Raw backups", bundle: LanguageManager.appBundle),
             reportMissingContainer: false, errors: &errors
         )
         let keychainCleared = purgeLocalStores(cloudSync: cloudSync, settingsManager: settingsManager)

@@ -382,7 +382,9 @@ extension SessionRecoveryCoordinator {
     /// The strap's recording of `session`, on the session's clock: one that
     /// began during it. Nothing is taken while a live session owns the
     /// strap's recording. A recording that turns out to be another
-    /// session's is not dropped: it goes to the rescue backup.
+    /// session's is not dropped: it goes to the rescue backup, and if that
+    /// fails the strap's copy is not saved (`isStrapRecordingSaved`), so the
+    /// next start rescues it again instead of clearing it.
     private func pullStrapRecording(for session: HRVSession) async -> [RRPoint] {
         let manager = collector.polarManager
         let end = session.endDate ?? session.startDate
@@ -397,8 +399,8 @@ extension SessionRecoveryCoordinator {
         }
         guard let recording = await manager.fetchRecordingIfAvailable(recordedSince: session.startDate) else { return [] }
         guard let recordedStart = recording.startedAt, recordedStart <= end else {
-            debugLog("[RRCollector] Downloaded recording is not from this session — kept as a rescue backup")
-            manager.onUnrecoveredDataRescued?(recording)
+            let keptAside = manager.rescueToBackup(recording)
+            debugLog("[RRCollector] Downloaded recording is not from this session — \(keptAside ? "kept as a rescue backup" : "the rescue backup failed; the strap keeps it")")
             return []
         }
         return recording.points(onClockOf: session.startDate)

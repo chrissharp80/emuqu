@@ -280,6 +280,64 @@ final class CloudKitSessionFreshnessTests: XCTestCase {
 
     // MARK: - Helpers
 
+    // MARK: - Pull: an edit made while the iCloud copy downloads
+
+    /// The pull decides the iCloud copy is newer, then downloads it. An edit
+    /// saved here meanwhile is newer still, and must survive the replacement.
+    func testAnEditMadeWhileTheICloudCopyDownloadsIsKept() throws {
+        let (archive, directory) = makeArchive()
+        defer { removeDirectory(directory) }
+        let (local, remote) = try archivedSessionWithNewerICloudCopy(in: archive)
+        XCTAssertEqual(decide(local: archive.entryById(local.id)?.modifiedAt, remote: remote.modifiedAt), .importRemote)
+
+        try archive.update(local.id) { $0.notes = "edited here" }
+
+        XCTAssertNil(try CloudKitSessionFreshness.replaceIfStillNewer(local.id, with: remote, in: archive))
+        XCTAssertEqual(try archive.retrieve(local.id)?.notes, "edited here", "the download overwrote a newer local edit")
+    }
+
+    func testANewerICloudCopyWithNoEditHereReplacesTheLocalCopy() throws {
+        let (archive, directory) = makeArchive()
+        defer { removeDirectory(directory) }
+        let (local, remote) = try archivedSessionWithNewerICloudCopy(in: archive)
+
+        XCTAssertNotNil(try CloudKitSessionFreshness.replaceIfStillNewer(local.id, with: remote, in: archive))
+        XCTAssertEqual(try archive.retrieve(local.id)?.notes, "from iCloud")
+    }
+
+    /// Stamped in the past, so an edit made now is newer than both copies.
+    private func archivedSessionWithNewerICloudCopy(in archive: SessionArchive) throws -> (HRVSession, HRVSession) {
+        var local = makeSession()
+        let beats = (0 ..< 200).map { RRPoint(t_ms: Int64($0) * 1000, rr_ms: $0 % 2 == 0 ? 990 : 1010) }
+        local.rrSeries = RRSeries(points: beats, sessionId: local.id, startDate: local.startDate)
+        local.modifiedAt = CloudKitSessionFreshness.stamp(at: Date().addingTimeInterval(-3600))
+        _ = try archive.archive(local, skipSameNightMerge: true)
+        var remote = local
+        remote.notes = "from iCloud"
+        remote.modifiedAt = CloudKitSessionFreshness.stamp(at: Date().addingTimeInterval(-1800))
+        return (local, remote)
+    }
+
+    private func makeArchive() -> (SessionArchive, URL) {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("CloudKitSessionFreshnessTests-\(UUID().uuidString)", isDirectory: true)
+        let archive = SessionArchive(
+            directory: directory,
+            sleepScheduleProvider: { SleepSchedule(bedtimeHour: 22, bedtimeMinute: 0, sleepHours: 8.0) },
+            sessionMergeModeProvider: { .defaultGap },
+            mergeGapProvider: { 4.5 * 3600 }
+        )
+        return (archive, directory)
+    }
+
+    private func removeDirectory(_ directory: URL) {
+        do {
+            try FileManager.default.removeItem(at: directory)
+        } catch {
+            // swallow-ok: a test that archived nothing leaves no directory to remove.
+        }
+    }
+
     private func decide(local: Date?, remote: Date?) -> CloudKitSessionFreshness.Decision {
         CloudKitSessionFreshness.decide(localModifiedAt: local, remoteModifiedAt: remote)
     }
