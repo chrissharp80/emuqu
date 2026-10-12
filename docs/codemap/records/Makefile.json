@@ -744,12 +744,11 @@
   },
   {
    "key": "target codemap-setup",
-   "hash": "7bfb22364380a2fe",
-   "does": "Ensures .venv-codemap has tree-sitter and tree-sitter-swift: if .venv-codemap/bin/python exists and imports both, does nothing; otherwise creates the venv with python3 -m venv and installs scripts/codemap/requirements.txt with pip --require-hashes.",
+   "hash": "5714a224a30576b1",
+   "does": "Ensures .venv-codemap has tree-sitter and tree-sitter-swift: if .venv-codemap/bin/python exists and imports both, does nothing; otherwise runs scripts/codemap/setup_venv.sh, which builds the venv with a Python 3.10+ interpreter and installs the pinned, hash-checked wheels.",
    "entry": "make codemap-setup; prerequisite of codemap-guard, codemap-impact and codemap-report; first half of the \"Code map is current\" step in ci.yml and gates.yml",
    "calls": [
-    "ext:python3 -m venv",
-    "ext:pip install --require-hashes"
+    "ext:script scripts/codemap/setup_venv.sh"
    ],
    "reads": [
     "file:scripts/codemap/requirements.txt",
@@ -762,11 +761,13 @@
     {
      "at": "+1",
      "cond": "venv present and both modules import",
-     "effect": "nothing to do; otherwise venv created and wheels installed"
+     "effect": "nothing to do; otherwise setup_venv.sh runs (and fails the target when no Python 3.10+ is found)"
     }
    ],
    "flags": [],
-   "deps": {}
+   "deps": {
+    "scripts/codemap/setup_venv.sh::": "2e836201c3bf282d"
+   }
   },
   {
    "key": "target codemap-guard",
@@ -781,7 +782,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Makefile::target codemap-setup": "b96ea4c9672c70ec",
+    "Makefile::target codemap-setup": "d2527a25cec71c5c",
     "scripts/check_codemap.sh::": "7556633b3058e90d"
    }
   },
@@ -799,7 +800,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Makefile::target codemap-setup": "b96ea4c9672c70ec",
+    "Makefile::target codemap-setup": "d2527a25cec71c5c",
     "scripts/codemap/codemap.py::": "5d018c610440e0c2",
     "scripts/codemap/codemap.py::def main": "6b5922b4852cf300"
    }
@@ -820,7 +821,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Makefile::target codemap-setup": "b96ea4c9672c70ec",
+    "Makefile::target codemap-setup": "d2527a25cec71c5c",
     "scripts/codemap/codemap.py::": "5d018c610440e0c2",
     "scripts/codemap/codemap.py::def main": "6b5922b4852cf300"
    }

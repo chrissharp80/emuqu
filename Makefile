@@ -186,7 +186,7 @@ no-phone-home:
 # .venv-codemap. See docs/codemap/README.md.
 codemap-setup:
 	@[ -x .venv-codemap/bin/python ] && .venv-codemap/bin/python -c "import tree_sitter, tree_sitter_swift" 2>/dev/null \
-		|| { python3 -m venv .venv-codemap && .venv-codemap/bin/pip install --quiet --require-hashes -r scripts/codemap/requirements.txt; }
+		|| ./scripts/codemap/setup_venv.sh
 
 codemap-guard: codemap-setup
 	@CODEMAP_PYTHON=.venv-codemap/bin/python ./scripts/check_codemap.sh

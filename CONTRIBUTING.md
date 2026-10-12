@@ -39,7 +39,9 @@ make codemap-setup
 ```
 
 The first installs the pre-commit hook; the second installs the pinned tree-sitter
-the code map needs (the hook fails without it). A SwiftLint error or a stale
+the code map needs (the hook fails without it). It needs Python 3.10 or newer, which
+macOS's own `python3` (3.9) is not; it uses the first `python3.13` … `python3.10` or
+`python3` on PATH that is, or `CODEMAP_BASE_PYTHON`. A SwiftLint error or a stale
 code-map record blocks the commit;
 SwiftFormat only reports whether the staged files drifted, because most of the
 tree does not yet conform to `.swiftformat`. `gates.yml` runs the script gates
