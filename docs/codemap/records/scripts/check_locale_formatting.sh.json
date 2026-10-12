@@ -1,14 +1,37 @@
 {
  "file": "scripts/check_locale_formatting.sh",
- "hash": "ca648a0738eec639",
+ "hash": "b395824fc388ce51",
  "role": "CI gate: `String(format:` calls with float specifiers (and no integer specifiers) in Views/, Export/ and named narrative generators must pass `locale:`.",
  "types": [],
  "state": [
   "dir:Emuqu/Sources/Views",
   "dir:Emuqu/Sources/Export"
  ],
- "toplevel": "cd to repo root. SCAN_DIRS Views and Export (missing -> 2); SCAN_FILES CitationQuickView.swift, SessionStorageDiagnostic.swift, AnalysisSummaryGenerator*.swift, CoachReportGenerator*.swift, ScoreDetailBuilder.swift, MorningResultsViewModel.swift, Assistant/WorkoutTriggerEngine*.swift (missing -> 2). Python over whole file text: every `String(format: \"...\",` (may span lines); skipped if its first line is a // comment or carries debugLog/NSLog/os_log, or if `locale:` appears inside that call's own parentheses (string-aware paren match); float and not int specifier -> violation. Python failure -> exit 2. Violations -> exit 1; else clean. Red until WorkoutTriggerEngine+Rules.swift passes locale: at its 9 sites (handoff). Wired: gates.yml, ci.yml, Makefile.",
+ "toplevel": "cd to repo root. SCAN_DIRS Views and Export (missing -> 2); SCAN_FILES CitationQuickView.swift, SessionStorageDiagnostic.swift, AnalysisSummaryGenerator*.swift, CoachReportGenerator*.swift, ScoreDetailBuilder.swift, MorningResultsViewModel.swift, Assistant/WorkoutTriggerEngine*.swift (missing -> 2). Calls scan_violations with the dirs and files inside \"$(…)\" (the Python is in that function, not a here-document inside the substitution, so macOS bash 3.2 parses it): over whole file text: every `String(format: \"...\",` (may span lines); skipped if its first line is a // comment or carries debugLog/NSLog/os_log, or if `locale:` appears inside that call's own parentheses (string-aware paren match); float and not int specifier -> violation. Python failure -> exit 2. Violations -> exit 1; else clean. Clean on the current tree. Wired: gates.yml, ci.yml, Makefile.",
  "flags": [],
- "units": [],
- "deps": {}
+ "units": [
+  {
+   "key": "fn scan_violations",
+   "hash": "ea61209b68cf6163",
+   "does": "Runs the embedded Python scan over the directories and files passed as arguments and prints one line per user-facing String(format:) call that formats a decimal (float specifier, no integer specifier) without passing locale:. Its exit status is the Python's.",
+   "entry": "Called once from the script's top level inside VIOLATIONS=\"$(…)\".",
+   "calls": [],
+   "reads": [
+    "file:Emuqu/Sources/** (the scanned Swift files)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "the Python raises",
+     "effect": "non-zero exit; the caller reports the scan failed (exit 2)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {
+  "scripts/check_locale_formatting.sh::fn scan_violations": "48dd5b1f7a8b1c6d"
+ }
 }

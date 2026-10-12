@@ -393,7 +393,7 @@ check "leaked_mutations/unrestored_edit" \
 check "leaked_mutations/chr_escaped_original" \
     "./scripts/check_no_leaked_mutations.sh" \
     "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift');s=p.read_text();o='pow('+chr(36)+'0, 4)';assert s.count(o)>=1;p.write_text(s.replace(o,'pow('+chr(36)+'0, 2)',1))"
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift');s=p.read_text();o='pow('+chr(36)+'1, 4)';assert s.count(o)>=1;p.write_text(s.replace(o,'pow('+chr(36)+'1, 2)',1))"
 
 # An attribution that no longer matches Package.resolved is a licence
 # compliance gap, not a cosmetic one.
