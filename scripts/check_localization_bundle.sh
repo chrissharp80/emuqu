@@ -55,8 +55,11 @@ if [[ ! -d "$SOURCE_ROOT" ]]; then
     exit 2
 fi
 
-offenders="$(
-    python3 - "$SOURCE_ROOT" <<'PY'
+# The Python runs from a function rather than from inside "$( … )": bash 3.2
+# (macOS /bin/bash) scans a here-document inside a command substitution for
+# quotes, and an odd number of ' in the Python ends the substitution early.
+find_offenders() {
+    python3 - "$@" <<'PY'
 import os
 import re
 import sys
@@ -152,7 +155,9 @@ for dirpath, _dirnames, filenames in os.walk(root):
 for hit in hits:
     print(hit)
 PY
-)"
+}
+
+offenders="$(find_offenders "$SOURCE_ROOT")"
 
 if [[ -n "$offenders" ]]; then
     echo "ERROR: localized-string lookups without an explicit bundle, or naming Bundle.main:" >&2
