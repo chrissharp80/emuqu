@@ -86,7 +86,7 @@ identically by `make ci`, `make ci-local`, and GitHub Actions.
 | **Localization** | Coverage across every locale, bundle reachability, literal resolution, orphaned catalogue keys, locale-aware decimal formatting |
 | **Supply chain** | SBOM currency, SBOM drift against `Package.resolved` and the in-app acknowledgements |
 | **Documentation** | Link and constant integrity, comment `file:line` citations resolve, documented file counts match the tree |
-| **Change tracking** | Code map: every function, script, workflow step and doc section has a record written after its code and after any change in what its callees do; open high- and medium-severity findings only go down |
+| **Change tracking** | Code map: every function, script, workflow step and doc section has a record written after its code last changed, and records whose callees changed since are listed for re-check; open high- and medium-severity findings only go down |
 | **Tests about the tests** | Snapshot references committed, UI-test fresh-install reset, coverage floors (overall / logic / views) |
 | **The gates themselves** | `verify_gates_fail.sh` plants a violation per gate and requires each to go red; `check_gate_preflight.sh` requires each to fail closed on a missing input; `check_gates_wired.sh` requires each to actually run in `ci.yml` |
 

@@ -37,4 +37,6 @@ Do not record a new high or medium problem as open; fix it.
 Never stamp a record you have not rewritten against the current code, and never stamp a re-check
 you have not re-read. A stamp without a re-read defeats the check and leaves a wrong record that
 reads as verified. Do not reword a record whose behaviour did not change: it sends every caller
-back for a re-check. The full procedure is in `docs/codemap/README.md`.
+back for a re-check. The full procedure is in `docs/codemap/README.md`; its first section says how
+the map and the fixes in it were made, and what has not been verified (no compiled build yet, and
+the re-check backlog).

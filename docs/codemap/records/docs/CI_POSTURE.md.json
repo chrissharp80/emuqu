@@ -111,8 +111,8 @@
   },
   {
    "key": "§ CI posture — why the macOS suite does not run automatically > What actually enforces quality here > The gates",
-   "hash": "11631867be67c2d1",
-   "does": "Claims the listed gate groups (now including a Change tracking row: the code map's records current with their code and callees, open high/medium findings only going down) are all scripts in scripts/ run identically by make ci, make ci-local and Actions; verify_gates_fail.sh plants a violation per gate and its meta-check enumerates scripts/check_*.sh and enforce_*.sh failing on any without a plant or exemption; check_budget_monotonicity.sh skips without a baseline. Code: verify_gates_fail.sh:556 loops over check_*/enforce_* and errors at :570 on unplanted gates; check_budget_monotonicity.sh exits 0 without a baseline (no_baseline).",
+   "hash": "d370b43f3e2407a7",
+   "does": "Claims the listed gate groups (now including a Change tracking row: the code map's records current with their code, records whose callees changed listed for re-check, open high/medium findings only going down) are all scripts in scripts/ run identically by make ci, make ci-local and Actions; verify_gates_fail.sh plants a violation per gate and its meta-check enumerates scripts/check_*.sh and enforce_*.sh failing on any without a plant or exemption; check_budget_monotonicity.sh skips without a baseline. Code: verify_gates_fail.sh:556 loops over check_*/enforce_* and errors at :570 on unplanted gates; check_budget_monotonicity.sh exits 0 without a baseline (no_baseline).",
    "entry": null,
    "calls": [
     "scripts/verify_gates_fail.sh::fn backup",
